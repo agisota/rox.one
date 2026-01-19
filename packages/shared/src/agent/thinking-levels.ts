@@ -37,12 +37,13 @@ export const DEFAULT_THINKING_LEVEL: ThinkingLevel = 'think';
 /**
  * Token budgets per model family.
  *
- * Haiku has a lower max (8k per Anthropic docs).
- * Sonnet/Opus: max_tokens limit is 64k total (thinking + output combined).
- * We use 32k for max thinking to leave room for output tokens.
+ * Haiku max is 8k per Anthropic docs.
+ * Sonnet/Opus can use up to 128k, but Anthropic recommends ≤32k for real-time use
+ * (above 32k, batch processing is suggested to avoid timeouts).
+ * Also, budget_tokens must be < max_tokens, so 64k leaves no room for response.
  *
  * "Think" level matches Claude Code's `think` trigger word budget.
- * "Max Think" uses half the budget to leave room for output.
+ * "Max Think" is the recommended max for real-time streaming.
  */
 const TOKEN_BUDGETS = {
   haiku: {
