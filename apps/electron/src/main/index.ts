@@ -40,6 +40,10 @@ let sessionManager: SessionManager | null = null
 // Store pending deep link if app not ready yet (cold start)
 let pendingDeepLink: string | null = null
 
+// Set app name early (before app.whenReady) to ensure correct macOS menu bar title
+// Supports multi-instance dev: ROX_APP_NAME env var (e.g., "Rox Agents [1]")
+app.setName(process.env.ROX_APP_NAME || 'Rox Agents')
+
 // Register as default protocol client for roxagents:// URLs
 // This must be done before app.whenReady() on some platforms
 if (process.defaultApp) {
@@ -140,9 +144,6 @@ async function createInitialWindows(): Promise<void> {
 }
 
 app.whenReady().then(async () => {
-  // App name supports multi-instance dev: ROX_APP_NAME env var (e.g., "Rox Agents [1]")
-  app.setName(process.env.ROX_APP_NAME || 'Rox Agents')
-
   // Initialize bundled docs
   initializeDocs()
 
