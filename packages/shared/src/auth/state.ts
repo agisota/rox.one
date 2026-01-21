@@ -2,7 +2,6 @@
  * Unified Auth State Management
  *
  * Provides a single source of truth for all authentication state:
- * - Rox OAuth (for accessing Rox API and MCP servers)
  * - Billing configuration (api_key or oauth_token)
  * - Workspace/MCP configuration
  */
@@ -17,12 +16,6 @@ import { debug } from '../utils/debug.ts';
 // ============================================
 
 export interface AuthState {
-  /** Rox platform authentication (for accessing Rox API and MCP) */
-  rox: {
-    hasToken: boolean;
-    token: string | null;
-  };
-
   /** Claude API billing configuration */
   billing: {
     /** Configured billing type, or null if not yet configured */
@@ -43,10 +36,6 @@ export interface AuthState {
 }
 
 export interface SetupNeeds {
-  /** No Rox token AND no workspace → show full onboarding (new user) */
-  needsRoxAuth: boolean;
-  /** Has workspace but token expired/missing → show simple re-login screen */
-  needsReauth: boolean;
   /** No billing type configured → show billing picker */
   needsBillingConfig: boolean;
   /** Billing type set but missing credentials → show credential entry */
@@ -130,7 +119,6 @@ export async function getAuthState(): Promise<AuthState> {
   const config = loadStoredConfig();
   const manager = getCredentialManager();
 
-  const roxToken = await manager.getRoxOAuth();
   const apiKey = await manager.getApiKey();
   const claudeOAuth = await getValidClaudeOAuthToken();
   const activeWorkspace = getActiveWorkspace();
@@ -144,10 +132,6 @@ export async function getAuthState(): Promise<AuthState> {
   }
 
   return {
-    rox: {
-      hasToken: !!roxToken,
-      token: roxToken,
-    },
     billing: {
       type: config?.authType ?? null,
       hasCredentials,
@@ -165,12 +149,6 @@ export async function getAuthState(): Promise<AuthState> {
  * Derive what setup steps are needed based on current auth state
  */
 export function getSetupNeeds(state: AuthState): SetupNeeds {
-  // Rox OAuth is only required for new users (no workspace) who need to select a space during onboarding
-  const needsRoxAuth = !state.rox.hasToken && !state.workspace.hasWorkspace;
-
-  // Reauth is not needed for api_key or oauth_token billing
-  const needsReauth = false;
-
   // Need billing config if no billing type is set
   const needsBillingConfig = state.billing.type === null;
 
@@ -178,10 +156,8 @@ export function getSetupNeeds(state: AuthState): SetupNeeds {
   const needsCredentials = state.billing.type !== null && !state.billing.hasCredentials;
 
   return {
-    needsRoxAuth,
-    needsReauth,
     needsBillingConfig,
     needsCredentials,
-    isFullyConfigured: !needsRoxAuth && !needsReauth && !needsBillingConfig && !needsCredentials,
+    isFullyConfigured: !needsBillingConfig && !needsCredentials,
   };
 }
