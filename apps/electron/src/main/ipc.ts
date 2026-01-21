@@ -11,7 +11,7 @@ import { WindowManager } from './window-manager'
 import { registerOnboardingHandlers } from './onboarding'
 import { IPC_CHANNELS, type FileAttachment, type StoredAttachment, type AuthType, type BillingMethodInfo, type SendMessageOptions } from '../shared/types'
 import { readFileAttachment, perf, validateImageForClaudeAPI, IMAGE_LIMITS } from '@rox-agent/shared/utils'
-import { getAuthType, setAuthType, getPreferencesPath, getModel, setModel, getSessionDraft, setSessionDraft, deleteSessionDraft, getAllSessionDrafts, getWorkspaceByNameOrId, addWorkspace, setActiveWorkspace, type Workspace } from '@rox-agent/shared/config'
+import { getAuthType, setAuthType, getPreferencesPath, getModel, setModel, getSessionDraft, setSessionDraft, deleteSessionDraft, getAllSessionDrafts, getWorkspaceByNameOrId, addWorkspace, setActiveWorkspace, getAnthropicBaseUrl, setAnthropicBaseUrl, getCustomModelNames, setCustomModelNames, type Workspace } from '@rox-agent/shared/config'
 import { getSessionAttachmentsPath } from '@rox-agent/shared/sessions'
 import { loadWorkspaceSources, getSourcesBySlugs, type LoadedSource } from '@rox-agent/shared/sources'
 import { isValidThinkingLevel } from '@rox-agent/shared/agent/thinking-levels'
@@ -850,17 +850,25 @@ export function registerIpcHandlers(sessionManager: SessionManager, windowManage
     const manager = getCredentialManager()
 
     let hasCredential = false
+    let apiKey: string | undefined
     if (authType === 'api_key') {
-      hasCredential = !!(await manager.getApiKey())
+      apiKey = await manager.getApiKey() ?? undefined
+      hasCredential = !!apiKey
     } else if (authType === 'oauth_token') {
       hasCredential = !!(await manager.getClaudeOAuth())
     }
 
-    return { authType, hasCredential }
+    return {
+      authType,
+      hasCredential,
+      apiKey,
+      anthropicBaseUrl: getAnthropicBaseUrl() ?? undefined,
+      customModelNames: getCustomModelNames() ?? undefined
+    }
   })
 
   // Update billing method and credential
-  ipcMain.handle(IPC_CHANNELS.SETTINGS_UPDATE_BILLING_METHOD, async (_event, authType: AuthType, credential?: string) => {
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_UPDATE_BILLING_METHOD, async (_event, authType: AuthType, credential?: string, anthropicBaseUrl?: string | null, customModelNames?: { opus?: string; sonnet?: string; haiku?: string } | null) => {
     const manager = getCredentialManager()
 
     // Clear old credentials when switching auth types
@@ -875,6 +883,31 @@ export function registerIpcHandlers(sessionManager: SessionManager, windowManage
 
     // Set new auth type
     setAuthType(authType)
+
+    // Update Anthropic base URL (null to clear, undefined to keep unchanged)
+    if (anthropicBaseUrl !== undefined) {
+      try {
+        setAnthropicBaseUrl(anthropicBaseUrl)
+        if (anthropicBaseUrl) {
+          ipcLog.info('Anthropic base URL updated (HTTPS enforced)')
+        } else {
+          ipcLog.info('Anthropic base URL cleared')
+        }
+      } catch (error) {
+        ipcLog.error('Failed to set Anthropic base URL:', error)
+        throw error
+      }
+    }
+
+    // Update custom model names (null to clear, undefined to keep unchanged)
+    if (customModelNames !== undefined) {
+      setCustomModelNames(customModelNames)
+      if (customModelNames) {
+        ipcLog.info('Custom model names updated:', customModelNames)
+      } else {
+        ipcLog.info('Custom model names cleared')
+      }
+    }
 
     // Store new credential if provided
     if (credential) {
