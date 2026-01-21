@@ -1,11 +1,11 @@
-# Rox Agent Windows Installer
+# Rox Agents Windows Installer
 # Usage: irm https://agents.rox.do/install-app.ps1 | iex
 
 $ErrorActionPreference = "Stop"
 
 $VERSIONS_URL = "https://agents.rox.do/electron"
 $DOWNLOAD_DIR = "$env:TEMP\rox-agent-install"
-$APP_NAME = "Rox Agent"
+$APP_NAME = "Rox Agents"
 
 # Colors for output
 function Write-Info { Write-Host "> $args" -ForegroundColor Blue }
@@ -148,9 +148,9 @@ if ($actualHash -ne $checksum) {
 Write-Success "Checksum verified!"
 
 # Close the app if it's running
-$process = Get-Process -Name "Rox Agent" -ErrorAction SilentlyContinue
+$process = Get-Process -Name "Rox Agents" -ErrorAction SilentlyContinue
 if ($process) {
-    Write-Info "Closing Rox Agent..."
+    Write-Info "Closing Rox Agents..."
     $process | Stop-Process -Force
     Start-Sleep -Seconds 2
 }
@@ -185,9 +185,9 @@ Remove-Item -Path $installerPath -Force -ErrorAction SilentlyContinue
 # Add command line shortcut
 Write-Info "Adding 'rox-agents' command to PATH..."
 
-$binDir = "$env:LOCALAPPDATA\Rox Agent\bin"
+$binDir = "$env:LOCALAPPDATA\Rox Agents\bin"
 $cmdFile = "$binDir\rox-agents.cmd"
-$exePath = "$env:LOCALAPPDATA\Programs\Rox Agent\Rox Agent.exe"
+$exePath = "$env:LOCALAPPDATA\Programs\Rox Agents\Rox Agents.exe"
 
 # Create bin directory
 New-Item -ItemType Directory -Force -Path $binDir | Out-Null
@@ -211,7 +211,7 @@ Write-Host "--------------------------------------------------------------------
 Write-Host ""
 Write-Success "Installation complete!"
 Write-Host ""
-Write-Host "  Rox Agent has been installed."
+Write-Host "  Rox Agents has been installed."
 Write-Host ""
 Write-Host "  Launch from:"
 Write-Host "    - Start Menu or desktop shortcut"

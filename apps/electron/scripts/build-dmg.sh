@@ -80,7 +80,7 @@ done
 # Configuration
 BUN_VERSION="bun-v1.3.5"  # Pinned version for reproducible builds
 
-echo "=== Building Rox Agent DMG (${ARCH}) using electron-builder ==="
+echo "=== Building Rox Agents DMG (${ARCH}) using electron-builder ==="
 if [ "$UPLOAD" = true ]; then
     echo "Will upload to S3 after build"
 fi
