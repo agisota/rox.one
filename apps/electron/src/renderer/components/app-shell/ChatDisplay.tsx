@@ -24,14 +24,16 @@ import {
   parseGlobResult,
   extractOverlayData,
   CodePreviewOverlay,
-  DiffPreviewOverlay,
   MultiDiffPreviewOverlay,
   TerminalPreviewOverlay,
   GenericOverlay,
   JSONPreviewOverlay,
+  DocumentFormattedMarkdownOverlay,
+  detectLanguage,
   type ActivityItem,
   type OverlayData,
   type FileChange,
+  type DiffViewerSettings,
 } from "@rox-agent/ui"
 import { useFocusZone } from "@/hooks/keyboard"
 import { useTheme } from "@/hooks/useTheme"
@@ -408,6 +410,41 @@ export function ChatDisplay({
 
   // Overlay state - controls which overlay is shown (if any)
   const [overlayState, setOverlayState] = useState<OverlayState>(null)
+
+  // Diff viewer settings - loaded from user preferences on mount, persisted on change
+  // These settings are stored in ~/.rox-agent/preferences.json (not localStorage)
+  const [diffViewerSettings, setDiffViewerSettings] = useState<Partial<DiffViewerSettings>>({})
+
+  // Load diff viewer settings from preferences on mount
+  useEffect(() => {
+    window.electronAPI.readPreferences().then(({ content }) => {
+      try {
+        const prefs = JSON.parse(content)
+        if (prefs.diffViewer) {
+          setDiffViewerSettings(prefs.diffViewer)
+        }
+      } catch {
+        // Ignore parse errors, use defaults
+      }
+    })
+  }, [])
+
+  // Persist diff viewer settings to preferences when changed
+  const handleDiffViewerSettingsChange = useCallback((settings: DiffViewerSettings) => {
+    setDiffViewerSettings(settings)
+    // Read current preferences, merge in new settings, write back
+    window.electronAPI.readPreferences().then(({ content }) => {
+      try {
+        const prefs = JSON.parse(content)
+        prefs.diffViewer = settings
+        prefs.updatedAt = Date.now()
+        window.electronAPI.writePreferences(JSON.stringify(prefs, null, 2))
+      } catch {
+        // If preferences malformed, create fresh with just diffViewer
+        window.electronAPI.writePreferences(JSON.stringify({ diffViewer: settings, updatedAt: Date.now() }, null, 2))
+      }
+    })
+  }, [])
 
   // Close overlay handler
   const handleCloseOverlay = useCallback(() => {
@@ -955,21 +992,7 @@ export function ChatDisplay({
         />
       )}
 
-      {/* Diff preview overlay (single Edit tool) */}
-      {overlayData?.type === 'diff' && (
-        <DiffPreviewOverlay
-          isOpen={!!overlayState}
-          onClose={handleCloseOverlay}
-          original={overlayData.original}
-          modified={overlayData.modified}
-          filePath={overlayData.filePath}
-          theme={isDark ? 'dark' : 'light'}
-          error={overlayData.error}
-          onOpenFile={onOpenFile}
-        />
-      )}
-
-      {/* Multi-diff preview overlay (multiple Edit/Write tools) */}
+      {/* Multi-diff preview overlay (Edit/Write tools) */}
       {overlayState?.type === 'multi-diff' && (
         <MultiDiffPreviewOverlay
           isOpen={true}
@@ -979,6 +1002,8 @@ export function ChatDisplay({
           focusedChangeId={overlayState.focusedChangeId}
           theme={isDark ? 'dark' : 'light'}
           onOpenFile={onOpenFile}
+          diffViewerSettings={diffViewerSettings}
+          onDiffViewerSettingsChange={handleDiffViewerSettingsChange}
         />
       )}
 
@@ -1008,26 +1033,36 @@ export function ChatDisplay({
         />
       )}
 
-      {/* Markdown preview overlay (pop-out, turn details, generic activities) */}
+      {/* Markdown preview overlay (pop-out, turn details) - renders markdown properly */}
       {overlayState?.type === 'markdown' && (
-        <GenericOverlay
+        <DocumentFormattedMarkdownOverlay
           isOpen={true}
           onClose={handleCloseOverlay}
           content={overlayState.content}
-          title={overlayState.title}
-          theme={isDark ? 'dark' : 'light'}
+          onOpenUrl={onOpenUrl}
+          onOpenFile={onOpenFile}
         />
       )}
 
-      {/* Generic overlay for unknown tool types */}
+      {/* Generic overlay for unknown tool types - route markdown to fullscreen viewer */}
       {overlayData?.type === 'generic' && (
-        <GenericOverlay
-          isOpen={!!overlayState}
-          onClose={handleCloseOverlay}
-          content={overlayData.content}
-          title={overlayData.title}
-          theme={isDark ? 'dark' : 'light'}
-        />
+        detectLanguage(overlayData.content) === 'markdown' ? (
+          <DocumentFormattedMarkdownOverlay
+            isOpen={true}
+            onClose={handleCloseOverlay}
+            content={overlayData.content}
+            onOpenUrl={onOpenUrl}
+            onOpenFile={onOpenFile}
+          />
+        ) : (
+          <GenericOverlay
+            isOpen={!!overlayState}
+            onClose={handleCloseOverlay}
+            content={overlayData.content}
+            title={overlayData.title}
+            theme={isDark ? 'dark' : 'light'}
+          />
+        )
       )}
     </div>
   )
@@ -1067,8 +1102,7 @@ function ErrorMessage({ message }: { message: Message }) {
   const [detailsOpen, setDetailsOpen] = React.useState(false)
 
   return (
-    // ml-3 aligns with TurnCard header left padding for visual consistency
-    <div className="flex justify-start ml-3">
+    <div className="flex justify-start mt-4">
       {/* Subtle bg (3% opacity) + tinted shadow for softer error appearance */}
       <div
         className="max-w-[80%] shadow-tinted rounded-[8px] pl-5 pr-4 pt-2 pb-2.5 break-words"

@@ -32,6 +32,7 @@ import { AppMenu } from "../AppMenu"
 import { SquarePenRounded } from "../icons/SquarePenRounded"
 import { McpIcon } from "../icons/McpIcon"
 import { cn } from "@/lib/utils"
+import { isMac } from "@/lib/platform"
 import { Button } from "@/components/ui/button"
 import { HeaderIconButton } from "@/components/ui/HeaderIconButton"
 import { Separator } from "@/components/ui/separator"
@@ -135,6 +136,49 @@ interface AppShellProps {
 }
 
 /**
+ * FilterMenuRow - Consistent layout for filter menu items.
+ * Enforces: [icon 14px box] [label flex] [accessory 12px box]
+ */
+function FilterMenuRow({
+  icon,
+  label,
+  accessory,
+  iconClassName,
+  iconStyle,
+  noIconContainer,
+}: {
+  icon: React.ReactNode
+  label: string
+  accessory?: React.ReactNode
+  /** Additional classes for icon container (e.g., for status icon scaling) */
+  iconClassName?: string
+  /** Style for icon container (e.g., for status icon color) */
+  iconStyle?: React.CSSProperties
+  /** When true, skip the icon container (for icons that have their own container) */
+  noIconContainer?: boolean
+}) {
+  return (
+    <>
+      {noIconContainer ? (
+        // Wrapper for color inheritance. Clone icon to add bare prop (removes EntityIcon container).
+        <span style={iconStyle}>
+          {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<{ bare?: boolean }>, { bare: true }) : icon}
+        </span>
+      ) : (
+        <span
+          className={cn("h-3.5 w-3.5 flex items-center justify-center shrink-0", iconClassName)}
+          style={iconStyle}
+        >
+          {icon}
+        </span>
+      )}
+      <span className="flex-1">{label}</span>
+      <span className="w-3 shrink-0">{accessory}</span>
+    </>
+  )
+}
+
+/**
  * FilterLabelItems - Recursive component for rendering label tree in the filter dropdown.
  * Labels with children render as nested submenus; leaf labels render as toggleable items.
  */
@@ -157,9 +201,11 @@ function FilterLabelItems({
           return (
             <DropdownMenuSub key={label.id}>
               <StyledDropdownMenuSubTrigger>
-                <LabelIcon label={label} size="sm" hasChildren />
-                <span className="flex-1">{label.name}</span>
-                {labelFilter.has(label.id) && <Check className="h-3 w-3 text-foreground" />}
+                <FilterMenuRow
+                  icon={<LabelIcon label={label} size="sm" hasChildren />}
+                  label={label.name}
+                  accessory={labelFilter.has(label.id) && <Check className="h-3 w-3 text-foreground" />}
+                />
               </StyledDropdownMenuSubTrigger>
               <StyledDropdownMenuSubContent minWidth="min-w-[160px]">
                 {/* Allow selecting the parent label itself */}
@@ -174,9 +220,11 @@ function FilterLabelItems({
                     })
                   }}
                 >
-                  <LabelIcon label={label} size="sm" hasChildren />
-                  <span className="flex-1">{label.name}</span>
-                  <span className="w-3.5 ml-4">{labelFilter.has(label.id) && <Check className="h-3.5 w-3.5 text-foreground" />}</span>
+                  <FilterMenuRow
+                    icon={<LabelIcon label={label} size="sm" hasChildren />}
+                    label={label.name}
+                    accessory={labelFilter.has(label.id) && <Check className="h-3 w-3 text-foreground" />}
+                  />
                 </StyledDropdownMenuItem>
                 <StyledDropdownMenuSeparator />
                 {/* Recurse into children */}
@@ -203,9 +251,11 @@ function FilterLabelItems({
               })
             }}
           >
-            <LabelIcon label={label} size="sm" />
-            <span className="flex-1">{label.name}</span>
-            <span className="w-3.5 ml-4">{labelFilter.has(label.id) && <Check className="h-3.5 w-3.5 text-foreground" />}</span>
+            <FilterMenuRow
+              icon={<LabelIcon label={label} size="sm" />}
+              label={label.name}
+              accessory={labelFilter.has(label.id) && <Check className="h-3 w-3 text-foreground" />}
+            />
           </StyledDropdownMenuItem>
         )
       })}
@@ -1451,27 +1501,32 @@ function AppShellContent({
         */}
         <div className="titlebar-drag-region fixed top-0 left-0 right-0 h-[50px] z-titlebar" />
 
-      {/* App Menu - fixed position, always visible (hidden in focused mode) */}
-      {!isFocusedMode && (
-        <div
-          className="fixed left-[86px] top-0 h-[50px] z-overlay flex items-center titlebar-no-drag pr-2"
-          style={{ width: sidebarWidth - 86 }}
-        >
-          <AppMenu
-            onNewChat={() => handleNewChat(true)}
-            onOpenSettings={onOpenSettings}
-            onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
-            onOpenStoredUserPreferences={onOpenStoredUserPreferences}
-            onReset={onReset}
-            onBack={goBack}
-            onForward={goForward}
-            canGoBack={canGoBack}
-            canGoForward={canGoForward}
-            onToggleSidebar={() => setIsSidebarVisible(prev => !prev)}
-            isSidebarVisible={isSidebarVisible}
-          />
-        </div>
-      )}
+      {/* App Menu - fixed position, always visible (hidden in focused mode)
+          On macOS: offset 86px to avoid stoplight controls
+          On Windows/Linux: offset 12px (no stoplight controls) */}
+      {!isFocusedMode && (() => {
+        const menuLeftOffset = isMac ? 86 : 12
+        return (
+          <div
+            className="fixed top-0 h-[50px] z-overlay flex items-center titlebar-no-drag pr-2"
+            style={{ left: menuLeftOffset, width: sidebarWidth - menuLeftOffset }}
+          >
+            <AppMenu
+              onNewChat={() => handleNewChat(true)}
+              onNewWindow={() => window.electronAPI.menuNewWindow()}
+              onOpenSettings={onOpenSettings}
+              onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
+              onOpenStoredUserPreferences={onOpenStoredUserPreferences}
+              onBack={goBack}
+              onForward={goForward}
+              canGoBack={canGoBack}
+              canGoForward={canGoForward}
+              onToggleSidebar={() => setIsSidebarVisible(prev => !prev)}
+              isSidebarVisible={isSidebarVisible}
+            />
+          </div>
+        )
+      })()}
 
       {/* === OUTER LAYOUT: Sidebar | Main Content === */}
       <div className="h-full flex items-stretch relative">
@@ -1609,7 +1664,7 @@ function AppShellContent({
                       onToggle: () => toggleExpanded('nav:sources'),
                       contextMenu: {
                         type: 'sources',
-                        onAddSource: openAddSource,
+                        onAddSource: () => openAddSource(),
                       },
                       items: [
                         {
@@ -1795,7 +1850,8 @@ function AppShellContent({
                       <DropdownMenuTrigger asChild>
                         <HeaderIconButton
                           icon={<ListFilter className="h-4 w-4" />}
-                          className={(listFilter.size > 0 || labelFilter.size > 0) ? "text-foreground" : undefined}
+                          className={(listFilter.size > 0 || labelFilter.size > 0) ? "bg-accent/5 text-accent rounded-[8px] shadow-tinted" : "rounded-[8px]"}
+                          style={(listFilter.size > 0 || labelFilter.size > 0) ? { '--shadow-color': 'var(--accent-rgb)' } as React.CSSProperties : undefined}
                         />
                       </DropdownMenuTrigger>
                       <StyledDropdownMenuContent align="end" light minWidth="min-w-[200px]">
@@ -1834,14 +1890,13 @@ function AppShellContent({
                                     })
                                   }}
                                 >
-                                  <span
-                                    className="h-3.5 w-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full [&>img]:w-full [&>img]:h-full"
-                                    style={applyColor ? { color: state.resolvedColor } : undefined}
-                                  >
-                                    {state.icon}
-                                  </span>
-                                  <span className="flex-1">{state.label}</span>
-                                  <Check className="h-3.5 w-3.5 text-foreground ml-4" />
+                                  <FilterMenuRow
+                                    icon={state.icon}
+                                    label={state.label}
+                                    accessory={<Check className="h-3 w-3 text-foreground" />}
+                                    iconStyle={applyColor ? { color: state.resolvedColor } : undefined}
+                                    noIconContainer
+                                  />
                                 </StyledDropdownMenuItem>
                               )
                             })}
@@ -1861,9 +1916,11 @@ function AppShellContent({
                                     })
                                   }}
                                 >
-                                  <LabelIcon label={label} size="sm" />
-                                  <span className="flex-1">{label.name}</span>
-                                  <Check className="h-3.5 w-3.5 text-foreground ml-4" />
+                                  <FilterMenuRow
+                                    icon={<LabelIcon label={label} size="sm" />}
+                                    label={label.name}
+                                    accessory={<Check className="h-3 w-3 text-foreground" />}
+                                  />
                                 </StyledDropdownMenuItem>
                               )
                             })}
@@ -1893,14 +1950,13 @@ function AppShellContent({
                                     })
                                   }}
                                 >
-                                  <span
-                                    className="h-3.5 w-3.5 flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full [&>img]:w-full [&>img]:h-full"
-                                    style={applyColor ? { color: state.resolvedColor } : undefined}
-                                  >
-                                    {state.icon}
-                                  </span>
-                                  <span className="flex-1">{state.label}</span>
-                                  <span className="w-3.5 ml-4">{listFilter.has(state.id) && <Check className="h-3.5 w-3.5 text-foreground" />}</span>
+                                  <FilterMenuRow
+                                    icon={state.icon}
+                                    label={state.label}
+                                    accessory={listFilter.has(state.id) && <Check className="h-3 w-3 text-foreground" />}
+                                    iconStyle={applyColor ? { color: state.resolvedColor } : undefined}
+                                    noIconContainer
+                                  />
                                 </StyledDropdownMenuItem>
                               )
                             })}
@@ -2313,8 +2369,8 @@ function AppShellContent({
               modal={true}
               trigger={
                 <div
-                  className="fixed top-[120px] w-0 h-0 pointer-events-none"
-                  style={{ left: sidebarWidth + 20 }}
+                  className="fixed w-0 h-0 pointer-events-none"
+                  style={{ left: sidebarWidth + 20, top: editPopoverAnchorY.current }}
                   aria-hidden="true"
                 />
               }

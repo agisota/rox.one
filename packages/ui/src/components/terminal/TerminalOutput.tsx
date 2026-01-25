@@ -49,8 +49,7 @@ export function TerminalOutput({
 
   const isDark = theme === 'dark'
 
-  // Theme-aware colors
-  const bgColor = isDark ? '#1e1e1e' : '#ffffff'
+  // Theme-aware colors for inner elements (outer bg inherits from overlay's bg-background)
   const textColor = isDark ? '#e4e4e4' : '#1a1a1a'
   const mutedColor = isDark ? '#888888' : '#666666'
   const matchColor = '#22c55e' // Green for grep matches
@@ -89,8 +88,8 @@ export function TerminalOutput({
 
   return (
     <div
-      className={cn('h-full w-full overflow-auto p-4 font-mono text-sm', className)}
-      style={{ fontFamily: '"JetBrains Mono", monospace', backgroundColor: bgColor, color: textColor }}
+      className={cn('h-full w-full overflow-auto px-5 py-4 font-mono text-sm', className)}
+      style={{ fontFamily: '"JetBrains Mono", monospace' }}
     >
       {/* Command section */}
       <div className="mb-4">
@@ -114,11 +113,8 @@ export function TerminalOutput({
             )}
           </button>
         </div>
-        <div
-          className="p-3 rounded-lg overflow-x-auto"
-          style={{ backgroundColor: codeBg }}
-        >
-          <code style={{ color: cmdColor }}>{command}</code>
+        <div className="overflow-x-auto">
+          <code className="text-foreground">{command}</code>
         </div>
       </div>
 
@@ -156,12 +152,8 @@ export function TerminalOutput({
           </button>
         </div>
         <pre
-          className="p-3 rounded-lg overflow-auto"
-          style={{
-            backgroundColor: outputBg,
-            color: textColor,
-            maxHeight: 'calc(100vh - 200px)',
-          }}
+          className="overflow-auto"
+          style={{ color: textColor }}
         >
           {/* Grep output with line number highlighting */}
           {isGrepOutput && grepLines.length > 0 ? (

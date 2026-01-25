@@ -7,10 +7,9 @@ export { CopyButton, type CopyButtonProps } from './CopyButton'
 
 // Specialized overlays
 export { CodePreviewOverlay, type CodePreviewOverlayProps } from './CodePreviewOverlay'
-export { DiffPreviewOverlay, type DiffPreviewOverlayProps } from './DiffPreviewOverlay'
-export { MultiDiffPreviewOverlay, type MultiDiffPreviewOverlayProps, type FileChange } from './MultiDiffPreviewOverlay'
+export { MultiDiffPreviewOverlay, type MultiDiffPreviewOverlayProps, type FileChange, type DiffViewerSettings } from './MultiDiffPreviewOverlay'
 export { TerminalPreviewOverlay, type TerminalPreviewOverlayProps } from './TerminalPreviewOverlay'
-export { GenericOverlay, detectLanguageFromPath, type GenericOverlayProps } from './GenericOverlay'
+export { GenericOverlay, detectLanguage, detectLanguageFromPath, type GenericOverlayProps } from './GenericOverlay'
 export { JSONPreviewOverlay, type JSONPreviewOverlayProps } from './JSONPreviewOverlay'
 export { DataTableOverlay, type DataTableOverlayProps } from './DataTableOverlay'
 export { DocumentFormattedMarkdownOverlay, type DocumentFormattedMarkdownOverlayProps } from './DocumentFormattedMarkdownOverlay'

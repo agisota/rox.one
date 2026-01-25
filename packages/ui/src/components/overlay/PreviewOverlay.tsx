@@ -9,7 +9,7 @@
  * - Consistent header layout with badge, title, close button
  * - Optional error banner
  *
- * Used by: CodePreviewOverlay, DiffPreviewOverlay, TerminalPreviewOverlay, GenericOverlay
+ * Used by: CodePreviewOverlay, TerminalPreviewOverlay, GenericOverlay
  */
 
 import { useEffect, type ReactNode } from 'react'
@@ -21,6 +21,9 @@ import { FullscreenOverlayBase } from './FullscreenOverlayBase'
 
 /** Badge color variants - re-export for backwards compatibility */
 export type BadgeVariant = PreviewBadgeVariant
+
+/** Shared background class for all overlay modes - single source of truth */
+const OVERLAY_BG = 'bg-background'
 
 export interface PreviewOverlayProps {
   /** Whether the overlay is visible */
@@ -56,10 +59,11 @@ export interface PreviewOverlayProps {
   /** Main content */
   children: ReactNode
 
-  /** Background color override (default: theme-based) */
-  backgroundColor?: string
-  /** Text color override (default: theme-based) */
-  textColor?: string
+  /** Render inline (no dialog/portal) — for embedding in design system playground */
+  embedded?: boolean
+
+  /** Custom class names for the overlay container (e.g., to override bg-background) */
+  className?: string
 }
 
 export function PreviewOverlay({
@@ -73,9 +77,11 @@ export function PreviewOverlay({
   error,
   headerActions,
   children,
-  backgroundColor,
-  textColor,
+  embedded = false,
+  className,
 }: PreviewOverlayProps) {
+  // Use custom className if provided, otherwise fall back to default bg
+  const bgClass = className || OVERLAY_BG
   const responsiveMode = useOverlayMode()
   const isModal = responsiveMode === 'modal'
 
@@ -93,18 +99,10 @@ export function PreviewOverlay({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, isModal, onClose])
 
-  if (!isOpen) return null
-
-  // Use CSS variables so custom themes are respected.
-  // Overlays that need hardcoded colors (code viewers with Shiki themes)
-  // explicitly pass backgroundColor/textColor props, bypassing these defaults.
-  const defaultBg = 'var(--background)'
-  const defaultText = 'var(--foreground)'
-  const bgColor = backgroundColor ?? defaultBg
-  const txtColor = textColor ?? defaultText
+  if (!isOpen && !embedded) return null
 
   const header = (
-    <PreviewHeader onClose={onClose} height={isModal ? 48 : 54}>
+    <PreviewHeader onClose={onClose} height={48} rightActions={headerActions}>
       <PreviewHeaderBadge
         icon={badge.icon}
         label={badge.label}
@@ -112,7 +110,6 @@ export function PreviewOverlay({
       />
       <PreviewHeaderBadge label={title} onClick={onTitleClick} shrinkable />
       {subtitle && <PreviewHeaderBadge label={String(subtitle)} />}
-      {headerActions}
     </PreviewHeader>
   )
 
@@ -128,18 +125,26 @@ export function PreviewOverlay({
 
   const contentArea = <div className="flex-1 min-h-0 relative">{children}</div>
 
+  // Embedded mode — renders inline without dialog/portal, for design system playground
+  if (embedded) {
+    return (
+      <div className={`flex flex-col ${bgClass} h-full w-full overflow-hidden rounded-lg border border-foreground/5`}>
+        {header}
+        {errorBanner}
+        {contentArea}
+      </div>
+    )
+  }
+
   // Fullscreen mode - uses FullscreenOverlayBase for portal, traffic lights, and ESC handling
   if (!isModal) {
     return (
       <FullscreenOverlayBase
         isOpen={isOpen}
         onClose={onClose}
-        className="flex flex-col bg-background"
+        className={`flex flex-col ${bgClass}`}
       >
-        <div
-          className="flex flex-col flex-1 min-h-0"
-          style={{ backgroundColor: bgColor, color: txtColor }}
-        >
+        <div className="flex flex-col flex-1 min-h-0">
           {header}
           {errorBanner}
           {contentArea}
@@ -157,10 +162,8 @@ export function PreviewOverlay({
       }}
     >
       <div
-        className="flex flex-col bg-background shadow-3xl overflow-hidden smooth-corners"
+        className={`flex flex-col ${bgClass} shadow-3xl overflow-hidden smooth-corners`}
         style={{
-          backgroundColor: bgColor,
-          color: txtColor,
           width: '90vw',
           maxWidth: OVERLAY_LAYOUT.modalMaxWidth,
           height: `${OVERLAY_LAYOUT.modalMaxHeightPercent}vh`,

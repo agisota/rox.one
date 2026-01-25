@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useMemo, useEffect, useRef, useCallback, useState } from 'react'
 import type { ToolDisplayMeta } from '@rox-agent/core'
+import { normalizePath, pathStartsWith, stripPathPrefix } from '@rox-agent/core/utils'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   ChevronRight,
@@ -24,6 +25,8 @@ import * as ReactDOM from 'react-dom'
 import { cn } from '../../lib/utils'
 import { Markdown } from '../markdown'
 import { Spinner } from '../ui/LoadingIndicator'
+import { parseDiffFromFile, type FileContents } from '@pierre/diffs'
+import { getDiffStats } from '../code-viewer'
 import { TurnCardActionsMenu } from './TurnCardActionsMenu'
 import { computeLastChildSet, groupActivitiesByParent, isActivityGroup, formatDuration, formatTokens, deriveTurnPhase, shouldShowThinkingIndicator, type ActivityGroup, type AssistantTurn } from './turn-utils'
 import { DocumentFormattedMarkdownOverlay } from '../overlay'
@@ -60,6 +63,45 @@ function stripMarkdown(text: string): string {
     // Collapse whitespace
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+/**
+ * Compute diff stats for Edit/Write tool inputs.
+ * Uses @pierre/diffs for accurate line-by-line diff calculation.
+ *
+ * @param toolName - 'Edit' or 'Write'
+ * @param toolInput - The tool input containing old_string/new_string (Edit) or content (Write)
+ * @returns { additions, deletions } or null if not applicable
+ */
+function computeEditWriteDiffStats(
+  toolName: string | undefined,
+  toolInput: Record<string, unknown> | undefined
+): { additions: number; deletions: number } | null {
+  if (!toolInput) return null
+
+  if (toolName === 'Edit') {
+    const oldString = (toolInput.old_string as string) ?? ''
+    const newString = (toolInput.new_string as string) ?? ''
+    if (!oldString && !newString) return null
+
+    const oldFile: FileContents = { name: 'file', contents: oldString, lang: 'text' }
+    const newFile: FileContents = { name: 'file', contents: newString, lang: 'text' }
+    const fileDiff = parseDiffFromFile(oldFile, newFile)
+    return getDiffStats(fileDiff)
+  }
+
+  if (toolName === 'Write') {
+    const content = (toolInput.content as string) ?? ''
+    if (!content) return null
+
+    // For Write, everything is an addition (new file content)
+    const oldFile: FileContents = { name: 'file', contents: '', lang: 'text' }
+    const newFile: FileContents = { name: 'file', contents: content, lang: 'text' }
+    const fileDiff = parseDiffFromFile(oldFile, newFile)
+    return getDiffStats(fileDiff)
+  }
+
+  return null
 }
 
 // ============================================================================
@@ -375,16 +417,16 @@ function stripSessionFolderPath(filePath: string, sessionFolderPath?: string): s
 
   // Get workspace path (parent of sessions folder)
   // sessionFolderPath: /path/workspaces/{uuid}/sessions/{sessionId}
-  const workspacePath = sessionFolderPath.replace(/\/sessions\/[^/]+$/, '')
+  const workspacePath = normalizePath(sessionFolderPath).replace(/\/sessions\/[^/]+$/, '')
 
   // Try session folder first (more specific)
-  if (filePath.startsWith(sessionFolderPath + '/')) {
-    return filePath.slice(sessionFolderPath.length + 1)
+  if (pathStartsWith(filePath, sessionFolderPath)) {
+    return stripPathPrefix(filePath, sessionFolderPath)
   }
 
   // Then try workspace folder
-  if (filePath.startsWith(workspacePath + '/')) {
-    return filePath.slice(workspacePath.length + 1)
+  if (pathStartsWith(filePath, workspacePath)) {
+    return stripPathPrefix(filePath, workspacePath)
   }
 
   return filePath
@@ -732,6 +774,7 @@ function ActivityRow({ activity, onOpenDetails, isLastChild, sessionFolderPath }
   // Intent for MCP tools, description for Bash commands
   const intentOrDescription = activity.intent || (activity.toolInput?.description as string | undefined)
   const inputSummary = formatToolInput(activity.toolInput, activity.toolName, sessionFolderPath)
+  const diffStats = computeEditWriteDiffStats(activity.toolName, activity.toolInput)
   const isComplete = activity.status === 'completed' || activity.status === 'error'
   const isBackgrounded = activity.status === 'backgrounded'
 
@@ -757,6 +800,29 @@ function ActivityRow({ activity, onOpenDetails, isLastChild, sessionFolderPath }
         <ActivityStatusIcon status={activity.status} toolName={activity.toolName} customIcon={toolDisplay.icon} />
         {/* Tool name (always shown, darker) - underlined when clickable */}
         <span className={cn("shrink-0", onOpenDetails && isComplete && "group-hover/row:underline")}>{displayedName}</span>
+        {/* Diff stats and filename for Edit/Write tools - shown right after tool name */}
+        {!isBackgrounded && diffStats && (
+          <span className="flex items-center gap-1.5 text-[10px] shrink-0">
+            {diffStats.deletions > 0 && (
+              <span
+                className="px-1.5 py-0.5 bg-[color-mix(in_oklab,var(--destructive)_5%,var(--background))] shadow-tinted rounded-[4px] text-destructive"
+                style={{ '--shadow-color': 'var(--destructive-rgb)' } as React.CSSProperties}
+              >{diffStats.deletions}</span>
+            )}
+            {diffStats.additions > 0 && (
+              <span
+                className="px-1.5 py-0.5 bg-[color-mix(in_oklab,var(--success)_5%,var(--background))] shadow-tinted rounded-[4px] text-success"
+                style={{ '--shadow-color': 'var(--success-rgb)' } as React.CSSProperties}
+              >{diffStats.additions}</span>
+            )}
+            {/* Filename badge */}
+            {activity.toolInput?.file_path && (
+              <span className="px-1.5 py-0.5 bg-background shadow-minimal rounded-[4px] text-[11px] text-foreground/70">
+                {(activity.toolInput.file_path as string).split('/').pop()}
+              </span>
+            )}
+          </span>
+        )}
         {/* Background task info (task/shell ID + elapsed time) */}
         {backgroundInfo && (
           <>

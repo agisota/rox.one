@@ -11,7 +11,7 @@
 import * as React from 'react'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { FileDiff, type FileDiffMetadata, type FileDiffProps } from '@pierre/diffs/react'
-import { parseDiffFromFile, DIFFS_TAG_NAME, type FileContents } from '@pierre/diffs'
+import { parseDiffFromFile, DIFFS_TAG_NAME, registerCustomTheme, resolveTheme, type FileContents } from '@pierre/diffs'
 import { cn } from '../../lib/utils'
 import { LANGUAGE_MAP } from './language-map'
 
@@ -28,6 +28,18 @@ if (typeof HTMLElement !== 'undefined' && !customElements.get(DIFFS_TAG_NAME)) {
   customElements.define(DIFFS_TAG_NAME, FileDiffContainer)
 }
 
+// Register custom themes based on pierre-dark/light but with transparent background.
+// This lets the container's var(--background) CSS variable show through,
+// so the diff viewer respects custom app themes (e.g. Dracula).
+registerCustomTheme('rox-dark', async () => {
+  const theme = await resolveTheme('pierre-dark')
+  return { ...theme, name: 'rox-dark', bg: 'transparent', colors: { ...theme.colors, 'editor.background': 'transparent' } }
+})
+registerCustomTheme('rox-light', async () => {
+  const theme = await resolveTheme('pierre-light')
+  return { ...theme, name: 'rox-light', bg: 'transparent', colors: { ...theme.colors, 'editor.background': 'transparent' } }
+})
+
 export interface ShikiDiffViewerProps {
   /** Original (before) content */
   original: string
@@ -41,10 +53,29 @@ export interface ShikiDiffViewerProps {
   diffStyle?: 'unified' | 'split'
   /** Theme mode */
   theme?: 'light' | 'dark'
+  /** Shiki theme name (e.g., 'dracula', 'github-dark'). When provided, uses the matching
+   *  Shiki theme natively. Falls back to rox-dark/rox-light (transparent bg) if not set. */
+  shikiTheme?: string
+  /** Disable background highlighting on changed lines */
+  disableBackground?: boolean
   /** Callback when ready */
   onReady?: () => void
   /** Additional class names */
   className?: string
+}
+
+/**
+ * Calculate addition/deletion stats from a FileDiffMetadata
+ * Useful for displaying change counts in headers
+ */
+export function getDiffStats(fileDiff: FileDiffMetadata): { additions: number; deletions: number } {
+  let additions = 0
+  let deletions = 0
+  for (const hunk of fileDiff.hunks) {
+    additions += hunk.additionCount
+    deletions += hunk.deletionCount
+  }
+  return { additions, deletions }
 }
 
 function getLanguageFromPath(filePath: string, explicit?: string): string {
@@ -63,6 +94,8 @@ export function ShikiDiffViewer({
   language,
   diffStyle = 'unified',
   theme = 'light',
+  shikiTheme,
+  disableBackground = false,
   onReady,
   className,
 }: ShikiDiffViewerProps) {
@@ -92,17 +125,19 @@ export function ShikiDiffViewer({
     return parseDiffFromFile(oldFile, newFile)
   }, [oldFile, newFile])
 
-  // Diff options - use pierre themes for better diff contrast
+  // Diff options - use the app's Shiki theme if available, otherwise fall back
+  // to rox-dark/rox-light which have transparent bg for CSS variable theming
+  const resolvedThemeName = shikiTheme || (theme === 'dark' ? 'rox-dark' : 'rox-light')
   const options: FileDiffProps<undefined>['options'] = useMemo(() => ({
-    theme: theme === 'dark' ? 'pierre-dark' : 'pierre-light',
+    theme: resolvedThemeName,
     diffStyle,
     diffIndicators: 'bars',
-    disableBackground: false,
+    disableBackground,
     lineDiffType: 'word',
     overflow: 'scroll',
-    disableFileHeader: true, // We handle headers ourselves
+    disableFileHeader: true,
     themeType: theme === 'dark' ? 'dark' : 'light',
-  }), [theme, diffStyle])
+  }), [resolvedThemeName, theme, diffStyle, disableBackground])
 
   // Call onReady after first render
   useEffect(() => {

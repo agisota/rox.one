@@ -16,24 +16,19 @@ import { cn } from '../../lib/utils'
  * Badge variants using semantic colors
  */
 export const PREVIEW_BADGE_VARIANTS = {
-  // Semantic tool variants (use 6-color design system)
-  edit: 'bg-info/15 text-info',
-  write: 'bg-success/15 text-success',
-  read: 'bg-background text-foreground/70',
-  bash: 'bg-background text-foreground/70',
-  grep: 'bg-background text-foreground/70',
-  glob: 'bg-background text-foreground/70',
-
-  // Color-based variants (for flexibility)
-  blue: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  orange: 'bg-orange-500/10 text-orange-600 dark:text-orange-400',
-  green: 'bg-green-500/10 text-green-600 dark:text-green-400',
-  purple: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-  gray: 'bg-gray-500/10 text-gray-600 dark:text-gray-400',
-
-  // Default - white background (for file paths, metadata)
-  default: 'bg-background text-foreground/70',
+  edit: 'text-foreground/70',
+  write: 'text-foreground/70',
+  read: 'text-foreground/70',
+  bash: 'text-foreground/70',
+  grep: 'text-foreground/70',
+  glob: 'text-foreground/70',
+  blue: 'text-foreground/70',
+  amber: 'text-foreground/70',
+  orange: 'text-foreground/70',
+  green: 'text-foreground/70',
+  purple: 'text-foreground/70',
+  gray: 'text-foreground/70',
+  default: 'text-foreground/70',
 } as const
 
 export type PreviewBadgeVariant = keyof typeof PREVIEW_BADGE_VARIANTS
@@ -77,7 +72,7 @@ export function PreviewHeaderBadge({
 }: PreviewHeaderBadgeProps) {
   const variantClasses = PREVIEW_BADGE_VARIANTS[variant]
   const baseClasses = cn(
-    'flex items-center gap-1.5 h-[26px] px-2.5 rounded-[6px] font-sans text-[13px] font-medium shadow-minimal',
+    'flex items-center gap-1.5 h-[26px] px-2.5 rounded-[6px] font-sans text-[13px] font-medium bg-background shadow-minimal',
     variantClasses,
     className
   )
@@ -108,6 +103,8 @@ export interface PreviewHeaderProps {
   children?: React.ReactNode
   /** Close handler - when provided, shows X button on right */
   onClose?: () => void
+  /** Actions to render on the right, just before the close button */
+  rightActions?: React.ReactNode
   /** Height of the header (default: 50px for windows, 44px for overlays) */
   height?: number
   /** Additional className for the header */
@@ -127,6 +124,7 @@ export interface PreviewHeaderProps {
 export function PreviewHeader({
   children,
   onClose,
+  rightActions,
   height = 50,
   className,
   style,
@@ -134,29 +132,28 @@ export function PreviewHeader({
   return (
     <div
       className={cn(
-        'shrink-0 flex items-center justify-between px-5 border-b border-foreground/5',
-        'backdrop-blur-xl backdrop-saturate-150',
+        'shrink-0 flex items-center justify-between px-3 border-b border-foreground/5',
         className
       )}
       style={{ height, ...style }}
     >
-      {/* Left side - space for traffic lights on macOS */}
-      <div className="w-[70px] shrink-0" />
+      {/* Left side - space for traffic lights on macOS, flex-1 to balance with right side */}
+      <div className="flex-1 min-w-[70px]" />
 
       {/* Center - badges row */}
       <div className="flex items-center gap-2 min-w-0">
         {children}
       </div>
 
-      {/* Right side - close button or spacer */}
-      {onClose ? (
-        <div className="w-[76px] shrink-0 flex justify-end">
+      {/* Right side - actions + close button, flex-1 to balance with left side */}
+      <div className="flex-1 min-w-[70px] flex items-center gap-2 justify-end">
+        {rightActions}
+        {onClose && (
           <button
             onClick={onClose}
             className={cn(
-              'p-1.5 rounded-[8px] transition-colors',
-              'text-foreground/50 hover:text-foreground',
-              'hover:bg-foreground/5',
+              'p-1.5 rounded-[6px] bg-background shadow-minimal cursor-pointer',
+              'opacity-70 hover:opacity-100 transition-opacity',
               'focus:outline-none focus-visible:ring-1 focus-visible:ring-ring'
             )}
             style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
@@ -164,10 +161,8 @@ export function PreviewHeader({
           >
             <X className="w-4 h-4" />
           </button>
-        </div>
-      ) : (
-        <div className="w-[76px] shrink-0" />
-      )}
+        )}
+      </div>
     </div>
   )
 }

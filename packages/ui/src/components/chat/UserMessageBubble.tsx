@@ -13,6 +13,7 @@
 
 import type { ReactNode } from 'react'
 import type { StoredAttachment, ContentBadge } from '@rox-agent/core'
+import { normalizePath } from '@rox-agent/core/utils'
 import { cn } from '../../lib/utils'
 import { Markdown } from '../markdown'
 import { FileTypeIcon, getFileTypeLabel } from './attachment-helpers'
@@ -186,7 +187,7 @@ function InlineFileBadge({
   // Strip .rox-agent workspace/session path prefix for cleaner tooltip display
   // e.g. "/Users/.../workspaces/{id}/sessions/{id}/plans/foo.md" → "plans/foo.md"
   const rawPath = badge.filePath || badge.label
-  const tooltipPath = rawPath.replace(/^.*\.rox-agent\/workspaces\/[^/]+\/(sessions\/[^/]+\/)?/, '')
+  const tooltipPath = normalizePath(rawPath).replace(/^.*\.rox-agent\/workspaces\/[^/]+\/(sessions\/[^/]+\/)?/, '')
   const isClickable = !!badge.filePath && !!onFileClick
 
   const badgeContent = (

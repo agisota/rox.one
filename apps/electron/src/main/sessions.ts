@@ -23,9 +23,6 @@ import {
   saveSession as saveStoredSession,
   createSession as createStoredSession,
   deleteSession as deleteStoredSession,
-  flagSession as flagStoredSession,
-  unflagSession as unflagStoredSession,
-  setSessionTodoState as setStoredSessionTodoState,
   updateSessionMetadata,
   setPendingPlanExecution as setStoredPendingPlanExecution,
   markCompactionComplete as markStoredCompactionComplete,
@@ -79,8 +76,11 @@ export const AGENT_FLAGS = {
  * Build MCP and API servers from sources using the new unified modules.
  * Handles credential loading and server building in one step.
  * When auth errors occur, updates source configs to reflect actual state.
+ *
+ * @param sources - Sources to build servers for
+ * @param sessionPath - Optional path to session folder for saving large API responses
  */
-async function buildServersFromSources(sources: LoadedSource[]) {
+async function buildServersFromSources(sources: LoadedSource[], sessionPath?: string) {
   const span = perf.span('sources.buildServers', { count: sources.length })
   const credManager = getSourceCredentialManager()
   const serverBuilder = getSourceServerBuilder()
@@ -125,7 +125,8 @@ async function buildServersFromSources(sources: LoadedSource[]) {
     return undefined
   }
 
-  const result = await serverBuilder.buildAll(sourcesWithCreds, getTokenForSource)
+  // Pass sessionPath to enable saving large API responses to session folder
+  const result = await serverBuilder.buildAll(sourcesWithCreds, getTokenForSource, sessionPath)
   span.mark('servers.built')
   span.setMetadata('mcpCount', Object.keys(result.mcpServers).length)
   span.setMetadata('apiCount', Object.keys(result.apiServers).length)
@@ -252,7 +253,9 @@ interface ManagedSession {
   isProcessing: boolean
   lastMessageAt: number
   streamingText: string
-  abortController?: AbortController
+  // Incremented each time a new message starts processing.
+  // Used to detect if a follow-up message has superseded the current one (stale-request guard).
+  processingGeneration: number
   // Track tool_use_id -> toolName mapping (since tool_result only has toolUseId)
   pendingTools: Map<string, string>
   // Stack of parent tool IDs for nested tool calls (e.g., Task spawning Read/Grep)
@@ -684,7 +687,9 @@ export class SessionManager {
     const enabledSources = allSources.filter(s =>
       enabledSlugs.includes(s.config.slug) && s.config.enabled && s.config.isAuthenticated
     )
-    const { mcpServers, apiServers } = await buildServersFromSources(enabledSources)
+    // Pass session path so large API responses can be saved to session folder
+    const sessionPath = getSessionStoragePath(workspaceRootPath, managed.id)
+    const { mcpServers, apiServers } = await buildServersFromSources(enabledSources, sessionPath)
     const intendedSlugs = enabledSources.map(s => s.config.slug)
     managed.agent.setSourceServers(mcpServers, apiServers, intendedSlugs)
 
@@ -753,7 +758,15 @@ export class SessionManager {
     // In development: use process.cwd()
     const basePath = app.isPackaged ? app.getAppPath() : process.cwd()
 
-    const cliPath = join(basePath, 'node_modules', '@anthropic-ai', 'claude-agent-sdk', 'cli.js')
+    // In monorepos, dependencies may be hoisted to the root node_modules
+    // Try local first, then check monorepo root (two levels up from apps/electron)
+    const sdkRelativePath = join('node_modules', '@anthropic-ai', 'claude-agent-sdk', 'cli.js')
+    let cliPath = join(basePath, sdkRelativePath)
+    if (!existsSync(cliPath) && !app.isPackaged) {
+      // Try monorepo root (../../node_modules from apps/electron)
+      const monorepoRoot = join(basePath, '..', '..')
+      cliPath = join(monorepoRoot, sdkRelativePath)
+    }
     if (!existsSync(cliPath)) {
       const error = `Claude Code SDK not found at ${cliPath}. The app package may be corrupted.`
       sessionLog.error(error)
@@ -764,22 +777,25 @@ export class SessionManager {
 
     // Set path to fetch interceptor for SDK subprocess
     // This interceptor captures API errors and adds metadata to MCP tool schemas
-    const interceptorPath = join(basePath, 'packages', 'shared', 'src', 'network-interceptor.ts')
+    // In monorepos, packages may be at the root level, not inside apps/electron
+    const interceptorRelativePath = join('packages', 'shared', 'src', 'network-interceptor.ts')
+    let interceptorPath = join(basePath, interceptorRelativePath)
+    if (!existsSync(interceptorPath) && !app.isPackaged) {
+      // Try monorepo root (../../packages from apps/electron)
+      const monorepoRoot = join(basePath, '..', '..')
+      interceptorPath = join(monorepoRoot, interceptorRelativePath)
+    }
     if (!existsSync(interceptorPath)) {
       const error = `Network interceptor not found at ${interceptorPath}. The app package may be corrupted.`
       sessionLog.error(error)
       throw new Error(error)
     }
-    // Skip interceptor on Windows development (--preload is bun-specific, not supported by node)
-    if (process.platform !== 'win32' || app.isPackaged) {
-      sessionLog.info('Setting interceptorPath:', interceptorPath)
-      setInterceptorPath(interceptorPath)
-    } else {
-      sessionLog.info('Skipping interceptor on Windows dev (node does not support --preload)')
-    }
+    // Set interceptor path (used for --preload flag with bun)
+    sessionLog.info('Setting interceptorPath:', interceptorPath)
+    setInterceptorPath(interceptorPath)
 
     // In packaged app: use bundled Bun binary
-    // In development: use system 'bun' command (or 'node' on Windows where bun may crash)
+    // In development: use system 'bun' command
     if (app.isPackaged) {
       // Use platform-specific binary name (bun.exe on Windows, bun on macOS/Linux)
       const bunBinary = process.platform === 'win32' ? 'bun.exe' : 'bun'
@@ -794,12 +810,8 @@ export class SessionManager {
       }
       sessionLog.info('Setting executable:', bunPath)
       setExecutable(bunPath)
-    } else if (process.platform === 'win32') {
-      // On Windows in development, use 'node' instead of 'bun' as bun may crash
-      // due to architecture emulation issues (e.g., x64 bun on ARM64 Windows)
-      sessionLog.info('Using node executable for Windows development')
-      setExecutable('node')
     }
+    // In development: use system 'bun' (works on Windows now, supports --preload for interceptor)
 
     // Set up authentication environment variables (critical for SDK to work)
     await this.reinitializeAuth()
@@ -834,6 +846,7 @@ export class SessionManager {
             isProcessing: false,
             lastMessageAt: meta.lastUsedAt,
             streamingText: '',
+            processingGeneration: 0,
             pendingTools: new Map(),
             parentToolStack: [],
             toolToParentMap: new Map(),
@@ -879,9 +892,10 @@ export class SessionManager {
   // Persist a session to disk (async with debouncing)
   private persistSession(managed: ManagedSession): void {
     try {
-      // Filter out transient messages (error, status, system) that shouldn't be persisted
+      // Filter out transient status messages (progress indicators like "Compacting...")
+      // Error messages are now persisted with rich fields for diagnostics
       const persistableMessages = managed.messages.filter(m =>
-        m.role !== 'error' && m.role !== 'status' && m.role !== 'system'
+        m.role !== 'status'
       )
 
       const workspaceRootPath = managed.workspace.rootPath
@@ -1366,7 +1380,7 @@ export class SessionManager {
     }
 
     // Use storage layer to create and persist the session
-    const storedSession = createStoredSession(workspaceRootPath, {
+    const storedSession = await createStoredSession(workspaceRootPath, {
       permissionMode: defaultPermissionMode,
       workingDirectory: resolvedWorkingDir,
     })
@@ -1379,6 +1393,7 @@ export class SessionManager {
       isProcessing: false,
       lastMessageAt: storedSession.lastUsedAt,
       streamingText: '',
+      processingGeneration: 0,
       pendingTools: new Map(),
       parentToolStack: [],
       toolToParentMap: new Map(),
@@ -1541,7 +1556,6 @@ export class SessionManager {
             sessionLog.info(`Force-aborting after plan submission for session ${managed.id}`)
             managed.agent.forceAbort(AbortReason.PlanSubmitted)
             managed.isProcessing = false
-            managed.abortController = undefined
 
             // Clear parent tool tracking (stale entries would corrupt future tracking)
             managed.parentToolStack = []
@@ -1597,7 +1611,6 @@ export class SessionManager {
           sessionLog.info(`Force-aborting after auth request for session ${managed.id}`)
           managed.agent.forceAbort(AbortReason.AuthRequest)
           managed.isProcessing = false
-          managed.abortController = undefined
 
           // Clear parent tool tracking (stale entries would corrupt future tracking)
           managed.parentToolStack = []
@@ -1669,7 +1682,9 @@ export class SessionManager {
 
         // Build server configs for all enabled sources
         const allEnabledSources = getSourcesBySlugs(workspaceRootPath, managed.enabledSourceSlugs || [])
-        const { mcpServers, apiServers, errors } = await buildServersFromSources(allEnabledSources)
+        // Pass session path so large API responses can be saved to session folder
+        const sessionPath = getSessionStoragePath(workspaceRootPath, managed.id)
+        const { mcpServers, apiServers, errors } = await buildServersFromSources(allEnabledSources, sessionPath)
 
         if (errors.length > 0) {
           sessionLog.warn(`Source build errors during auto-enable:`, errors)
@@ -1727,8 +1742,9 @@ export class SessionManager {
     const managed = this.sessions.get(sessionId)
     if (managed) {
       managed.isFlagged = true
-      const workspaceRootPath = managed.workspace.rootPath
-      flagStoredSession(workspaceRootPath, sessionId)
+      // Persist in-memory state directly to avoid race with pending queue writes
+      this.persistSession(managed)
+      await this.flushSession(managed.id)
       // Notify all windows for this workspace
       this.sendEvent({ type: 'session_flagged', sessionId }, managed.workspace.id)
     }
@@ -1738,8 +1754,9 @@ export class SessionManager {
     const managed = this.sessions.get(sessionId)
     if (managed) {
       managed.isFlagged = false
-      const workspaceRootPath = managed.workspace.rootPath
-      unflagStoredSession(workspaceRootPath, sessionId)
+      // Persist in-memory state directly to avoid race with pending queue writes
+      this.persistSession(managed)
+      await this.flushSession(managed.id)
       // Notify all windows for this workspace
       this.sendEvent({ type: 'session_unflagged', sessionId }, managed.workspace.id)
     }
@@ -1749,8 +1766,9 @@ export class SessionManager {
     const managed = this.sessions.get(sessionId)
     if (managed) {
       managed.todoState = todoState
-      const workspaceRootPath = managed.workspace.rootPath
-      setStoredSessionTodoState(workspaceRootPath, sessionId, todoState)
+      // Persist in-memory state directly to avoid race with pending queue writes
+      this.persistSession(managed)
+      await this.flushSession(managed.id)
       // Notify all windows for this workspace
       this.sendEvent({ type: 'todo_state_changed', sessionId, todoState }, managed.workspace.id)
     }
@@ -1765,10 +1783,10 @@ export class SessionManager {
    * Called when user clicks "Accept & Compact" to persist the plan path
    * so execution can resume after compaction (even if page reloads).
    */
-  setPendingPlanExecution(sessionId: string, planPath: string): void {
+  async setPendingPlanExecution(sessionId: string, planPath: string): Promise<void> {
     const managed = this.sessions.get(sessionId)
     if (managed) {
-      setStoredPendingPlanExecution(managed.workspace.rootPath, sessionId, planPath)
+      await setStoredPendingPlanExecution(managed.workspace.rootPath, sessionId, planPath)
       sessionLog.info(`Session ${sessionId}: set pending plan execution for ${planPath}`)
     }
   }
@@ -1778,10 +1796,10 @@ export class SessionManager {
    * Called when compaction_complete event fires - allows reload recovery
    * to know that compaction finished and plan can be executed.
    */
-  markCompactionComplete(sessionId: string): void {
+  async markCompactionComplete(sessionId: string): Promise<void> {
     const managed = this.sessions.get(sessionId)
     if (managed) {
-      markStoredCompactionComplete(managed.workspace.rootPath, sessionId)
+      await markStoredCompactionComplete(managed.workspace.rootPath, sessionId)
       sessionLog.info(`Session ${sessionId}: compaction marked complete for pending plan`)
     }
   }
@@ -1791,10 +1809,10 @@ export class SessionManager {
    * Called after plan execution is triggered, on new user message,
    * or when the pending execution is no longer relevant.
    */
-  clearPendingPlanExecution(sessionId: string): void {
+  async clearPendingPlanExecution(sessionId: string): Promise<void> {
     const managed = this.sessions.get(sessionId)
     if (managed) {
-      clearStoredPendingPlanExecution(managed.workspace.rootPath, sessionId)
+      await clearStoredPendingPlanExecution(managed.workspace.rootPath, sessionId)
       sessionLog.info(`Session ${sessionId}: cleared pending plan execution`)
     }
   }
@@ -1855,7 +1873,7 @@ export class SessionManager {
       managed.sharedUrl = data.url
       managed.sharedId = data.id
       const workspaceRootPath = managed.workspace.rootPath
-      updateSessionMetadata(workspaceRootPath, sessionId, {
+      await updateSessionMetadata(workspaceRootPath, sessionId, {
         sharedUrl: data.url,
         sharedId: data.id,
       })
@@ -1958,7 +1976,7 @@ export class SessionManager {
       delete managed.sharedUrl
       delete managed.sharedId
       const workspaceRootPath = managed.workspace.rootPath
-      updateSessionMetadata(workspaceRootPath, sessionId, {
+      await updateSessionMetadata(workspaceRootPath, sessionId, {
         sharedUrl: undefined,
         sharedId: undefined,
       })
@@ -2001,7 +2019,9 @@ export class SessionManager {
     // If agent exists, build and apply servers immediately
     if (managed.agent) {
       const sources = getSourcesBySlugs(workspaceRootPath, sourceSlugs)
-      const { mcpServers, apiServers, errors } = await buildServersFromSources(sources)
+      // Pass session path so large API responses can be saved to session folder
+      const sessionPath = getSessionStoragePath(workspaceRootPath, sessionId)
+      const { mcpServers, apiServers, errors } = await buildServersFromSources(sources, sessionPath)
       if (errors.length > 0) {
         sessionLog.warn(`Source build errors:`, errors)
       }
@@ -2084,7 +2104,7 @@ export class SessionManager {
    * Mark a session as read by setting lastReadMessageId and clearing hasUnread.
    * Called when user navigates to a session (and it's not processing).
    */
-  markSessionRead(sessionId: string): void {
+  async markSessionRead(sessionId: string): Promise<void> {
     const managed = this.sessions.get(sessionId)
     if (!managed) return
 
@@ -2115,7 +2135,7 @@ export class SessionManager {
     // Persist changes
     if (needsPersist) {
       const workspaceRootPath = managed.workspace.rootPath
-      updateSessionMetadata(workspaceRootPath, sessionId, updates)
+      await updateSessionMetadata(workspaceRootPath, sessionId, updates)
     }
   }
 
@@ -2123,14 +2143,14 @@ export class SessionManager {
    * Mark a session as unread by setting hasUnread flag.
    * Called when user manually marks a session as unread via context menu.
    */
-  markSessionUnread(sessionId: string): void {
+  async markSessionUnread(sessionId: string): Promise<void> {
     const managed = this.sessions.get(sessionId)
     if (managed) {
       managed.hasUnread = true
       managed.lastReadMessageId = undefined
       // Persist to disk
       const workspaceRootPath = managed.workspace.rootPath
-      updateSessionMetadata(workspaceRootPath, sessionId, { hasUnread: true, lastReadMessageId: undefined })
+      await updateSessionMetadata(workspaceRootPath, sessionId, { hasUnread: true, lastReadMessageId: undefined })
     }
   }
 
@@ -2236,7 +2256,7 @@ export class SessionManager {
     if (managed) {
       managed.model = model ?? undefined
       // Persist to disk
-      updateSessionMetadata(managed.workspace.rootPath, sessionId, { model: model ?? undefined })
+      await updateSessionMetadata(managed.workspace.rootPath, sessionId, { model: model ?? undefined })
       // Update agent model if it already exists (takes effect on next query)
       if (managed.agent) {
         // Fallback chain: session model > workspace default > global config > DEFAULT_MODEL
@@ -2285,13 +2305,11 @@ export class SessionManager {
     // Get workspace slug before deleting
     const workspaceRootPath = managed.workspace.rootPath
 
-    // If processing is in progress, abort and wait for cleanup
-    if (managed.isProcessing && managed.abortController) {
-      managed.abortController.abort()
-      // TIMING NOTE: Brief wait for abort signal to propagate through async
-      // operations. AbortController.abort() is synchronous but in-flight
-      // promises may still be settling. 100ms is a generous buffer to prevent
-      // file corruption from overlapping writes during rapid delete operations.
+    // If processing is in progress, force-abort via Query.close() and wait for cleanup
+    if (managed.isProcessing && managed.agent) {
+      managed.agent.forceAbort(AbortReason.UserStop)
+      // Brief wait for the query to finish tearing down before we delete session files.
+      // Prevents file corruption from overlapping writes during rapid delete operations.
       await new Promise(resolve => setTimeout(resolve, 100))
     }
 
@@ -2335,7 +2353,7 @@ export class SessionManager {
     // Clear any pending plan execution state when a new user message is sent.
     // This acts as a safety valve - if the user moves on, we don't want to
     // auto-execute an old plan later.
-    clearStoredPendingPlanExecution(managed.workspace.rootPath, sessionId)
+    await clearStoredPendingPlanExecution(managed.workspace.rootPath, sessionId)
 
     // Ensure messages are loaded before we try to add new ones
     await this.ensureMessagesLoaded(managed)
@@ -2370,9 +2388,8 @@ export class SessionManager {
         status: 'queued'
       }, managed.workspace.id)
 
-      // Force-abort via SDK's AbortController - immediately stops processing
-      // This sends SIGTERM to subprocess (5s timeout, then SIGKILL)
-      // The for-await loop will throw AbortError, caught by our handler
+      // Force-abort via Query.close() - immediately stops processing.
+      // The for-await loop will complete, triggering onProcessingStopped → queue drain.
       managed.agent?.forceAbort(AbortReason.Redirect)
 
       return
@@ -2462,11 +2479,11 @@ export class SessionManager {
     managed.lastMessageAt = Date.now()
     managed.isProcessing = true
     managed.streamingText = ''
-    managed.abortController = new AbortController()
+    managed.processingGeneration++
 
-    // Capture the abort controller reference to detect if a new request supersedes this one
-    // This prevents the finally block from clobbering state when a follow-up message arrives
-    const myAbortController = managed.abortController
+    // Capture the generation to detect if a new request supersedes this one.
+    // This prevents the finally block from clobbering state when a follow-up message arrives.
+    const myGeneration = managed.processingGeneration
 
     // Start perf span for entire sendMessage flow
     const sendSpan = perf.span('session.sendMessage', { sessionId })
@@ -2485,7 +2502,9 @@ export class SessionManager {
     if (managed.enabledSourceSlugs?.length) {
       // Always build server configs fresh (no caching - single source of truth)
       const sources = getSourcesBySlugs(workspaceRootPath, managed.enabledSourceSlugs)
-      const { mcpServers, apiServers, errors } = await buildServersFromSources(sources)
+      // Pass session path so large API responses can be saved to session folder
+      const sessionPath = getSessionStoragePath(workspaceRootPath, sessionId)
+      const { mcpServers, apiServers, errors } = await buildServersFromSources(sources, sessionPath)
       if (errors.length > 0) {
         sessionLog.warn(`Source build errors:`, errors)
       }
@@ -2605,7 +2624,7 @@ export class SessionManager {
       )
 
       if (isAbortError) {
-        // Extract abort reason (passed to AbortController.abort())
+        // Extract abort reason if available (safety net for unexpected abort propagation)
         const reason = (error as DOMException).cause as AbortReason | undefined
 
         sessionLog.info(`Chat aborted (reason: ${reason || 'unknown'})`)
@@ -2637,7 +2656,7 @@ export class SessionManager {
       // Only handle cleanup for unexpected exits (loop break without complete event)
       // Normal completion returns early after calling onProcessingStopped
       // Errors are handled in catch block
-      if (managed.isProcessing && managed.abortController === myAbortController) {
+      if (managed.isProcessing && managed.processingGeneration === myGeneration) {
         sessionLog.info('Finally block cleanup - unexpected exit')
         sendSpan.mark('chat.unexpected_exit')
         sendSpan.end()
@@ -2657,7 +2676,7 @@ export class SessionManager {
     // Clear queue - user explicitly stopped, don't process queued messages
     managed.messageQueue = []
 
-    // Force-abort via AbortController - immediately stops processing
+    // Force-abort via Query.close() - immediately stops processing
     if (managed.agent) {
       managed.agent.forceAbort(AbortReason.UserStop)
     }
@@ -2665,7 +2684,6 @@ export class SessionManager {
     // Set state immediately - the SDK will send a complete event
     // but since we cleared isProcessing, onProcessingStopped won't be called again
     managed.isProcessing = false
-    managed.abortController = undefined
 
     // Clear parent tool tracking (stale entries would corrupt future parent-child tracking)
     managed.parentToolStack = []
@@ -2702,10 +2720,10 @@ export class SessionManager {
    * @param sessionId - The session that stopped processing
    * @param reason - Why processing stopped ('complete' | 'interrupted' | 'error')
    */
-  private onProcessingStopped(
+  private async onProcessingStopped(
     sessionId: string,
     reason: 'complete' | 'interrupted' | 'error'
-  ): void {
+  ): Promise<void> {
     const managed = this.sessions.get(sessionId)
     if (!managed) return
 
@@ -2713,7 +2731,6 @@ export class SessionManager {
 
     // 1. Cleanup state
     managed.isProcessing = false
-    managed.abortController = undefined
     managed.parentToolStack = []
     managed.toolToParentMap.clear()
     managed.pendingTextParent = undefined
@@ -2728,12 +2745,12 @@ export class SessionManager {
     if (reason === 'complete' && hasFinalMessage) {
       if (isViewing) {
         // User is watching - mark as read immediately
-        this.markSessionRead(sessionId)
+        await this.markSessionRead(sessionId)
       } else {
         // User is not watching - mark as unread for NEW badge
         if (!managed.hasUnread) {
           managed.hasUnread = true
-          updateSessionMetadata(managed.workspace.rootPath, sessionId, { hasUnread: true })
+          await updateSessionMetadata(managed.workspace.rootPath, sessionId, { hasUnread: true })
         }
       }
     }
@@ -3354,7 +3371,7 @@ To view this task's output:
           // This is done here (backend) rather than in the renderer so it's
           // not affected by CMD+R during compaction. The frontend reload
           // recovery will see awaitingCompaction=false and trigger execution.
-          markStoredCompactionComplete(managed.workspace.rootPath, sessionId)
+          void markStoredCompactionComplete(managed.workspace.rootPath, sessionId)
           sessionLog.info(`Session ${sessionId}: compaction complete, marked pending plan ready`)
 
           // Emit usage_update so the context count badge refreshes immediately
@@ -3381,7 +3398,7 @@ To view this task's output:
       }
 
       case 'error':
-        // Skip abort errors - these are expected when force-aborting via AbortController
+        // Skip abort errors - these are expected when force-aborting via Query.close()
         if (event.message.includes('aborted') || event.message.includes('AbortError')) {
           sessionLog.info('Skipping abort error event (expected during interrupt)')
           break
@@ -3398,7 +3415,7 @@ To view this task's output:
         break
 
       case 'typed_error':
-        // Skip abort errors - these are expected when force-aborting via AbortController
+        // Skip abort errors - these are expected when force-aborting via Query.close()
         const typedErrorMsg = event.error.message || event.error.title || ''
         if (typedErrorMsg.includes('aborted') || typedErrorMsg.includes('AbortError')) {
           sessionLog.info('Skipping typed abort error event (expected during interrupt)')
@@ -3406,11 +3423,19 @@ To view this task's output:
         }
         // Typed errors have structured information - send both formats for compatibility
         sessionLog.info('typed_error:', JSON.stringify(event.error, null, 2))
+        // Build rich error message with all diagnostic fields for persistence and UI display
         const typedErrorMessage: Message = {
           id: generateMessageId(),
           role: 'error',
-          content: event.error.message || event.error.title || 'An error occurred',
-          timestamp: Date.now()
+          // Combine title and message for content display (handles undefined gracefully)
+          content: [event.error.title, event.error.message].filter(Boolean).join(': ') || 'An error occurred',
+          timestamp: Date.now(),
+          // Rich error fields for diagnostics and retry functionality
+          errorCode: event.error.code,
+          errorTitle: event.error.title,
+          errorDetails: event.error.details,
+          errorOriginal: event.error.originalError,
+          errorCanRetry: event.error.canRetry,
         }
         managed.messages.push(typedErrorMessage)
         // Send typed_error event with full structure for renderer to handle
