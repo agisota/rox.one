@@ -1,6 +1,6 @@
 {
   "name": "@rox-agent/viewer",
-  "version": "0.2.32",
+  "version": "0.2.33",
   "description": "Web viewer for Rox Agents sessions - upload and share session transcripts",
   "private": true,
   "type": "module",
