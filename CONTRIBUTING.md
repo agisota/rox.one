@@ -14,8 +14,8 @@ Thank you for your interest in contributing to Rox Agents! This document provide
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/anthropics/rox-agents.git
-   cd rox-agents
+   git clone https://github.com/lukilabs/rox-agents-oss.git
+   cd rox-agents-oss
    ```
 
 2. Install dependencies:
