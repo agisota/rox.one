@@ -9,7 +9,7 @@ import { getAuthState, getSetupNeeds } from '@rox-agent/shared/auth'
 import { getCredentialManager } from '@rox-agent/shared/credentials'
 import { saveConfig, loadStoredConfig, generateWorkspaceId, type AuthType, type StoredConfig } from '@rox-agent/shared/config'
 import { getDefaultWorkspacesDir, generateUniqueWorkspacePath } from '@rox-agent/shared/workspaces'
-import { RoxOAuth, getMcpBaseUrl } from '@rox-agent/shared/auth'
+import { RoxOAuth } from '@rox-agent/shared/auth'
 import { validateMcpConnection } from '@rox-agent/shared/mcp'
 import { startClaudeOAuth, exchangeClaudeCode, hasValidOAuthState, clearOAuthState } from '@rox-agent/shared/auth'
 import { getCredentialManager as getCredentialManagerFn } from '@rox-agent/shared/credentials'
@@ -49,12 +49,11 @@ export function registerOnboardingHandlers(sessionManager: SessionManager): void
   ipcMain.handle(IPC_CHANNELS.ONBOARDING_START_MCP_OAUTH, async (_event, mcpUrl: string) => {
     mainLog.info('[Onboarding:Main] ONBOARDING_START_MCP_OAUTH received', { mcpUrl })
     try {
-      const baseUrl = getMcpBaseUrl(mcpUrl)
-      mainLog.info('[Onboarding:Main] MCP OAuth baseUrl:', baseUrl)
+      mainLog.info('[Onboarding:Main] MCP OAuth URL:', mcpUrl)
       mainLog.info('[Onboarding:Main] Creating RoxOAuth instance...')
 
       const oauth = new RoxOAuth(
-        { mcpBaseUrl: baseUrl },
+        { mcpUrl: mcpUrl },
         {
           onStatus: (msg) => mainLog.info('[Onboarding:Main] MCP OAuth status:', msg),
           onError: (err) => mainLog.error('[Onboarding:Main] MCP OAuth error:', err),
