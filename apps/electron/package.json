@@ -1,6 +1,6 @@
 {
   "name": "@rox-agent/electron",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Electron desktop app for Rox Agents",
   "main": "dist/main.cjs",
   "private": true,
