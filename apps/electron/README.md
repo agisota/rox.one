@@ -252,10 +252,10 @@ External apps can navigate using `roxagents://` URLs:
 
 ```
 roxagents://settings
-roxagents://allChats/chat/session123
+roxagents://allSessions/session/session123
 roxagents://sources/source/github
 roxagents://action/new-chat
-roxagents://workspace/{id}/allChats/chat/abc123
+roxagents://workspace/{id}/allSessions/session/abc123
 ```
 
 See `CLAUDE.md` for complete route reference.

@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { existsSync, readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { CONFIG_DIR } from './paths.ts';
+import { safeJsonParse, readJsonFileSync } from '../utils/files.ts';
 import { EntityColorSchema } from '../colors/validate.ts';
 
 // ============================================================
@@ -67,6 +68,10 @@ export const StoredConfigSchema = z.object({
   activeWorkspaceId: z.string().nullable(),
   activeSessionId: z.string().nullable(),
   model: z.string().optional(),
+  modelDefaults: z.object({
+    anthropic: z.string().optional(),
+    openai: z.string().optional(),
+  }).optional(),
   // Note: tokenDisplay, showCost, cumulativeUsage, defaultPermissionMode removed
   // Permission mode and cyclable modes are now per-workspace in workspace config.json
 });
@@ -130,7 +135,7 @@ export function validateConfig(): ValidationResult {
   let content: unknown;
   try {
     const raw = readFileSync(CONFIG_FILE, 'utf-8');
-    content = JSON.parse(raw);
+    content = safeJsonParse(raw);
   } catch (e) {
     return {
       valid: false,
@@ -199,7 +204,7 @@ export function validatePreferences(): ValidationResult {
   let content: unknown;
   try {
     const raw = readFileSync(PREFERENCES_FILE, 'utf-8');
-    content = JSON.parse(raw);
+    content = safeJsonParse(raw);
   } catch (e) {
     return {
       valid: false,
@@ -397,7 +402,7 @@ export function validateSourceConfig(config: unknown): ValidationResult {
 export function validateSourceConfigContent(jsonString: string): ValidationResult {
   let content: unknown;
   try {
-    content = JSON.parse(jsonString);
+    content = safeJsonParse(jsonString);
   } catch (e) {
     return {
       valid: false,
@@ -452,7 +457,7 @@ export function validateSource(workspaceId: string, slug: string): ValidationRes
   let content: unknown;
   try {
     const raw = readFileSync(configPath, 'utf-8');
-    content = JSON.parse(raw);
+    content = safeJsonParse(raw);
   } catch (e) {
     return {
       valid: false,
@@ -888,7 +893,7 @@ export function validateStatusesContent(jsonString: string): ValidationResult {
   // Parse JSON
   let content: unknown;
   try {
-    content = JSON.parse(jsonString);
+    content = safeJsonParse(jsonString);
   } catch (e) {
     return {
       valid: false,
@@ -1113,7 +1118,7 @@ export function validateLabelsContent(jsonString: string): ValidationResult {
   // Parse JSON
   let content: unknown;
   try {
-    content = JSON.parse(jsonString);
+    content = safeJsonParse(jsonString);
   } catch (e) {
     return {
       valid: false,
@@ -1295,7 +1300,7 @@ export function validatePermissionsContent(jsonString: string, displayFile: stri
   // Parse JSON
   let content: unknown;
   try {
-    content = JSON.parse(jsonString);
+    content = safeJsonParse(jsonString);
   } catch (e) {
     return {
       valid: false,
@@ -1400,6 +1405,120 @@ export function validateAllPermissions(workspaceRoot: string): ValidationResult 
   };
 }
 
+/**
+ * Check if a permissions file at the given path is valid.
+ * Returns true if the file exists and passes schema validation.
+ */
+export function isValidPermissionsFile(filePath: string): boolean {
+  try {
+    const content = readFileSync(filePath, 'utf-8');
+    const result = validatePermissionsContent(content);
+    return result.valid;
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================
+// Theme Validators
+// ============================================================
+
+const CSSColorSchema = z.string().min(1);
+
+/**
+ * Zod schema for preset theme files.
+ * Validates theme structure and requires at least one color property.
+ */
+export const PresetThemeSchema = z.object({
+  name: z.string().min(1, 'Theme name is required'),
+  description: z.string().optional(),
+  author: z.string().optional(),
+  license: z.string().optional(),
+  source: z.string().optional(),
+  supportedModes: z.array(z.enum(['light', 'dark'])).optional(),
+  // Semantic colors
+  background: CSSColorSchema.optional(),
+  foreground: CSSColorSchema.optional(),
+  accent: CSSColorSchema.optional(),
+  info: CSSColorSchema.optional(),
+  success: CSSColorSchema.optional(),
+  destructive: CSSColorSchema.optional(),
+  // Surface colors
+  paper: CSSColorSchema.optional(),
+  navigator: CSSColorSchema.optional(),
+  input: CSSColorSchema.optional(),
+  popover: CSSColorSchema.optional(),
+  popoverSolid: CSSColorSchema.optional(),
+  // Scenic mode
+  mode: z.enum(['solid', 'scenic']).optional(),
+  backgroundImage: z.string().optional(),
+  // Dark mode overrides
+  dark: z.object({}).passthrough().optional(),
+  // Shiki theme for syntax highlighting
+  shikiTheme: z.object({
+    light: z.string().optional(),
+    dark: z.string().optional(),
+  }).optional(),
+}).refine(
+  (data) => {
+    const colorProps = ['background', 'foreground', 'accent', 'info', 'success', 'destructive'];
+    return colorProps.some(prop => prop in data);
+  },
+  { message: 'Theme must have at least one color property (background, foreground, accent, info, success, or destructive)' }
+);
+
+/**
+ * Validate theme content from a JSON string (no disk reads).
+ * Used to check if an existing theme file is valid before deciding to overwrite.
+ */
+export function validateThemeContent(jsonString: string, displayFile: string = 'theme.json'): ValidationResult {
+  const errors: ValidationIssue[] = [];
+
+  // Parse JSON
+  let content: unknown;
+  try {
+    content = safeJsonParse(jsonString);
+  } catch (e) {
+    return {
+      valid: false,
+      errors: [{
+        file: displayFile,
+        path: '',
+        message: `Invalid JSON: ${e instanceof Error ? e.message : 'Unknown error'}`,
+        severity: 'error',
+      }],
+      warnings: [],
+    };
+  }
+
+  // Validate schema
+  const result = PresetThemeSchema.safeParse(content);
+  if (!result.success) {
+    errors.push(...zodErrorToIssues(result.error, displayFile));
+    return { valid: false, errors, warnings: [] };
+  }
+
+  return {
+    valid: true,
+    errors: [],
+    warnings: [],
+  };
+}
+
+/**
+ * Check if a theme file at the given path is valid.
+ * Returns true if the file exists and passes schema validation.
+ */
+export function isValidThemeFile(filePath: string): boolean {
+  try {
+    const content = readFileSync(filePath, 'utf-8');
+    const result = validateThemeContent(content);
+    return result.valid;
+  } catch {
+    return false;
+  }
+}
+
 // ============================================================
 // Tool Icons Validators
 // ============================================================
@@ -1442,7 +1561,7 @@ export function validateToolIconsContent(jsonString: string): ValidationResult {
   // Parse JSON
   let content: unknown;
   try {
-    content = JSON.parse(jsonString);
+    content = safeJsonParse(jsonString);
   } catch (e) {
     return {
       valid: false,
@@ -1564,7 +1683,7 @@ export function validateToolIcons(): ValidationResult {
 
   // Filesystem-specific check: verify referenced icon files exist
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = safeJsonParse(raw) as Record<string, unknown>;
     if (parsed.tools && Array.isArray(parsed.tools)) {
       for (const tool of parsed.tools) {
         if (tool.icon) {

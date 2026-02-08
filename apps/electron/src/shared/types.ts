@@ -42,6 +42,10 @@ import type { AuthState, SetupNeeds } from '@rox-agent/shared/auth/types';
 import type { AuthType } from '@rox-agent/shared/config/types';
 export type { AuthState, SetupNeeds, AuthType };
 
+// Import and re-export credential health types
+import type { CredentialHealthStatus, CredentialHealthIssue, CredentialHealthIssueType } from '@rox-agent/shared/credentials/types';
+export type { CredentialHealthStatus, CredentialHealthIssue, CredentialHealthIssueType };
+
 // Import source types for session source selection
 import type { LoadedSource, FolderSourceConfig, SourceConnectionStatus } from '@rox-agent/shared/sources/types';
 export type { LoadedSource, FolderSourceConfig, SourceConnectionStatus };
@@ -49,6 +53,28 @@ export type { LoadedSource, FolderSourceConfig, SourceConnectionStatus };
 // Import skill types
 import type { LoadedSkill, SkillMetadata } from '@rox-agent/shared/skills/types';
 export type { LoadedSkill, SkillMetadata };
+
+// Import session types from shared (for SessionFamily - different from core SessionMetadata)
+import type { SessionMetadata as SharedSessionMetadata } from '@rox-agent/shared/sessions/types';
+
+// Import backend capabilities type
+import type { AgentCapabilities } from '@rox-agent/shared/agent/backend';
+export type { AgentCapabilities };
+
+// Import LLM connection types
+import type { LlmConnection, LlmConnectionWithStatus, LlmAuthType, LlmProviderType } from '@rox-agent/shared/config';
+export type { LlmConnection, LlmConnectionWithStatus, LlmAuthType, LlmProviderType };
+
+/**
+ * Setup data for creating/updating an LLM connection via IPC.
+ * Combines connection identity with credential (which isn't stored in config).
+ */
+export interface LlmConnectionSetup {
+  slug: string              // Connection slug: 'anthropic-api', 'claude-max', 'codex', 'codex-api'
+  credential?: string       // API key or OAuth token (stored in credential manager, not config)
+  baseUrl?: string | null   // Custom API endpoint (null to clear)
+  defaultModel?: string | null  // Custom model override (null to clear)
+}
 
 
 /**
@@ -198,7 +224,7 @@ export interface CredentialResponse {
   username?: string
   /** Password for basic auth */
   password?: string
-  /** Header values for multi-header mode (e.g., { "DD-API-KEY": "...", "DD-APPLICATION-KEY": "..." }) */
+  /** Headers for multi-header auth (e.g., { "DD-API-KEY": "...", "DD-APPLICATION-KEY": "..." }) */
   headers?: Record<string, string>
   /** Whether user cancelled */
   cancelled: boolean
@@ -244,15 +270,6 @@ export interface GitBashStatus {
   found: boolean
   path: string | null
   platform: 'win32' | 'darwin' | 'linux'
-}
-
-/**
- * Result of saving onboarding configuration
- */
-export interface OnboardingSaveResult {
-  success: boolean
-  error?: string
-  workspaceId?: string
 }
 
 /**
@@ -335,6 +352,8 @@ export interface Session {
   sharedId?: string
   // Model to use for this session (overrides global config if set)
   model?: string
+  // LLM connection slug for this session (locked after first message)
+  llmConnection?: string
   // Thinking level for this session ('off', 'think', 'max')
   thinkingLevel?: ThinkingLevel
   // Role/type of the last message (for badge display without loading messages)
@@ -369,6 +388,15 @@ export interface Session {
   }
   /** When true, session is hidden from session list (e.g., mini edit sessions) */
   hidden?: boolean
+  /** Whether this session is archived */
+  isArchived?: boolean
+  /** Timestamp when session was archived (for retention policy) */
+  archivedAt?: number
+  // Sub-session hierarchy (1 level max)
+  /** Parent session ID (if this is a sub-session). Null/undefined = root session. */
+  parentSessionId?: string
+  /** Explicit sibling order (lazy - only populated when user reorders). */
+  siblingOrder?: number
 }
 
 /**
@@ -376,6 +404,8 @@ export interface Session {
  * Note: Session creation itself has no options - auto-send is handled by NavigationContext
  */
 export interface CreateSessionOptions {
+  /** Session name (optional, AI-generated if not provided) */
+  name?: string
   /** Initial permission mode for the session (overrides workspace default) */
   permissionMode?: PermissionMode
   /**
@@ -387,6 +417,8 @@ export interface CreateSessionOptions {
   workingDirectory?: string | 'user_default' | 'none'
   /** Model override for the session (e.g., 'haiku', 'sonnet') */
   model?: string
+  /** LLM connection slug for the session (locked after first message) */
+  llmConnection?: string
   /** System prompt preset for the session ('default' | 'mini' or custom string) */
   systemPromptPreset?: 'default' | 'mini' | string
   /** When true, session won't appear in session list (e.g., mini edit sessions) */
@@ -397,6 +429,8 @@ export interface CreateSessionOptions {
   labels?: string[]
   /** Whether the session should be flagged */
   isFlagged?: boolean
+  /** Per-session source selection (source slugs) */
+  enabledSourceSlugs?: string[]
 }
 
 // Events sent from main to renderer
@@ -404,7 +438,7 @@ export interface CreateSessionOptions {
 export type SessionEvent =
   | { type: 'text_delta'; sessionId: string; delta: string; turnId?: string }
   | { type: 'text_complete'; sessionId: string; text: string; isIntermediate?: boolean; turnId?: string; parentToolUseId?: string }
-  | { type: 'tool_start'; sessionId: string; toolName: string; toolUseId: string; toolInput: Record<string, unknown>; toolIntent?: string; toolDisplayName?: string; toolDisplayMeta?: import('@rox-agent/core').ToolDisplayMeta; turnId?: string; parentToolUseId?: string }
+  | { type: 'tool_start'; sessionId: string; toolName: string; toolUseId: string; toolInput: Record<string, unknown>; toolIntent?: string; toolDisplayName?: string; toolDisplayMeta?: import('@rox-agent/core').ToolDisplayMeta; turnId?: string; parentToolUseId?: string; timestamp?: number }
   | { type: 'tool_result'; sessionId: string; toolUseId: string; toolName: string; result: string; turnId?: string; parentToolUseId?: string; isError?: boolean }
   | { type: 'error'; sessionId: string; error: string }
   | { type: 'typed_error'; sessionId: string; error: TypedError }
@@ -425,20 +459,29 @@ export type SessionEvent =
   // Source events
   | { type: 'sources_changed'; sessionId: string; enabledSourceSlugs: string[] }
   | { type: 'labels_changed'; sessionId: string; labels: string[] }
+  // LLM connection events
+  | { type: 'connection_changed'; sessionId: string; connectionSlug: string }
   // Background task/shell events
   | { type: 'task_backgrounded'; sessionId: string; toolUseId: string; taskId: string; intent?: string; turnId?: string }
   | { type: 'shell_backgrounded'; sessionId: string; toolUseId: string; shellId: string; intent?: string; command?: string; turnId?: string }
   | { type: 'task_progress'; sessionId: string; toolUseId: string; elapsedSeconds: number; turnId?: string }
   | { type: 'shell_killed'; sessionId: string; shellId: string }
   // User message events (for optimistic UI with backend as source of truth)
-  | { type: 'user_message'; sessionId: string; message: Message; status: 'accepted' | 'queued' | 'processing' }
+  | { type: 'user_message'; sessionId: string; message: Message; status: 'accepted' | 'queued' | 'processing'; optimisticMessageId?: string }
   // Session metadata events (for multi-window sync)
   | { type: 'session_flagged'; sessionId: string }
   | { type: 'session_unflagged'; sessionId: string }
+  | { type: 'session_archived'; sessionId: string }
+  | { type: 'session_unarchived'; sessionId: string }
   | { type: 'name_changed'; sessionId: string; name?: string }
   | { type: 'session_model_changed'; sessionId: string; model: string | null }
   | { type: 'todo_state_changed'; sessionId: string; todoState: TodoState }
   | { type: 'session_deleted'; sessionId: string }
+  // Sub-session events
+  | { type: 'session_created'; sessionId: string; parentSessionId?: string }
+  | { type: 'sessions_reordered' }
+  | { type: 'session_archived_cascade'; sessionId: string; count: number }
+  | { type: 'session_deleted_cascade'; sessionId: string; count: number }
   | { type: 'session_shared'; sessionId: string; sharedUrl: string }
   | { type: 'session_unshared'; sessionId: string }
   // Auth request events (unified auth flow)
@@ -448,6 +491,18 @@ export type SessionEvent =
   | { type: 'source_activated'; sessionId: string; sourceSlug: string; originalMessage: string }
   // Real-time usage update during processing (for context display)
   | { type: 'usage_update'; sessionId: string; tokenUsage: { inputTokens: number; contextWindow?: number } }
+  // Codex turn plan updates (native task list)
+  | {
+      type: 'todos_updated'
+      sessionId: string
+      todos: Array<{
+        content: string
+        status: 'pending' | 'in_progress' | 'completed'
+        activeForm?: string
+      }>
+      turnId?: string
+      explanation?: string | null
+    }
 
 // Options for sendMessage
 export interface SendMessageOptions {
@@ -457,6 +512,8 @@ export interface SendMessageOptions {
   skillSlugs?: string[]
   /** Content badges for inline display (sources, skills with embedded icons) */
   badges?: import('@rox-agent/core').ContentBadge[]
+  /** Frontend's optimistic message ID for reliable event matching */
+  optimisticMessageId?: string
 }
 
 // =============================================================================
@@ -470,6 +527,8 @@ export interface SendMessageOptions {
 export type SessionCommand =
   | { type: 'flag' }
   | { type: 'unflag' }
+  | { type: 'archive' }
+  | { type: 'unarchive' }
   | { type: 'rename'; name: string }
   | { type: 'setTodoState'; state: TodoState }
   | { type: 'markRead' }
@@ -488,10 +547,27 @@ export type SessionCommand =
   | { type: 'revokeShare' }
   | { type: 'startOAuth'; requestId: string }
   | { type: 'refreshTitle' }
+  // Connection selection (locked after first message)
+  | { type: 'setConnection'; connectionSlug: string }
   // Pending plan execution (Accept & Compact flow)
   | { type: 'setPendingPlanExecution'; planPath: string }
   | { type: 'markCompactionComplete' }
   | { type: 'clearPendingPlanExecution' }
+  // Sub-session hierarchy
+  | { type: 'getSessionFamily' }
+  | { type: 'updateSiblingOrder'; orderedSessionIds: string[] }
+  | { type: 'archiveCascade' }
+  | { type: 'deleteCascade' }
+
+/**
+ * Session family information (parent + siblings)
+ * Uses SharedSessionMetadata from @rox-agent/shared (not core SessionMetadata)
+ */
+export interface SessionFamily {
+  parent: SharedSessionMetadata
+  siblings: SharedSessionMetadata[]
+  self: SharedSessionMetadata
+}
 
 /**
  * Parameters for opening a new chat session
@@ -508,6 +584,7 @@ export const IPC_CHANNELS = {
   // Session management
   GET_SESSIONS: 'sessions:get',
   CREATE_SESSION: 'sessions:create',
+  CREATE_SUB_SESSION: 'sessions:createSubSession',
   DELETE_SESSION: 'sessions:delete',
   GET_SESSION_MESSAGES: 'sessions:getMessages',
   SEND_MESSAGE: 'sessions:sendMessage',
@@ -604,25 +681,49 @@ export const IPC_CHANNELS = {
   SHOW_LOGOUT_CONFIRMATION: 'auth:showLogoutConfirmation',
   SHOW_DELETE_SESSION_CONFIRMATION: 'auth:showDeleteSessionConfirmation',
 
+  // Credential health check (startup validation)
+  CREDENTIAL_HEALTH_CHECK: 'credentials:healthCheck',
+
   // Onboarding
   ONBOARDING_GET_AUTH_STATE: 'onboarding:getAuthState',
   ONBOARDING_VALIDATE_MCP: 'onboarding:validateMcp',
   ONBOARDING_START_MCP_OAUTH: 'onboarding:startMcpOAuth',
-  ONBOARDING_SAVE_CONFIG: 'onboarding:saveConfig',
   // Claude OAuth (two-step flow)
   ONBOARDING_START_CLAUDE_OAUTH: 'onboarding:startClaudeOAuth',
   ONBOARDING_EXCHANGE_CLAUDE_CODE: 'onboarding:exchangeClaudeCode',
   ONBOARDING_HAS_CLAUDE_OAUTH_STATE: 'onboarding:hasClaudeOAuthState',
   ONBOARDING_CLEAR_CLAUDE_OAUTH_STATE: 'onboarding:clearClaudeOAuthState',
 
+  // Backend capabilities (for capabilities-driven UI)
+  GET_BACKEND_CAPABILITIES: 'backend:getCapabilities',
+
+  // LLM Connections (provider configurations)
+  LLM_CONNECTION_LIST: 'LLM_Connection:list',
+  LLM_CONNECTION_LIST_WITH_STATUS: 'LLM_Connection:listWithStatus',
+  LLM_CONNECTION_GET: 'LLM_Connection:get',
+  LLM_CONNECTION_SAVE: 'LLM_Connection:save',
+  LLM_CONNECTION_DELETE: 'LLM_Connection:delete',
+  LLM_CONNECTION_TEST: 'LLM_Connection:test',
+  LLM_CONNECTION_SET_DEFAULT: 'LLM_Connection:setDefault',
+  LLM_CONNECTION_SET_WORKSPACE_DEFAULT: 'LLM_Connection:setWorkspaceDefault',
+
+  // ChatGPT OAuth (for Codex chatgptAuthTokens mode)
+  CHATGPT_START_OAUTH: 'chatgpt:startOAuth',
+  CHATGPT_CANCEL_OAUTH: 'chatgpt:cancelOAuth',
+  CHATGPT_GET_AUTH_STATUS: 'chatgpt:getAuthStatus',
+  CHATGPT_LOGOUT: 'chatgpt:logout',
+
   // Settings - API Setup
   SETTINGS_GET_API_SETUP: 'settings:getApiSetup',
-  SETTINGS_UPDATE_API_SETUP: 'settings:updateApiSetup',
+  SETUP_LLM_CONNECTION: 'settings:setupLlmConnection',
   SETTINGS_TEST_API_CONNECTION: 'settings:testApiConnection',
+  SETTINGS_TEST_OPENAI_CONNECTION: 'settings:testOpenAiConnection',
 
   // Settings - Model
   SETTINGS_GET_MODEL: 'settings:getModel',
   SETTINGS_SET_MODEL: 'settings:setModel',
+  SETTINGS_GET_MODEL_DEFAULTS: 'settings:getModelDefaults',
+  SETTINGS_SET_MODEL_DEFAULT: 'settings:setModelDefault',
   SESSION_GET_MODEL: 'session:getModel',
   SESSION_SET_MODEL: 'session:setModel',
 
@@ -731,6 +832,10 @@ export const IPC_CHANNELS = {
   INPUT_GET_SPELL_CHECK: 'input:getSpellCheck',
   INPUT_SET_SPELL_CHECK: 'input:setSpellCheck',
 
+  // Power settings
+  POWER_GET_KEEP_AWAKE: 'power:getKeepAwake',
+  POWER_SET_KEEP_AWAKE: 'power:setKeepAwake',
+
   BADGE_UPDATE: 'badge:update',
   BADGE_CLEAR: 'badge:clear',
   BADGE_SET_ICON: 'badge:setIcon',
@@ -780,6 +885,7 @@ export interface ElectronAPI {
   getSessions(): Promise<Session[]>
   getSessionMessages(sessionId: string): Promise<Session | null>
   createSession(workspaceId: string, options?: CreateSessionOptions): Promise<Session>
+  createSubSession(workspaceId: string, parentSessionId: string, options?: CreateSessionOptions): Promise<Session>
   deleteSession(sessionId: string): Promise<void>
   sendMessage(sessionId: string, message: string, attachments?: FileAttachment[], storedAttachments?: StoredAttachmentType[], options?: SendMessageOptions): Promise<void>
   cancelProcessing(sessionId: string, silent?: boolean): Promise<void>
@@ -789,7 +895,7 @@ export interface ElectronAPI {
   respondToCredential(sessionId: string, requestId: string, response: CredentialResponse): Promise<boolean>
 
   // Consolidated session command handler
-  sessionCommand(sessionId: string, command: SessionCommand): Promise<void | ShareResult | RefreshTitleResult>
+  sessionCommand(sessionId: string, command: SessionCommand): Promise<void | ShareResult | RefreshTitleResult | SessionFamily | { count: number }>
 
   // Pending plan execution (for reload recovery)
   getPendingPlanExecution(sessionId: string): Promise<{ planPath: string; awaitingCompaction: boolean } | null>
@@ -869,35 +975,45 @@ export interface ElectronAPI {
   showDeleteSessionConfirmation(name: string): Promise<boolean>
   logout(): Promise<void>
 
+  // Credential health check (startup validation)
+  getCredentialHealth(): Promise<CredentialHealthStatus>
+
   // Onboarding
   getAuthState(): Promise<AuthState>
   getSetupNeeds(): Promise<SetupNeeds>
   startWorkspaceMcpOAuth(mcpUrl: string): Promise<OAuthResult & { accessToken?: string; clientId?: string }>
-  saveOnboardingConfig(config: {
-    authType?: AuthType  // Optional - if not provided, preserves existing auth type (for add workspace)
-    workspace?: { name: string; iconUrl?: string; mcpUrl?: string }  // Optional - if not provided, only updates billing
-    credential?: string  // API key or OAuth token based on authType
-    mcpCredentials?: { accessToken: string; clientId?: string }  // MCP OAuth credentials
-    anthropicBaseUrl?: string | null  // Custom Anthropic API base URL
-    customModel?: string | null  // Custom model ID override
-  }): Promise<OnboardingSaveResult>
   // Claude OAuth (two-step flow)
   startClaudeOAuth(): Promise<{ success: boolean; authUrl?: string; error?: string }>
   exchangeClaudeCode(code: string): Promise<ClaudeOAuthResult>
   hasClaudeOAuthState(): Promise<boolean>
   clearClaudeOAuthState(): Promise<{ success: boolean }>
 
+  // ChatGPT OAuth (for Codex chatgptAuthTokens mode)
+  // Note: startChatGptOAuth opens browser and completes full OAuth flow internally
+  startChatGptOAuth(): Promise<{ success: boolean; error?: string }>
+  cancelChatGptOAuth(): Promise<{ success: boolean }>
+  getChatGptAuthStatus(): Promise<{ authenticated: boolean; expiresAt?: number; hasRefreshToken?: boolean }>
+  chatGptLogout(): Promise<{ success: boolean }>
+
+  // Backend capabilities (models, thinking levels) - returns null if backend not ready
+  getBackendCapabilities(sessionId?: string): Promise<AgentCapabilities | null>
+
   // Settings - API Setup
   getApiSetup(): Promise<ApiSetupInfo>
-  updateApiSetup(authType: AuthType, credential?: string, anthropicBaseUrl?: string | null, customModel?: string | null): Promise<void>
+  /** Unified LLM connection setup */
+  setupLlmConnection(setup: LlmConnectionSetup): Promise<{ success: boolean; error?: string }>
   testApiConnection(apiKey: string, baseUrl?: string, modelName?: string): Promise<{ success: boolean; error?: string; modelCount?: number }>
+  testOpenAiConnection(apiKey: string, baseUrl?: string): Promise<{ success: boolean; error?: string }>
 
   // Settings - Model (global default)
   getModel(): Promise<string | null>
   setModel(model: string): Promise<void>
   // Session-specific model (overrides global)
   getSessionModel(sessionId: string, workspaceId: string): Promise<string | null>
-  setSessionModel(sessionId: string, workspaceId: string, model: string | null): Promise<void>
+  setSessionModel(sessionId: string, workspaceId: string, model: string | null, connection?: string): Promise<void>
+  // Model defaults per provider
+  getModelDefaults(): Promise<{ anthropic?: string; openai?: string } | null>
+  setModelDefault(provider: 'anthropic' | 'openai', model: string): Promise<void>
 
   // Workspace Settings (per-workspace configuration)
   getWorkspaceSettings(workspaceId: string): Promise<WorkspaceSettings | null>
@@ -945,7 +1061,7 @@ export interface ElectronAPI {
   onDefaultPermissionsChanged(callback: () => void): () => void
 
   // Skills
-  getSkills(workspaceId: string, workingDirectory?: string): Promise<LoadedSkill[]>
+  getSkills(workspaceId: string): Promise<LoadedSkill[]>
   getSkillFiles?(workspaceId: string, skillSlug: string): Promise<SkillFile[]>
   deleteSkill(workspaceId: string, skillSlug: string): Promise<void>
   openSkillInEditor(workspaceId: string, skillSlug: string): Promise<void>
@@ -1009,6 +1125,10 @@ export interface ElectronAPI {
   getSpellCheck(): Promise<boolean>
   setSpellCheck(enabled: boolean): Promise<void>
 
+  // Power settings
+  getKeepAwakeWhileRunning(): Promise<boolean>
+  setKeepAwakeWhileRunning(enabled: boolean): Promise<void>
+
   updateBadgeCount(count: number): Promise<void>
   clearBadgeCount(): Promise<void>
   setDockIconWithBadge(dataUrl: string): Promise<void>
@@ -1048,6 +1168,16 @@ export interface ElectronAPI {
   menuCopy(): Promise<void>
   menuPaste(): Promise<void>
   menuSelectAll(): Promise<void>
+
+  // LLM Connections (provider configurations)
+  listLlmConnections(): Promise<LlmConnection[]>
+  listLlmConnectionsWithStatus(): Promise<LlmConnectionWithStatus[]>
+  getLlmConnection(slug: string): Promise<LlmConnection | null>
+  saveLlmConnection(connection: LlmConnection): Promise<{ success: boolean; error?: string }>
+  deleteLlmConnection(slug: string): Promise<{ success: boolean; error?: string }>
+  testLlmConnection(slug: string): Promise<{ success: boolean; error?: string }>
+  setDefaultLlmConnection(slug: string): Promise<{ success: boolean; error?: string }>
+  setWorkspaceDefaultLlmConnection(workspaceId: string, slug: string | null): Promise<{ success: boolean; error?: string }>
 }
 
 /**
@@ -1063,7 +1193,8 @@ export interface ClaudeOAuthResult {
  * Current API setup info for settings
  */
 export interface ApiSetupInfo {
-  authType: AuthType
+  authType: AuthType  // @deprecated - use defaultConnectionSlug instead
+  defaultConnectionSlug?: string  // The slug of the default LLM connection (e.g., 'anthropic-api', 'claude-max')
   hasCredential: boolean
   apiKey?: string  // The stored API key (only returned for api_key auth type)
   anthropicBaseUrl?: string  // Custom Anthropic API base URL (for third-party compatible APIs)
@@ -1102,13 +1233,15 @@ export interface WorkspaceSettings {
   workingDirectory?: string
   /** Whether local (stdio) MCP servers are enabled */
   localMcpEnabled?: boolean
+  /** Default LLM connection slug for new sessions in this workspace */
+  defaultLlmConnection?: string
 }
 
 /**
  * Navigation payload for deep links (main → renderer)
  */
 export interface DeepLinkNavigation {
-  /** Compound route format (e.g., 'allChats/chat/abc123', 'settings/shortcuts') */
+  /** Compound route format (e.g., 'allSessions/session/abc123', 'settings/shortcuts') */
   view?: string
   /** Tab type */
   tabType?: string
@@ -1132,32 +1265,35 @@ export type RightSidebarPanel =
   | { type: 'none' }
 
 /**
- * Chat filter options - determines which sessions to show
- * - 'allChats': All sessions regardless of status
+ * Session filter options - determines which sessions to show
+ * - 'allSessions': All sessions regardless of status (excludes archived)
  * - 'flagged': Only flagged sessions
  * - 'state': Sessions with specific status ID
  * - 'label': Sessions with specific label (includes descendants via tree hierarchy)
+ * - 'archived': Only archived sessions
  */
-export type ChatFilter =
-  | { kind: 'allChats' }
+export type SessionFilter =
+  | { kind: 'allSessions' }
   | { kind: 'flagged' }
   | { kind: 'state'; stateId: string }
   | { kind: 'label'; labelId: string }
   | { kind: 'view'; viewId: string }
+  | { kind: 'archived' }
 
 /**
- * Settings subpage options
+ * Settings subpage options - re-exported from settings-registry (single source of truth)
  */
-export type SettingsSubpage = 'app' | 'appearance' | 'input' | 'workspace' | 'permissions' | 'labels' | 'shortcuts' | 'preferences'
+export type { SettingsSubpage } from './settings-registry'
+import { isValidSettingsSubpage, type SettingsSubpage } from './settings-registry'
 
 /**
- * Chats navigation state - shows SessionList in navigator
+ * Sessions navigation state - shows SessionList in navigator
  */
-export interface ChatsNavigationState {
-  navigator: 'chats'
-  filter: ChatFilter
-  /** Selected chat details, or null for empty state */
-  details: { type: 'chat'; sessionId: string } | null
+export interface SessionsNavigationState {
+  navigator: 'sessions'
+  filter: SessionFilter
+  /** Selected session details, or null for empty state */
+  details: { type: 'session'; sessionId: string } | null
   /** Optional right sidebar panel state */
   rightSidebar?: RightSidebarPanel
 }
@@ -1214,17 +1350,17 @@ export interface SkillsNavigationState {
  * - MainContentPanel: what details to display (from details or subpage)
  */
 export type NavigationState =
-  | ChatsNavigationState
+  | SessionsNavigationState
   | SourcesNavigationState
   | SettingsNavigationState
   | SkillsNavigationState
 
 /**
- * Type guard to check if state is chats navigation
+ * Type guard to check if state is sessions navigation
  */
-export const isChatsNavigation = (
+export const isSessionsNavigation = (
   state: NavigationState
-): state is ChatsNavigationState => state.navigator === 'chats'
+): state is SessionsNavigationState => state.navigator === 'sessions'
 
 /**
  * Type guard to check if state is sources navigation
@@ -1248,11 +1384,11 @@ export const isSkillsNavigation = (
 ): state is SkillsNavigationState => state.navigator === 'skills'
 
 /**
- * Default navigation state - allChats with no selection
+ * Default navigation state - allSessions with no selection
  */
 export const DEFAULT_NAVIGATION_STATE: NavigationState = {
-  navigator: 'chats',
-  filter: { kind: 'allChats' },
+  navigator: 'sessions',
+  filter: { kind: 'allSessions' },
   details: null,
 }
 
@@ -1316,17 +1452,18 @@ export const parseNavigationStateKey = (key: string): NavigationState | null => 
   // Handle settings
   if (key === 'settings') return { navigator: 'settings', subpage: 'app' }
   if (key.startsWith('settings:')) {
-    const subpage = key.slice(9) as SettingsSubpage
-    if (['app', 'appearance', 'input', 'workspace', 'permissions', 'labels', 'shortcuts', 'preferences'].includes(subpage)) {
+    const subpage = key.slice(9)
+    if (isValidSettingsSubpage(subpage)) {
       return { navigator: 'settings', subpage }
     }
   }
 
-  // Handle chats - parse filter and optional session
-  const parseChatsKey = (filterKey: string, sessionId?: string): NavigationState | null => {
-    let filter: ChatFilter
-    if (filterKey === 'allChats') filter = { kind: 'allChats' }
+  // Handle sessions - parse filter and optional session
+  const parseSessionsKey = (filterKey: string, sessionId?: string): NavigationState | null => {
+    let filter: SessionFilter
+    if (filterKey === 'allSessions') filter = { kind: 'allSessions' }
     else if (filterKey === 'flagged') filter = { kind: 'flagged' }
+    else if (filterKey === 'archived') filter = { kind: 'archived' }
     else if (filterKey.startsWith('state:')) {
       const stateId = filterKey.slice(6)
       if (!stateId) return null
@@ -1343,20 +1480,20 @@ export const parseNavigationStateKey = (key: string): NavigationState | null => 
       return null
     }
     return {
-      navigator: 'chats',
+      navigator: 'sessions',
       filter,
-      details: sessionId ? { type: 'chat', sessionId } : null,
+      details: sessionId ? { type: 'session', sessionId } : null,
     }
   }
 
-  // Check for chat details
-  if (key.includes('/chat/')) {
+  // Check for session details
+  if (key.includes('/session/')) {
     const [filterPart, , sessionId] = key.split('/')
-    return parseChatsKey(filterPart, sessionId)
+    return parseSessionsKey(filterPart, sessionId)
   }
 
   // Simple filter key
-  return parseChatsKey(key)
+  return parseSessionsKey(key)
 }
 
 declare global {

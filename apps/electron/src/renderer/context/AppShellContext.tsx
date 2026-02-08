@@ -23,7 +23,10 @@ import type {
   LoadedSource,
   LoadedSkill,
   NewChatActionParams,
+  AuthType,
+  LlmConnectionWithStatus,
 } from '../../shared/types'
+import type { AgentCapabilities } from '@rox-agent/shared/agent/backend'
 import type { TodoState as TodoStateConfig } from '@/config/todo-states'
 import type { SessionOptions, SessionOptionUpdates } from '../hooks/useSessionOptions'
 import { defaultSessionOptions } from '../hooks/useSessionOptions'
@@ -36,11 +39,21 @@ export interface AppShellContextType {
   // from retaining the full messages array and causing memory leaks.
   workspaces: Workspace[]
   activeWorkspaceId: string | null
-  /** Workspace slug (folder name) for SDK skill qualification - NOT the UUID */
+  /** Workspace slug for SDK skill qualification (derived from workspace path) */
   activeWorkspaceSlug: string | null
-  currentModel: string
+  modelDefaults: import('@rox-agent/shared/config/models').ModelDefaults
   /** When set, a custom model overrides the Anthropic model selector (e.g. OpenRouter) */
   customModel: string | null
+  /** Current authentication type (determines which backend is active) */
+  authType: AuthType | null
+  /** Backend capabilities (models, thinking levels) - null until backend ready */
+  capabilities: AgentCapabilities | null
+  /** All LLM connections with authentication status */
+  llmConnections: LlmConnectionWithStatus[]
+  /** Default LLM connection slug for the current workspace */
+  workspaceDefaultLlmConnection?: string
+  /** Refresh LLM connections from config */
+  refreshLlmConnections: () => Promise<void>
   pendingPermissions: Map<string, PermissionRequest[]>
   pendingCredentials: Map<string, CredentialRequest[]>
   /** Get draft input text for a session - reads from ref without triggering re-renders */
@@ -68,6 +81,8 @@ export interface AppShellContextType {
   onRenameSession: (sessionId: string, name: string) => void
   onFlagSession: (sessionId: string) => void
   onUnflagSession: (sessionId: string) => void
+  onArchiveSession: (sessionId: string) => void
+  onUnarchiveSession: (sessionId: string) => void
   onMarkSessionRead: (sessionId: string) => void
   onMarkSessionUnread: (sessionId: string) => void
   /** Track which session user is viewing (for unread state machine) */
@@ -94,8 +109,8 @@ export interface AppShellContextType {
   onOpenFile: (path: string) => void
   onOpenUrl: (url: string) => void
 
-  // Model
-  onModelChange: (model: string) => void
+  // Model defaults
+  refreshModelDefaults: () => Promise<void>
   /** Re-fetch custom model from billing config (call after API connection changes) */
   refreshCustomModel: () => Promise<void>
 

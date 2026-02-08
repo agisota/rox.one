@@ -6,9 +6,9 @@
  * URL Formats (workspace is optional - uses active window if omitted):
  *
  * Compound format (hierarchical navigation):
- *   roxagents://allChats[/chat/{sessionId}]            - Chat list (all chats)
- *   roxagents://flagged[/chat/{sessionId}]             - Chat list (flagged filter)
- *   roxagents://state/{stateId}[/chat/{sessionId}]     - Chat list (state filter)
+ *   roxagents://allSessions[/session/{sessionId}]            - Session list (all sessions)
+ *   roxagents://flagged[/session/{sessionId}]             - Session list (flagged filter)
+ *   roxagents://state/{stateId}[/session/{sessionId}]     - Session list (state filter)
  *   roxagents://sources[/source/{sourceSlug}]          - Sources list
  *   roxagents://settings[/{subpage}]                   - Settings (general, shortcuts, preferences)
  *
@@ -25,13 +25,13 @@
  *   unflag-session/{id}       - Unflag session
  *
  * Examples:
- *   roxagents://allChats                               (all chats view)
- *   roxagents://allChats/chat/abc123                   (specific chat)
+ *   roxagents://allSessions                               (all sessions view)
+ *   roxagents://allSessions/session/abc123                (specific session)
  *   roxagents://settings/shortcuts                     (shortcuts page)
  *   roxagents://sources/source/github                  (github source info)
  *   roxagents://action/new-chat                        (uses active window)
  *   roxagents://action/resume-sdk-session/{sdkId}      (resume Claude Code session)
- *   roxagents://workspace/ws123/allChats/chat/abc123   (targets specific workspace)
+ *   roxagents://workspace/ws123/allSessions/session/abc123   (targets specific workspace)
  */
 
 import type { BrowserWindow } from 'electron'
@@ -42,7 +42,7 @@ import { IPC_CHANNELS } from '../shared/types'
 export interface DeepLinkTarget {
   /** Workspace ID - undefined means use active window */
   workspaceId?: string
-  /** Compound route format (e.g., 'allChats/chat/abc123', 'settings/shortcuts') */
+  /** Compound route format (e.g., 'allSessions/session/abc123', 'settings/shortcuts') */
   view?: string
   /** Action route (e.g., 'new-chat', 'delete-session') */
   action?: string
@@ -63,7 +63,7 @@ export interface DeepLinkResult {
  * Navigation payload sent to renderer via IPC
  */
 export interface DeepLinkNavigation {
-  /** Compound route format (e.g., 'allChats/chat/abc123', 'settings/shortcuts') */
+  /** Compound route format (e.g., 'allSessions/session/abc123', 'settings/shortcuts') */
   view?: string
   /** Action route (e.g., 'new-chat', 'delete-session') */
   action?: string
@@ -101,7 +101,7 @@ export function parseDeepLink(url: string): DeepLinkTarget | null {
 
     // For custom protocols, the hostname contains the first path segment
     // e.g., roxagents://workspace/ws123 → hostname='workspace', pathname='/ws123'
-    // e.g., roxagents://allChats/chat/abc → hostname='allChats', pathname='/chat/abc'
+    // e.g., roxagents://allSessions/chat/abc → hostname='allSessions', pathname='/chat/abc'
     const host = parsed.hostname
     const pathParts = parsed.pathname.split('/').filter(Boolean)
     const windowMode = parseWindowMode(parsed)
@@ -114,10 +114,10 @@ export function parseDeepLink(url: string): DeepLinkTarget | null {
 
     // Compound route prefixes
     const COMPOUND_ROUTE_PREFIXES = [
-      'allChats', 'flagged', 'state', 'sources', 'settings', 'skills'
+      'allSessions', 'flagged', 'state', 'sources', 'settings', 'skills'
     ]
 
-    // roxagents://allChats/..., roxagents://settings/..., etc. (compound routes)
+    // roxagents://allSessions/..., roxagents://settings/..., etc. (compound routes)
     if (COMPOUND_ROUTE_PREFIXES.includes(host)) {
       // Reconstruct the full compound route from host + pathname
       const viewRoute = pathParts.length > 0 ? `${host}/${pathParts.join('/')}` : host
@@ -140,7 +140,7 @@ export function parseDeepLink(url: string): DeepLinkTarget | null {
       const routeType = pathParts[1]
 
       // Parse compound routes: /workspace/{id}/{compoundRoute}
-      // e.g., /workspace/ws123/allChats/chat/abc123
+      // e.g., /workspace/ws123/allSessions/session/abc123
       if (routeType && COMPOUND_ROUTE_PREFIXES.includes(routeType)) {
         const viewRoute = pathParts.slice(1).join('/')
         result.view = viewRoute

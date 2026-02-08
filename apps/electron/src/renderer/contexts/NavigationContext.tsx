@@ -17,7 +17,7 @@
  *   const { navigate } = useNavigation()
  *   const navState = useNavigationState()
  *
- *   navigate(routes.view.allChats())
+ *   navigate(routes.view.allSessions())
  *   navigate(routes.action.newChat())
  */
 
@@ -47,13 +47,13 @@ import type {
   DeepLinkNavigation,
   Session,
   NavigationState,
-  ChatFilter,
+  SessionFilter,
   SourceFilter,
   RightSidebarPanel,
   ContentBadge,
 } from '../../shared/types'
 import {
-  isChatsNavigation,
+  isSessionsNavigation,
   isSourcesNavigation,
   isSettingsNavigation,
   isSkillsNavigation,
@@ -68,8 +68,8 @@ export { routes }
 export type { Route }
 
 // Re-export navigation state types for consumers
-export type { NavigationState, ChatFilter }
-export { isChatsNavigation, isSourcesNavigation, isSettingsNavigation, isSkillsNavigation }
+export type { NavigationState, SessionFilter }
+export { isSessionsNavigation, isSourcesNavigation, isSettingsNavigation, isSkillsNavigation }
 
 interface NavigationContextValue {
   /** Navigate to a route */
@@ -92,6 +92,8 @@ interface NavigationContextValue {
   toggleRightSidebar: (panel?: RightSidebarPanel) => void
   /** Navigate to a source (or source list if no slug), preserving the current filter type */
   navigateToSource: (sourceSlug?: string) => void
+  /** Navigate to a session, preserving the current filter type */
+  navigateToSession: (sessionId: string) => void
 }
 
 const NavigationContext = createContext<NavigationContextValue | null>(null)
@@ -153,21 +155,40 @@ export function NavigationProvider({
     return session.todoState === 'done' || session.todoState === 'cancelled'
   }, [])
 
-  // Helper: Filter sessions by ChatFilter
+  // Helper: Filter sessions by SessionFilter
   // Always excludes hidden sessions - they should never appear in navigation
   const filterSessionsByFilter = useCallback(
-    (filter: ChatFilter): SessionMeta[] => {
+    (filter: SessionFilter): SessionMeta[] => {
       // First filter out hidden sessions - they should never appear in any view
       const visibleSessions = sessionMetas.filter(s => !s.hidden)
 
       return visibleSessions.filter((session) => {
         switch (filter.kind) {
-          case 'allChats':
-            return true
+          case 'allSessions':
+            // Exclude archived sessions from all sessions
+            return session.isArchived !== true
           case 'flagged':
-            return session.isFlagged === true
+            // Exclude archived sessions from flagged view
+            return session.isFlagged === true && session.isArchived !== true
+          case 'archived':
+            return session.isArchived === true
           case 'state':
-            return session.todoState === filter.stateId
+            // Exclude archived sessions from state views
+            return session.todoState === filter.stateId && session.isArchived !== true
+          case 'label': {
+            // Exclude archived sessions from label views
+            if (session.isArchived === true) return false
+            if (!session.labels?.length) return false
+            if (filter.labelId === '__all__') return true
+            // Simple match - check if session has the label (handles valued labels like "priority::3")
+            return session.labels.some(l => l === filter.labelId || l.startsWith(`${filter.labelId}::`))
+          }
+          case 'view':
+            // Exclude archived sessions from view filters
+            // Note: Full view evaluation requires evaluateViews which isn't available here
+            // Return all non-archived sessions as fallback - SessionList does the real filtering
+            if (session.isArchived === true) return false
+            return true
           default:
             return false
         }
@@ -178,7 +199,7 @@ export function NavigationProvider({
 
   // Helper: Get first session ID for a filter
   const getFirstSessionId = useCallback(
-    (filter: ChatFilter): string | null => {
+    (filter: SessionFilter): string | null => {
       const filtered = filterSessionsByFilter(filter)
       return filtered[0]?.id ?? null
     },
@@ -213,7 +234,7 @@ export function NavigationProvider({
       if (!workspaceId) return
 
       switch (parsed.name) {
-        case 'new-chat': {
+        case 'new-session': {
           // Create session with optional permission mode and working directory from params
           const createOptions: import('../../shared/types').CreateSessionOptions = {}
           if (parsed.params.mode && ['safe', 'ask', 'allow-all'].includes(parsed.params.mode)) {
@@ -230,13 +251,6 @@ export function NavigationProvider({
           // System prompt preset for mini agents (e.g., 'mini')
           if (parsed.params.systemPrompt) {
             createOptions.systemPromptPreset = parsed.params.systemPrompt as 'default' | 'mini' | string
-          }
-          // Log mini agent deep link params
-          if (parsed.params.model || parsed.params.systemPrompt) {
-            console.log('[NavigationContext] 🤖 Mini agent params from deep link:', {
-              model: parsed.params.model,
-              systemPromptPreset: parsed.params.systemPrompt,
-            })
           }
           const session = await onCreateSession(workspaceId, createOptions)
 
@@ -265,16 +279,16 @@ export function NavigationProvider({
           }
 
           // Determine navigation filter — preserve status/label context if the new session was created with one
-          const filter: import('../../shared/types').ChatFilter =
+          const filter: import('../../shared/types').SessionFilter =
             parsed.params.status ? { kind: 'state', stateId: parsed.params.status } :
             parsed.params.label ? { kind: 'label', labelId: parsed.params.label } :
-            { kind: 'allChats' }
+            { kind: 'allSessions' }
 
           setSession({ selected: session.id })
           setNavigationState({
-            navigator: 'chats',
+            navigator: 'sessions',
             filter,
-            details: { type: 'chat', sessionId: session.id },
+            details: { type: 'session', sessionId: session.id },
           })
 
           // Parse badges from params (JSON-encoded, used for EditPopover context hiding)
@@ -384,12 +398,12 @@ export function NavigationProvider({
   const applyNavigationState = useCallback(
     (newState: NavigationState): NavigationState => {
       // For chats: auto-select first session if no details provided
-      if (isChatsNavigation(newState) && !newState.details) {
+      if (isSessionsNavigation(newState) && !newState.details) {
         const firstSessionId = getFirstSessionId(newState.filter)
         if (firstSessionId) {
           const stateWithSelection: NavigationState = {
             ...newState,
-            details: { type: 'chat', sessionId: firstSessionId },
+            details: { type: 'session', sessionId: firstSessionId },
           }
           setSession({ selected: firstSessionId })
           setNavigationState(stateWithSelection)
@@ -434,7 +448,7 @@ export function NavigationProvider({
       }
 
       // For chats with explicit session: update session selection
-      if (isChatsNavigation(newState) && newState.details) {
+      if (isSessionsNavigation(newState) && newState.details) {
         setSession({ selected: newState.details.sessionId })
       }
 
@@ -458,8 +472,6 @@ export function NavigationProvider({
         pendingNavigationRef.current = parsed
         return
       }
-
-      console.log('[Navigation] Navigating:', parsed)
 
       // Handle actions (side effects)
       if (parsed.type === 'action') {
@@ -496,7 +508,6 @@ export function NavigationProvider({
       // Update our custom history stack (unless we're navigating via back/forward)
       if (isNavigatingHistoryRef.current) {
         isNavigatingHistoryRef.current = false
-        console.log('[Navigation] Skipping history push (navigating via back/forward)')
       } else {
         // Only push if route is different from current route (avoid duplicates)
         const currentRoute = historyStackRef.current[historyIndexRef.current]
@@ -506,16 +517,12 @@ export function NavigationProvider({
           historyStackRef.current = historyStackRef.current.slice(0, newIndex)
           historyStackRef.current.push(finalRoute)
           historyIndexRef.current = newIndex
-          console.log('[Navigation] Pushed to history:', finalRoute, 'index:', newIndex, 'stack length:', historyStackRef.current.length)
-        } else {
-          console.log('[Navigation] Skipping duplicate route:', finalRoute)
         }
       }
 
       // Update back/forward availability
       const newCanGoBack = historyIndexRef.current > 0
       const newCanGoForward = historyIndexRef.current < historyStackRef.current.length - 1
-      console.log('[Navigation] Updating canGoBack:', newCanGoBack, 'canGoForward:', newCanGoForward)
       setCanGoBack(newCanGoBack)
       setCanGoForward(newCanGoForward)
     },
@@ -533,7 +540,7 @@ export function NavigationProvider({
     const navState = parseRouteToNavigationState(route)
     if (!navState) return true // Non-navigation routes are always valid
 
-    if (isChatsNavigation(navState) && navState.details) {
+    if (isSessionsNavigation(navState) && navState.details) {
       const meta = sessionMetaMap.get(navState.details.sessionId)
       // Session must exist and not be hidden
       return meta != null && !meta.hidden
@@ -558,10 +565,8 @@ export function NavigationProvider({
   // When encountering invalid entries (deleted sessions/sources), remove them from the stack
   const goBack = useCallback(() => {
     const currentIndex = historyIndexRef.current
-    console.log('[Navigation] goBack called, current index:', currentIndex, 'stack length:', historyStackRef.current.length)
 
     if (currentIndex <= 0) {
-      console.log('[Navigation] Already at beginning of history')
       return
     }
 
@@ -576,7 +581,6 @@ export function NavigationProvider({
         break
       }
       invalidIndices.push(i)
-      console.log('[Navigation] Marking invalid history entry for removal:', route)
     }
 
     // Remove invalid entries from stack (in reverse order to preserve indices)
@@ -584,7 +588,6 @@ export function NavigationProvider({
       for (const idx of invalidIndices.sort((a, b) => b - a)) {
         historyStackRef.current.splice(idx, 1)
       }
-      console.log('[Navigation] Removed', invalidIndices.length, 'invalid entries from history')
     }
 
     // Recalculate target index after removal
@@ -602,10 +605,8 @@ export function NavigationProvider({
       historyIndexRef.current = targetIndex
       isNavigatingHistoryRef.current = true
       const route = historyStackRef.current[targetIndex]
-      console.log('[Navigation] Going back to:', route, 'new index:', targetIndex)
       navigateRef.current?.(route)
     } else {
-      console.log('[Navigation] No valid history entry to go back to')
       // Update canGoBack/canGoForward since we may have removed entries
       setCanGoBack(historyIndexRef.current > 0)
       setCanGoForward(historyIndexRef.current < historyStackRef.current.length - 1)
@@ -617,10 +618,8 @@ export function NavigationProvider({
   const goForward = useCallback(() => {
     const currentIndex = historyIndexRef.current
     const stackLength = historyStackRef.current.length
-    console.log('[Navigation] goForward called, current index:', currentIndex, 'stack length:', stackLength)
 
     if (currentIndex >= stackLength - 1) {
-      console.log('[Navigation] Already at end of history')
       return
     }
 
@@ -635,7 +634,6 @@ export function NavigationProvider({
         break
       }
       invalidIndices.push(i)
-      console.log('[Navigation] Marking invalid history entry for removal:', route)
     }
 
     // Remove invalid entries from stack (in reverse order to preserve indices)
@@ -643,7 +641,6 @@ export function NavigationProvider({
       for (const idx of invalidIndices.sort((a, b) => b - a)) {
         historyStackRef.current.splice(idx, 1)
       }
-      console.log('[Navigation] Removed', invalidIndices.length, 'invalid entries from history')
     }
 
     // Recalculate target index after removal (invalid entries were between current and target)
@@ -655,10 +652,8 @@ export function NavigationProvider({
       historyIndexRef.current = targetIndex
       isNavigatingHistoryRef.current = true
       const route = historyStackRef.current[targetIndex]
-      console.log('[Navigation] Going forward to:', route, 'new index:', targetIndex)
       navigateRef.current?.(route)
     } else {
-      console.log('[Navigation] No valid history entry to go forward to')
       // Update canGoBack/canGoForward since we may have removed entries
       setCanGoBack(historyIndexRef.current > 0)
       setCanGoForward(historyIndexRef.current < historyStackRef.current.length - 1)
@@ -679,8 +674,6 @@ export function NavigationProvider({
 
     // Skip on initial mount (no previous workspace)
     if (previousWorkspaceIdRef.current !== null && previousWorkspaceIdRef.current !== workspaceId) {
-      console.log('[Navigation] Workspace changed, resetting navigation state')
-
       // Clear history stack - old routes belong to previous workspace
       historyStackRef.current = []
       historyIndexRef.current = -1
@@ -707,10 +700,9 @@ export function NavigationProvider({
     // Only initialize once
     if (historyStackRef.current.length === 0) {
       const params = new URLSearchParams(window.location.search)
-      const initialRoute = (params.get('route') || 'allChats') as Route
+      const initialRoute = (params.get('route') || 'allSessions') as Route
       historyStackRef.current = [initialRoute]
       historyIndexRef.current = 0
-      console.log('[Navigation] Initialized history stack with:', initialRoute)
     }
   }, [isReady, workspaceId])
 
@@ -744,8 +736,6 @@ export function NavigationProvider({
     const sidebarParam = params.get('sidebar') || undefined
 
     if (initialRoute) {
-      console.log('[Navigation] Restoring route from URL:', initialRoute, 'sidebar:', sidebarParam)
-
       // Parse with sidebar param
       const navState = parseRouteToNavigationState(initialRoute, sidebarParam)
       if (navState) {
@@ -764,11 +754,11 @@ export function NavigationProvider({
       // Convert DeepLinkNavigation to route string and navigate
       let route: string | null = null
 
-      // Compound route format (e.g., 'allChats/chat/abc123', 'settings/shortcuts')
+      // Compound route format (e.g., 'allSessions/session/abc123', 'settings/shortcuts')
       if (nav.view) {
         route = nav.view
       } else if (nav.action) {
-        // Action routes (e.g., 'action/new-chat', 'action/delete-session/abc123')
+        // Action routes (e.g., 'action/new-session', 'action/delete-session/abc123')
         route = `action/${nav.action}`
         if (nav.actionParams?.id) {
           route += `/${nav.actionParams.id}`
@@ -862,6 +852,38 @@ export function NavigationProvider({
     navigate(routes.view.sources(sourceSlug ? { sourceSlug } : undefined))
   }, [navigationState, navigate])
 
+  // Navigate to a session while preserving the current filter type
+  const navigateToSession = useCallback((sessionId: string) => {
+    if (!isSessionsNavigation(navigationState)) {
+      navigate(routes.view.allSessions(sessionId))
+      return
+    }
+
+    const filter = navigationState.filter
+    switch (filter.kind) {
+      case 'allSessions':
+        navigate(routes.view.allSessions(sessionId))
+        break
+      case 'flagged':
+        navigate(routes.view.flagged(sessionId))
+        break
+      case 'archived':
+        navigate(routes.view.archived(sessionId))
+        break
+      case 'state':
+        navigate(routes.view.state(filter.stateId, sessionId))
+        break
+      case 'label':
+        navigate(routes.view.label(filter.labelId, sessionId))
+        break
+      case 'view':
+        navigate(routes.view.view(filter.viewId, sessionId))
+        break
+      default:
+        navigate(routes.view.allSessions(sessionId))
+    }
+  }, [navigationState, navigate])
+
   return (
     <NavigationContext.Provider
       value={{
@@ -875,6 +897,7 @@ export function NavigationProvider({
         updateRightSidebar,
         toggleRightSidebar,
         navigateToSource,
+        navigateToSession,
       }}
     >
       {children}

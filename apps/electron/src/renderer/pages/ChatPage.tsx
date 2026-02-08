@@ -21,6 +21,8 @@ import { rendererPerf } from '@/lib/perf'
 import { routes } from '@/lib/navigate'
 import { ensureSessionMessagesLoadedAtom, loadedSessionsAtom, sessionMetaMapAtom } from '@/atoms/sessions'
 import { getSessionTitle } from '@/utils/session'
+import { getDefaultModelForProvider, type ModelProvider } from '@config/models'
+import { getModelsForProviderType, isCompatProvider, isOpenAIProvider, resolveEffectiveConnectionSlug } from '@config/llm-connections'
 
 export interface ChatPageProps {
   sessionId: string
@@ -34,7 +36,9 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
 
   const {
     activeWorkspaceId,
-    currentModel,
+    modelDefaults,
+    llmConnections,
+    workspaceDefaultLlmConnection,
     onSendMessage,
     onOpenFile,
     onOpenUrl,
@@ -56,6 +60,8 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
     onRenameSession,
     onFlagSession,
     onUnflagSession,
+    onArchiveSession,
+    onUnarchiveSession,
     onTodoStateChange,
     onDeleteSession,
     rightSidebarButton,
@@ -161,15 +167,51 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
     onInputChange(sessionId, value)
   }, [sessionId, onInputChange])
 
-  // Session model change handler - persists per-session model
-  const handleModelChange = React.useCallback((model: string) => {
+  // Session model change handler - persists per-session model and connection
+  const handleModelChange = React.useCallback((model: string, connection?: string) => {
     if (activeWorkspaceId) {
-      window.electronAPI.setSessionModel(sessionId, activeWorkspaceId, model)
+      window.electronAPI.setSessionModel(sessionId, activeWorkspaceId, model, connection)
     }
   }, [sessionId, activeWorkspaceId])
 
+  // Session connection change handler - can only change before first message
+  const handleConnectionChange = React.useCallback(async (connectionSlug: string) => {
+    try {
+      await window.electronAPI.sessionCommand(sessionId, { type: 'setConnection', connectionSlug })
+    } catch (error) {
+      // Connection change may fail if session already started or connection is invalid
+      console.error('Failed to change connection:', error)
+    }
+  }, [sessionId])
+
   // Effective model for this session (session-specific or global fallback)
-  const effectiveModel = session?.model || currentModel
+  const effectiveModel = React.useMemo(() => {
+    const connectionSlug = resolveEffectiveConnectionSlug(
+      session?.llmConnection, workspaceDefaultLlmConnection, llmConnections
+    )
+
+    const connection = connectionSlug ? llmConnections.find(c => c.slug === connectionSlug) : null
+    const providerType = connection?.providerType ?? 'anthropic'
+    const provider: ModelProvider = isOpenAIProvider(providerType) ? 'openai' : 'anthropic'
+
+    const available = (() => {
+      if (!connection) return getModelsForProviderType('anthropic')
+      if (isCompatProvider(providerType)) return connection.models ?? []
+      return getModelsForProviderType(providerType)
+    })()
+
+    const availableIds = Array.isArray(available)
+      ? available.map(m => typeof m === 'string' ? m : m.id)
+      : []
+
+    const providerDefault = (modelDefaults?.[provider] ?? getDefaultModelForProvider(provider))
+    if (session?.model) {
+      if (availableIds.length === 0 || availableIds.includes(session.model)) {
+        return session.model
+      }
+    }
+    return providerDefault
+  }, [session?.id, session?.model, session?.llmConnection, workspaceDefaultLlmConnection, llmConnections, modelDefaults])
 
   // Working directory for this session
   const workingDirectory = session?.workingDirectory
@@ -213,8 +255,9 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
 
   // Get display title for header - use getSessionTitle for consistent fallback logic with SessionList
   // Priority: name > first user message > preview > "New chat"
-  const displayTitle = session ? getSessionTitle(session) : (sessionMeta ? getSessionTitle(sessionMeta) : 'Chat')
+  const displayTitle = session ? getSessionTitle(session) : (sessionMeta ? getSessionTitle(sessionMeta) : 'Session')
   const isFlagged = session?.isFlagged || sessionMeta?.isFlagged || false
+  const isArchived = session?.isArchived || sessionMeta?.isArchived || false
   const sharedUrl = session?.sharedUrl || sessionMeta?.sharedUrl || null
   const currentTodoState = session?.todoState || sessionMeta?.todoState || 'todo'
   const hasMessages = !!(session?.messages?.length || sessionMeta?.lastFinalMessageId)
@@ -249,6 +292,14 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
     onUnflagSession(sessionId)
   }, [sessionId, onUnflagSession])
 
+  const handleArchive = React.useCallback(() => {
+    onArchiveSession(sessionId)
+  }, [sessionId, onArchiveSession])
+
+  const handleUnarchive = React.useCallback(() => {
+    onUnarchiveSession(sessionId)
+  }, [sessionId, onUnarchiveSession])
+
   const handleMarkUnread = React.useCallback(() => {
     onMarkSessionUnread(sessionId)
   }, [sessionId, onMarkSessionUnread])
@@ -266,7 +317,7 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
   }, [sessionId, onDeleteSession])
 
   const handleOpenInNewWindow = React.useCallback(async () => {
-    const route = routes.view.allChats(sessionId)
+    const route = routes.view.allSessions(sessionId)
     const separator = route.includes('?') ? '&' : '?'
     const url = `roxagents://${route}${separator}window=focused`
     try {
@@ -387,6 +438,7 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
       sessionId={sessionId}
       sessionName={displayTitle}
       isFlagged={isFlagged}
+      isArchived={isArchived}
       sharedUrl={sharedUrl}
       hasMessages={hasMessages}
       hasUnreadMessages={hasUnreadMessages}
@@ -398,6 +450,8 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
       onRename={handleRename}
       onFlag={handleFlag}
       onUnflag={handleUnflag}
+      onArchive={handleArchive}
+      onUnarchive={handleUnarchive}
       onMarkUnread={handleMarkUnread}
       onTodoStateChange={handleTodoStateChange}
       onOpenInNewWindow={handleOpenInNewWindow}
@@ -407,6 +461,7 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
     sessionId,
     displayTitle,
     isFlagged,
+    isArchived,
     sharedUrl,
     hasMessages,
     hasUnreadMessages,
@@ -418,6 +473,8 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
     handleRename,
     handleFlag,
     handleUnflag,
+    handleArchive,
+    handleUnarchive,
     handleMarkUnread,
     handleTodoStateChange,
     handleOpenInNewWindow,
@@ -455,6 +512,7 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
                 onOpenUrl={handleOpenUrl}
                 currentModel={effectiveModel}
                 onModelChange={handleModelChange}
+                onConnectionChange={handleConnectionChange}
                 textareaRef={textareaRef}
                 pendingPermission={undefined}
                 onRespondToPermission={onRespondToPermission}
@@ -487,11 +545,11 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
           <RenameDialog
             open={renameDialogOpen}
             onOpenChange={setRenameDialogOpen}
-            title="Rename Chat"
+            title="Rename Session"
             value={renameName}
             onValueChange={setRenameName}
             onSubmit={handleRenameSubmit}
-            placeholder="Enter chat name..."
+            placeholder="Enter session name..."
           />
         </>
       )
@@ -500,7 +558,7 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
     // Session truly doesn't exist
     return (
       <div className="h-full flex flex-col">
-        <PanelHeader  title="Chat" rightSidebarButton={rightSidebarButton} />
+        <PanelHeader  title="Session" rightSidebarButton={rightSidebarButton} />
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
           <AlertCircle className="h-10 w-10" />
           <p className="text-sm">This session no longer exists</p>
@@ -526,6 +584,7 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
             onOpenUrl={handleOpenUrl}
             currentModel={effectiveModel}
             onModelChange={handleModelChange}
+            onConnectionChange={handleConnectionChange}
             textareaRef={textareaRef}
             pendingPermission={pendingPermission}
             onRespondToPermission={onRespondToPermission}
@@ -561,11 +620,11 @@ const ChatPage = React.memo(function ChatPage({ sessionId }: ChatPageProps) {
       <RenameDialog
         open={renameDialogOpen}
         onOpenChange={setRenameDialogOpen}
-        title="Rename Chat"
+        title="Rename Session"
         value={renameName}
         onValueChange={setRenameName}
         onSubmit={handleRenameSubmit}
-        placeholder="Enter chat name..."
+        placeholder="Enter session name..."
       />
     </>
   )

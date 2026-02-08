@@ -14,7 +14,7 @@ To understand what Rox Agents does and how it works watch this video.
 ## Why Rox Agents was built
 Rox Agents is a tool we built so that we (at rox.do) can work effectively with agents. It enables intuitive multitasking, no-fluff connection to any API or Service, sharing sessions, and a more document (vs code) centric workflow - in a beautiful and fluid UI.
 
-It leans on Claude Code through the Claude Agent SDK - follows what we found great, and improves areas where we've desired improvements.
+It uses the Claude Agent SDK and the Codex app-server side by side—building on what we found great and improving areas where we’ve desired improvements.
 
 It's built with Agent Native software principles in mind, and is highly customisable out of the box. One of the first of its kind.
 
@@ -85,6 +85,8 @@ bun run electron:start
 
 - **Multi-Session Inbox**: Desktop app with session management, status workflow, and flagging
 - **Claude Code Experience**: Streaming responses, tool visualization, real-time updates
+- **Multiple LLM Connections**: Add multiple AI providers and set per-workspace defaults
+- **Codex / OpenAI Support**: Run Codex-backed sessions alongside Anthropic
 - **Rox MCP Integration**: Access to 32+ Rox document tools (blocks, collections, search, tasks)
 - **Sources**: Connect to MCP servers, REST APIs (Google, Slack, Microsoft), and local filesystems
 - **Permission Modes**: Three-level system (Explore, Ask to Edit, Auto) with customizable rules
@@ -98,7 +100,7 @@ bun run electron:start
 ## Quick Start
 
 1. **Launch the app** after installation
-2. **Choose API Connection**: Use your own Anthropic API key or Claude Max subscription
+2. **Choose API Connection**: Use Anthropic (API key or Claude Max) or Codex (OpenAI OAuth)
 3. **Create a workspace**: Set up a workspace to organize your sessions
 4. **Connect sources** (optional): Add MCP servers, REST APIs, or local filesystems
 5. **Start chatting**: Create sessions and interact with Claude
@@ -179,7 +181,7 @@ bun run electron:start
 # Type checking
 bun run typecheck:all
 
-# Debug logging — see "Troubleshooting > Debug Logging" below
+# Debug logging (writes to ~/Library/Logs/Rox Agents/)
 # Logs are automatically enabled in development
 ```
 
@@ -255,77 +257,13 @@ Or simply tell the agent you want to connect Gmail/Calendar/Drive - it will guid
 - Never commit credentials to version control
 - For production use, consider getting your OAuth consent screen verified by Google
 
-## Troubleshooting
-
-### Debug Logging
-
-In development (`bun run electron:start` or `bun run electron:dev`),
-debug logging is enabled automatically.
-Logs are written to both the console and a log file.
-
-In packaged builds, logs are disabled by default.
-To enable them, launch the app with the `--debug` flag:
-
-```bash
-# macOS
-/Applications/Rox\ Agents.app/Contents/MacOS/Rox\ Agents --debug
-
-# Linux
-rox-agents --debug
-```
-
-```powershell
-# Windows (PowerShell) - from the install directory
-& ".\Rox Agents.exe" --debug
-```
-
-You can also set the `ROX_DEBUG=1` environment variable
-to enable debug output from the shared/SDK layer.
-(Note: in the desktop app, `--debug` also enables `ROX_DEBUG`.)
-
-Logs are written by `electron-log` to a platform-specific app logs directory.
-The most reliable way to find the exact path is to launch with `--debug`
-and look for the startup line:
-
-```text
-Debug mode enabled - logs at: /path/to/log/file.log
-```
-
-You can also search for a `Rox Agents` folder within your app-data directory.
-
-### WSL2 Notes
-
-On WSL2, OAuth login (Claude Max / Claude Pro) may fail because Electron's `shell.openExternal`
-cannot open a browser on the Windows host by default.
-
-**Fix: install `wslu`** to bridge `xdg-open` to the Windows side:
-
-```bash
-sudo apt install wslu
-```
-
-Also ensure WSL interop is enabled (it is by default on most distros).
-You can verify with:
-
-```bash
-cat /proc/sys/fs/binfmt_misc/WSLInterop
-```
-
-If you see output (not "No such file"), interop is working.
-
-**Alternative:** If you are running WSLg
-(GUI support built into recent Windows 11 builds),
-a Linux browser can handle the OAuth redirect directly.
-In that case `wslu` is not required,
-but you need a browser installed inside WSL.
-
 ## Configuration
 
 Configuration is stored at `~/.rox-agent/`:
 
 ```
 ~/.rox-agent/
-├── config.json              # Main config (workspaces, auth type)
+├── config.json              # Main config (workspaces, LLM connections)
 ├── credentials.enc          # Encrypted credentials (AES-256-GCM)
 ├── preferences.json         # User preferences
 ├── theme.json               # App-level theme
@@ -350,11 +288,11 @@ Tool responses exceeding ~60KB are automatically summarized using Claude Haiku w
 External apps can navigate using `roxagents://` URLs:
 
 ```
-roxagents://allChats                    # All chats view
-roxagents://allChats/chat/session123    # Specific chat
-roxagents://settings                    # Settings
-roxagents://sources/source/github       # Source info
-roxagents://action/new-chat             # Create new chat
+roxagents://allSessions                      # All sessions view
+roxagents://allSessions/session/session123   # Specific session
+roxagents://settings                         # Settings
+roxagents://sources/source/github            # Source info
+roxagents://action/new-chat                  # Create new session
 ```
 
 ## Tech Stack
@@ -363,6 +301,7 @@ roxagents://action/new-chat             # Create new chat
 |-------|------------|
 | Runtime | [Bun](https://bun.sh/) |
 | AI | [@anthropic-ai/claude-agent-sdk](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) |
+| AI (OpenAI) | Rox Agents Codex fork (app-server) |
 | Desktop | [Electron](https://www.electronjs.org/) + React |
 | UI | [shadcn/ui](https://ui.shadcn.com/) + Tailwind CSS v4 |
 | Build | esbuild (main) + Vite (renderer) |
@@ -375,6 +314,10 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ### Third-Party Licenses
 
 This project uses the [Claude Agent SDK](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk), which is subject to [Anthropic's Commercial Terms of Service](https://www.anthropic.com/legal/commercial-terms).
+
+Rox Agents also bundles a custom Codex app-server fork to support OpenAI/Codex connections:
+
+- https://github.com/lukilabs/rox-agents-codex
 
 ### Trademark
 
