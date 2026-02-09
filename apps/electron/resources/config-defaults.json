@@ -2,7 +2,6 @@
   "version": "1.0",
   "description": "Default configuration values for Rox Agents",
   "defaults": {
-    "authType": "api_key",
     "notificationsEnabled": true,
     "colorTheme": "default"
   },
