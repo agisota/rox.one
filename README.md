@@ -376,6 +376,32 @@ roxagents://action/new-chat                  # Create new session
 | Build | esbuild (main) + Vite (renderer) |
 | Credentials | AES-256-GCM encrypted file storage |
 
+## Troubleshooting
+
+### Debug Mode
+
+To launch the packaged app with verbose logging enabled, use `-- --debug` (note the double dash separator):
+
+**macOS:**
+```bash
+/Applications/Rox\ Agents.app/Contents/MacOS/Rox\ Agents -- --debug
+```
+
+**Windows (PowerShell):**
+```powershell
+& "$env:LOCALAPPDATA\Programs\@rox-agentelectron\Rox Agents.exe" -- --debug
+```
+
+**Linux:**
+```bash
+./rox-agents -- --debug
+```
+
+Logs are written to:
+- **macOS:** `~/Library/Logs/@rox-agent/electron/main.log`
+- **Windows:** `%APPDATA%\@rox-agent\electron\logs\main.log`
+- **Linux:** `~/.config/@rox-agent/electron/logs/main.log`
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
