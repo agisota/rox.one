@@ -63,7 +63,7 @@ Sentry.init({
 const machineId = createHash('sha256').update(hostname() + homedir()).digest('hex').slice(0, 16)
 Sentry.setUser({ id: machineId })
 
-import { join } from 'path'
+import { join, delimiter } from 'path'
 import { existsSync } from 'fs'
 import { SessionManager } from './sessions'
 import { registerIpcHandlers } from './ipc'
@@ -81,12 +81,13 @@ import { setBundledAssetsRoot } from '@rox-agent/shared/utils'
 import { initializeBackendHostRuntime } from '@rox-agent/shared/agent/backend'
 import { setPowerShellValidatorRoot } from '@rox-agent/shared/agent'
 import { handleDeepLink } from './deep-link'
+import { BrowserPaneManager } from './browser-pane-manager'
 import { registerThumbnailScheme, registerThumbnailHandler } from './thumbnail-protocol'
 import log, { isDebugMode, mainLog, getLogFilePath } from './logger'
 import { setPerfEnabled, enableDebug } from '@rox-agent/shared/utils'
 import { registerPiModelResolver } from '@rox-agent/shared/config'
 import { getPiModelsForAuthProvider, getAllPiModels } from '@rox-agent/shared/config'
-import { initNotificationService, clearBadgeCount, initBadgeIcon, initInstanceBadge } from './notifications'
+import { initNotificationService, initBadgeIcon, initInstanceBadge } from './notifications'
 import { checkForUpdatesOnLaunch, setWindowManager as setAutoUpdateWindowManager, isUpdating } from './auto-update'
 import { validateGitBashPath } from './git-bash'
 
@@ -98,6 +99,43 @@ if (isDebugMode) {
   process.env.ROX_DEBUG = '1'
   enableDebug()
   setPerfEnabled(true)
+}
+
+// Bundle CLI tools: resolve platform-specific uv binary and wrapper scripts.
+// These are available to all agent Bash sessions via ROX_UV, ROX_SCRIPTS env vars
+// and PATH prepend. uv auto-downloads Python 3.12 on first use (~5s, then cached).
+{
+  // In packaged app: resources are at process.resourcesPath/app/resources/
+  // In dev: resources are at __dirname/../resources/ (sibling of dist/)
+  const resourcesBase = app.isPackaged
+    ? join(process.resourcesPath, 'app')
+    : join(__dirname, '..')
+  const platformKey = `${process.platform}-${process.arch}`
+  const uvPlatformDir = join(resourcesBase, 'resources', 'bin', platformKey)
+  const uvBinary = join(uvPlatformDir, process.platform === 'win32' ? 'uv.exe' : 'uv')
+  const binDir = join(resourcesBase, 'resources', 'bin')
+  const scriptsDir = join(resourcesBase, 'resources', 'scripts')
+
+  const bundledUvExists = existsSync(uvBinary)
+  const fallbackUv = bundledUvExists ? null : 'uv'
+
+  process.env.ROX_UV = bundledUvExists ? uvBinary : (fallbackUv ?? uvBinary)
+  process.env.ROX_SCRIPTS = scriptsDir
+  // Prepend both generic wrappers dir and platform uv dir:
+  // - binDir exposes wrapper commands (pdf-tool, docx-tool, ...)
+  // - uvPlatformDir exposes raw `uv` for direct shell usage / debugging
+  process.env.PATH = `${binDir}${delimiter}${uvPlatformDir}${delimiter}${process.env.PATH}`
+
+  if (!bundledUvExists) {
+    mainLog.warn('Bundled uv binary missing, CLI document tools may fail unless uv is available on PATH.', {
+      expectedUvPath: uvBinary,
+      usingRoxUv: process.env.ROX_UV,
+    })
+  }
+
+  if (isDebugMode) {
+    mainLog.info('CLI tools configured:', { uvBinary: process.env.ROX_UV, binDir, scriptsDir, bundledUvExists })
+  }
 }
 
 // Register Pi model resolver so llm-connections.ts can resolve Pi models
@@ -112,6 +150,7 @@ const DEEPLINK_SCHEME = process.env.ROX_DEEPLINK_SCHEME || 'roxagents'
 
 let windowManager: WindowManager | null = null
 let sessionManager: SessionManager | null = null
+let browserPaneManager: BrowserPaneManager | null = null
 
 // Store pending deep link if app not ready yet (cold start)
 let pendingDeepLink: string | null = null
@@ -345,8 +384,14 @@ app.whenReady().then(async () => {
       }
     })
 
+    // Initialize browser pane manager
+    browserPaneManager = new BrowserPaneManager()
+    browserPaneManager.setWindowManager(windowManager)
+    browserPaneManager.registerToolbarIpc()
+    sessionManager.setBrowserPaneManager(browserPaneManager)
+
     // Register IPC handlers (must happen before window creation)
-    registerIpcHandlers(sessionManager, windowManager)
+    registerIpcHandlers(sessionManager, windowManager, browserPaneManager)
 
     // Create initial windows (restores from saved state or opens first workspace)
     await createInitialWindows()
@@ -421,10 +466,10 @@ app.whenReady().then(async () => {
 
   // macOS: Re-create window when dock icon is clicked
   app.on('activate', () => {
-    if (!windowManager?.hasWindows()) {
+    if (BrowserWindow.getAllWindows().length === 0 && windowManager) {
       // Open first workspace or last focused
       const workspaces = getWorkspaces()
-      if (workspaces.length > 0 && windowManager) {
+      if (workspaces.length > 0) {
         const savedState = loadWindowState()
         const wsId = savedState?.lastFocusedWorkspaceId || workspaces[0].id
         // Verify workspace still exists
@@ -453,6 +498,9 @@ app.on('before-quit', async (event) => {
   // Avoid re-entry when we call app.exit()
   if (isQuitting) return
   isQuitting = true
+
+  // Ensure Cmd+Q/app quit bypasses layered window close interception (Cmd+W behavior).
+  windowManager?.setAppQuitting(true)
 
   if (windowManager) {
     // Get full window states (includes bounds, type, and query)
@@ -483,6 +531,11 @@ app.on('before-quit', async (event) => {
     }
     // Clean up SessionManager resources (file watchers, timers, etc.)
     sessionManager.cleanup()
+
+    // Clean up browser pane instances
+    if (browserPaneManager) {
+      browserPaneManager.destroyAll()
+    }
 
     // Stop all model refresh timers
     getModelRefreshService().stopAll()

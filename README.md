@@ -182,7 +182,7 @@ bun run electron:start
 # Type checking
 bun run typecheck:all
 
-# Debug logging (writes to ~/Library/Logs/Rox Agents/)
+# Debug logging (writes to ~/Library/Logs/@rox-agent/electron/)
 # Logs are automatically enabled in development
 ```
 
