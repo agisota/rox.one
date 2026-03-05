@@ -1,0 +1,24 @@
+{
+  "name": "@rox-agent/cli",
+  "version": "0.7.0",
+  "description": "Terminal client for Rox Agent server",
+  "type": "module",
+  "main": "src/index.ts",
+  "bin": {
+    "rox-cli": "src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src/"
+  },
+  "dependencies": {
+    "@rox-agent/shared": "workspace:*",
+    "@rox-agent/server-core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2",
+    "@types/node": "^22.0.0",
+    "@types/bun": "latest"
+  }
+}

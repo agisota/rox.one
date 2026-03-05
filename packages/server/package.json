@@ -1,0 +1,23 @@
+{
+  "name": "@rox-agent/server",
+  "version": "0.7.0",
+  "description": "Standalone headless Rox Agent server (Bun runtime)",
+  "type": "module",
+  "main": "src/index.ts",
+  "bin": {
+    "rox-server": "src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rox-agent/core": "workspace:*",
+    "@rox-agent/server-core": "workspace:*",
+    "@rox-agent/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2",
+    "@types/node": "^22.0.0"
+  }
+}
