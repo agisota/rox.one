@@ -31,6 +31,17 @@ export function isDeveloperFeedbackEnabled(): boolean {
   return isDevRuntime();
 }
 
+/**
+ * Runtime-evaluated check for rox-agents-cli integration.
+ *
+ * Defaults to disabled. Override with ROX_FEATURE_ROX_AGENTS_CLI=1|0.
+ */
+export function isRoxAgentsCliEnabled(): boolean {
+  const override = parseBooleanEnv(process.env.ROX_FEATURE_ROX_AGENTS_CLI);
+  if (override !== undefined) return override;
+  return false;
+}
+
 export const FEATURE_FLAGS = {
   /** Enable Opus 4.6 fast mode (speed:"fast" + beta header). 6x pricing. */
   fastMode: false,
@@ -42,5 +53,13 @@ export const FEATURE_FLAGS = {
    */
   get developerFeedback(): boolean {
     return isDeveloperFeedbackEnabled();
+  },
+  /**
+   * Enable rox-agent CLI guidance and guardrails.
+   *
+   * Defaults to disabled. Override with ROX_FEATURE_ROX_AGENTS_CLI=1|0.
+   */
+  get roxAgentsCli(): boolean {
+    return isRoxAgentsCliEnabled();
   },
 } as const;

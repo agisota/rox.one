@@ -2,6 +2,10 @@
 
 This guide explains how to create and configure skills in Rox Agent.
 
+> **CLI-first workflow (recommended):** Use `rox-agent skill ...` commands instead of editing `SKILL.md` files directly.
+> - `rox-agent skill --help`
+> - Canonical command reference: [rox-cli.md](./rox-cli.md)
+
 ## What Are Skills?
 
 Skills are specialized instructions that extend Claude's capabilities for specific tasks. They use **the exact same SKILL.md format as the Claude Code SDK** - making skills fully compatible between systems.

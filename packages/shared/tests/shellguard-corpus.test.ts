@@ -99,6 +99,15 @@ const TEST_MODE_CONFIG = {
       comment: 'npm read operations',
     },
 
+    // rox-agent CLI read-only
+    { regex: /^rox-agent\s+label\s+(list|get)\b/, source: '^rox-agent\\s+label\\s+(list|get)\\b', comment: 'rox-agent label read-only operations' },
+    { regex: /^rox-agent\s+source\s+(list|get|validate|test)\b/, source: '^rox-agent\\s+source\\s+(list|get|validate|test)\\b', comment: 'rox-agent source read-only operations' },
+    { regex: /^rox-agent\s+skill\s+(list|get|validate|where)\b/, source: '^rox-agent\\s+skill\\s+(list|get|validate|where)\\b', comment: 'rox-agent skill read-only operations' },
+    { regex: /^rox-agent\s+automation\s+(list|get|validate|history|last-executed|test|lint)\b/, source: '^rox-agent\\s+automation\\s+(list|get|validate|history|last-executed|test|lint)\\b', comment: 'rox-agent automation read-only operations' },
+    { regex: /^rox-agent\s*$/, source: '^rox-agent\\s*$', comment: 'rox-agent bare invocation' },
+    { regex: /^rox-agent\s+(label|source|skill|automation)\s+--help\b/, source: '^rox-agent\\s+(label|source|skill|automation)\\s+--help\\b', comment: 'rox-agent entity help flags' },
+    { regex: /^rox-agent\s+--(help|version|discover)\b/, source: '^rox-agent\\s+--(help|version|discover)\\b', comment: 'rox-agent global flags' },
+
     // Version checks
     { regex: /^node\s+(--version|-v)\b/, source: 'node version', comment: 'Node.js version' },
     { regex: /^python3?\s+(--version|-V)\b/, source: 'python version', comment: 'Python version' },
@@ -817,6 +826,71 @@ describe('ShellGuard corpus: resource exhaustion', () => {
     'yes',
     'yes y',
   ];
+
+  for (const cmd of shouldBlock) {
+    it(`blocks: ${cmd}`, () => {
+      expect(isReadOnlyBashCommandWithConfig(cmd, TEST_MODE_CONFIG)).toBe(false);
+    });
+  }
+});
+
+// ============================================================
+// Group 27: rox-agent CLI allowlist
+// ============================================================
+
+describe('ShellGuard corpus: rox-agent CLI allowlist', () => {
+  const shouldAllow = [
+    'rox-agent',
+    'rox-agent --help',
+    'rox-agent --version',
+    'rox-agent --discover',
+    'rox-agent label --help',
+    'rox-agent label list',
+    'rox-agent label get bug',
+    'rox-agent source --help',
+    'rox-agent source list',
+    'rox-agent source get linear',
+    'rox-agent source validate linear',
+    'rox-agent source test linear',
+    'rox-agent skill --help',
+    'rox-agent skill list',
+    'rox-agent skill get commit-helper',
+    'rox-agent skill where commit-helper',
+    'rox-agent skill validate commit-helper',
+    'rox-agent automation list',
+    'rox-agent automation get abc123',
+    'rox-agent automation validate',
+    'rox-agent automation history abc123 --limit 5',
+    'rox-agent automation last-executed abc123',
+    'rox-agent automation test abc123 --match "x"',
+    'rox-agent automation lint',
+  ];
+
+  const shouldBlock = [
+    'rox-agent label create --name Bug',
+    'rox-agent label update bug --name "Bug Report"',
+    'rox-agent label delete bug',
+    'rox-agent label move bug --parent root',
+    'rox-agent label reorder --parent root a b c',
+    'rox-agent source create --name Linear --provider linear --type mcp',
+    'rox-agent source update linear --json "{\"enabled\":false}"',
+    'rox-agent source delete linear',
+    'rox-agent skill create --name "Review" --description "x"',
+    'rox-agent skill update review --json "{\"description\":\"y\"}"',
+    'rox-agent skill delete review',
+    'rox-agent automation create --event UserPromptSubmit --prompt "x"',
+    'rox-agent automation update abc123 --json "{\"enabled\":false}"',
+    'rox-agent automation delete abc123',
+    'rox-agent automation enable abc123',
+    'rox-agent automation disable abc123',
+    'rox-agent automation duplicate abc123',
+  ];
+
+  for (const cmd of shouldAllow) {
+    it(`allows: ${cmd}`, () => {
+      expect(isReadOnlyBashCommandWithConfig(cmd, TEST_MODE_CONFIG)).toBe(true);
+    });
+  }
 
   for (const cmd of shouldBlock) {
     it(`blocks: ${cmd}`, () => {

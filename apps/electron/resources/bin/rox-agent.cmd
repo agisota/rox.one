@@ -1,0 +1,7 @@
+@echo off
+set "ROX_BUN_BIN=%ROX_BUN%"
+if "%ROX_BUN_BIN%"=="" set "ROX_BUN_BIN=bun"
+set "ROX_COMMANDS_BIN=%ROX_COMMANDS_ENTRY%"
+if "%ROX_COMMANDS_BIN%"=="" set "ROX_COMMANDS_BIN=%ROX_CLI_ENTRY%"
+if "%ROX_CLI_JSON_ONLY%"=="" set "ROX_CLI_JSON_ONLY=1"
+"%ROX_BUN_BIN%" run "%ROX_COMMANDS_BIN%" %*

@@ -2,6 +2,10 @@
 
 This guide explains how to configure automations in Rox Agent to automate workflows based on events.
 
+> **CLI-first workflow (recommended):** Use `rox-agent automation ...` commands instead of editing JSON directly.
+> - `rox-agent automation --help`
+> - Canonical command reference: [rox-cli.md](./rox-cli.md)
+
 ## What Are Automations?
 
 Automations allow you to trigger actions automatically when specific events occur in Rox Agent. You can:
@@ -15,6 +19,23 @@ Automations are configured in `automations.json` at the root of your workspace:
 
 ```
 ~/.rox-agent/workspaces/{workspaceId}/automations.json
+```
+
+## Recommended CLI Commands
+
+```bash
+rox-agent automation list
+rox-agent automation get <id>
+rox-agent automation create --event UserPromptSubmit --prompt "..."
+rox-agent automation update <id> --json '{...}'
+rox-agent automation enable <id>
+rox-agent automation disable <id>
+rox-agent automation duplicate <id>
+rox-agent automation history [<id>] --limit 20
+rox-agent automation last-executed <id>
+rox-agent automation test <id> --match "..."
+rox-agent automation lint
+rox-agent automation validate
 ```
 
 ## Basic Structure

@@ -7,6 +7,7 @@
 
 import tsParser from '@typescript-eslint/parser'
 import noHardcodedZIndex from './eslint-rules/no-hardcoded-z-index.cjs'
+import noFloatingZTokensInIsland from './eslint-rules/no-floating-z-tokens-in-island.cjs'
 import noNonstandardShadows from './eslint-rules/no-nonstandard-shadows.cjs'
 
 export default [
@@ -35,6 +36,7 @@ export default [
       'rox-styles': {
         rules: {
           'no-hardcoded-z-index': noHardcodedZIndex,
+          'no-floating-z-tokens-in-island': noFloatingZTokensInIsland,
           'no-nonstandard-shadows': noNonstandardShadows,
         },
       },
@@ -53,6 +55,9 @@ export default [
       // Enforce centralized z-index token scale
       'rox-styles/no-hardcoded-z-index': 'error',
 
+      // Enforce dedicated island z-index tokens in island components
+      'rox-styles/no-floating-z-tokens-in-island': 'error',
+
       // Enforce approved shadow utility classes/tokens only
       'rox-styles/no-nonstandard-shadows': ['error', {
         allowedClasses: [
@@ -63,7 +68,7 @@ export default [
           'shadow-thin',
           'shadow-middle',
           'shadow-strong',
-          'shadow-focused',
+          'shadow-panel-focused',
           'shadow-modal-small',
           'shadow-bottom-border',
           'shadow-bottom-border-thin',

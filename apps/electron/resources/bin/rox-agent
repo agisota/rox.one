@@ -1,0 +1,4 @@
+#!/bin/sh
+ENTRY="${ROX_COMMANDS_ENTRY:-$ROX_CLI_ENTRY}"
+export ROX_CLI_JSON_ONLY="${ROX_CLI_JSON_ONLY:-1}"
+exec "${ROX_BUN:-bun}" run "$ENTRY" "$@"

@@ -141,6 +141,17 @@ if (isDebugMode) {
   }
 
   process.env.ROX_SCRIPTS = scriptsDir
+  process.env.ROX_COMMANDS_ENTRY = app.isPackaged
+    ? join(app.getAppPath(), 'packages', 'rox-agents-commands', 'src', 'main.ts')
+    : join(process.cwd(), 'packages', 'rox-agents-commands', 'src', 'main.ts')
+  process.env.ROX_CLI_ENTRY = app.isPackaged
+    ? join(app.getAppPath(), 'packages', 'rox-cli', 'src', 'cli.ts')
+    : join(process.cwd(), 'packages', 'rox-cli', 'src', 'cli.ts')
+  process.env.ROX_COMMANDS_DOC_PATH = app.isPackaged
+    ? join(resourcesBase, 'resources', 'docs', 'rox-cli.md')
+    : join(process.cwd(), 'apps', 'electron', 'resources', 'docs', 'rox-cli.md')
+  process.env.ROX_CLI_DOC_PATH = process.env.ROX_COMMANDS_DOC_PATH
+  process.env.ROX_AGENT_VERSION = app.getVersion()
   // Prepend both generic wrappers dir and platform uv dir:
   // - binDir exposes wrapper commands (pdf-tool, docx-tool, ...)
   // - uvPlatformDir exposes raw `uv` for direct shell usage / debugging
@@ -373,6 +384,10 @@ app.whenReady().then(async () => {
     // Skip server-side initialization (SessionManager, model refresh, platform injection).
     const isClientOnly = !!process.env.ROX_SERVER_URL
     const isHeadless = !!process.env.ROX_HEADLESS
+
+    if (isClientOnly) {
+      mainLog.info(`Client-only mode: ROX_SERVER_URL=${process.env.ROX_SERVER_URL} (server initialization skipped)`)
+    }
 
     // Initialize session manager (server-side only — thin client delegates to remote server)
     let modelRefreshService: ReturnType<typeof initModelRefreshService> | null = null

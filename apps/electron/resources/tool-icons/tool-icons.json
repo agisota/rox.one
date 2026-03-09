@@ -1,6 +1,7 @@
 {
   "version": 1,
   "tools": [
+    { "id": "rox-agent", "displayName": "Rox Agent", "icon": "rox-agent.svg", "commands": ["rox-agent"] },
     { "id": "git", "displayName": "Git", "icon": "git.ico", "commands": ["git"] },
     { "id": "github", "displayName": "GitHub", "icon": "github.png", "commands": ["gh"] },
     { "id": "npm", "displayName": "npm", "icon": "npm.png", "commands": ["npm", "npx"] },
