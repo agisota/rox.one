@@ -1,6 +1,6 @@
 {
   "name": "@rox-agent/server-core",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Reusable headless server infrastructure for Rox Agent",
   "type": "module",
   "main": "src/index.ts",
