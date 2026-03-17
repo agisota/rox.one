@@ -21,6 +21,7 @@
 
 import { join } from 'node:path'
 import { readFileSync } from 'node:fs'
+import { enableDebug } from '@rox-agent/shared/utils/debug'
 import { startHeadlessServer } from '@rox-agent/server-core/bootstrap'
 import type { WsRpcTlsOptions } from '@rox-agent/server-core/transport'
 import { registerCoreRpcHandlers, cleanupSessionFileWatchForClient } from '@rox-agent/server-core/handlers/rpc'
@@ -30,6 +31,10 @@ import { setSearchPlatform, setImageProcessor } from '@rox-agent/server-core/ser
 import type { HandlerDeps } from '@rox-agent/server-core/handlers'
 
 process.env.ROX_IS_PACKAGED ??= 'false'
+
+if (process.env.ROX_DEBUG === 'true' || process.env.ROX_DEBUG === '1') {
+  enableDebug()
+}
 
 // In dev (monorepo), bundled assets root is the repo root (4 levels up from this file).
 // In packaged mode, use ROX_BUNDLED_ASSETS_ROOT env or cwd.

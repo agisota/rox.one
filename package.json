@@ -1,6 +1,6 @@
 {
   "name": "rox-agent",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "description": "Claude Code-like agent for Rox documents",
   "type": "module",
   "private": true,
