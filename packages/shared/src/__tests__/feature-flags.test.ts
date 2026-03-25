@@ -1,11 +1,12 @@
 import { describe, it, expect, afterEach } from 'bun:test';
-import { isDevRuntime, isDeveloperFeedbackEnabled, isRoxAgentsCliEnabled } from '../feature-flags.ts';
+import { isDevRuntime, isDeveloperFeedbackEnabled, isRoxAgentsCliEnabled, isEmbeddedServerEnabled } from '../feature-flags.ts';
 
 const ORIGINAL_ENV = {
   NODE_ENV: process.env.NODE_ENV,
   ROX_DEBUG: process.env.ROX_DEBUG,
   ROX_FEATURE_DEVELOPER_FEEDBACK: process.env.ROX_FEATURE_DEVELOPER_FEEDBACK,
   ROX_FEATURE_ROX_AGENTS_CLI: process.env.ROX_FEATURE_ROX_AGENTS_CLI,
+  ROX_FEATURE_EMBEDDED_SERVER: process.env.ROX_FEATURE_EMBEDDED_SERVER,
 };
 
 afterEach(() => {
@@ -20,6 +21,9 @@ afterEach(() => {
 
   if (ORIGINAL_ENV.ROX_FEATURE_ROX_AGENTS_CLI === undefined) delete process.env.ROX_FEATURE_ROX_AGENTS_CLI;
   else process.env.ROX_FEATURE_ROX_AGENTS_CLI = ORIGINAL_ENV.ROX_FEATURE_ROX_AGENTS_CLI;
+
+  if (ORIGINAL_ENV.ROX_FEATURE_EMBEDDED_SERVER === undefined) delete process.env.ROX_FEATURE_EMBEDDED_SERVER;
+  else process.env.ROX_FEATURE_EMBEDDED_SERVER = ORIGINAL_ENV.ROX_FEATURE_EMBEDDED_SERVER;
 });
 
 describe('feature-flags runtime helpers', () => {
@@ -76,5 +80,23 @@ describe('feature-flags runtime helpers', () => {
     process.env.ROX_FEATURE_ROX_AGENTS_CLI = '0';
 
     expect(isRoxAgentsCliEnabled()).toBe(false);
+  });
+
+  it('isEmbeddedServerEnabled defaults to false when no override is set', () => {
+    delete process.env.ROX_FEATURE_EMBEDDED_SERVER;
+
+    expect(isEmbeddedServerEnabled()).toBe(false);
+  });
+
+  it('isEmbeddedServerEnabled honors explicit override true', () => {
+    process.env.ROX_FEATURE_EMBEDDED_SERVER = '1';
+
+    expect(isEmbeddedServerEnabled()).toBe(true);
+  });
+
+  it('isEmbeddedServerEnabled honors explicit override false', () => {
+    process.env.ROX_FEATURE_EMBEDDED_SERVER = '0';
+
+    expect(isEmbeddedServerEnabled()).toBe(false);
   });
 });

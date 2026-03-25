@@ -1,5 +1,6 @@
 // Export ClaudeAgent (renamed from RoxAgent) and backward-compatible aliases
 export * from './claude-agent.ts';
+export * from './conversation-summary.ts';
 
 // Export PiAgent for direct use
 export { PiAgent, PiBackend } from './pi-agent.ts';

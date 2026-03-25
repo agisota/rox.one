@@ -41,7 +41,7 @@ function createConsoleLogger(): Logger {
  * - ROX_VERSION — app version string (default: '0.0.0-dev')
  * - ROX_DEBUG — 'true' to enable debug logging
  */
-export function createHeadlessPlatform(): PlatformServices {
+export function createHeadlessPlatform(options?: { appVersion?: string }): PlatformServices {
   const logger = createConsoleLogger()
   const isDebugMode = process.env.ROX_DEBUG === 'true' || process.env.ROX_IS_PACKAGED !== 'true'
 
@@ -49,7 +49,7 @@ export function createHeadlessPlatform(): PlatformServices {
     appRootPath: process.env.ROX_APP_ROOT || process.cwd(),
     resourcesPath: process.env.ROX_RESOURCES_PATH || join(process.cwd(), 'resources'),
     isPackaged: process.env.ROX_IS_PACKAGED === 'true',
-    appVersion: process.env.ROX_VERSION || '0.0.0-dev',
+    appVersion: process.env.ROX_VERSION || options?.appVersion || '0.0.0-dev',
 
     imageProcessor: {
       async getMetadata(buffer) {
