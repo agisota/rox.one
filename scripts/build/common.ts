@@ -649,10 +649,10 @@ export async function loadEnvFile(config: BuildConfig): Promise<void> {
 export function getArtifactName(platform: Platform, arch: Arch): string {
   switch (platform) {
     case 'darwin':
-      return `Rox-Agent-${arch}.dmg`;
+      return `Rox-Agents-${arch}.dmg`;
     case 'win32':
-      return `Rox-Agent-${arch}.exe`;
+      return `Rox-Agents-${arch}.exe`;
     case 'linux':
-      return `Rox-Agent-${arch}.AppImage`;
+      return `Rox-Agents-${arch}.AppImage`;
   }
 }

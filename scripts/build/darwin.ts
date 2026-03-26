@@ -66,8 +66,8 @@ export async function packageDarwin(config: BuildConfig): Promise<string> {
   verifyPackagedSDK(appPath, arch);
 
   // Verify the DMG and ZIP were built (ZIP is used by electron-updater for auto-updates)
-  const dmgName = `Rox-Agent-${arch}.dmg`;
-  const zipName = `Rox-Agent-${arch}.zip`;
+  const dmgName = `Rox-Agents-${arch}.dmg`;
+  const zipName = `Rox-Agents-${arch}.zip`;
   const dmgPath = join(electronDir, 'release', dmgName);
   const zipPath = join(electronDir, 'release', zipName);
 

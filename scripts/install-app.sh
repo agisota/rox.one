@@ -152,7 +152,7 @@ else
         error "Linux currently only supports x64 architecture. Your architecture: $arch"
     fi
     platform="linux-${arch}"
-    APP_NAME="Rox-Agent-x64.AppImage"
+    APP_NAME="Rox-Agents-x64.AppImage"
     INSTALL_DIR="$HOME/.local/bin"
     ext="AppImage"
     yml_file="latest-linux.yml"
@@ -201,7 +201,7 @@ fi
 
 # Use default filename if not found
 if [ -z "$filename" ]; then
-    filename="Rox-Agent-${arch}.${ext}"
+    filename="Rox-Agents-${arch}.${ext}"
 fi
 
 info "Expected sha512: ${checksum:0:20}..."
@@ -317,7 +317,7 @@ else
     # New paths
     APP_DIR="$HOME/.rox-agent/app"
     WRAPPER_PATH="$INSTALL_DIR/rox-agents"
-    APPIMAGE_INSTALL_PATH="$APP_DIR/Rox-Agent-x64.AppImage"
+    APPIMAGE_INSTALL_PATH="$APP_DIR/Rox-Agents-x64.AppImage"
 
     # Kill the app if it's running
     if pgrep -f "Rox-Agent.*AppImage" >/dev/null 2>&1; then
@@ -344,7 +344,7 @@ else
 #!/bin/bash
 # Rox Agent launcher - handles Linux-specific AppImage issues
 
-APPIMAGE_PATH="$HOME/.rox-agent/app/Rox-Agent-x64.AppImage"
+APPIMAGE_PATH="$HOME/.rox-agent/app/Rox-Agents-x64.AppImage"
 ELECTRON_CACHE="$HOME/.config/@rox-agent"
 ELECTRON_CACHE_ALT="$HOME/.cache/@rox-agent"
 
@@ -378,7 +378,7 @@ WRAPPER_EOF
     chmod +x "$WRAPPER_PATH"
 
     # Migrate old installation
-    OLD_APPIMAGE="$INSTALL_DIR/Rox-Agent-x64.AppImage"
+    OLD_APPIMAGE="$INSTALL_DIR/Rox-Agents-x64.AppImage"
     [ -f "$OLD_APPIMAGE" ] && rm -f "$OLD_APPIMAGE"
 
     echo ""

@@ -156,8 +156,8 @@ else
     LINUX_ARCH="aarch64"
 fi
 
-# electron-builder outputs: Rox-Agent-x86_64.AppImage or Rox-Agent-aarch64.AppImage
-BUILT_APPIMAGE_NAME="Rox-Agent-${LINUX_ARCH}.AppImage"
+# electron-builder outputs: Rox-Agents-x86_64.AppImage or Rox-Agents-aarch64.AppImage
+BUILT_APPIMAGE_NAME="Rox-Agents-${LINUX_ARCH}.AppImage"
 BUILT_APPIMAGE_PATH="$ELECTRON_DIR/release/$BUILT_APPIMAGE_NAME"
 
 if [ ! -f "$BUILT_APPIMAGE_PATH" ]; then
@@ -167,8 +167,8 @@ if [ ! -f "$BUILT_APPIMAGE_PATH" ]; then
     exit 1
 fi
 
-# Rename to our standard naming convention: Rox-Agent-x64.AppImage, Rox-Agent-arm64.AppImage
-APPIMAGE_NAME="Rox-Agent-${ARCH}.AppImage"
+# Rename to our standard naming convention: Rox-Agents-x64.AppImage, Rox-Agents-arm64.AppImage
+APPIMAGE_NAME="Rox-Agents-${ARCH}.AppImage"
 APPIMAGE_PATH="$ELECTRON_DIR/release/$APPIMAGE_NAME"
 mv "$BUILT_APPIMAGE_PATH" "$APPIMAGE_PATH"
 echo "Renamed $BUILT_APPIMAGE_NAME -> $APPIMAGE_NAME"
