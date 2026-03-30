@@ -17,7 +17,7 @@
     "name": "Rox Docs Ltd.",
     "email": "support@rox.do"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "homepage": "https://agents.rox.do",
   "scripts": {
     "start": "bun run src/index.ts",
