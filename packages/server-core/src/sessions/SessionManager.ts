@@ -80,7 +80,8 @@ import { RoxMcpClient, McpClientPool, McpPoolServer } from '@rox-agent/shared/mc
 import { type Session, type SessionEvent, type FileAttachment, type SendMessageOptions, type UnreadSummary, type RemoteSessionTransferPayload, type ImportRemoteSessionTransferResult, RPC_CHANNELS, generateMessageId } from '@rox-agent/shared/protocol'
 import { messageToStored, storedToMessage, type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-agent/core/types'
 import { formatPathsToRelative, formatToolInputPaths, perf, encodeIconToDataUrlAsync, getEmojiIcon, resetSummarizationClient, resolveToolIcon, readFileAttachment, selectSpreadMessages, normalizePath } from '@rox-agent/shared/utils'
-import { loadAllSkills, loadSkillBySlug, type LoadedSkill } from '@rox-agent/shared/skills'
+import { loadAllSkills, loadSkillBySlug, invalidateSkillsCache, type LoadedSkill } from '@rox-agent/shared/skills'
+import { invalidateContextFileCache } from '@rox-agent/shared/prompts/system'
 import { getToolIconsDir, getMiniModel } from '@rox-agent/shared/config'
 import { getDefaultSummarizationModel } from '@rox-agent/shared/config/models'
 import type { SummarizeCallback } from '@rox-agent/shared/sources'
@@ -4226,6 +4227,10 @@ export class SessionManager implements ISessionManager {
       }
 
       managed.workingDirectory = path
+
+      // Invalidate filesystem caches that depend on working directory
+      invalidateContextFileCache(path)
+      invalidateSkillsCache()
 
       // Check if we can also update sdkCwd (safe if no SDK interaction yet)
       // Conditions: no messages sent AND no agent created yet (no SDK session)

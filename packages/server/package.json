@@ -1,6 +1,6 @@
 {
   "name": "@rox-agent/server",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Standalone headless Rox Agent server (Bun runtime)",
   "type": "module",
   "main": "src/index.ts",

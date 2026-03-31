@@ -221,8 +221,22 @@ if (webuiHandler) {
   const depsLike = { sessionManager: instance.sessionManager } as any
   healthCheckFn = () => getHealthCheck(depsLike)
 
-  // Update the WebUI handler's logger to use the real platform logger
-  // (the handler was created before the platform was available)
+  // Wire up OAuth callback deps so /api/oauth/callback works
+  const { getSourceCredentialManager, loadWorkspaceSources } = await import('@rox-agent/shared/sources')
+  const { getWorkspaceByNameOrId } = await import('@rox-agent/shared/config')
+  const { pushTyped } = await import('@rox-agent/server-core/transport')
+  const { RPC_CHANNELS } = await import('@rox-agent/shared/protocol')
+
+  webuiHandler.setOAuthCallbackDeps({
+    flowStore: instance.oauthFlowStore,
+    credManager: getSourceCredentialManager(),
+    sessionManager: instance.sessionManager,
+    pushSourcesChanged: (workspaceId: string) => {
+      const ws = getWorkspaceByNameOrId(workspaceId)
+      const sources = ws ? loadWorkspaceSources(ws.rootPath) : []
+      pushTyped(instance.wsServer, RPC_CHANNELS.sources.CHANGED, { to: 'workspace', workspaceId }, workspaceId, sources)
+    },
+  })
 }
 
 // Start HTTP health endpoint if ROX_HEALTH_PORT is set

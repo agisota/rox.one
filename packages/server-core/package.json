@@ -1,6 +1,6 @@
 {
   "name": "@rox-agent/server-core",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "license": "Apache-2.0",
   "description": "Reusable headless server infrastructure for Rox Agent",
   "type": "module",
@@ -26,6 +26,7 @@
   "dependencies": {
     "@rox-agent/core": "workspace:*",
     "@rox-agent/shared": "workspace:*",
+    "jose": "^6.0.0",
     "ws": "^8.19.0",
     "sharp": "0.34.5",
     "@mariozechner/pi-ai": "0.56.2"
