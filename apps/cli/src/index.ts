@@ -1197,8 +1197,8 @@ export function getValidateSteps(): ValidateStep[] {
           sourceSlugs: enableSlugs,
         })
         return await waitForSendEvents(client, ctx.createdSessionId,
-          `[source:rox-public] List the documents under the "RoxAgents E2E Tests" folder. Just list their names.`,
-          90_000, false, undefined, ctx.onEvent)
+          `[source:rox-public] List the documents under the "RoxAgents E2E Test" folder inside the "RoxAgents" folder. Just list their names.`,
+          180_000, false, undefined, ctx.onEvent)
       },
     },
     {

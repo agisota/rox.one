@@ -81,6 +81,13 @@ export interface ClaudeContextOptions {
   workspaceId: string;
   onPlanSubmitted: (planPath: string) => void;
   onAuthRequest: (request: unknown) => void;
+  // Session self-management callbacks (optional — injected by backend)
+  setSessionLabels?: (sessionId: string | undefined, labels: string[]) => void | Promise<void>;
+  setSessionStatus?: (sessionId: string | undefined, status: string) => void | Promise<void>;
+  getSessionInfo?: (sessionId?: string) => import('@rox-agent/session-tools-core').SessionInfo | null;
+  listSessions?: (options?: import('@rox-agent/session-tools-core').ListSessionsOptions) => import('@rox-agent/session-tools-core').ListSessionsResult;
+  resolveLabels?: (labels: string[]) => import('@rox-agent/session-tools-core').ResolvedLabelsResult;
+  resolveStatus?: (status: string) => import('@rox-agent/session-tools-core').ResolvedStatusResult;
 }
 
 /**
@@ -319,6 +326,14 @@ export function createClaudeContext(options: ClaudeContextOptions): SessionToolC
       }
       return null;
     },
+
+    // Session self-management
+    setSessionLabels: options.setSessionLabels,
+    setSessionStatus: options.setSessionStatus,
+    getSessionInfo: options.getSessionInfo,
+    listSessions: options.listSessions,
+    resolveLabels: options.resolveLabels,
+    resolveStatus: options.resolveStatus,
   };
 
   return context;
