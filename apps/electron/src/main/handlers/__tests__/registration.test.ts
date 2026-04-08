@@ -101,6 +101,7 @@ async function getExpectedChannels(): Promise<Set<string>> {
     coreSystem,
     coreWorkspace,
     onboarding,
+    resources,
   ] = await Promise.all([
     import('@rox-agent/server-core/handlers/rpc/auth'),
     import('@rox-agent/server-core/handlers/rpc/automations'),
@@ -116,6 +117,7 @@ async function getExpectedChannels(): Promise<Set<string>> {
     import('@rox-agent/server-core/handlers/rpc/system'),
     import('@rox-agent/server-core/handlers/rpc/workspace'),
     import('@rox-agent/server-core/handlers/rpc/onboarding'),
+    import('@rox-agent/server-core/handlers/rpc/resources'),
   ])
 
   // GUI handler channels (remain in electron)
@@ -141,6 +143,7 @@ async function getExpectedChannels(): Promise<Set<string>> {
     ...coreSystem.CORE_HANDLED_CHANNELS,
     ...coreWorkspace.CORE_HANDLED_CHANNELS,
     ...onboarding.HANDLED_CHANNELS,
+    ...resources.HANDLED_CHANNELS,
     ...browser.HANDLED_CHANNELS,
     ...guiSystem.GUI_HANDLED_CHANNELS,
     ...guiWorkspace.GUI_HANDLED_CHANNELS,

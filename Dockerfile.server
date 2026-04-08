@@ -87,6 +87,7 @@ USER roxagents
 ENV ROX_RPC_HOST=0.0.0.0
 ENV ROX_RPC_PORT=9100
 ENV ROX_WEBUI_DIR=/app/apps/webui/dist
+ENV ROX_BUNDLED_ASSETS_ROOT=/app/apps/electron
 
 EXPOSE 9100
 
