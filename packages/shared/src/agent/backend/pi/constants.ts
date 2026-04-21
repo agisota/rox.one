@@ -9,15 +9,15 @@ import type { ThinkingLevel as PiThinkingLevel } from '@mariozechner/pi-agent-co
 import type { ThinkingLevel } from '../../thinking-levels.ts';
 
 /**
- * Map thinking levels to Pi thinking levels.
- * Pi supports: "off" | "minimal" | "low" | "medium" | "high" | "xhigh"
- * Rox supports: "off" | "low" | "medium" | "high" | "max"
+ * Map Rox's {@link ThinkingLevel} to Pi's `ThinkingLevel`.
+ * Pi's ceiling is `xhigh`; Rox's `max` saturates there.
  */
 export const THINKING_TO_PI: Record<ThinkingLevel, PiThinkingLevel> = {
   off: 'off',
   low: 'low',
   medium: 'medium',
   high: 'high',
+  xhigh: 'xhigh',
   max: 'xhigh',
 };
 

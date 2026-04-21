@@ -1,0 +1,26 @@
+{
+  "name": "@rox-agent/messaging-gateway",
+  "version": "0.8.10",
+  "license": "Apache-2.0",
+  "description": "Messaging gateway for Rox Agent — Telegram & WhatsApp",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rox-agent/core": "workspace:*",
+    "@rox-agent/shared": "workspace:*",
+    "@rox-agent/server-core": "workspace:*",
+    "@rox-agent/messaging-whatsapp-worker": "workspace:*",
+    "grammy": "^1.35.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2",
+    "@types/node": "^22.0.0"
+  }
+}

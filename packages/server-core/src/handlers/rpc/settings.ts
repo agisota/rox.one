@@ -2,7 +2,9 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname } from 'path'
 import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
 import { getPreferencesPath, getSessionDraft, setSessionDraft, deleteSessionDraft, getAllSessionDrafts, getWorkspaceByNameOrId, getDefaultThinkingLevel, setDefaultThinkingLevel } from '@rox-agent/shared/config'
-import { isValidThinkingLevel, normalizeThinkingLevel } from '@rox-agent/shared/agent/thinking-levels'
+import { isValidThinkingLevel, normalizeThinkingLevel, THINKING_LEVEL_IDS } from '@rox-agent/shared/agent/thinking-levels'
+
+const VALID_THINKING_LEVELS_LIST = THINKING_LEVEL_IDS.map(id => `'${id}'`).join(', ')
 import { getWorkspaceOrThrow } from '@rox-agent/server-core/handlers'
 import type { RpcServer } from '@rox-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
@@ -52,7 +54,7 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   server.handle(RPC_CHANNELS.settings.SET_DEFAULT_THINKING_LEVEL, async (_ctx, level: string) => {
     if (!isValidThinkingLevel(level)) {
-      throw new Error(`Invalid thinking level: ${level}. Valid values: 'off', 'low', 'medium', 'high', 'max'`)
+      throw new Error(`Invalid thinking level: ${level}. Valid values: ${VALID_THINKING_LEVELS_LIST}`)
     }
     const success = setDefaultThinkingLevel(level)
     if (!success) {

@@ -1,6 +1,6 @@
 {
   "name": "@rox-agent/server",
-  "version": "0.8.9",
+  "version": "0.8.10",
   "description": "Standalone headless Rox Agent server (Bun runtime)",
   "type": "module",
   "main": "src/index.ts",
@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@rox-agent/core": "workspace:*",
+    "@rox-agent/messaging-gateway": "workspace:*",
     "@rox-agent/server-core": "workspace:*",
     "@rox-agent/shared": "workspace:*"
   },
