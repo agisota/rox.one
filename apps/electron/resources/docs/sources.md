@@ -1,6 +1,6 @@
 # Sources Configuration Guide
 
-This guide explains how to configure sources (MCP servers, APIs, local filesystems) in Craft Agent.
+This guide explains how to configure sources (MCP servers, APIs, local filesystems) in ROX.
 
 > **CLI-first workflow (recommended):** Use `craft-agent source ...` commands instead of editing source config files directly.
 > - `craft-agent source --help`
@@ -241,7 +241,7 @@ Would you like me to show you what issues are currently open?
 ## Overview
 
 Sources are stored as folders under:
-- `~/.craft-agent/workspaces/{workspaceId}/sources/{sourceSlug}/`
+- `~/.rox/workspaces/{workspaceId}/sources/{sourceSlug}/`
 
 Each source folder contains:
 - `config.json` - Source configuration (required)
@@ -535,7 +535,7 @@ For API sources that use OAuth 2.0 but aren't Google, Slack, or Microsoft. Two m
   "type": "api",
   "provider": "craft",
   "api": {
-    "baseUrl": "https://connect.craft.do/my/api/v1/",
+    "baseUrl": "https://connect.rox.one/my/api/v1/",
     "authType": "oauth"
   }
 }
@@ -804,7 +804,7 @@ The `config.icon` field controls the source icon. Resolution follows this priori
 ## Provider Domain Cache
 
 For favicon resolution, a cache maps provider names to their canonical domains at:
-`~/.craft-agent/provider-domains.json`
+`~/.rox/provider-domains.json`
 
 **Format:**
 ```json
@@ -873,7 +873,7 @@ Technical steps:
 
 1. Create the source folder:
    ```bash
-   mkdir -p ~/.craft-agent/workspaces/{ws}/sources/my-source
+   mkdir -p ~/.rox/workspaces/{ws}/sources/my-source
    ```
 
 2. Write `config.json` with appropriate settings (see schemas above)

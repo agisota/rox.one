@@ -1,6 +1,6 @@
-# Craft Agents Electron App
+# ROX.ONE Electron App
 
-The primary desktop interface for Craft Agents, built with Electron + React. Provides a multi-session inbox with chat interface for interacting with Claude via Craft workspaces.
+The primary desktop interface for ROX.ONE, built with Electron + React. Provides a multi-session inbox with chat interface for interacting with Claude via Craft workspaces.
 
 ## Quick Start
 
@@ -248,14 +248,14 @@ navigate(routes.sidebar.flagged())        // Show flagged
 
 ### Deep Links
 
-External apps can navigate using `craftagents://` URLs:
+External apps can navigate using `rox://` URLs:
 
 ```
-craftagents://settings
-craftagents://allSessions/session/session123
-craftagents://sources/source/github
-craftagents://action/new-chat
-craftagents://workspace/{id}/allSessions/session/abc123
+rox://settings
+rox://allSessions/session/session123
+rox://sources/source/github
+rox://action/new-chat
+rox://workspace/{id}/allSessions/session/abc123
 ```
 
 See `CLAUDE.md` for complete route reference.

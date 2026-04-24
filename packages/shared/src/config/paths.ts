@@ -1,19 +1,30 @@
 /**
- * Centralized path configuration for Craft Agent.
+ * Centralized path configuration for ROX.
  *
  * Supports multi-instance development via CRAFT_CONFIG_DIR environment variable.
- * When running from a numbered folder (e.g., craft-tui-agent-1), the detect-instance.sh
- * script sets CRAFT_CONFIG_DIR to ~/.craft-agent-1, allowing multiple instances to run
- * simultaneously with separate configurations.
  *
- * Default (non-numbered folders): ~/.craft-agent/
- * Instance 1 (-1 suffix): ~/.craft-agent-1/
- * Instance 2 (-2 suffix): ~/.craft-agent-2/
+ * Default (non-numbered folders): ~/.rox/
+ * Instance 1 (-1 suffix): ~/.rox-1/
+ * Instance 2 (-2 suffix): ~/.rox-2/
  */
 
+import { existsSync, cpSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 
+function resolveDefaultConfigDir(): string {
+  const home = homedir();
+  const newDir = join(home, '.rox');
+  const legacyDir = join(home, '.craft-agent');
+
+  // Auto-migrate legacy config directory when ROX is first launched.
+  if (!existsSync(newDir) && existsSync(legacyDir)) {
+    mkdirSync(newDir, { recursive: true });
+    cpSync(legacyDir, newDir, { recursive: true });
+  }
+
+  return newDir;
+}
+
 // Allow override via environment variable for multi-instance dev
-// Falls back to default ~/.craft-agent/ for production and non-numbered dev folders
-export const CONFIG_DIR = process.env.CRAFT_CONFIG_DIR || join(homedir(), '.craft-agent');
+export const CONFIG_DIR = process.env.CRAFT_CONFIG_DIR || resolveDefaultConfigDir();

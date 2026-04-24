@@ -97,7 +97,7 @@ export {
   PERMISSION_MODE_ORDER,
   PERMISSION_MODE_CONFIG,
 } from './mode-manager.ts';
-// Documentation is served via local files at ~/.craft-agent/docs/
+// Documentation is served via local files at ~/.rox/docs/
 
 // Import and re-export AgentEvent from core (single source of truth)
 import type { AgentEvent } from '@craft-agent/core/types';
@@ -845,11 +845,11 @@ export class ClaudeAgent extends BaseAgent {
       const fullMcpServers: Options['mcpServers'] = {
         // Session-scoped tools (SubmitPlan, source_test, update_user_preferences, transform_data, etc.)
         session: getSessionScopedTools(sessionId, this.workspaceRootPath),
-        // Craft Agents documentation - always available for searching setup guides
+        // ROX.ONE documentation - always available for searching setup guides
         // This is a public Mintlify MCP server, no auth needed
         'craft-agents-docs': {
           type: 'http',
-          url: 'https://agents.craft.do/docs/mcp',
+          url: 'https://rox.one/docs/mcp',
         },
         // Per-source proxy servers from centralized MCP pool (MCP + API sources)
         // Each source gets its own SDK server keyed by slug (e.g., 'linear', 'github', 'gmail')
@@ -912,7 +912,7 @@ export class ClaudeAgent extends BaseAgent {
       // without an explicit opt-in. The betas header only works for API key users;
       // for OAuth the [1m] model suffix is the way. Use the suffix unconditionally
       // since it works for both auth paths. See: anthropics/claude-agent-sdk-typescript#238
-      // Gated by enable1MContext in global config (~/.craft-agent/config.json).
+      // Gated by enable1MContext in global config (~/.rox/config.json).
       // The interceptor also reads this to strip the SDK-injected beta header.
       const use1M = this.config.enable1MContext !== false;
       const effectiveModel = use1M && getModelContextWindow(model) === 1_000_000
