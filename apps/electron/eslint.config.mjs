@@ -47,7 +47,7 @@ export default [
       '@typescript-eslint': tsPlugin,
       react: reactPlugin,
       'react-hooks': reactHooksPlugin,
-      // Custom plugin for Rox Agent rules
+      // Custom plugin for ROX rules
       'rox-agent': {
         rules: {
           'no-direct-navigation-state': noDirectNavigationState,
@@ -96,7 +96,7 @@ export default [
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
 
-      // Custom Rox Agent rules
+      // Custom ROX rules
       'rox-agent/no-direct-navigation-state': 'error',
       'rox-agent/no-localstorage': 'warn',
 

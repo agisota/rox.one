@@ -376,7 +376,7 @@ describe('TokenRefreshManager', () => {
         slug: 'rox-mcp',
         type: 'mcp',
         provider: 'rox',
-        mcp: { url: 'https://mcp.rox.do/my/mcp', authType: 'oauth' },
+        mcp: { url: 'https://mcp.rox.one/my/mcp', authType: 'oauth' },
         isAuthenticated: false,
       });
 
@@ -400,7 +400,7 @@ describe('TokenRefreshManager', () => {
         slug: 'rox-mcp',
         type: 'mcp',
         provider: 'rox',
-        mcp: { url: 'https://mcp.rox.do/my/mcp', authType: 'oauth' },
+        mcp: { url: 'https://mcp.rox.one/my/mcp', authType: 'oauth' },
         isAuthenticated: false,
       });
 
@@ -426,7 +426,7 @@ describe('TokenRefreshManager', () => {
         slug: 'rox-mcp',
         type: 'mcp',
         provider: 'rox',
-        mcp: { url: 'https://mcp.rox.do/my/mcp', authType: 'oauth' },
+        mcp: { url: 'https://mcp.rox.one/my/mcp', authType: 'oauth' },
         isAuthenticated: false,
         connectionStatus: 'needs_auth',
         connectionError: 'Token expired',
@@ -458,7 +458,7 @@ describe('TokenRefreshManager', () => {
         slug: 'rox-mcp',
         type: 'mcp',
         provider: 'rox',
-        mcp: { url: 'https://mcp.rox.do/my/mcp', authType: 'oauth' },
+        mcp: { url: 'https://mcp.rox.one/my/mcp', authType: 'oauth' },
         isAuthenticated: false,
         connectionStatus: 'needs_auth',
       });
@@ -489,7 +489,7 @@ describe('TokenRefreshManager', () => {
         slug: 'rox-mcp',
         type: 'mcp',
         provider: 'rox',
-        mcp: { url: 'https://mcp.rox.do/my/mcp', authType: 'oauth' },
+        mcp: { url: 'https://mcp.rox.one/my/mcp', authType: 'oauth' },
         isAuthenticated: false,
         connectionStatus: 'needs_auth',
         connectionError: 'Token expired',

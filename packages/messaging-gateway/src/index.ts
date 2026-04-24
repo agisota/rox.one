@@ -1,7 +1,7 @@
 /**
  * @rox-agent/messaging-gateway
  *
- * Messaging gateway for Rox Agent — Telegram & WhatsApp.
+ * Messaging gateway for ROX — Telegram & WhatsApp.
  */
 
 export { MessagingGateway, type GatewayOptions } from './gateway'

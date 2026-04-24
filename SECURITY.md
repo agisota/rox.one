@@ -2,13 +2,13 @@
 
 ## Reporting a Vulnerability
 
-We take security seriously. If you discover a security vulnerability in Rox Agents, please report it responsibly.
+We take security seriously. If you discover a security vulnerability in ROX.ONE, please report it responsibly.
 
 ### How to Report
 
 **Please do NOT report security vulnerabilities through public GitHub issues.**
 
-Instead, please send an email to: **security@rox.do**
+Instead, please send an email to: **security@rox.one**
 
 Include the following information:
 - Description of the vulnerability
@@ -25,9 +25,9 @@ Include the following information:
 ### Scope
 
 This policy applies to:
-- The Rox Agents desktop application
+- The ROX.ONE desktop application
 - The `@rox-agent/*` npm packages
-- Official Rox Agents repositories
+- Official ROX.ONE repositories
 
 ### Out of Scope
 
@@ -46,7 +46,7 @@ We only provide security updates for the latest version. Please keep your instal
 
 ## Security Best Practices
 
-When using Rox Agents:
+When using ROX.ONE:
 
 1. **Keep credentials secure**: Never commit `.env` files or credentials
 2. **Use environment variables**: Store secrets in environment variables

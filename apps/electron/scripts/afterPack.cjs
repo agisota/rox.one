@@ -26,7 +26,7 @@ module.exports = async function afterPack(context) {
   }
 
   const appPath = context.appOutDir;
-  const resourcesDir = path.join(appPath, 'Rox Agents.app', 'Contents', 'Resources');
+  const resourcesDir = path.join(appPath, 'ROX.ONE.app', 'Contents', 'Resources');
   const precompiledAssets = path.join(context.packager.projectDir, 'resources', 'Assets.car');
 
   console.log(`afterPack: projectDir=${context.packager.projectDir}`);

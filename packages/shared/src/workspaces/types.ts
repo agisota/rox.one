@@ -5,7 +5,7 @@
  * is scoped to a workspace.
  *
  * Directory structure:
- * ~/.rox-agent/workspaces/{slug}/
+ * ~/.rox/workspaces/{slug}/
  *   ├── config.json      - Workspace settings
  *   ├── sources/         - Data sources (MCP, API, local)
  *   └── sessions/        - Conversation sessions

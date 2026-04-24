@@ -22,7 +22,7 @@ interface PendingPrivilegedRequest extends PrivilegedExecutionRequest {
 }
 
 const DEFAULT_APPROVAL_TTL_SECONDS = 120
-const AUDIT_LOG_PATH = join(homedir(), '.rox-agent', 'logs', 'privileged-actions.jsonl')
+const AUDIT_LOG_PATH = join(homedir(), '.rox', 'logs', 'privileged-actions.jsonl')
 
 /**
  * PrivilegedExecutionBroker

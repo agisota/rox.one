@@ -1,7 +1,7 @@
 /**
  * @rox-agent/shared
  *
- * Shared business logic for Rox Agent.
+ * Shared business logic for ROX.
  * Used by the Electron app.
  *
  * Import specific modules via subpath exports:

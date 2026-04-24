@@ -1,7 +1,7 @@
 /**
  * @rox-agent/core
  *
- * Core types and utilities for Rox Agent.
+ * Core types and utilities for ROX.
  *
  * NOTE: This package currently only exports types and utilities.
  * Storage, credentials, agent, auth, mcp, and prompts are still

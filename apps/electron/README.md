@@ -1,6 +1,6 @@
-# Rox Agents Electron App
+# ROX.ONE Electron App
 
-The primary desktop interface for Rox Agents, built with Electron + React. Provides a multi-session inbox with chat interface for interacting with Claude via Rox workspaces.
+The primary desktop interface for ROX.ONE, built with Electron + React. Provides a multi-session inbox with chat interface for interacting with Claude via Rox workspaces.
 
 ## Quick Start
 
@@ -248,14 +248,14 @@ navigate(routes.sidebar.flagged())        // Show flagged
 
 ### Deep Links
 
-External apps can navigate using `roxagents://` URLs:
+External apps can navigate using `rox://` URLs:
 
 ```
-roxagents://settings
-roxagents://allSessions/session/session123
-roxagents://sources/source/github
-roxagents://action/new-chat
-roxagents://workspace/{id}/allSessions/session/abc123
+rox://settings
+rox://allSessions/session/session123
+rox://sources/source/github
+rox://action/new-chat
+rox://workspace/{id}/allSessions/session/abc123
 ```
 
 See `CLAUDE.md` for complete route reference.

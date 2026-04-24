@@ -16,7 +16,7 @@ let cachedClientResolver: ClientResolver | null = null
 
 /**
  * Creates and sets the application menu for macOS.
- * Includes only relevant items for the Rox Agents app.
+ * Includes only relevant items for the ROX.ONE app.
  *
  * Call rebuildMenu() when update state changes to refresh the menu.
  */
@@ -79,7 +79,7 @@ export async function rebuildMenu(): Promise<void> {
   const template: Electron.MenuItemConstructorOptions[] = [
     // App menu (macOS only)
     ...(isMac ? [{
-      label: 'Rox Agents',
+      label: 'ROX.ONE',
       submenu: [
         { role: 'about' as const, label: i18n.t('menu.aboutRoxAgents') },
         updateMenuItem,
@@ -234,7 +234,7 @@ export async function rebuildMenu(): Promise<void> {
       submenu: [
         {
           label: i18n.t("menu.helpAndDocs"),
-          click: () => shell.openExternal('https://agents.rox.do/docs')
+          click: () => shell.openExternal('https://rox.one/docs')
         },
         {
           label: i18n.t("menu.keyboardShortcuts"),

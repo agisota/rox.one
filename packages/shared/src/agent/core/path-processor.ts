@@ -30,11 +30,11 @@ export { expandPath, normalizePath, pathStartsWith, toPortablePath };
  * These files have specific formats (JSON, TOML, YAML) that can break apps if malformed.
  */
 const CONFIG_FILE_PATTERNS = [
-  // Rox Agent configs
-  /\.rox-agent\/.*\/(config|permissions|theme|guide|labels|statuses)\.json$/,
-  /\.rox-agent\/config\.json$/,
-  /\.rox-agent\/preferences\.json$/,
-  /\.rox-agent\/.*\/SKILL\.md$/,
+  // ROX configs
+  /\.rox\/.*\/(config|permissions|theme|guide|labels|statuses)\.json$/,
+  /\.rox\/config\.json$/,
+  /\.rox\/preferences\.json$/,
+  /\.rox\/.*\/SKILL\.md$/,
   // Common config files
   /package\.json$/,
   /tsconfig\.json$/,

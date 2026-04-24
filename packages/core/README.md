@@ -1,6 +1,6 @@
 # @rox-agent/core
 
-Shared TypeScript types and utilities for Rox Agent applications.
+Shared TypeScript types and utilities for ROX applications.
 
 ## Installation
 

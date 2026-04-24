@@ -48,7 +48,7 @@ export async function handleMermaidValidate(
         text: JSON.stringify({
           valid: false,
           error: errorMessage,
-          suggestion: 'Check the syntax against ~/.rox-agent/docs/mermaid.md',
+          suggestion: 'Check the syntax against ~/.rox/docs/mermaid.md',
         }, null, 2),
       }],
       isError: true,

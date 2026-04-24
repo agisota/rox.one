@@ -276,7 +276,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
     deps.platform.logger.info('[renderer]', ...args)
   })
 
-  // Shell operations - open URL in external browser (or handle roxagents:// internally)
+  // Shell operations - open URL in external browser (or handle rox:// internally)
   server.handle(RPC_CHANNELS.shell.OPEN_URL, async (ctx, url: string) => {
     deps.platform.logger.info('[OPEN_URL] Received request:', url)
     try {
@@ -295,14 +295,14 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
             ? { to: 'workspace' as const, workspaceId: deepLink.workspaceId }
             : { to: 'client' as const, clientId: ctx.clientId }
 
-          deps.platform.logger.info('[OPEN_URL] Routing roxagents:// URL internally via deeplink:navigate')
+          deps.platform.logger.info('[OPEN_URL] Routing rox:// URL internally via deeplink:navigate')
           server.push(RPC_CHANNELS.deeplink.NAVIGATE, target, deepLink.navigation)
           return
         }
 
         // For links requiring window management (e.g. window=focused/full), or
         // unknown deep-link shapes, fall back to the client protocol handler.
-        deps.platform.logger.info('[OPEN_URL] Falling back to client openExternal for roxagents:// URL')
+        deps.platform.logger.info('[OPEN_URL] Falling back to client openExternal for rox:// URL')
         const deepLinkResult = await requestClientOpenExternal(server, ctx.clientId, url)
         if (!deepLinkResult.opened) {
           deps.platform.logger.error(`[OPEN_URL] Client capability failed: ${deepLinkResult.error}`)

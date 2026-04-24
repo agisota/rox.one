@@ -2,7 +2,7 @@
   "name": "@rox-agent/messaging-gateway",
   "version": "0.8.11",
   "license": "Apache-2.0",
-  "description": "Messaging gateway for Rox Agent — Telegram & WhatsApp",
+  "description": "Messaging gateway for ROX — Telegram & WhatsApp",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
