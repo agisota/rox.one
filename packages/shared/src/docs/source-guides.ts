@@ -173,7 +173,7 @@ export function extractDomainFromSource(source: {
       github: 'github.com',
       notion: 'notion.so',
       slack: 'slack.com',
-      rox: 'rox.do',
+      rox: 'rox.one',
       exa: 'exa.ai',
       google: 'google.com',
     };

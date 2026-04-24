@@ -1,21 +1,21 @@
 # Trademark Policy
 
-This trademark policy governs the use of the "Rox" and "Rox Agents" names, logos, and branding in connection with the Rox Agents open source project.
+This trademark policy governs the use of the "Rox" and "ROX.ONE" names, logos, and branding in connection with the ROX.ONE open source project.
 
 ## Trademarks
 
-The following are trademarks of Rox Docs Ltd.:
+The following are trademarks of roxone:
 
 - **Rox** (word mark)
-- **Rox Agents** (word mark)
+- **ROX.ONE** (word mark)
 - The Rox logo and icon
-- The Rox Agents logo and icon
+- The ROX.ONE logo and icon
 
 ## What You Can Do
 
 ### Use the Code Freely
 
-The Rox Agents source code is licensed under the Apache License 2.0. You are free to:
+The ROX.ONE source code is licensed under the Apache License 2.0. You are free to:
 
 - Use, modify, and distribute the code
 - Create derivative works
@@ -25,14 +25,14 @@ The Rox Agents source code is licensed under the Apache License 2.0. You are fre
 
 You may make accurate, factual statements about your relationship to the project:
 
-- "Based on Rox Agents"
-- "Built with Rox Agents technology"
-- "Compatible with Rox Agents"
-- "Fork of Rox Agents"
+- "Based on ROX.ONE"
+- "Built with ROX.ONE technology"
+- "Compatible with ROX.ONE"
+- "Fork of ROX.ONE"
 
 ### Contribute to the Project
 
-Contributors to the official Rox Agents repository may use the trademarks when discussing their contributions.
+Contributors to the official ROX.ONE repository may use the trademarks when discussing their contributions.
 
 ## What You Cannot Do
 
@@ -42,25 +42,25 @@ If you create a fork or derivative work, you **must**:
 
 - Choose a different name that does not include "Rox"
 - Remove or replace all Rox logos and icons
-- Update the bundle identifier (e.g., `com.lukilabs.rox-agent`) to your own
-- Remove references to `rox.do` domains unless connecting to official Rox services
+- Update the bundle identifier (e.g., `com.lukilabs.rox`) to your own
+- Remove references to `rox.one` domains unless connecting to official ROX services
 
 ### Imply Official Endorsement
 
 You may not:
 
-- Use "Rox" or "Rox Agents" as your product name
+- Use "Rox" or "ROX.ONE" as your product name
 - Use the Rox logo as your application icon
 - Suggest that your fork is the official version
-- Imply that Rox Docs Ltd. or Rox endorses your product
+- Imply that roxone or Rox endorses your product
 
 ### Create Confusion
 
 You may not use the trademarks in any way that:
 
-- Suggests your product is created by or affiliated with Rox Docs Ltd.
-- Could cause confusion between your product and the official Rox Agents
-- Disparages Rox Docs Ltd. or the Rox Agents project
+- Suggests your product is created by or affiliated with roxone
+- Could cause confusion between your product and the official ROX.ONE
+- Disparages roxone or the ROX.ONE project
 
 ## Branding Locations
 
@@ -76,20 +76,20 @@ For those creating forks, the following files contain branding that should be up
 
 ### Acceptable
 
-- "MyAgent - based on Rox Agents"
-- "This project is a fork of Rox Agents"
-- "Compatible with the Rox Agents ecosystem"
+- "MyAgent - based on ROX.ONE"
+- "This project is a fork of ROX.ONE"
+- "Compatible with the ROX.ONE ecosystem"
 
 ### Not Acceptable
 
-- "Rox Agents Pro"
-- "Rox Agent for Linux"
-- "Better Rox Agents"
+- "ROX.ONE Pro"
+- "ROX for Linux"
+- "Better ROX.ONE"
 - Using the Rox logo for your fork
 
 ## Questions
 
-If you have questions about this trademark policy or would like to request permission for a specific use, please open an issue in the repository or contact us at legal@rox.do.
+If you have questions about this trademark policy or would like to request permission for a specific use, please open an issue in the repository or contact us at legal@rox.one.
 
 ## Changes
 

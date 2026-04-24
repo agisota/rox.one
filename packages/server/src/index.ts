@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * @rox-agent/server — standalone headless Rox Agent server.
+ * @rox-agent/server — standalone headless ROX server.
  *
  * Usage:
  *   ROX_SERVER_TOKEN=<secret> bun run packages/server/src/index.ts
@@ -210,7 +210,7 @@ const instance = await (async () => {
           sessionManager,
           credentialManager: getCredentialManager(),
           getMessagingDir: (wsId: string) =>
-            join(homedir(), '.rox-agent', 'workspaces', wsId, 'messaging'),
+            join(homedir(), '.rox', 'workspaces', wsId, 'messaging'),
           // Headless has no legacy messaging dir — workspaces start clean.
           whatsapp: {
             workerEntry: waWorkerEntry,

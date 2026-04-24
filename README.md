@@ -1,26 +1,26 @@
-# Rox Agents
+# ROX.ONE
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 ## How it Works (Video)
-To understand what Rox Agents does and how it works watch this video.
+To understand what ROX.ONE does and how it works watch this video.
 
 [![Demo Video](https://img.youtube.com/vi/xQouiAIilvU/hqdefault.jpg)](https://www.youtube.com/watch?v=xQouiAIilvU)
 
 [Click Here (or on the image above) to watch the video on YouTube →](https://www.youtube.com/watch?v=xQouiAIilvU)
 
 
-## Why Rox Agents was built
-Rox Agents is a tool we built so that we (at rox.do) can work effectively with agents. It enables intuitive multitasking, no-fluff connection to any API or Service, sharing sessions, and a more document (vs code) centric workflow - in a beautiful and fluid UI.
+## Why ROX.ONE was built
+ROX.ONE is a tool we built so that we (at rox.one) can work effectively with agents. It enables intuitive multitasking, no-fluff connection to any API or Service, sharing sessions, and a more document (vs code) centric workflow - in a beautiful and fluid UI.
 
 It uses the Claude Agent SDK and the Pi SDK side by side—building on what we found great and improving areas where we've desired improvements.
 
 It's built with Agent Native software principles in mind, and is highly customisable out of the box. One of the first of its kind.
 
-Rox Agents is open source under the Apache 2.0 license - so you are free to remix, change anything. And that's actually possible. We ourselves are building Rox Agents with Rox Agents only - no code editors - so really, any customisation is just a prompt away.
+ROX.ONE is open source under the Apache 2.0 license - so you are free to remix, change anything. And that's actually possible. We ourselves are building ROX.ONE with ROX.ONE only - no code editors - so really, any customisation is just a prompt away.
 
-We built Rox Agents because we wanted a better, more opinionated (and preferably non-CLI way) of working with the most powerful agents in the world. We'll continue to improve it, based on our experiences and intuition.
+We built ROX.ONE because we wanted a better, more opinionated (and preferably non-CLI way) of working with the most powerful agents in the world. We'll continue to improve it, based on our experiences and intuition.
 
 <img width="1578" height="894" alt="image" src="https://github.com/user-attachments/assets/3f1f2fe8-7cf6-4487-99ff-76f6c8c0a3fb" />
 
@@ -29,7 +29,7 @@ We built Rox Agents because we wanted a better, more opinionated (and preferably
 **How do I connect to Linear, Gmail, Slack...?**
 Tell the agent "add Linear as a source." It finds public APIs and MCP servers, reads their docs, sets up credentials, and configures everything. No config files, no setup wizards.
 
-[Check out how I just connected to Slack →](https://agents.rox.do/s/DRNQEiy8w2e1v5LPgKl8b)
+[Check out how I just connected to Slack →](https://app.rox.one/s/DRNQEiy8w2e1v5LPgKl8b)
 
 **I already have my MCP config JSON.**
 Paste it. The agent handles the rest.
@@ -41,12 +41,12 @@ Fully supported. Stdio-based MCP servers run as local subprocesses on your machi
 Yes. Paste an OpenAPI spec, some endpoint URLs, screenshots of docs, whatever you have. It figures it out and guides you through the rest.
 
 **APIs too? Not just MCPs?**
-Rox Agents connects to anything. We have it hooked up to a direct Postgres DB behind a jumpbox. Skills + Sources = magic.
+ROX.ONE connects to anything. We have it hooked up to a direct Postgres DB behind a jumpbox. Skills + Sources = magic.
 
 **How do I import my Claude Code skills and MCPs?**
 Tell the agent you want to import your skills from Claude Code. It handles the migration.
 
-[Here I imported all my skills in one go →](https://agents.rox.do/s/gWCFqwhObFWaNJIEJmd6j)
+[Here I imported all my skills in one go →](https://app.rox.one/s/gWCFqwhObFWaNJIEJmd6j)
 
 **How do I create a new skill?**
 Describe what the skill should do, give it context. The agent takes care of the rest.
@@ -64,12 +64,12 @@ Yes. That's the core idea behind agent-native software. You describe what you wa
 
 **macOS / Linux:**
 ```bash
-curl -fsSL https://agents.rox.do/install-app.sh | bash
+curl -fsSL https://app.rox.one/install-app.sh | bash
 ```
 
 **Windows (PowerShell):**
 ```powershell
-irm https://agents.rox.do/install-app.ps1 | iex
+irm https://app.rox.one/install-app.ps1 | iex
 ```
 
 ### Build from Source
@@ -87,7 +87,7 @@ bun run electron:start
 - **Claude Code Experience**: Streaming responses, tool visualization, real-time updates
 - **Multiple LLM Connections**: Add multiple AI providers and set per-workspace defaults
 - **Multi-Provider Support**: Run sessions with Google AI Studio, ChatGPT Plus, GitHub Copilot, or OpenAI API keys alongside Anthropic
-- **Rox MCP Integration**: Access to 32+ Rox document tools (blocks, collections, search, tasks)
+- **ROX MCP Integration**: Access to 32+ ROX document tools (blocks, collections, search, tasks)
 - **Sources**: Connect to MCP servers, REST APIs (Google, Slack, Microsoft), and local filesystems
 - **Permission Modes**: Three-level system (Explore, Ask to Edit, Auto) with customizable rules
 - **Background Tasks**: Run long-running operations with progress tracking
@@ -122,7 +122,7 @@ Connect external data sources to your workspace:
 
 | Type | Examples |
 |------|----------|
-| **MCP Servers** | Rox, Linear, GitHub, Notion, custom servers |
+| **MCP Servers** | ROX, Linear, GitHub, Notion, custom servers |
 | **REST APIs** | Google (Gmail, Calendar, Drive, YouTube, Search Console), Slack, Microsoft |
 | **Local Files** | Filesystem, Obsidian vaults, Git repos |
 
@@ -149,7 +149,7 @@ Use **SHIFT+TAB** to cycle through modes in the chat interface.
 
 ## Remote Server (Headless)
 
-Rox Agents can run as a headless server on a remote machine (e.g., a Linux VPS), with the desktop app connecting as a thin client. This lets you keep long-running sessions alive, access them from multiple machines, and run compute-heavy tasks on a powerful server.
+ROX.ONE can run as a headless server on a remote machine (e.g., a Linux VPS), with the desktop app connecting as a thin client. This lets you keep long-running sessions alive, access them from multiple machines, and run compute-heavy tasks on a powerful server.
 
 ### Quick Start
 
@@ -223,7 +223,7 @@ docker run -d \
   -p 9100:9100 \
   -e ROX_SERVER_TOKEN=<token> \
   -e ROX_RPC_HOST=0.0.0.0 \
-  -v rox-data:/root/.rox-agent \
+  -v rox-data:/root/.rox \
   rox-agents-server
 ```
 
@@ -237,13 +237,13 @@ docker run -d \
   -e ROX_RPC_TLS_CERT=/certs/cert.pem \
   -e ROX_RPC_TLS_KEY=/certs/key.pem \
   -v ./certs:/certs:ro \
-  -v rox-data:/root/.rox-agent \
+  -v rox-data:/root/.rox \
   rox-agents-server
 ```
 
 ## CLI Client
 
-A terminal client that connects to a running Rox Agent server over WebSocket (`ws://` or `wss://`). Use it for scripting, CI/CD pipelines, server validation, or when you prefer the command line.
+A terminal client that connects to a running ROX server over WebSocket (`ws://` or `wss://`). Use it for scripting, CI/CD pipelines, server validation, or when you prefer the command line.
 
 ### Installation
 
@@ -355,7 +355,7 @@ rox-agent/
     ├── core/                  # Shared types
     └── shared/                # Business logic
         └── src/
-            ├── agent/         # RoxAgent, permissions
+            ├── agent/         # ROXAgent, permissions
             ├── auth/          # OAuth, tokens
             ├── config/        # Storage, preferences, themes
             ├── credentials/   # AES-256-GCM encrypted storage
@@ -414,7 +414,7 @@ Go to **APIs & Services → Library** and enable the APIs you need:
 1. Go to **APIs & Services → OAuth consent screen**
 2. Select **External** user type (unless you have Google Workspace)
 3. Fill in required fields:
-   - App name: e.g., "My Rox Agent"
+   - App name: e.g., "My ROX"
    - User support email: your email
    - Developer contact: your email
 4. Add scopes (optional - can leave default)
@@ -426,11 +426,11 @@ Go to **APIs & Services → Library** and enable the APIs you need:
 1. Go to **APIs & Services → Credentials**
 2. Click **Create Credentials → OAuth Client ID**
 3. Application type: **Desktop app**
-4. Name: e.g., "Rox Agent Desktop"
+4. Name: e.g., "ROX Desktop"
 5. Click **Create**
 6. Note the **Client ID** and **Client Secret**
 
-#### 5. Configure in Rox Agent
+#### 5. Configure in ROX
 
 When setting up a Google source (Gmail, Calendar, Drive, YouTube, Search Console, etc.), add these fields to your source's `config.json`:
 
@@ -454,7 +454,7 @@ Or simply tell the agent you want to connect Gmail/Calendar/Drive - it will guid
 
 ## Supported LLM Providers
 
-Rox Agents supports multiple ways to connect to LLM providers:
+ROX.ONE supports multiple ways to connect to LLM providers:
 
 ### Direct Connections
 
@@ -478,17 +478,17 @@ Additional providers are supported through the **Claude / Anthropic API Key** co
 
 ### Architecture
 
-Rox Agents uses two agent backends:
+ROX.ONE uses two agent backends:
 
 - **Claude** — powered by the [Claude Agent SDK](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk), which natively supports custom base URLs and provider routing. Anthropic API key, Claude Max/Pro OAuth, and all third-party endpoints use this backend.
 - **Pi** — powered by the Pi SDK, which handles Google AI Studio, ChatGPT Plus (Codex OAuth), GitHub Copilot OAuth, and OpenAI API key connections. Pi connections route through their own provider infrastructure.
 
 ## Configuration
 
-Configuration is stored at `~/.rox-agent/`:
+Configuration is stored at `~/.rox/`:
 
 ```
-~/.rox-agent/
+~/.rox/
 ├── config.json              # Main config (workspaces, LLM connections)
 ├── credentials.enc          # Encrypted credentials (AES-256-GCM)
 ├── preferences.json         # User preferences
@@ -514,7 +514,7 @@ Automations let you automate workflows by triggering actions when events happen 
 - "Track permission mode changes and summarise them"
 - "Every Friday at 5pm, summarise this week's completed tasks"
 
-Or configure manually in `~/.rox-agent/workspaces/{id}/automations.json`:
+Or configure manually in `~/.rox/workspaces/{id}/automations.json`:
 
 ```json
 {
@@ -546,7 +546,7 @@ Or configure manually in `~/.rox-agent/workspaces/{id}/automations.json`:
 
 **Supported events:** `LabelAdd`, `LabelRemove`, `PermissionModeChange`, `FlagChange`, `SessionStatusChange`, `SchedulerTick`, `PreToolUse`, `PostToolUse`, `SessionStart`, `SessionEnd`, and more.
 
-See the [Automations documentation](https://agents.rox.do/docs/automations/overview) for the full reference.
+See the [Automations documentation](https://rox.one/docs/automations/overview) for the full reference.
 
 ## Advanced Features
 
@@ -556,14 +556,14 @@ Tool responses exceeding ~60KB are automatically summarized using Claude Haiku w
 
 ### Deep Linking
 
-External apps can navigate using `roxagents://` URLs:
+External apps can navigate using `rox://` URLs:
 
 ```
-roxagents://allSessions                      # All sessions view
-roxagents://allSessions/session/session123   # Specific session
-roxagents://settings                         # Settings
-roxagents://sources/source/github            # Source info
-roxagents://action/new-chat                  # Create new session
+rox://allSessions                      # All sessions view
+rox://allSessions/session/session123   # Specific session
+rox://settings                         # Settings
+rox://sources/source/github            # Source info
+rox://action/new-chat                  # Create new session
 ```
 
 ## Tech Stack
@@ -586,12 +586,12 @@ To launch the packaged app with verbose logging enabled, use `-- --debug` (note 
 
 **macOS:**
 ```bash
-/Applications/Rox\ Agents.app/Contents/MacOS/Rox\ Agents -- --debug
+/Applications/ROX\ Agents.app/Contents/MacOS/ROX\ Agents -- --debug
 ```
 
 **Windows (PowerShell):**
 ```powershell
-& "$env:LOCALAPPDATA\Programs\@rox-agentelectron\Rox Agents.exe" -- --debug
+& "$env:LOCALAPPDATA\Programs\@rox-agentelectron\ROX.ONE.exe" -- --debug
 ```
 
 **Linux:**
@@ -614,7 +614,7 @@ This project uses the [Claude Agent SDK](https://www.npmjs.com/package/@anthropi
 
 ### Trademark
 
-"Rox" and "Rox Agents" are trademarks of Rox Docs Ltd. See [TRADEMARK.md](TRADEMARK.md) for usage guidelines.
+"ROX" and "ROX.ONE" are trademarks of roxone See [TRADEMARK.md](TRADEMARK.md) for usage guidelines.
 
 ## Contributing
 

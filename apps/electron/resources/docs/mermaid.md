@@ -1,6 +1,6 @@
 # Mermaid Diagram Syntax Reference
 
-Rox Agent renders Mermaid diagrams natively as beautiful themed SVGs. Use this reference for syntax details.
+ROX renders Mermaid diagrams natively as beautiful themed SVGs. Use this reference for syntax details.
 
 ## Flowcharts
 

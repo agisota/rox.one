@@ -1,5 +1,5 @@
 /**
- * Server spawner — start a headless Rox Agent server as a child process.
+ * Server spawner — start a headless ROX server as a child process.
  *
  * Spawns `bun run <serverEntry>`, reads stdout for the `ROX_SERVER_URL=`
  * and `ROX_SERVER_TOKEN=` lines, and returns a handle to stop the server.

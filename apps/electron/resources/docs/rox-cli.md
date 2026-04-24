@@ -1,4 +1,4 @@
-# Rox Agent CLI Guide
+# ROX CLI Guide
 
 `rox-agent` is the preferred interface for managing workspace config domains such as labels, sources, skills, and automations.
 
@@ -362,7 +362,7 @@ rox-agent theme reset-override
 - `set-color-theme` and `set-workspace-color-theme` require an existing preset ID (`default` is always valid).
 - `set-override` validates `theme.json` shape before writing.
 - Workspace override is stored in `workspace/config.json` under `defaults.colorTheme`.
-- App override is stored in `~/.rox-agent/theme.json`.
+- App override is stored in `~/.rox/theme.json`.
 <!-- cli:theme:end -->
 
 ---

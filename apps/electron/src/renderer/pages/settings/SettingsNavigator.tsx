@@ -61,7 +61,7 @@ function SettingsItemRow({ item, isSelected, isFirst, onSelect }: SettingsItemRo
 
   // Open settings page in a new window via deep link
   const handleOpenInNewWindow = () => {
-    window.electronAPI.openUrl(`roxagents://settings/${item.id}?window=focused`)
+    window.electronAPI.openUrl(`rox://settings/${item.id}?window=focused`)
   }
 
   return (

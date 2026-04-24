@@ -35,7 +35,7 @@ describe('WebUI /api/oauth/callback', () => {
       flowId: 'flow-1',
       state: 'inner-state-123',
       codeVerifier: 'verifier',
-      redirectUri: 'https://agents.rox.do/auth/callback',
+      redirectUri: 'https://app.rox.one/auth/callback',
       source: {} as any,
       clientId: 'test-client-id',
       clientSecret: 'test-client-secret',
@@ -67,7 +67,7 @@ describe('WebUI /api/oauth/callback', () => {
         },
       },
       credManager: {
-        exchangeAndStore: async () => ({ success: true, email: 'gyula@rox.do' }),
+        exchangeAndStore: async () => ({ success: true, email: 'gyula@rox.one' }),
       },
       sessionManager: {
         completeAuthRequest: async () => {},

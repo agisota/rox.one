@@ -12,7 +12,7 @@ import { existsSync } from 'fs';
 import { readJsonFileSync } from './files.ts';
 
 // Cache path for persisted provider domains
-const ROX_AGENT_DIR = join(homedir(), '.rox-agent');
+const ROX_AGENT_DIR = join(homedir(), '.rox');
 const PROVIDER_DOMAINS_CACHE_PATH = join(ROX_AGENT_DIR, 'provider-domains.json');
 
 // Google Favicon V2 API - free, reliable, no API key needed

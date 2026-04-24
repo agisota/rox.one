@@ -27,26 +27,26 @@ const CONFIG_FILE_PATTERNS: { pattern: RegExp; type: ConfigFileType }[] = [
 ];
 
 /**
- * Rox Agent specific config files that have known schemas.
+ * ROX specific config files that have known schemas.
  */
 const ROX_AGENT_CONFIG_PATTERNS = [
   // Main config
-  /\.rox-agent\/config\.json$/,
+  /\.rox\/config\.json$/,
   // Preferences
-  /\.rox-agent\/preferences\.json$/,
+  /\.rox\/preferences\.json$/,
   // Source configs
-  /\.rox-agent\/workspaces\/[^/]+\/sources\/[^/]+\/config\.json$/,
+  /\.rox\/workspaces\/[^/]+\/sources\/[^/]+\/config\.json$/,
   // Permissions
-  /\.rox-agent\/workspaces\/[^/]+\/permissions\.json$/,
-  /\.rox-agent\/permissions\/[^/]+\.json$/,
+  /\.rox\/workspaces\/[^/]+\/permissions\.json$/,
+  /\.rox\/permissions\/[^/]+\.json$/,
   // Theme
-  /\.rox-agent\/workspaces\/[^/]+\/theme\.json$/,
+  /\.rox\/workspaces\/[^/]+\/theme\.json$/,
   // Statuses
-  /\.rox-agent\/workspaces\/[^/]+\/statuses\/config\.json$/,
+  /\.rox\/workspaces\/[^/]+\/statuses\/config\.json$/,
   // Labels
-  /\.rox-agent\/workspaces\/[^/]+\/labels\.json$/,
+  /\.rox\/workspaces\/[^/]+\/labels\.json$/,
   // Tool icons
-  /\.rox-agent\/tool-icons\/tool-icons\.json$/,
+  /\.rox\/tool-icons\/tool-icons\.json$/,
 ];
 
 /**
@@ -98,10 +98,10 @@ export class ConfigValidator {
   }
 
   /**
-   * Check if a file path is a Rox Agent config file.
+   * Check if a file path is a ROX config file.
    *
    * @param filePath - Path to check
-   * @returns true if this is a Rox Agent config
+   * @returns true if this is a ROX config
    */
   isRoxAgentConfig(filePath: string): boolean {
     const normalizedPath = process.platform === 'win32'
