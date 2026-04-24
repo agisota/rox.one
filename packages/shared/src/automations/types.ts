@@ -53,7 +53,7 @@ export const AGENT_EVENTS: AgentEvent[] = [
 // Action Definitions
 // ============================================================================
 
-/** A prompt action - sends a prompt to Rox Agent */
+/** A prompt action - sends a prompt to ROX */
 export interface PromptAction {
   type: 'prompt';
   prompt: string;
@@ -242,7 +242,7 @@ export interface AutomationResult {
   event: string;
   matched: number;
   results: ActionExecutionResult[];
-  /** Prompts that should be executed by Rox Agent (with metadata) */
+  /** Prompts that should be executed by ROX (with metadata) */
   pendingPrompts: PendingPrompt[];
 }
 

@@ -3,7 +3,7 @@ interface RoxAgentsSymbolProps {
 }
 
 /**
- * Rox Agents "E" symbol - the small pixel art icon
+ * ROX.ONE "E" symbol - the small pixel art icon
  * Uses accent color from theme (currentColor from className)
  */
 export function RoxAgentsSymbol({ className }: RoxAgentsSymbolProps) {

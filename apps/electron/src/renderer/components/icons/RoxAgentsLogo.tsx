@@ -3,7 +3,7 @@ interface RoxAgentsLogoProps {
 }
 
 /**
- * Rox Agents pixel art logo - uses accent color from theme
+ * ROX.ONE pixel art logo - uses accent color from theme
  * Apply text-accent class to get the brand purple color
  */
 export function RoxAgentsLogo({ className }: RoxAgentsLogoProps) {

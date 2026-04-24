@@ -49,7 +49,7 @@ export interface SessionViewerProps {
 }
 
 /**
- * RoxAgentLogo - The Rox Agent "C" logo for branding
+ * RoxAgentLogo - The ROX "C" logo for branding
  */
 function RoxAgentLogo({ className }: { className?: string }) {
   return (

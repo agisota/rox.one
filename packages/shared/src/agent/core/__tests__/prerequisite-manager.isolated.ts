@@ -27,7 +27,7 @@ function guidePath(slug: string): string {
 }
 
 function browserDocPath(): string {
-  return resolve(join(homedir(), '.rox-agent', 'docs', 'browser-tools.md'));
+  return resolve(join(homedir(), '.rox', 'docs', 'browser-tools.md'));
 }
 
 describe('PrerequisiteManager', () => {

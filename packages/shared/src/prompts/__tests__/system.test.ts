@@ -12,7 +12,7 @@ mock.module('../../config/preferences.ts', () => ({
 import { getSystemPrompt } from '../system'
 
 const GIT_CONVENTIONS_HEADING = '## Git Conventions'
-const CO_AUTHOR_TRAILER = 'Co-Authored-By: Rox Agent <agents-noreply@rox.do>'
+const CO_AUTHOR_TRAILER = 'Co-Authored-By: ROX <agents-noreply@rox.one>'
 
 describe('system prompt guidance', () => {
   it('uses backend-neutral debug log querying guidance (rg/grep via Bash)', () => {
@@ -85,7 +85,7 @@ describe('includeCoAuthoredBy handling', () => {
       '/tmp/workspace',
       '/tmp/workspace',
       undefined,
-      'Rox Agents Backend'
+      'ROX.ONE Backend'
       // 7th arg omitted — must not regress to `true` default
     )
 

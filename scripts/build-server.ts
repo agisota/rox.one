@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Build script for standalone Rox Agent server.
+ * Build script for standalone ROX server.
  *
  * Assembles a self-contained distribution directory with all runtime
  * dependencies, resources, and platform-specific binaries.
@@ -81,7 +81,7 @@ interface ServerBuildConfig {
 
 function showHelp(): void {
   console.log(`
-Standalone server build script for Rox Agent
+Standalone server build script for ROX
 
 Usage:
   bun run scripts/build-server.ts [options]
@@ -617,7 +617,7 @@ exec "$ROOT/vendor/bun/bun" run "$ROOT/packages/server/src/index.ts" "$@"
 
   // start.sh — convenience entry
   const startSh = `#!/bin/sh
-# Rox Agent Server — convenience entry point
+# ROX Server — convenience entry point
 DIR="$(cd "$(dirname "$0")" && pwd)"
 exec "$DIR/bin/rox-server" "$@"
 `;
@@ -629,7 +629,7 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "=== Rox Agent Server Setup ==="
+echo "=== ROX Server Setup ==="
 echo ""
 
 # Make binaries executable
@@ -675,7 +675,7 @@ if [ "\${1:-}" = "--systemd" ]; then
 
   cat > "$SERVICE_FILE" <<UNIT
 [Unit]
-Description=Rox Agent Server
+Description=ROX Server
 After=network.target
 
 [Service]
@@ -772,7 +772,7 @@ services:
       # - ROX_RPC_TLS_CERT=/certs/cert.pem
       # - ROX_RPC_TLS_KEY=/certs/key.pem
     volumes:
-      - rox-data:/root/.rox-agent
+      - rox-data:/root/.rox
       # TLS — mount cert directory
       # - ./certs:/certs:ro
     restart: unless-stopped
@@ -844,7 +844,7 @@ async function main(): Promise<void> {
     version,
   };
 
-  console.log(`=== Building Rox Agent Server ${version} for ${platform}-${arch} ===`);
+  console.log(`=== Building ROX Server ${version} for ${platform}-${arch} ===`);
   console.log(`  Output: ${outputDir}`);
 
   // Step 1: Clean

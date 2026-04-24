@@ -1,7 +1,7 @@
 /**
- * Rox Agent Session Viewer
+ * ROX Session Viewer
  *
- * A minimal web app for viewing Rox Agent session transcripts.
+ * A minimal web app for viewing ROX session transcripts.
  * Users can upload session JSON files or view shared sessions via URL.
  *
  * Routes:

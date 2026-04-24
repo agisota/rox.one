@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug or unexpected behavior in Rox Agents
+description: Report a bug or unexpected behavior in ROX.ONE
 labels: ["bug"]
 body:
   - type: markdown
@@ -10,7 +10,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Rox Agents Version
+      label: ROX.ONE Version
       description: "Found in Settings or the title bar (e.g. 0.4.6)"
       placeholder: "0.4.6"
     validations:

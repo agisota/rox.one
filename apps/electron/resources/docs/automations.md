@@ -1,6 +1,6 @@
 # Automations Configuration Guide
 
-This guide explains how to configure automations in Rox Agent to automate workflows based on events.
+This guide explains how to configure automations in ROX to automate workflows based on events.
 
 > **CLI-first workflow (recommended):** Use `rox-agent automation ...` commands instead of editing JSON directly.
 > - `rox-agent automation --help`
@@ -8,7 +8,7 @@ This guide explains how to configure automations in Rox Agent to automate workfl
 
 ## What Are Automations?
 
-Automations allow you to trigger actions automatically when specific events occur in Rox Agent. You can:
+Automations allow you to trigger actions automatically when specific events occur in ROX. You can:
 - Send prompts to create agent sessions based on events
 - Send webhook HTTP requests to external services (Slack, Discord, custom APIs, etc.)
 - Execute actions on a schedule using cron expressions
@@ -19,7 +19,7 @@ Automations allow you to trigger actions automatically when specific events occu
 Automations are configured in `automations.json` at the root of your workspace:
 
 ```
-~/.rox-agent/workspaces/{workspaceId}/automations.json
+~/.rox/workspaces/{workspaceId}/automations.json
 ```
 
 ## Recommended CLI Commands
@@ -60,7 +60,7 @@ rox-agent automation validate
 
 ## Supported Events
 
-### App Events (triggered by Rox Agent)
+### App Events (triggered by ROX)
 
 | Event | Trigger | Match Value |
 |-------|---------|-------------|
@@ -96,7 +96,7 @@ rox-agent automation validate
 
 ### Prompt Actions
 
-Send a prompt to Rox Agent (creates a new session for scheduled prompts).
+Send a prompt to ROX (creates a new session for scheduled prompts).
 
 ```json
 {
@@ -255,7 +255,7 @@ Then reference them in `automations.json`:
   "type": "webhook",
   "url": "${ROX_WH_SLACK_URL}",
   "method": "POST",
-  "body": { "text": "Hello from Rox Agent!" }
+  "body": { "text": "Hello from ROX!" }
 }
 ```
 
@@ -753,7 +753,7 @@ Automations are validated when:
 
 **Using config_validate:**
 
-Ask Rox Agent to validate your automations configuration:
+Ask ROX to validate your automations configuration:
 
 ```
 Validate my automations configuration
@@ -831,7 +831,7 @@ When a limit is hit, further events of that type are **silently dropped** for th
 ### Webhook not working
 
 1. **Check URL** — Must be a valid `http://` or `https://` URL. Other protocols (ftp, ws, etc.) are rejected at runtime with a clear error.
-2. **Check env vars** — Ensure `ROX_WH_*` variables are set in your shell profile and Rox Agent was restarted after adding them. URLs using `$VAR` templates are validated after variable expansion — if the variable is empty or unset, the URL will be invalid.
+2. **Check env vars** — Ensure `ROX_WH_*` variables are set in your shell profile and ROX was restarted after adding them. URLs using `$VAR` templates are validated after variable expansion — if the variable is empty or unset, the URL will be invalid.
 3. **Use the Test button** — Tests connectivity to the URL (note: env vars are not expanded during test)
 4. **Check method** — Some endpoints require specific HTTP methods (POST, PUT, etc.)
 5. **Check response** — The automation history shows HTTP status codes for webhook executions

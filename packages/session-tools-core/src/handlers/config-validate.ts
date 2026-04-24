@@ -1,7 +1,7 @@
 /**
  * Config Validate Handler
  *
- * Validates Rox Agent configuration files.
+ * Validates ROX configuration files.
  * Uses full validators if available (Claude), otherwise basic validation (Codex).
  */
 
@@ -35,7 +35,7 @@ export async function handleConfigValidate(
   args: ConfigValidateArgs
 ): Promise<ToolResult> {
   const { target, sourceSlug } = args;
-  const roxAgentRoot = join(homedir(), '.rox-agent');
+  const roxAgentRoot = join(homedir(), '.rox');
 
   // If full validators available (Claude), use them
   if (ctx.validators) {

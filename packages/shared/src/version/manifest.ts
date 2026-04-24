@@ -1,6 +1,6 @@
 import { debug } from "../utils/debug";
 
-const VERSIONS_URL = 'https://agents.rox.do/electron';
+const VERSIONS_URL = 'https://app.rox.one/electron';
 
 export async function getLatestVersion(): Promise<string | null> {
     try {

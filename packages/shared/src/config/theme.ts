@@ -5,8 +5,8 @@
  * Light mode is default, with optional dark mode overrides.
  *
  * Storage locations:
- * - App override:   ~/.rox-agent/theme.json
- * - Preset themes:  ~/.rox-agent/themes/*.json
+ * - App override:   ~/.rox/theme.json
+ * - Preset themes:  ~/.rox/themes/*.json
  */
 
 /**

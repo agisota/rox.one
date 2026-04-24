@@ -20,7 +20,7 @@ describe('auth barrel exports', () => {
       sessionId: 'test-123',
       deeplinkScheme: 'roxagents',
     });
-    expect(result).toBe('roxagents://allSessions/session/test-123');
+    expect(result).toBe('rox://allSessions/session/test-123');
   });
 
   it('buildOAuthDeeplinkUrl returns undefined for incomplete context from barrel', async () => {

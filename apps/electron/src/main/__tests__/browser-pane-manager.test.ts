@@ -285,14 +285,14 @@ describe('BrowserPaneManager', () => {
     const openHandler = instance.pageView.webContents.setWindowOpenHandler.mock.calls[0][0]
 
     const result = openHandler({
-      url: 'roxagents://settings',
+      url: 'rox://settings',
       disposition: 'new-popup',
       frameName: '',
     })
 
     expect(result).toEqual({ action: 'deny' })
     await Bun.sleep(0)
-    expect(mockShellOpenExternal).toHaveBeenCalledWith('roxagents://settings')
+    expect(mockShellOpenExternal).toHaveBeenCalledWith('rox://settings')
   })
 
   it('destroys child popups when parent instance is destroyed', () => {
@@ -656,7 +656,7 @@ describe('BrowserPaneManager', () => {
     manager.createInstance('toolbar-finish-load-replay')
     const instance = (manager as any).instances.get('toolbar-finish-load-replay')
 
-    instance.currentUrl = 'https://rox.do'
+    instance.currentUrl = 'https://rox.one'
     instance.title = 'Rox'
     instance.isLoading = true
     instance.canGoBack = true
@@ -672,7 +672,7 @@ describe('BrowserPaneManager', () => {
     expect(sendCallsAfterFinishLoad).toContainEqual([
       'browser-toolbar:state-update',
       {
-        url: 'https://rox.do',
+        url: 'https://rox.one',
         title: 'Rox',
         isLoading: true,
         canGoBack: true,

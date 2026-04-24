@@ -1,6 +1,6 @@
 {
-  "name": "Rox Agents",
-  "short_name": "Rox Agents",
+  "name": "ROX.ONE",
+  "short_name": "ROX",
   "description": "AI agent interface",
   "start_url": "./",
   "display": "standalone",

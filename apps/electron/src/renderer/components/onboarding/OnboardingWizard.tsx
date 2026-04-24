@@ -82,7 +82,7 @@ interface OnboardingWizardProps {
 /**
  * OnboardingWizard - Full-screen onboarding flow container
  *
- * Manages the step-by-step flow for setting up Rox Agent:
+ * Manages the step-by-step flow for setting up ROX:
  * 1. Welcome
  * 2. Provider Select (Claude / ChatGPT / Copilot / API Key / Local)
  * 3. Credentials (API Key or OAuth) or Local Model

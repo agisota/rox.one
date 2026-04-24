@@ -5,11 +5,11 @@
  * Uses recursive directory watching for simplicity and reliability.
  *
  * Watched paths:
- * - ~/.rox-agent/config.json - Main app configuration
- * - ~/.rox-agent/preferences.json - User preferences
- * - ~/.rox-agent/theme.json - App-level theme overrides
- * - ~/.rox-agent/themes/*.json - Preset theme files (app-level)
- * - ~/.rox-agent/workspaces/{slug}/ - Workspace directory (recursive)
+ * - ~/.rox/config.json - Main app configuration
+ * - ~/.rox/preferences.json - User preferences
+ * - ~/.rox/theme.json - App-level theme overrides
+ * - ~/.rox/themes/*.json - Preset theme files (app-level)
+ * - ~/.rox/workspaces/{slug}/ - Workspace directory (recursive)
  *   - sources/{slug}/config.json, guide.md, permissions.json
  *   - skills/{slug}/SKILL.md, icon.*
  *   - sessions/{id}/session.jsonl (header metadata only)
@@ -131,7 +131,7 @@ export interface ConfigWatcherCallbacks {
   onSkillsListChange?: (skills: LoadedSkill[]) => void;
 
   // Permissions callbacks
-  /** Called when app-level default permissions change (~/.rox-agent/permissions/default.json) */
+  /** Called when app-level default permissions change (~/.rox/permissions/default.json) */
   onDefaultPermissionsChange?: () => void;
   /** Called when workspace permissions.json changes */
   onWorkspacePermissionsChange?: (workspaceId: string) => void;
@@ -981,7 +981,7 @@ export class ConfigWatcher {
   }
 
   /**
-   * Watch app-level themes directory (~/.rox-agent/themes/)
+   * Watch app-level themes directory (~/.rox/themes/)
    */
   private watchAppThemesDir(): void {
     const themesDir = getAppThemesDir();
@@ -1010,7 +1010,7 @@ export class ConfigWatcher {
   }
 
   /**
-   * Watch app-level permissions directory (~/.rox-agent/permissions/)
+   * Watch app-level permissions directory (~/.rox/permissions/)
    * Watches for changes to default.json which contains the default read-only patterns
    */
   private watchAppPermissionsDir(): void {

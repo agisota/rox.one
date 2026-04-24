@@ -27,7 +27,7 @@ export function getBuiltinSources(_workspaceId: string, _workspaceRootPath: stri
 }
 
 /**
- * Get the built-in Rox Agents docs source.
+ * Get the built-in ROX.ONE docs source.
  *
  * @deprecated rox-agents-docs is now an always-available MCP server
  * configured directly in rox-agent.ts. This function is kept for
@@ -37,17 +37,17 @@ export function getDocsSource(workspaceId: string, workspaceRootPath: string): L
   // Return a placeholder - this shouldn't be called anymore
   const placeholderConfig: FolderSourceConfig = {
     id: 'builtin-rox-agents-docs',
-    name: 'Rox Agents Docs',
+    name: 'ROX.ONE Docs',
     slug: 'rox-agents-docs',
     enabled: false,
     provider: 'mintlify',
     type: 'mcp',
     mcp: {
       transport: 'http',
-      url: 'https://agents.rox.do/docs/mcp',
+      url: 'https://rox.one/docs/mcp',
       authType: 'none',
     },
-    tagline: 'Search Rox Agents documentation and source setup guides',
+    tagline: 'Search ROX.ONE documentation and source setup guides',
     icon: '📚',
     isAuthenticated: true,
     connectionStatus: 'connected',

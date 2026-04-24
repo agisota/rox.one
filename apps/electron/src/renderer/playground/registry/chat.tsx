@@ -554,7 +554,7 @@ interface InputContainerPlaygroundProps {
 function InputContainerPlayground({
   disabled = false,
   isProcessing = false,
-  placeholder = 'Message Rox Agent...',
+  placeholder = 'Message ROX...',
   currentModel = 'claude-sonnet-4-6',
   permissionMode = 'ask',
   workingDirectory = '/Users/demo/projects/rox-agent',
@@ -826,7 +826,7 @@ function ActiveTasksBarContext({ tasks = sampleBackgroundTasks }: ActiveTasksBar
 
         {/* Real InputContainer */}
         <InputContainer
-          placeholder="Message Rox Agent..."
+          placeholder="Message ROX..."
           disabled={false}
           isProcessing={false}
           currentModel="claude-sonnet-4-6"
@@ -929,7 +929,7 @@ function PermissionInputToggle({ autoToggle = false, autoToggleInterval = 3000, 
 
       {/* Real InputContainer - handles animation automatically */}
       <InputContainer
-        placeholder="Message Rox Agent..."
+        placeholder="Message ROX..."
         disabled={false}
         isProcessing={false}
         currentModel="claude-sonnet-4-6"
@@ -1281,7 +1281,7 @@ export const chatComponents: ComponentEntry[] = [
         name: 'placeholder',
         description: 'Textarea placeholder text',
         control: { type: 'string', placeholder: 'Message...' },
-        defaultValue: 'Message Rox Agent...',
+        defaultValue: 'Message ROX...',
       },
       {
         name: 'currentModel',

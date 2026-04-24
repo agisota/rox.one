@@ -1,9 +1,9 @@
 /**
  * ESLint Rule: no-localstorage
  *
- * Warns against using localStorage in Rox Agent codebase.
+ * Warns against using localStorage in ROX codebase.
  * All persistent user settings should be stored in file-based configs
- * (preferences.json, workspace configs) for consistency with Rox Agent
+ * (preferences.json, workspace configs) for consistency with ROX
  * architecture principles.
  *
  * Bad:
@@ -34,7 +34,7 @@ module.exports = {
     },
     messages: {
       noLocalStorage:
-        "Avoid localStorage in Rox Agent. Store settings in ~/.rox-agent/preferences.json using window.electronAPI.readPreferences/writePreferences. See packages/shared/src/config/preferences.ts for the preferences API.",
+        "Avoid localStorage in ROX. Store settings in ~/.rox/preferences.json using window.electronAPI.readPreferences/writePreferences. See packages/shared/src/config/preferences.ts for the preferences API.",
     },
     schema: [],
   },

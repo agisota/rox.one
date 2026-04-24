@@ -1,20 +1,20 @@
 /**
  * Deep Link Handler
  *
- * Parses roxagents:// URLs and routes to appropriate actions.
+ * Parses rox:// URLs and routes to appropriate actions.
  *
  * URL Formats (workspace is optional - uses active window if omitted):
  *
  * Compound format (hierarchical navigation):
- *   roxagents://allSessions[/session/{sessionId}]            - Session list (all sessions)
- *   roxagents://flagged[/session/{sessionId}]             - Session list (flagged filter)
- *   roxagents://state/{stateId}[/session/{sessionId}]     - Session list (state filter)
- *   roxagents://sources[/source/{sourceSlug}]          - Sources list
- *   roxagents://settings[/{subpage}]                   - Settings (general, shortcuts, preferences)
+ *   rox://allSessions[/session/{sessionId}]            - Session list (all sessions)
+ *   rox://flagged[/session/{sessionId}]             - Session list (flagged filter)
+ *   rox://state/{stateId}[/session/{sessionId}]     - Session list (state filter)
+ *   rox://sources[/source/{sourceSlug}]          - Sources list
+ *   rox://settings[/{subpage}]                   - Settings (general, shortcuts, preferences)
  *
  * Action format:
- *   roxagents://action/{actionName}[/{id}][?params]
- *   roxagents://workspace/{workspaceId}/action/{actionName}[?params]
+ *   rox://action/{actionName}[/{id}][?params]
+ *   rox://workspace/{workspaceId}/action/{actionName}[?params]
  *
  * Actions:
  *   new-chat                  - Create new chat, optional ?input=text&name=name&send=true
@@ -25,13 +25,13 @@
  *   unflag-session/{id}       - Unflag session
  *
  * Examples:
- *   roxagents://allSessions                               (all sessions view)
- *   roxagents://allSessions/session/abc123                (specific session)
- *   roxagents://settings/shortcuts                     (shortcuts page)
- *   roxagents://sources/source/github                  (github source info)
- *   roxagents://action/new-chat                        (uses active window)
- *   roxagents://action/resume-sdk-session/{sdkId}      (resume Claude Code session)
- *   roxagents://workspace/ws123/allSessions/session/abc123   (targets specific workspace)
+ *   rox://allSessions                               (all sessions view)
+ *   rox://allSessions/session/abc123                (specific session)
+ *   rox://settings/shortcuts                     (shortcuts page)
+ *   rox://sources/source/github                  (github source info)
+ *   rox://action/new-chat                        (uses active window)
+ *   rox://action/resume-sdk-session/{sdkId}      (resume Claude Code session)
+ *   rox://workspace/ws123/allSessions/session/abc123   (targets specific workspace)
  */
 
 import type { BrowserWindow } from 'electron'
@@ -96,19 +96,19 @@ export function parseDeepLink(url: string): DeepLinkTarget | null {
   try {
     const parsed = new URL(url)
 
-    if (parsed.protocol !== 'roxagents:') {
+    if (!['rox:', 'roxagents:'].includes(parsed.protocol)) {
       return null
     }
 
     // For custom protocols, the hostname contains the first path segment
-    // e.g., roxagents://workspace/ws123 → hostname='workspace', pathname='/ws123'
-    // e.g., roxagents://allSessions/chat/abc → hostname='allSessions', pathname='/chat/abc'
+    // e.g., rox://workspace/ws123 → hostname='workspace', pathname='/ws123'
+    // e.g., rox://allSessions/chat/abc → hostname='allSessions', pathname='/chat/abc'
     const host = parsed.hostname
     const pathParts = parsed.pathname.split('/').filter(Boolean)
     const windowMode = parseWindowMode(parsed)
     const rightSidebar = parseRightSidebar(parsed)
 
-    // roxagents://auth-callback?... (OAuth callbacks - return null to let existing handler process)
+    // rox://auth-callback?... (OAuth callbacks - return null to let existing handler process)
     if (host === 'auth-callback') {
       return null
     }
@@ -118,7 +118,7 @@ export function parseDeepLink(url: string): DeepLinkTarget | null {
       'allSessions', 'flagged', 'state', 'sources', 'settings', 'skills'
     ]
 
-    // roxagents://allSessions/..., roxagents://settings/..., etc. (compound routes)
+    // rox://allSessions/..., rox://settings/..., etc. (compound routes)
     if (COMPOUND_ROUTE_PREFIXES.includes(host)) {
       // Reconstruct the full compound route from host + pathname
       const viewRoute = pathParts.length > 0 ? `${host}/${pathParts.join('/')}` : host
@@ -130,7 +130,7 @@ export function parseDeepLink(url: string): DeepLinkTarget | null {
       }
     }
 
-    // roxagents://workspace/{workspaceId}/... (with workspace targeting)
+    // rox://workspace/{workspaceId}/... (with workspace targeting)
     if (host === 'workspace') {
       const workspaceId = pathParts[0]
       if (!workspaceId) return null
@@ -168,7 +168,7 @@ export function parseDeepLink(url: string): DeepLinkTarget | null {
       return result
     }
 
-    // roxagents://action/... (no workspace - uses active window)
+    // rox://action/... (no workspace - uses active window)
     if (host === 'action') {
       const result: DeepLinkTarget = {
         workspaceId: undefined,

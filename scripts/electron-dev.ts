@@ -87,9 +87,9 @@ function detectInstance(): void {
     const instanceNum = match[1];
     process.env.ROX_INSTANCE_NUMBER = instanceNum;
     process.env.ROX_VITE_PORT = `${instanceNum}173`;
-    process.env.ROX_APP_NAME = `Rox Agents [${instanceNum}]`;
-    process.env.ROX_CONFIG_DIR = join(process.env.HOME || "", `.rox-agent-${instanceNum}`);
-    process.env.ROX_DEEPLINK_SCHEME = `roxagents${instanceNum}`;
+    process.env.ROX_APP_NAME = `ROX.ONE [${instanceNum}]`;
+    process.env.ROX_CONFIG_DIR = join(process.env.HOME || "", `.rox-${instanceNum}`);
+    process.env.ROX_DEEPLINK_SCHEME = `rox${instanceNum}`;
     console.log(`🔢 Instance ${instanceNum} detected: port=${process.env.ROX_VITE_PORT}, config=${process.env.ROX_CONFIG_DIR}`);
   }
 }
@@ -285,8 +285,8 @@ function getElectronEnv(): Record<string, string> {
     ...process.env as Record<string, string>,
     VITE_DEV_SERVER_URL: `http://localhost:${vitePort}`,
     ROX_CONFIG_DIR: process.env.ROX_CONFIG_DIR || "",
-    ROX_APP_NAME: process.env.ROX_APP_NAME || "Rox Agents",
-    ROX_DEEPLINK_SCHEME: process.env.ROX_DEEPLINK_SCHEME || "roxagents",
+    ROX_APP_NAME: process.env.ROX_APP_NAME || "ROX.ONE",
+    ROX_DEEPLINK_SCHEME: process.env.ROX_DEEPLINK_SCHEME || "rox",
     ROX_INSTANCE_NUMBER: process.env.ROX_INSTANCE_NUMBER || "",
   };
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Docker smoke test for Rox Agents Server
+# Docker smoke test for ROX.ONE Server
 #
 # Starts the container, waits for the server to become ready, then runs
 # --validate-server via the CLI against it. Cleans up on exit.

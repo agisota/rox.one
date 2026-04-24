@@ -2,7 +2,7 @@
   "name": "@rox-agent/messaging-whatsapp-worker",
   "version": "0.8.11",
   "license": "Apache-2.0",
-  "description": "WhatsApp worker subprocess for Rox Agent (Baileys-based, unofficial API)",
+  "description": "WhatsApp worker subprocess for ROX (Baileys-based, unofficial API)",
   "type": "module",
   "main": "src/worker.ts",
   "exports": {

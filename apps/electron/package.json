@@ -1,14 +1,14 @@
 {
   "name": "@rox-agent/electron",
   "version": "0.8.11",
-  "description": "Electron desktop app for Rox Agents",
+  "description": "Electron desktop app for ROX.ONE",
   "main": "dist/main.cjs",
   "private": true,
   "author": {
-    "name": "Rox Docs Ltd.",
-    "email": "support@rox.do"
+    "name": "roxone",
+    "email": "support@rox.one"
   },
-  "homepage": "https://agents.rox.do",
+  "homepage": "https://app.rox.one",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {

@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 /**
- * rox-cli — Terminal client for Rox Agent server.
+ * rox-cli — Terminal client for ROX server.
  *
- * Connects over WebSocket (ws:// or wss://) to a running Rox Agent server
+ * Connects over WebSocket (ws:// or wss://) to a running ROX server
  * and provides commands for listing resources, managing sessions, sending
  * messages with real-time streaming, and validating server health.
  */
@@ -1851,7 +1851,7 @@ export async function runValidation(
 // ---------------------------------------------------------------------------
 
 function printHelp(): void {
-  process.stdout.write(`rox-cli — Terminal client for Rox Agent server
+  process.stdout.write(`rox-cli — Terminal client for ROX server
 
 Usage: rox-cli [options] <command> [args...]
 
