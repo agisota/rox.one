@@ -6,22 +6,27 @@ import { Sun, Moon, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 /**
- * CraftAgentLogo - The Craft Agent "C" logo
+ * ROXAgentLogo - The ROX "C" logo
  */
-function CraftAgentLogo({ className }: { className?: string }) {
+function ROXAgentLogo({ className }: { className?: string }) {
   return (
     <svg
       className={className}
       viewBox="0 0 24 24"
-      fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      fill="none"
     >
-      <g transform="translate(3.4502, 3)" fill="currentColor">
-        <path
-          d="M3.17890888,3.6 L3.17890888,0 L16,0 L16,3.6 L3.17890888,3.6 Z M9.642,7.2 L9.64218223,10.8 L0,10.8 L0,3.6 L16,3.6 L16,7.2 L9.642,7.2 Z M3.17890888,18 L3.178,14.4 L0,14.4 L0,10.8 L16,10.8 L16,18 L3.17890888,18 Z"
-          fillRule="nonzero"
-        />
-      </g>
+      <defs>
+        <linearGradient id="rox-gradient" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#00D4FF" />
+          <stop offset="1" stopColor="#7C3AED" />
+        </linearGradient>
+      </defs>
+      <rect x="2" y="2" width="20" height="20" rx="5" fill="#0B1020" />
+      <path
+        d="M7 18V6H12.8C15.9 6 17.5 7.5 17.5 10C17.5 11.8 16.6 13.1 14.9 13.7L17.8 18H14.9L12.4 14.1H9.7V18H7ZM9.7 11.6H12.6C14.1 11.6 14.9 11 14.9 10C14.9 9 14.1 8.4 12.6 8.4H9.7V11.6Z"
+        fill="url(#rox-gradient)"
+      />
     </svg>
   )
 }
@@ -40,11 +45,11 @@ export function Header({ hasSession, sessionTitle, isDark, onToggleTheme, onClea
     <header className="shrink-0 grid grid-cols-[auto_1fr_auto] items-center px-4 py-3">
       {/* Logo - links to main site */}
       <a
-        href="https://agents.craft.do"
+        href="https://app.rox.one"
         className="hover:opacity-80 transition-opacity"
-        title="Craft Agent"
+        title="ROX"
       >
-        <CraftAgentLogo className="w-6 h-6 text-[#9570BE]" />
+        <ROXAgentLogo className="w-6 h-6 text-[#9570BE]" />
       </a>
 
       {/* Session title - centered */}

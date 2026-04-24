@@ -1,21 +1,21 @@
 # Trademark Policy
 
-This trademark policy governs the use of the "Craft" and "Craft Agents" names, logos, and branding in connection with the Craft Agents open source project.
+This trademark policy governs the use of the "Craft" and "ROX.ONE" names, logos, and branding in connection with the ROX.ONE open source project.
 
 ## Trademarks
 
-The following are trademarks of Craft Docs Ltd.:
+The following are trademarks of roxone:
 
 - **Craft** (word mark)
-- **Craft Agents** (word mark)
+- **ROX.ONE** (word mark)
 - The Craft logo and icon
-- The Craft Agents logo and icon
+- The ROX.ONE logo and icon
 
 ## What You Can Do
 
 ### Use the Code Freely
 
-The Craft Agents source code is licensed under the Apache License 2.0. You are free to:
+The ROX.ONE source code is licensed under the Apache License 2.0. You are free to:
 
 - Use, modify, and distribute the code
 - Create derivative works
@@ -25,14 +25,14 @@ The Craft Agents source code is licensed under the Apache License 2.0. You are f
 
 You may make accurate, factual statements about your relationship to the project:
 
-- "Based on Craft Agents"
-- "Built with Craft Agents technology"
-- "Compatible with Craft Agents"
-- "Fork of Craft Agents"
+- "Based on ROX.ONE"
+- "Built with ROX.ONE technology"
+- "Compatible with ROX.ONE"
+- "Fork of ROX.ONE"
 
 ### Contribute to the Project
 
-Contributors to the official Craft Agents repository may use the trademarks when discussing their contributions.
+Contributors to the official ROX.ONE repository may use the trademarks when discussing their contributions.
 
 ## What You Cannot Do
 
@@ -42,25 +42,25 @@ If you create a fork or derivative work, you **must**:
 
 - Choose a different name that does not include "Craft"
 - Remove or replace all Craft logos and icons
-- Update the bundle identifier (e.g., `com.lukilabs.craft-agent`) to your own
-- Remove references to `craft.do` domains unless connecting to official Craft services
+- Update the bundle identifier (e.g., `com.lukilabs.rox`) to your own
+- Remove references to `rox.one` domains unless connecting to official ROX services
 
 ### Imply Official Endorsement
 
 You may not:
 
-- Use "Craft" or "Craft Agents" as your product name
+- Use "Craft" or "ROX.ONE" as your product name
 - Use the Craft logo as your application icon
 - Suggest that your fork is the official version
-- Imply that Craft Docs Ltd. or Craft endorses your product
+- Imply that roxone or Craft endorses your product
 
 ### Create Confusion
 
 You may not use the trademarks in any way that:
 
-- Suggests your product is created by or affiliated with Craft Docs Ltd.
-- Could cause confusion between your product and the official Craft Agents
-- Disparages Craft Docs Ltd. or the Craft Agents project
+- Suggests your product is created by or affiliated with roxone
+- Could cause confusion between your product and the official ROX.ONE
+- Disparages roxone or the ROX.ONE project
 
 ## Branding Locations
 
@@ -76,20 +76,20 @@ For those creating forks, the following files contain branding that should be up
 
 ### Acceptable
 
-- "MyAgent - based on Craft Agents"
-- "This project is a fork of Craft Agents"
-- "Compatible with the Craft Agents ecosystem"
+- "MyAgent - based on ROX.ONE"
+- "This project is a fork of ROX.ONE"
+- "Compatible with the ROX.ONE ecosystem"
 
 ### Not Acceptable
 
-- "Craft Agents Pro"
-- "Craft Agent for Linux"
-- "Better Craft Agents"
+- "ROX.ONE Pro"
+- "ROX for Linux"
+- "Better ROX.ONE"
 - Using the Craft logo for your fork
 
 ## Questions
 
-If you have questions about this trademark policy or would like to request permission for a specific use, please open an issue in the repository or contact us at legal@craft.do.
+If you have questions about this trademark policy or would like to request permission for a specific use, please open an issue in the repository or contact us at legal@rox.one.
 
 ## Changes
 
