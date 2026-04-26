@@ -26,8 +26,10 @@ module.exports = async function afterPack(context) {
   }
 
   const appPath = context.appOutDir;
-  const resourcesDir = path.join(appPath, 'ROX.ONE.app', 'Contents', 'Resources');
+  const resourcesDir = path.join(appPath, 'ROX ONE.app', 'Contents', 'Resources');
   const precompiledAssets = path.join(context.packager.projectDir, 'resources', 'Assets.car');
+  const rootIconSvg = path.join(context.packager.projectDir, 'resources', 'icon.svg');
+  const liquidGlassIconSvg = path.join(context.packager.projectDir, 'resources', 'icon.icon', 'Assets', 'icon.svg');
 
   console.log(`afterPack: projectDir=${context.packager.projectDir}`);
   console.log(`afterPack: looking for Assets.car at ${precompiledAssets}`);
@@ -37,6 +39,19 @@ module.exports = async function afterPack(context) {
     console.log('Warning: Pre-compiled Assets.car not found in resources/');
     console.log('The app will use the fallback icon.icns on all macOS versions');
     return;
+  }
+
+  // If the source icon changed after Assets.car was generated, prefer the
+  // updated fallback icon.icns rather than shipping a stale Liquid Glass asset.
+  const assetCatalogSources = [rootIconSvg, liquidGlassIconSvg].filter(fs.existsSync);
+  if (assetCatalogSources.length > 0) {
+    const assetsCarMtime = fs.statSync(precompiledAssets).mtimeMs;
+    const freshestSourceMtime = Math.max(...assetCatalogSources.map(source => fs.statSync(source).mtimeMs));
+    if (freshestSourceMtime > assetsCarMtime) {
+      console.log('Warning: Assets.car is older than the current icon sources');
+      console.log('Skipping stale Liquid Glass asset; the app will use fallback icon.icns');
+      return;
+    }
   }
 
   // Copy pre-compiled Assets.car to the app bundle

@@ -142,7 +142,7 @@ esac
 # Set platform-specific variables
 if [ "$OS_TYPE" = "darwin" ]; then
     platform="darwin-${arch}"
-    APP_NAME="ROX.ONE.app"
+    APP_NAME="ROX ONE.app"
     INSTALL_DIR="/Applications"
     ext="zip"
     yml_file="latest-mac.yml"
@@ -152,7 +152,7 @@ else
         error "Linux currently only supports x64 architecture. Your architecture: $arch"
     fi
     platform="linux-${arch}"
-    APP_NAME="Craft-Agents-x64.AppImage"
+    APP_NAME="ROX-ONE-x64.AppImage"
     INSTALL_DIR="$HOME/.local/bin"
     ext="AppImage"
     yml_file="latest-linux.yml"
@@ -201,7 +201,7 @@ fi
 
 # Use default filename if not found
 if [ -z "$filename" ]; then
-    filename="Craft-Agents-${arch}.${ext}"
+    filename="ROX-ONE-${arch}.${ext}"
 fi
 
 info "Expected sha512: ${checksum:0:20}..."
@@ -242,22 +242,22 @@ if [ "$OS_TYPE" = "darwin" ]; then
 
     # Quit the app if it's running (use bundle ID for reliability)
     APP_BUNDLE_ID="com.rox.one"
-    if pgrep -x "ROX.ONE" >/dev/null 2>&1; then
-        info "Quitting ROX.ONE..."
+    if pgrep -x "ROX ONE" >/dev/null 2>&1; then
+        info "Quitting ROX ONE..."
         osascript -e "tell application id \"$APP_BUNDLE_ID\" to quit" 2>/dev/null || true
         # Wait for app to quit (max 5 seconds) - POSIX compatible loop
         i=0
         while [ $i -lt 10 ]; do
-            if ! pgrep -x "ROX.ONE" >/dev/null 2>&1; then
+            if ! pgrep -x "ROX ONE" >/dev/null 2>&1; then
                 break
             fi
             sleep 0.5
             i=$((i + 1))
         done
         # Force kill if still running
-        if pgrep -x "ROX.ONE" >/dev/null 2>&1; then
+        if pgrep -x "ROX ONE" >/dev/null 2>&1; then
             warn "App didn't quit gracefully. Force quitting (unsaved data may be lost)..."
-            pkill -9 -x "ROX.ONE" 2>/dev/null || true
+            pkill -9 -x "ROX ONE" 2>/dev/null || true
             # Wait longer for macOS to release file handles
             sleep 3
         fi
@@ -304,10 +304,10 @@ if [ "$OS_TYPE" = "darwin" ]; then
     echo ""
     success "Installation complete!"
     echo ""
-    printf "%b\n" "  ROX.ONE has been installed to ${BOLD}$INSTALL_DIR/$APP_NAME${NC}"
+    printf "%b\n" "  ROX ONE has been installed to ${BOLD}$INSTALL_DIR/$APP_NAME${NC}"
     echo ""
     printf "%b\n" "  You can launch it from ${BOLD}Applications${NC} or by running:"
-    printf "%b\n" "    ${BOLD}open -a 'ROX.ONE'${NC}"
+    printf "%b\n" "    ${BOLD}open -a 'ROX ONE'${NC}"
     echo ""
 
 else
@@ -317,12 +317,12 @@ else
     # New paths
     APP_DIR="$HOME/.rox/app"
     WRAPPER_PATH="$INSTALL_DIR/craft-agents"
-    APPIMAGE_INSTALL_PATH="$APP_DIR/Craft-Agents-x64.AppImage"
+    APPIMAGE_INSTALL_PATH="$APP_DIR/ROX-ONE-x64.AppImage"
 
     # Kill the app if it's running
-    if pgrep -f "Craft-Agent.*AppImage" >/dev/null 2>&1; then
-        info "Stopping ROX.ONE..."
-        pkill -f "Craft-Agent.*AppImage" 2>/dev/null || true
+    if pgrep -f "ROX-ONE.*AppImage" >/dev/null 2>&1; then
+        info "Stopping ROX ONE..."
+        pkill -f "ROX-ONE.*AppImage" 2>/dev/null || true
         sleep 2
     fi
 
@@ -344,7 +344,7 @@ else
 #!/bin/bash
 # ROX launcher - handles Linux-specific AppImage issues
 
-APPIMAGE_PATH="$HOME/.rox/app/Craft-Agents-x64.AppImage"
+APPIMAGE_PATH="$HOME/.rox/app/ROX-ONE-x64.AppImage"
 ELECTRON_CACHE="$HOME/.config/@craft-agent"
 ELECTRON_CACHE_ALT="$HOME/.cache/@craft-agent"
 
@@ -361,9 +361,9 @@ if [ -z "$DISPLAY" ]; then
 fi
 
 # Clear stale cache referencing AppImage mount paths
-# AppImage creates a new /tmp/.mount_Craft-XXXX each launch, so any cached path is stale
+# AppImage creates a new /tmp/.mount_ROX-XXXX each launch, so any cached path is stale
 for cache_dir in "$ELECTRON_CACHE" "$ELECTRON_CACHE_ALT"; do
-    if [ -d "$cache_dir" ] && grep -rq '/tmp/\.mount_Craft' "$cache_dir" 2>/dev/null; then
+    if [ -d "$cache_dir" ] && grep -rq '/tmp/\.mount_ROX' "$cache_dir" 2>/dev/null; then
         rm -rf "$cache_dir"
     fi
 done
@@ -378,7 +378,7 @@ WRAPPER_EOF
     chmod +x "$WRAPPER_PATH"
 
     # Migrate old installation
-    OLD_APPIMAGE="$INSTALL_DIR/Craft-Agents-x64.AppImage"
+    OLD_APPIMAGE="$INSTALL_DIR/ROX-ONE-x64.AppImage"
     [ -f "$OLD_APPIMAGE" ] && rm -f "$OLD_APPIMAGE"
 
     echo ""

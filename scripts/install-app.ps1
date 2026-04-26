@@ -1,12 +1,12 @@
-# ROX.ONE Windows Installer
+# ROX ONE Windows Installer
 # Usage: irm https://app.rox.one/install-app.ps1 | iex
 
 & {
 $ErrorActionPreference = "Stop"
 
 $VERSIONS_URL = "https://app.rox.one/electron"
-$DOWNLOAD_DIR = "$env:TEMP\craft-agent-install"
-$APP_NAME = "ROX.ONE"
+$DOWNLOAD_DIR = "$env:TEMP\rox-one-install"
+$APP_NAME = "ROX ONE"
 
 # Colors for output
 function Write-Info { Write-Host "> $args" -ForegroundColor Blue }
@@ -58,7 +58,7 @@ Write-Info "Latest version: $version"
 # Parse YAML to extract sha512, url (filename), and size for our architecture
 # YAML format:
 #   files:
-#     - url: Craft-Agents-x64.exe
+#     - url: ROX-ONE-x64.exe
 #       sha512: <base64>
 #       size: 123456789
 #       arch: x64
@@ -108,7 +108,7 @@ if (-not $checksum -or $checksum.Length -lt 80) {
 
 # Use default filename if not found
 if (-not $filename) {
-    $filename = "Craft-Agents-$arch.exe"
+    $filename = "ROX-ONE-$arch.exe"
 }
 
 $installerUrl = "$VERSIONS_URL/latest/$filename"
@@ -192,9 +192,9 @@ if ($actualHash -ne $checksum) {
 Write-Success "Checksum verified!"
 
 # Close the app if it's running
-$process = Get-Process -Name "ROX.ONE" -ErrorAction SilentlyContinue
+$process = Get-Process -Name "ROX ONE" -ErrorAction SilentlyContinue
 if ($process) {
-    Write-Info "Closing ROX.ONE..."
+    Write-Info "Closing ROX ONE..."
     $process | Stop-Process -Force
     Start-Sleep -Seconds 2
 }
@@ -229,9 +229,9 @@ Remove-Item -Path $installerPath -Force -ErrorAction SilentlyContinue
 # Add command line shortcut
 Write-Info "Adding 'craft-agents' command to PATH..."
 
-$binDir = "$env:LOCALAPPDATA\ROX.ONE\bin"
+$binDir = "$env:LOCALAPPDATA\ROX ONE\bin"
 $cmdFile = "$binDir\craft-agents.cmd"
-$exePath = "$env:LOCALAPPDATA\Programs\ROX.ONE\ROX.ONE.exe"
+$exePath = "$env:LOCALAPPDATA\Programs\ROX ONE\ROX ONE.exe"
 
 # Create bin directory
 New-Item -ItemType Directory -Force -Path $binDir | Out-Null
@@ -255,7 +255,7 @@ Write-Host "--------------------------------------------------------------------
 Write-Host ""
 Write-Success "Installation complete!"
 Write-Host ""
-Write-Host "  ROX.ONE has been installed."
+Write-Host "  ROX ONE has been installed."
 Write-Host ""
 Write-Host "  Launch from:"
 Write-Host "    - Start Menu or desktop shortcut"

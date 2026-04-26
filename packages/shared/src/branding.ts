@@ -3,16 +3,16 @@
  * Used by OAuth callback pages
  */
 
-export const CRAFT_LOGO = [
-  '  ████████ █████████    ██████   ██████████ ██████████',
-  '██████████ ██████████ ██████████ █████████  ██████████',
-  '██████     ██████████ ██████████ ████████   ██████████',
-  '██████████ ████████   ██████████ ███████      ██████  ',
-  '  ████████ ████  ████ ████  ████ █████        ██████  ',
+export const ROX_LOGO = [
+  '  ██████   ██████   ██  ██       ██████   ███ ██  ██████',
+  '  ██   ██  ██  ██    ████        ██  ██   █████  ██     ',
+  '  ██████   ██  ██     ██        ██   ██   ██ ██  ██████ ',
+  '  ██  ██   ██  ██   ████        ██   ██   ██ ███  ██    ',
+  '  ██   ██  ██████  ██  ██  █     ██████   ██  ██  ██████',
 ] as const;
 
 /** Logo as a single string for HTML templates */
-export const CRAFT_LOGO_HTML = CRAFT_LOGO.map((line) => line.trimEnd()).join('\n');
+export const ROX_LOGO_HTML = ROX_LOGO.map((line) => line.trimEnd()).join('\n');
 
 /** Session viewer base URL */
 export const VIEWER_URL = 'https://app.rox.one';

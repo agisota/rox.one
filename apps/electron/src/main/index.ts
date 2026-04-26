@@ -204,8 +204,8 @@ let messagingHandle: MessagingBootstrapHandle | null = null
 let pendingDeepLink: string | null = null
 
 // Set app name early (before app.whenReady) to ensure correct macOS menu bar title
-// Supports multi-instance dev: CRAFT_APP_NAME env var (e.g., "ROX.ONE [1]")
-app.setName(process.env.CRAFT_APP_NAME || 'ROX.ONE')
+// Supports multi-instance dev: CRAFT_APP_NAME env var (e.g., "ROX ONE [1]")
+app.setName(process.env.CRAFT_APP_NAME || 'ROX ONE')
 
 // Register as default protocol client for rox:// URLs
 // This must be done before app.whenReady() on some platforms
@@ -362,6 +362,20 @@ async function createInitialWindows(): Promise<void> {
 }
 
 app.whenReady().then(async () => {
+  const smokeExitOnReady = process.env.CRAFT_SMOKE_EXIT_ON_READY === '1'
+  const scheduleSmokeShutdown = (exitCode: number, message: string) => {
+    if (!smokeExitOnReady) return
+
+    if (exitCode !== 0) {
+      process.exitCode = exitCode
+      mainLog.error(message)
+    } else {
+      mainLog.info(message)
+    }
+
+    setImmediate(() => app.quit())
+  }
+
   // Export packaged state as env var so logger.ts (and headless Bun) don't need 'electron'
   process.env.CRAFT_IS_PACKAGED = app.isPackaged ? 'true' : 'false'
 
@@ -1066,8 +1080,10 @@ app.whenReady().then(async () => {
       mainLog.info('Debug mode enabled - logs at:', getLogFilePath())
     }
     mainLog.info('Messaging gateway log path:', getMessagingGatewayLogFilePath())
+    scheduleSmokeShutdown(0, '[smoke] Exit-on-ready requested; shutting down after successful startup')
   } catch (error) {
     mainLog.error('Failed to initialize app:', error instanceof Error ? error.message : error, (error as any)?.stack)
+    scheduleSmokeShutdown(1, '[smoke] Initialization failed in smoke mode; shutting down with exit code 1')
     // Continue anyway - the app will show errors in the UI
   }
 
