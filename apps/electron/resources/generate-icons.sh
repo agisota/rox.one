@@ -1,21 +1,40 @@
 #!/bin/bash
-# Generate app icons for all platforms from a source PNG
-# Usage: ./generate-icons.sh source.png
+# Generate app icons for all platforms from a source SVG or PNG.
+# Usage: ./generate-icons.sh [icon.svg|source.png]
 
 set -e
 
-SOURCE="${1:-source.png}"
+INPUT_SOURCE="${1:-icon.svg}"
+TEMP_SOURCE=""
+ICONSET="icon.iconset"
 
-if [ ! -f "$SOURCE" ]; then
-    echo "Error: Source file '$SOURCE' not found"
-    echo "Usage: ./generate-icons.sh source.png"
+if [ ! -f "$INPUT_SOURCE" ]; then
+    echo "Error: Source file '$INPUT_SOURCE' not found"
+    echo "Usage: ./generate-icons.sh [icon.svg|source.png]"
     exit 1
 fi
 
-echo "Generating icons from: $SOURCE"
+case "${INPUT_SOURCE##*.}" in
+    svg|SVG)
+        if ! command -v rsvg-convert &> /dev/null; then
+            echo "Error: rsvg-convert is required to render SVG icons"
+            echo "Install with: brew install librsvg"
+            exit 1
+        fi
+        TEMP_SOURCE="$(mktemp "${TMPDIR:-/tmp}/rox-one-icon-XXXXXX.png")"
+        rsvg-convert -w 1024 -h 1024 "$INPUT_SOURCE" -o "$TEMP_SOURCE"
+        SOURCE="$TEMP_SOURCE"
+        ;;
+    *)
+        SOURCE="$INPUT_SOURCE"
+        ;;
+esac
+
+trap 'rm -f "$TEMP_SOURCE"; rm -rf "$ICONSET"' EXIT
+
+echo "Generating icons from: $INPUT_SOURCE"
 
 # Create temporary iconset directory for macOS
-ICONSET="icon.iconset"
 rm -rf "$ICONSET"
 mkdir -p "$ICONSET"
 
@@ -40,8 +59,8 @@ iconutil -c icns "$ICONSET" -o icon.icns
 echo "Creating icon.png for Linux..."
 sips -z 512 512 "$SOURCE" --out icon.png > /dev/null
 
-# Generate icon.ico for Windows using ImageMagick (if available)
-# If not, we'll create individual PNGs that can be converted online
+# Generate icon.ico for Windows using ImageMagick when available,
+# otherwise fall back to Pillow if Python imaging support exists.
 if command -v convert &> /dev/null; then
     echo "Creating icon.ico for Windows..."
     # Create multiple sizes for ICO
@@ -57,14 +76,22 @@ if command -v convert &> /dev/null; then
 
     # Clean up temp files
     rm -f icon_16.png icon_24.png icon_32.png icon_48.png icon_64.png icon_128.png icon_256.png
-else
-    echo "Warning: ImageMagick not installed. Skipping .ico generation."
-    echo "Install with: brew install imagemagick"
-    echo "Or use an online converter with the 256x256 PNG."
-fi
+elif python3 - <<'PY' >/dev/null 2>&1
+from PIL import Image
+PY
+then
+    echo "Creating icon.ico for Windows via Pillow..."
+    python3 - <<'PY'
+from PIL import Image
 
-# Clean up iconset directory
-rm -rf "$ICONSET"
+img = Image.open("icon.png")
+sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
+img.save("icon.ico", format="ICO", sizes=sizes)
+PY
+else
+    echo "Warning: neither ImageMagick nor Pillow is installed. Skipping .ico generation."
+    echo "Install with: brew install imagemagick"
+fi
 
 echo ""
 echo "✅ Icons generated:"
@@ -72,5 +99,5 @@ ls -la icon.*
 
 echo ""
 echo "Next steps:"
-echo "1. Update apps/electron/src/main/index.ts to use icon.icns on macOS"
-echo "2. Run: bun run electron:build:resources"
+echo "1. Verify icon readability at 16px/32px and halo clipping on dark backgrounds"
+echo "2. Run: bun run electron:build"

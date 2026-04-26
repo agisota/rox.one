@@ -4,7 +4,7 @@
  */
 
 import { spawn, type Subprocess } from "bun";
-import { existsSync, rmSync, cpSync, readFileSync, statSync, mkdirSync } from "fs";
+import { existsSync, rmSync, cpSync, readFileSync, statSync, mkdirSync, copyFileSync, renameSync, writeFileSync } from "fs";
 import { join, basename } from "path";
 import * as esbuild from "esbuild";
 import { downloadUv, type Platform, type Arch } from "./build/common";
@@ -36,6 +36,10 @@ const IS_WINDOWS = process.platform === "win32";
 const BIN_EXT = IS_WINDOWS ? ".exe" : "";
 const VITE_BIN = join(ROOT_DIR, `node_modules/.bin/vite${BIN_EXT}`);
 const ELECTRON_BIN = join(ROOT_DIR, `node_modules/.bin/electron${BIN_EXT}`);
+const BRAND_NAME = "ROX ONE";
+const ELECTRON_DIST_DIR = join(ROOT_DIR, "node_modules", "electron", "dist");
+const MAC_ELECTRON_APP = join(ELECTRON_DIST_DIR, "Electron.app");
+const DEV_RUNTIME_DIR = join(ROOT_DIR, ".build", "electron-dev-runtime");
 
 function resolveBuildPlatform(): Platform {
   if (process.platform === "darwin") return "darwin";
@@ -87,7 +91,7 @@ function detectInstance(): void {
     const instanceNum = match[1];
     process.env.ROX_INSTANCE_NUMBER = instanceNum;
     process.env.ROX_VITE_PORT = `${instanceNum}173`;
-    process.env.ROX_APP_NAME = `ROX.ONE [${instanceNum}]`;
+    process.env.ROX_APP_NAME = `${BRAND_NAME} [${instanceNum}]`;
     process.env.ROX_CONFIG_DIR = join(process.env.HOME || "", `.rox-${instanceNum}`);
     process.env.ROX_DEEPLINK_SCHEME = `rox${instanceNum}`;
     console.log(`🔢 Instance ${instanceNum} detected: port=${process.env.ROX_VITE_PORT}, config=${process.env.ROX_CONFIG_DIR}`);
@@ -197,6 +201,61 @@ function copyResources(): void {
   }
 }
 
+function upsertPlistString(plist: string, key: string, value: string): string {
+  const keyPattern = new RegExp(`(<key>${key}<\\/key>\\s*<string>)([^<]*)(<\\/string>)`);
+  if (keyPattern.test(plist)) {
+    return plist.replace(keyPattern, `$1${value}$3`);
+  }
+
+  const dictClose = plist.lastIndexOf("</dict>");
+  if (dictClose === -1) return plist;
+
+  return `${plist.slice(0, dictClose)}  <key>${key}</key>\n  <string>${value}</string>\n${plist.slice(dictClose)}`;
+}
+
+function prepareBrandedElectronLauncher(): string {
+  if (process.platform !== "darwin") return ELECTRON_BIN;
+  if (!existsSync(MAC_ELECTRON_APP)) return ELECTRON_BIN;
+
+  mkdirSync(DEV_RUNTIME_DIR, { recursive: true });
+
+  const brandedAppDir = join(DEV_RUNTIME_DIR, `${BRAND_NAME}.app`);
+  rmSync(brandedAppDir, { recursive: true, force: true });
+  cpSync(MAC_ELECTRON_APP, brandedAppDir, { recursive: true });
+
+  const originalExecutable = join(brandedAppDir, "Contents", "MacOS", "Electron");
+  const brandedExecutable = join(brandedAppDir, "Contents", "MacOS", BRAND_NAME);
+  if (existsSync(originalExecutable)) {
+    renameSync(originalExecutable, brandedExecutable);
+  }
+
+  const plistPath = join(brandedAppDir, "Contents", "Info.plist");
+  let plist = readFileSync(plistPath, "utf-8");
+  plist = upsertPlistString(plist, "CFBundleDisplayName", BRAND_NAME);
+  plist = upsertPlistString(plist, "CFBundleName", BRAND_NAME);
+  plist = upsertPlistString(plist, "CFBundleExecutable", BRAND_NAME);
+  plist = upsertPlistString(plist, "CFBundleIdentifier", "com.rox.one.dev");
+  plist = upsertPlistString(plist, "CFBundleIconFile", "rox-dev.icns");
+  writeFileSync(plistPath, plist);
+
+  const sourceIcon = join(ELECTRON_DIR, "resources", "icon.icns");
+  const targetIcon = join(brandedAppDir, "Contents", "Resources", "rox-dev.icns");
+  if (existsSync(sourceIcon)) {
+    copyFileSync(sourceIcon, targetIcon);
+  }
+
+  return brandedExecutable;
+}
+
+function getElectronLaunchCommand(): string[] {
+  if (process.platform === "darwin") {
+    const launcher = prepareBrandedElectronLauncher();
+    return [launcher, "apps/electron"];
+  }
+
+  return [ELECTRON_BIN, "apps/electron"];
+}
+
 // Build the WhatsApp worker bundle (dist/worker.cjs). Runs the canonical
 // `scripts/build-wa-worker.ts` as a subprocess so the dev path stays in
 // sync with the packaged/CI build. Cheap (~70ms) so we always rebuild.
@@ -285,7 +344,7 @@ function getElectronEnv(): Record<string, string> {
     ...process.env as Record<string, string>,
     VITE_DEV_SERVER_URL: `http://localhost:${vitePort}`,
     ROX_CONFIG_DIR: process.env.ROX_CONFIG_DIR || "",
-    ROX_APP_NAME: process.env.ROX_APP_NAME || "ROX.ONE",
+    ROX_APP_NAME: process.env.ROX_APP_NAME || BRAND_NAME,
     ROX_DEEPLINK_SCHEME: process.env.ROX_DEEPLINK_SCHEME || "rox",
     ROX_INSTANCE_NUMBER: process.env.ROX_INSTANCE_NUMBER || "",
   };
@@ -583,7 +642,7 @@ async function main(): Promise<void> {
   console.log("🚀 Starting Electron...\n");
 
   const electronProc = spawn({
-    cmd: [ELECTRON_BIN, "apps/electron"],
+    cmd: getElectronLaunchCommand(),
     cwd: ROOT_DIR,
     stdin: "ignore",
     stdout: "inherit",

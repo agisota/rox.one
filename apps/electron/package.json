@@ -1,7 +1,7 @@
 {
   "name": "@rox-agent/electron",
   "version": "0.8.11",
-  "description": "Electron desktop app for ROX.ONE",
+  "description": "Desktop app for ROX ONE",
   "main": "dist/main.cjs",
   "private": true,
   "author": {

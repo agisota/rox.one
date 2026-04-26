@@ -1,12 +1,119 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="24px" height="24px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <title>favicon</title>
-    <defs>
-        <path d="M0,0 L24,0 L24,24 L0,24 L0,0 Z" id="path-1"></path>
-    </defs>
-    <g id="favicon" stroke="none" fill="none" xlink:href="#path-1" fill-rule="evenodd" stroke-width="1">
-        <g id="Group" transform="translate(3.4502, 3)" fill="#9570BE">
-            <path d="M3.17890888,3.6 L3.17890888,0 L16,0 L16,3.6 L3.17890888,3.6 Z M9.642,7.2 L9.64218223,10.8 L0,10.8 L0,3.6 L16,3.6 L16,7.2 L9.642,7.2 Z M3.17890888,18 L3.178,14.4 L0,14.4 L0,10.8 L16,10.8 L16,18 L3.17890888,18 Z" id="Combined-Shape" fill-rule="nonzero"></path>
-        </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="14%" y1="10%" x2="86%" y2="92%">
+      <stop offset="0%" stop-color="#040712"/>
+      <stop offset="48%" stop-color="#081225"/>
+      <stop offset="100%" stop-color="#17123C"/>
+    </linearGradient>
+    <radialGradient id="halo-cyan" cx="49%" cy="41%" r="40%">
+      <stop offset="0%" stop-color="#8BEFFF" stop-opacity="0.46"/>
+      <stop offset="38%" stop-color="#2DD4FF" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#2DD4FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="halo-violet" cx="34%" cy="58%" r="44%">
+      <stop offset="0%" stop-color="#B7A6FF" stop-opacity="0.26"/>
+      <stop offset="55%" stop-color="#7C6DFF" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#7C6DFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="halo-amber" cx="64%" cy="58%" r="46%">
+      <stop offset="0%" stop-color="#FFD9A0" stop-opacity="0.18"/>
+      <stop offset="56%" stop-color="#F59E0B" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gem-top" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#F8FEFF"/>
+      <stop offset="32%" stop-color="#DDF9FF"/>
+      <stop offset="100%" stop-color="#5FDBFF"/>
+    </linearGradient>
+    <linearGradient id="gem-left" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#B6F8FF"/>
+      <stop offset="56%" stop-color="#25D8F0"/>
+      <stop offset="100%" stop-color="#0D728D"/>
+    </linearGradient>
+    <linearGradient id="gem-right" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F0E6FF"/>
+      <stop offset="50%" stop-color="#7B88FF"/>
+      <stop offset="100%" stop-color="#2A2F86"/>
+    </linearGradient>
+    <linearGradient id="gem-bottom" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#A8ECFF"/>
+      <stop offset="100%" stop-color="#113A63"/>
+    </linearGradient>
+    <linearGradient id="gem-core" x1="40%" y1="0%" x2="60%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.98"/>
+      <stop offset="38%" stop-color="#EAFBFF" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="18%" y1="12%" x2="82%" y2="88%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.88"/>
+      <stop offset="32%" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="22%" y1="12%" x2="78%" y2="88%">
+      <stop offset="0%" stop-color="#F6FDFF" stop-opacity="0.42"/>
+      <stop offset="42%" stop-color="#9CEEFF" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#C4B5FD" stop-opacity="0.1"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-22%" width="160%" height="164%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#020617" flood-opacity="0.72"/>
+    </filter>
+    <filter id="glow" x="-55%" y="-55%" width="210%" height="210%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feFlood flood-color="#42DBFF" flood-opacity="0.34" result="cyan"/>
+      <feFlood flood-color="#7C6DFF" flood-opacity="0.16" result="violet"/>
+      <feFlood flood-color="#F59E0B" flood-opacity="0.12" result="amber"/>
+      <feComposite in="cyan" in2="blur" operator="in" result="cyanGlow"/>
+      <feComposite in="violet" in2="blur" operator="in" result="violetGlow"/>
+      <feComposite in="amber" in2="blur" operator="in" result="amberGlow"/>
+      <feMerge>
+        <feMergeNode in="cyanGlow"/>
+        <feMergeNode in="violetGlow"/>
+        <feMergeNode in="amberGlow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="spark" x="-140%" y="-140%" width="380%" height="380%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="258" cy="224" r="196" fill="url(#halo-cyan)"/>
+  <circle cx="228" cy="278" r="170" fill="url(#halo-violet)"/>
+  <circle cx="310" cy="276" r="162" fill="url(#halo-amber)"/>
+
+  <g filter="url(#shadow)">
+    <ellipse cx="256" cy="318" rx="108" ry="28" fill="#020617" opacity="0.32"/>
+    <g transform="translate(256 246)" filter="url(#glow)">
+      <path d="M0 -150 L118 -34 L0 52 L-118 -34 Z" fill="url(#gem-top)"/>
+      <path d="M-118 -34 L0 52 L-86 138 L-138 24 Z" fill="url(#gem-left)"/>
+      <path d="M118 -34 L138 24 L86 138 L0 52 Z" fill="url(#gem-right)"/>
+      <path d="M-86 138 L0 52 L86 138 L0 172 Z" fill="url(#gem-bottom)"/>
+      <path d="M0 -114 L72 -38 L0 6 L-72 -38 Z" fill="url(#gem-core)" opacity="0.9"/>
     </g>
+    <g transform="translate(256 246)">
+      <path d="M0 -150 L118 -34 L0 52 L-118 -34 Z" fill="none" stroke="url(#rim)" stroke-width="2.1" stroke-linejoin="round"/>
+      <path d="M-118 -34 L0 52 L-86 138 L-138 24 Z" fill="none" stroke="#71E8FF" stroke-opacity="0.18" stroke-width="1.7" stroke-linejoin="round"/>
+      <path d="M118 -34 L138 24 L86 138 L0 52 Z" fill="none" stroke="#B5A8FF" stroke-opacity="0.18" stroke-width="1.7" stroke-linejoin="round"/>
+      <path d="M-86 138 L0 52 L86 138 L0 172 Z" fill="none" stroke="#9EE7FF" stroke-opacity="0.16" stroke-width="1.5" stroke-linejoin="round"/>
+
+      <path d="M0 -124 L80 -44 L0 8 L-80 -44 Z" fill="url(#sheen)"/>
+      <path d="M0 -150 L-62 -80 L-26 -48 Z" fill="#FFFFFF" opacity="0.28"/>
+      <path d="M62 -62 L110 -20 L84 2 Z" fill="#FFFFFF" opacity="0.14"/>
+      <path d="M-38 30 L0 52 L38 30 L0 10 Z" fill="#FFFFFF" opacity="0.08"/>
+
+      <g filter="url(#spark)">
+        <circle cx="0" cy="-150" r="5.2" fill="#F8FDFF"/>
+        <circle cx="0" cy="-150" r="15" fill="#8EEBFF" opacity="0.28"/>
+        <circle cx="118" cy="-34" r="3.5" fill="#FDE68A" opacity="0.82"/>
+        <circle cx="118" cy="-34" r="9.5" fill="#FBBF24" opacity="0.18"/>
+        <circle cx="0" cy="172" r="2.8" fill="#C4B5FD" opacity="0.5"/>
+        <circle cx="0" cy="172" r="8.5" fill="#8B5CF6" opacity="0.14"/>
+      </g>
+    </g>
+  </g>
 </svg>

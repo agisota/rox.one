@@ -6,13 +6,13 @@ interface RoxAppIconProps {
 }
 
 /**
- * RoxAppIcon - Displays the Rox logo (colorful "C" icon)
+ * RoxAppIcon - Displays the ROX ONE gemstone logo
  */
 export function RoxAppIcon({ className, size = 64 }: RoxAppIconProps) {
   return (
     <img
       src={roxLogo}
-      alt="Rox"
+      alt="ROX ONE"
       width={size}
       height={size}
       className={className}

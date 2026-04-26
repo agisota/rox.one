@@ -2,7 +2,7 @@
   "name": "@rox-agent/viewer",
   "version": "0.8.11",
   "license": "Apache-2.0",
-  "description": "Web viewer for ROX.ONE sessions - upload and share session transcripts",
+  "description": "Web viewer for ROX ONE sessions - upload and share session transcripts",
   "private": true,
   "type": "module",
   "scripts": {

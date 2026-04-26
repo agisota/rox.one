@@ -61,13 +61,13 @@ export async function packageDarwin(config: BuildConfig): Promise<string> {
 
   // Verify SDK is bundled in the .app before checking artifacts
   const macDir = arch === 'arm64' ? 'mac-arm64' : 'mac';
-  const appPath = join(electronDir, 'release', macDir, 'ROX.ONE.app');
+  const appPath = join(electronDir, 'release', macDir, 'ROX ONE.app');
   console.log('Verifying SDK in packaged app...');
   verifyPackagedSDK(appPath, arch);
 
   // Verify the DMG and ZIP were built (ZIP is used by electron-updater for auto-updates)
-  const dmgName = `Rox-Agents-${arch}.dmg`;
-  const zipName = `Rox-Agents-${arch}.zip`;
+  const dmgName = `ROX-ONE-${arch}.dmg`;
+  const zipName = `ROX-ONE-${arch}.zip`;
   const dmgPath = join(electronDir, 'release', dmgName);
   const zipPath = join(electronDir, 'release', zipName);
 

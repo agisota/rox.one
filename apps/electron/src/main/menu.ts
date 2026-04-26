@@ -16,7 +16,7 @@ let cachedClientResolver: ClientResolver | null = null
 
 /**
  * Creates and sets the application menu for macOS.
- * Includes only relevant items for the ROX.ONE app.
+ * Includes only relevant items for the ROX ONE app.
  *
  * Call rebuildMenu() when update state changes to refresh the menu.
  */
@@ -40,7 +40,7 @@ export function setMenuEventSink(sink: EventSink, resolver: ClientResolver): voi
  * Rebuilds the application menu with current update state.
  * Call this when update availability changes.
  *
- * On Windows/Linux: Menu is hidden - all functionality is in the Rox logo menu.
+ * On Windows/Linux: Menu is hidden - all functionality is in the ROX ONE menu.
  * On macOS: Native menu is required by Apple guidelines, so we keep it synced.
  */
 export async function rebuildMenu(): Promise<void> {
@@ -50,7 +50,7 @@ export async function rebuildMenu(): Promise<void> {
   const isMac = process.platform === 'darwin'
 
   // On Windows/Linux, hide the native menu entirely
-  // Users access menu via the Rox logo dropdown in the app
+  // Users access menu via the ROX ONE logo dropdown in the app
   if (!isMac) {
     Menu.setApplicationMenu(null)
     return
@@ -79,7 +79,7 @@ export async function rebuildMenu(): Promise<void> {
   const template: Electron.MenuItemConstructorOptions[] = [
     // App menu (macOS only)
     ...(isMac ? [{
-      label: 'ROX.ONE',
+      label: 'ROX ONE',
       submenu: [
         { role: 'about' as const, label: i18n.t('menu.aboutRoxAgents') },
         updateMenuItem,

@@ -9,7 +9,7 @@ export const iconComponents: ComponentEntry[] = [
     id: 'rox-agents-logo',
     name: 'RoxAgentsLogo',
     category: 'Icons',
-    description: 'Full ROX.ONE branding logo with text',
+    description: 'Full ROX ONE branding logo with text',
     component: RoxAgentsLogo,
     props: [
       {
@@ -29,7 +29,7 @@ export const iconComponents: ComponentEntry[] = [
     id: 'rox-agents-symbol',
     name: 'RoxAgentsSymbol',
     category: 'Icons',
-    description: 'ROX.ONE "E" pixel art symbol icon (brand color: #9570BE)',
+    description: 'ROX ONE crystal diamond symbol icon',
     component: RoxAgentsSymbol,
     props: [
       {

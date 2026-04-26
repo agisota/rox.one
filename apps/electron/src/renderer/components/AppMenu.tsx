@@ -149,7 +149,7 @@ interface AppMenuProps {
 /**
  * AppMenu - Main application dropdown menu and top bar navigation
  *
- * Contains the Rox logo dropdown with all menu functionality:
+ * Contains the ROX ONE logo dropdown with all menu functionality:
  * - File actions (New Chat, New Window)
  * - Edit submenu (Undo, Redo, Cut, Copy, Paste, Select All)
  * - View submenu (Zoom In/Out, Reset)
@@ -200,11 +200,11 @@ export function AppMenu({
 
   return (
     <div className="flex items-center gap-[5px] w-full">
-      {/* Rox Logo Menu - interactive island */}
+      {/* ROX ONE Logo Menu - interactive island */}
       <div className="pointer-events-auto titlebar-no-drag">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <TopBarButton aria-label="Rox menu">
+          <TopBarButton aria-label="ROX ONE menu">
             <RoxAgentsSymbol className="h-4 text-accent" />
           </TopBarButton>
         </DropdownMenuTrigger>
