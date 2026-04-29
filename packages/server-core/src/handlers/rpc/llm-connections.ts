@@ -14,6 +14,7 @@ import { pushTyped, type RpcServer } from '@craft-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { randomUUID } from 'node:crypto'
 import { CLIENT_OPEN_EXTERNAL } from '@craft-agent/server-core/transport'
+import { requireAdmin, requireWorkspaceAccess } from './account-ownership'
 
 // Local OAuth state
 let copilotOAuthAbort: AbortController | null = null
@@ -49,7 +50,8 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   const { sessionManager } = deps
 
   // Unified handler for LLM connection setup
-  server.handle(RPC_CHANNELS.settings.SETUP_LLM_CONNECTION, async (_ctx, setup: LlmConnectionSetup): Promise<{ success: boolean; error?: string }> => {
+  server.handle(RPC_CHANNELS.settings.SETUP_LLM_CONNECTION, async (ctx, setup: LlmConnectionSetup): Promise<{ success: boolean; error?: string }> => {
+    requireAdmin(deps, ctx)
     try {
       const manager = getCredentialManager()
 
@@ -137,10 +139,10 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
       // Skip when custom endpoint protocol is driving routing.
       if (setup.piAuthProvider && !isCustomEndpointCompat) {
         updates.piAuthProvider = setup.piAuthProvider
-        // Update connection name to show the actual provider (e.g. "ROX.ONE Backend (Google AI Studio)")
+        // Update connection name to show the actual provider (e.g. "ROX ONE Backend (Google AI Studio)")
         const providerName = piAuthProviderDisplayName(setup.piAuthProvider)
         if (providerName) {
-          updates.name = `ROX.ONE Backend (${providerName})`
+          updates.name = `ROX ONE Backend (${providerName})`
         }
         // Only set default models when using standard Pi provider AND user didn't pick explicit models
         if (!hasConfiguredBaseUrl && !setup.models?.length) {
@@ -296,7 +298,8 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
 
   // Unified connection test — uses the agent factory to spawn a real agent subprocess
   // and validate credentials via runMiniCompletion(). Same code path as actual chat.
-  server.handle(RPC_CHANNELS.settings.TEST_LLM_CONNECTION_SETUP, async (_ctx, params: import('@craft-agent/shared/protocol').TestLlmConnectionParams): Promise<import('@craft-agent/shared/protocol').TestLlmConnectionResult> => {
+  server.handle(RPC_CHANNELS.settings.TEST_LLM_CONNECTION_SETUP, async (ctx, params: import('@craft-agent/shared/protocol').TestLlmConnectionParams): Promise<import('@craft-agent/shared/protocol').TestLlmConnectionResult> => {
+    requireAdmin(deps, ctx)
     const { provider, apiKey, baseUrl, model, piAuthProvider, customEndpoint } = params
     const trimmedKey = apiKey?.trim() ?? ''
     const allowEmptyApiKey = !setupTestRequiresApiKey(baseUrl)
@@ -384,12 +387,14 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   // ============================================================
 
   // List all LLM connections (includes built-in and custom)
-  server.handle(RPC_CHANNELS.llmConnections.LIST, async (): Promise<LlmConnection[]> => {
+  server.handle(RPC_CHANNELS.llmConnections.LIST, async (ctx): Promise<LlmConnection[]> => {
+    requireAdmin(deps, ctx)
     return getLlmConnections()
   })
 
   // List all LLM connections with authentication status
-  server.handle(RPC_CHANNELS.llmConnections.LIST_WITH_STATUS, async (): Promise<LlmConnectionWithStatus[]> => {
+  server.handle(RPC_CHANNELS.llmConnections.LIST_WITH_STATUS, async (ctx): Promise<LlmConnectionWithStatus[]> => {
+    requireAdmin(deps, ctx)
     const connections = getLlmConnections()
     const credentialManager = getCredentialManager()
     const defaultSlug = getDefaultLlmConnection()
@@ -406,12 +411,14 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   })
 
   // Get a specific LLM connection by slug
-  server.handle(RPC_CHANNELS.llmConnections.GET, async (_ctx, slug: string): Promise<LlmConnection | null> => {
+  server.handle(RPC_CHANNELS.llmConnections.GET, async (ctx, slug: string): Promise<LlmConnection | null> => {
+    requireAdmin(deps, ctx)
     return getLlmConnection(slug)
   })
 
   // Get stored API key for an LLM connection (masked — for edit form display only)
-  server.handle(RPC_CHANNELS.llmConnections.GET_API_KEY, async (_ctx, slug: string): Promise<string | null> => {
+  server.handle(RPC_CHANNELS.llmConnections.GET_API_KEY, async (ctx, slug: string): Promise<string | null> => {
+    requireAdmin(deps, ctx)
     const manager = getCredentialManager()
     const key = await manager.getLlmApiKey(slug)
     if (!key) return null
@@ -424,7 +431,8 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
 
   // Save (create or update) an LLM connection
   // If connection.slug exists and is found, updates it; otherwise creates new
-  server.handle(RPC_CHANNELS.llmConnections.SAVE, async (_ctx, connection: LlmConnection): Promise<{ success: boolean; error?: string }> => {
+  server.handle(RPC_CHANNELS.llmConnections.SAVE, async (ctx, connection: LlmConnection): Promise<{ success: boolean; error?: string }> => {
+    requireAdmin(deps, ctx)
     try {
       // Check if this is an update or create
       const existing = getLlmConnection(connection.slug)
@@ -457,7 +465,8 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   })
 
   // Delete an LLM connection (at least one connection must remain)
-  server.handle(RPC_CHANNELS.llmConnections.DELETE, async (_ctx, slug: string): Promise<{ success: boolean; error?: string }> => {
+  server.handle(RPC_CHANNELS.llmConnections.DELETE, async (ctx, slug: string): Promise<{ success: boolean; error?: string }> => {
+    requireAdmin(deps, ctx)
     try {
       const connection = getLlmConnection(slug)
       if (!connection) {
@@ -481,7 +490,8 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   })
 
   // Test an LLM connection (validate credentials and connectivity with actual API call)
-  server.handle(RPC_CHANNELS.llmConnections.TEST, async (_ctx, slug: string): Promise<{ success: boolean; error?: string }> => {
+  server.handle(RPC_CHANNELS.llmConnections.TEST, async (ctx, slug: string): Promise<{ success: boolean; error?: string }> => {
+    requireAdmin(deps, ctx)
     try {
       const result = await validateStoredBackendConnection({
         slug,
@@ -511,7 +521,8 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   })
 
   // Set global default LLM connection
-  server.handle(RPC_CHANNELS.llmConnections.SET_DEFAULT, async (_ctx, slug: string): Promise<{ success: boolean; error?: string }> => {
+  server.handle(RPC_CHANNELS.llmConnections.SET_DEFAULT, async (ctx, slug: string): Promise<{ success: boolean; error?: string }> => {
+    requireAdmin(deps, ctx)
     try {
       const success = setDefaultLlmConnection(slug)
       if (success) {
@@ -527,7 +538,8 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   })
 
   // Set workspace default LLM connection
-  server.handle(RPC_CHANNELS.llmConnections.SET_WORKSPACE_DEFAULT, async (_ctx, workspaceId: string, slug: string | null): Promise<{ success: boolean; error?: string }> => {
+  server.handle(RPC_CHANNELS.llmConnections.SET_WORKSPACE_DEFAULT, async (ctx, workspaceId: string, slug: string | null): Promise<{ success: boolean; error?: string }> => {
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
     try {
       const workspace = getWorkspaceOrThrow(workspaceId)
 
@@ -563,7 +575,8 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   })
 
   // Refresh available models for a connection (dynamic model discovery)
-  server.handle(RPC_CHANNELS.llmConnections.REFRESH_MODELS, async (_ctx, slug: string): Promise<{ success: boolean; error?: string }> => {
+  server.handle(RPC_CHANNELS.llmConnections.REFRESH_MODELS, async (ctx, slug: string): Promise<{ success: boolean; error?: string }> => {
+    requireAdmin(deps, ctx)
     try {
       const connection = getLlmConnection(slug)
       if (!connection) {
@@ -610,6 +623,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
     state: string
     flowId: string
   }> => {
+    requireAdmin(deps, ctx)
     cleanupExpiredChatGptFlows()
     const { prepareChatGptOAuth } = await import('@craft-agent/shared/auth')
 
@@ -635,6 +649,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
     code: string
     state: string
   }): Promise<{ success: boolean; error?: string }> => {
+    requireAdmin(deps, ctx)
     const { flowId, code, state } = args
     const flow = pendingChatGptFlows.get(state)
 
@@ -685,11 +700,12 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   })
 
   // Get ChatGPT authentication status
-  server.handle(RPC_CHANNELS.chatgpt.GET_AUTH_STATUS, async (_ctx, connectionSlug: string): Promise<{
+  server.handle(RPC_CHANNELS.chatgpt.GET_AUTH_STATUS, async (ctx, connectionSlug: string): Promise<{
     authenticated: boolean
     expiresAt?: number
     hasRefreshToken?: boolean
   }> => {
+    requireAdmin(deps, ctx)
     try {
       const credentialManager = getCredentialManager()
       const creds = await credentialManager.getLlmOAuth(connectionSlug)
@@ -713,7 +729,8 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   })
 
   // Logout from ChatGPT (clear stored tokens)
-  server.handle(RPC_CHANNELS.chatgpt.LOGOUT, async (_ctx, connectionSlug: string): Promise<{ success: boolean }> => {
+  server.handle(RPC_CHANNELS.chatgpt.LOGOUT, async (ctx, connectionSlug: string): Promise<{ success: boolean }> => {
+    requireAdmin(deps, ctx)
     try {
       const credentialManager = getCredentialManager()
       await credentialManager.deleteLlmCredentials(connectionSlug)
@@ -734,6 +751,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
     success: boolean
     error?: string
   }> => {
+    requireAdmin(deps, ctx)
     try {
       const { loginGitHubCopilot } = await import('@mariozechner/pi-ai/oauth')
       const credentialManager = getCredentialManager()
@@ -797,7 +815,8 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   })
 
   // Cancel ongoing GitHub OAuth flow
-  server.handle(RPC_CHANNELS.copilot.CANCEL_OAUTH, async (): Promise<{ success: boolean }> => {
+  server.handle(RPC_CHANNELS.copilot.CANCEL_OAUTH, async (ctx): Promise<{ success: boolean }> => {
+    requireAdmin(deps, ctx)
     if (copilotOAuthAbort) {
       copilotOAuthAbort.abort()
       copilotOAuthAbort = null
@@ -807,9 +826,10 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   })
 
   // Get GitHub Copilot authentication status
-  server.handle(RPC_CHANNELS.copilot.GET_AUTH_STATUS, async (_ctx, connectionSlug: string): Promise<{
+  server.handle(RPC_CHANNELS.copilot.GET_AUTH_STATUS, async (ctx, connectionSlug: string): Promise<{
     authenticated: boolean
   }> => {
+    requireAdmin(deps, ctx)
     try {
       const credentialManager = getCredentialManager()
       const creds = await credentialManager.getLlmOAuth(connectionSlug)
@@ -824,7 +844,8 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   })
 
   // Logout from Copilot (clear stored tokens)
-  server.handle(RPC_CHANNELS.copilot.LOGOUT, async (_ctx, connectionSlug: string): Promise<{ success: boolean }> => {
+  server.handle(RPC_CHANNELS.copilot.LOGOUT, async (ctx, connectionSlug: string): Promise<{ success: boolean }> => {
+    requireAdmin(deps, ctx)
     try {
       const credentialManager = getCredentialManager()
       await credentialManager.deleteLlmCredentials(connectionSlug)

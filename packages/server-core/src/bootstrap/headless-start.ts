@@ -6,7 +6,7 @@ import { ensureConfigDir, loadStoredConfig, saveConfig } from '@craft-agent/shar
 import { CONFIG_DIR } from '@craft-agent/shared/config/paths'
 import { setBundledAssetsRoot } from '@craft-agent/shared/utils'
 import { WsRpcServer, type WsRpcTlsOptions } from '../transport/server'
-import type { EventSink, RpcServer } from '../transport/types'
+import type { EventSink, RpcServer, SessionCookieValidationResult } from '../transport/types'
 import { createHeadlessPlatform } from '../runtime/platform-headless'
 import type { PlatformServices } from '../runtime/platform'
 
@@ -41,7 +41,7 @@ export interface ServerBootstrapOptions<TSessionManager, THandlerDeps> {
   /** TLS configuration. When provided, the server listens on wss:// instead of ws://. */
   tls?: WsRpcTlsOptions
   /** Cookie-based session validator for web UI auth on WebSocket upgrade. */
-  validateSessionCookie?: (cookieHeader: string | null) => Promise<boolean>
+  validateSessionCookie?: (cookieHeader: string | null) => Promise<SessionCookieValidationResult>
   /**
    * Optional HTTP request handler for non-WebSocket requests on the RPC port.
    * When provided, the WsRpcServer serves HTTP (e.g. WebUI) on the same port.

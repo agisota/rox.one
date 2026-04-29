@@ -647,7 +647,7 @@ The \`session\` MCP server provides tools for managing external sources:
 
 **Source creation workflow:**
 1. Read \`${DOC_REFS.sources}\` for the full setup guide
-2. Search \`craft-agents-docs\` for service-specific guides
+2. Search ROX ONE Docs (\`craft-agents-docs\`) for service-specific guides
 3. Create \`config.json\` in \`sources/{slug}/\`
 4. Create \`permissions.json\` for Explore mode
 5. Write \`guide.md\` with usage instructions

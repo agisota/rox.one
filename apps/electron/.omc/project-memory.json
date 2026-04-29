@@ -1,0 +1,474 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1777012803098,
+  "projectRoot": "/Users/marklindgreen/Projects/craft/craft/apps/electron",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": ">=18.0.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "react",
+        "version": "18.3.1",
+        "category": "frontend"
+      },
+      {
+        "name": "react-dom",
+        "version": "18.3.1",
+        "category": "frontend"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": "Node.js 18.0.0"
+  },
+  "build": {
+    "buildCommand": "npm run build",
+    "testCommand": null,
+    "lintCommand": "npm run lint",
+    "devCommand": "npm run dev",
+    "scripts": {
+      "build:main": "source ../../.env 2>/dev/null || true; esbuild src/main/index.ts --bundle --platform=node --format=cjs --outfile=dist/main.cjs --external:electron --alias:node-fetch=./src/main/shims/node-fetch.cjs --alias:abort-controller=./src/main/shims/abort-controller.cjs --define:process.env.GOOGLE_OAUTH_CLIENT_ID=\\\"${GOOGLE_OAUTH_CLIENT_ID:-}\\\" --define:process.env.GOOGLE_OAUTH_CLIENT_SECRET=\\\"${GOOGLE_OAUTH_CLIENT_SECRET:-}\\\" --define:process.env.SLACK_OAUTH_CLIENT_ID=\\\"${SLACK_OAUTH_CLIENT_ID:-}\\\" --define:process.env.SLACK_OAUTH_CLIENT_SECRET=\\\"${SLACK_OAUTH_CLIENT_SECRET:-}\\\" --define:process.env.MICROSOFT_OAUTH_CLIENT_ID=\\\"${MICROSOFT_OAUTH_CLIENT_ID:-}\\\"",
+      "build:main:win": "esbuild src/main/index.ts --bundle --platform=node --format=cjs --outfile=dist/main.cjs --external:electron --alias:node-fetch=./src/main/shims/node-fetch.cjs --alias:abort-controller=./src/main/shims/abort-controller.cjs",
+      "build:preload": "esbuild src/preload/bootstrap.ts --bundle --platform=node --format=cjs --outfile=dist/bootstrap-preload.cjs --external:electron",
+      "build:preload-toolbar": "esbuild src/preload/browser-toolbar.ts --bundle --platform=node --format=cjs --outfile=dist/browser-toolbar-preload.cjs --external:electron",
+      "build:interceptor": "esbuild ../../packages/shared/src/unified-network-interceptor.ts --bundle --platform=node --format=cjs --outfile=dist/interceptor.cjs",
+      "build:renderer": "vite build",
+      "build:copy": "bun scripts/copy-assets.ts",
+      "build:validate": "bun scripts/validate-assets.ts",
+      "build": "bun run lint && bun run build:main && bun run build:preload && bun run build:preload-toolbar && bun run build:interceptor && bun run build:renderer && bun run build:copy && bun run build:validate",
+      "build:win": "bun run build:main:win && bun run build:preload && bun run build:preload-toolbar && bun run build:interceptor && bun run build:renderer && bun run build:copy && bun run build:validate",
+      "start": "bun run build && electron .",
+      "start:win": "bun run build:win && electron .",
+      "dev": "vite dev",
+      "typecheck": "tsc --noEmit",
+      "dist:mac": "bash scripts/build-dmg.sh arm64",
+      "dist:mac:x64": "bash scripts/build-dmg.sh x64",
+      "dist:win": "powershell -ExecutionPolicy Bypass -File scripts/build-win.ps1",
+      "lint": "eslint src/",
+      "lint:fix": "eslint src/ --fix"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "scripts",
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "build": {
+      "path": "build",
+      "purpose": "Build output",
+      "fileCount": 1,
+      "lastAccessed": 1777012802996,
+      "keyFiles": [
+        "entitlements.mac.plist"
+      ]
+    },
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 4,
+      "lastAccessed": 1777012803005,
+      "keyFiles": [
+        "bootstrap-preload.cjs",
+        "browser-toolbar-preload.cjs",
+        "interceptor.cjs",
+        "main.cjs"
+      ]
+    },
+    "eslint-rules": {
+      "path": "eslint-rules",
+      "purpose": null,
+      "fileCount": 8,
+      "lastAccessed": 1777012803060,
+      "keyFiles": [
+        "no-direct-file-open.cjs",
+        "no-direct-navigation-state.cjs",
+        "no-direct-platform-check.cjs",
+        "no-hardcoded-path-separator.cjs",
+        "no-hardcoded-z-index.cjs"
+      ]
+    },
+    "resources": {
+      "path": "resources",
+      "purpose": null,
+      "fileCount": 12,
+      "lastAccessed": 1777012803061,
+      "keyFiles": [
+        "AGENTS.md",
+        "Assets.car",
+        "config-defaults.json",
+        "dmg-background.png",
+        "dmg-background.tiff"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 6,
+      "lastAccessed": 1777012803062,
+      "keyFiles": [
+        "afterPack.cjs",
+        "build-dmg.sh",
+        "build-linux.sh",
+        "build-win.ps1",
+        "copy-assets.ts"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1777012803062,
+      "keyFiles": []
+    },
+    "eslint-rules/__tests__": {
+      "path": "eslint-rules/__tests__",
+      "purpose": "Test files",
+      "fileCount": 1,
+      "lastAccessed": 1777012803086,
+      "keyFiles": [
+        "no-hardcoded-z-index.test.ts"
+      ]
+    },
+    "resources/bin": {
+      "path": "resources/bin",
+      "purpose": "Executable scripts",
+      "fileCount": 18,
+      "lastAccessed": 1777012803093,
+      "keyFiles": [
+        "craft-agent",
+        "craft-agent.cmd",
+        "doc-diff"
+      ]
+    },
+    "src/__tests__": {
+      "path": "src/__tests__",
+      "purpose": "Test files",
+      "fileCount": 1,
+      "lastAccessed": 1777012803094,
+      "keyFiles": [
+        "transport.test.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "resources/release-notes/0.4.1.md",
+      "accessCount": 4,
+      "lastAccessed": 1777016641292,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.4.4.md",
+      "accessCount": 4,
+      "lastAccessed": 1777016641339,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.4.0.md",
+      "accessCount": 4,
+      "lastAccessed": 1777016641363,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.4.3.md",
+      "accessCount": 4,
+      "lastAccessed": 1777016641424,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.4.2.md",
+      "accessCount": 4,
+      "lastAccessed": 1777016641459,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.8.11.md",
+      "accessCount": 2,
+      "lastAccessed": 1777015937016,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.8.10.md",
+      "accessCount": 2,
+      "lastAccessed": 1777015937742,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.8.9.md",
+      "accessCount": 2,
+      "lastAccessed": 1777015938243,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.8.8.md",
+      "accessCount": 2,
+      "lastAccessed": 1777015938775,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.9.md",
+      "accessCount": 2,
+      "lastAccessed": 1777015939299,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.8.md",
+      "accessCount": 2,
+      "lastAccessed": 1777015956218,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.7.md",
+      "accessCount": 2,
+      "lastAccessed": 1777015956799,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.6.md",
+      "accessCount": 2,
+      "lastAccessed": 1777015957361,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.5.md",
+      "accessCount": 2,
+      "lastAccessed": 1777015957867,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.4.md",
+      "accessCount": 2,
+      "lastAccessed": 1777015958399,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.3.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016237354,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.2.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016237927,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.1.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016238463,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.0.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016238972,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.5.1.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016239501,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.5.0.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016240032,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.4.8.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016240541,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.4.7.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016241064,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.4.6.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016241613,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.4.5.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016242105,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.2.30.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016267344,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.2.31.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016267848,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.2.32.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016268339,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.2.33.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016268837,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.2.34.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016269343,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.3.0.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016476502,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.3.1.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016477010,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.3.2.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016477506,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.3.3.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016478208,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.3.4.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016478798,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.3.5.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016479322,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.6.0.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016789065,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.10.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016789690,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.11.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016790264,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.7.12.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016790923,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.8.0.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016953066,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.8.1.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016953561,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.8.2.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016954012,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.8.3.md",
+      "accessCount": 2,
+      "lastAccessed": 1777016954461,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.8.4.md",
+      "accessCount": 2,
+      "lastAccessed": 1777017068222,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.8.5.md",
+      "accessCount": 2,
+      "lastAccessed": 1777017068781,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.8.6.md",
+      "accessCount": 2,
+      "lastAccessed": 1777017069294,
+      "type": "file"
+    },
+    {
+      "path": "resources/release-notes/0.8.7.md",
+      "accessCount": 2,
+      "lastAccessed": 1777017069940,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

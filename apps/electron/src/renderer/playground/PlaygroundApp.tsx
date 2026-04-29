@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { PanelRight } from 'lucide-react'
 import { CraftAgentsSymbol } from '@/components/icons/CraftAgentsSymbol'
+import * as storage from '@/lib/local-storage'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/context/ThemeContext'
 import {
@@ -17,8 +18,8 @@ import { ComponentPreview } from './ComponentPreview'
 import { VariantsSidebar } from './VariantsSidebar'
 import { getCategories, getComponentById, type ComponentVariant } from './registry'
 
-const SELECTED_STORAGE_KEY = 'playground-selected-component'
-const VARIANTS_SIDEBAR_KEY = 'playground-variants-sidebar-open'
+const SELECTED_STORAGE_KEY = storage.KEYS.playgroundSelectedComponent
+const VARIANTS_SIDEBAR_KEY = storage.KEYS.playgroundVariantsSidebarOpen
 
 const FALLBACK_THEME_OPTIONS = [
   { value: 'default', label: 'Default' },
@@ -50,31 +51,20 @@ export function PlaygroundApp() {
   } = useTheme()
   const [presetThemes, setPresetThemes] = React.useState<PresetTheme[]>([])
   const [selectedId, setSelectedId] = React.useState<string | null>(() => {
-    // Try to restore from localStorage
-    try {
-      const stored = localStorage.getItem(SELECTED_STORAGE_KEY)
-      if (stored) {
-        // Verify the component still exists
-        const component = getComponentById(stored)
-        if (component) {
-          return stored
-        }
+    const stored = storage.get<string | null>(SELECTED_STORAGE_KEY, null)
+    if (stored) {
+      const component = getComponentById(stored)
+      if (component) {
+        return stored
       }
-    } catch {
-      // Ignore parse errors
     }
     return null
   })
   const [props, setProps] = React.useState<Record<string, unknown>>({})
   const [selectedVariant, setSelectedVariant] = React.useState<string | null>(null)
-  const [variantsSidebarOpen, setVariantsSidebarOpen] = React.useState(() => {
-    try {
-      const stored = localStorage.getItem(VARIANTS_SIDEBAR_KEY)
-      return stored !== 'false' // Default to open
-    } catch {
-      return true
-    }
-  })
+  const [variantsSidebarOpen, setVariantsSidebarOpen] = React.useState(
+    () => storage.get<boolean>(VARIANTS_SIDEBAR_KEY, true)
+  )
 
   React.useEffect(() => {
     const loadThemes = async () => {
@@ -121,26 +111,16 @@ export function PlaygroundApp() {
     }
   }, [setPreviewColorTheme])
 
-  // Persist selected component to localStorage
   React.useEffect(() => {
-    try {
-      if (selectedId) {
-        localStorage.setItem(SELECTED_STORAGE_KEY, selectedId)
-      } else {
-        localStorage.removeItem(SELECTED_STORAGE_KEY)
-      }
-    } catch {
-      // Ignore storage errors
+    if (selectedId) {
+      storage.set(SELECTED_STORAGE_KEY, selectedId)
+    } else {
+      storage.remove(SELECTED_STORAGE_KEY)
     }
   }, [selectedId])
 
-  // Persist variants sidebar state
   React.useEffect(() => {
-    try {
-      localStorage.setItem(VARIANTS_SIDEBAR_KEY, String(variantsSidebarOpen))
-    } catch {
-      // Ignore storage errors
-    }
+    storage.set(VARIANTS_SIDEBAR_KEY, variantsSidebarOpen)
   }, [variantsSidebarOpen])
 
   const selectedComponent = selectedId ? (getComponentById(selectedId) ?? null) : null

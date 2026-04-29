@@ -164,6 +164,7 @@ export function SessionList({
 
   // Get current filter from navigation state (for preserving context in tab routes)
   const currentFilter = isSessionsNavigation(navState) ? navState.filter : undefined
+  const resolvedLanguage = i18n.resolvedLanguage ?? 'en'
 
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
   const [renameSessionId, setRenameSessionId] = useState<string | null>(null)
@@ -181,10 +182,7 @@ export function SessionList({
   }, [
     workspaceId,
     groupingMode,
-    currentFilter?.kind,
-    currentFilter && 'stateId' in currentFilter ? currentFilter.stateId : undefined,
-    currentFilter && 'labelId' in currentFilter ? currentFilter.labelId : undefined,
-    currentFilter && 'viewId' in currentFilter ? currentFilter.viewId : undefined,
+    currentFilter,
   ])
 
   const readCollapsedGroupsForScope = useCallback((scopeSuffix: string): Set<string> => {
@@ -345,7 +343,7 @@ export function SessionList({
       if (!groupsByKey.has(groupKey)) {
         groupsByKey.set(groupKey, {
           key: groupKey,
-          label: formatDateGroupLabel(day, t, i18n.resolvedLanguage ?? 'en'),
+          label: formatDateGroupLabel(day, t, resolvedLanguage),
           items: [],
           collapsible: true,
         })
@@ -360,7 +358,7 @@ export function SessionList({
         const date = new Date(meta.key)
         groupsByKey.set(meta.key, {
           key: meta.key,
-          label: formatDateGroupLabel(date, t, i18n.resolvedLanguage ?? 'en'),
+          label: formatDateGroupLabel(date, t, resolvedLanguage),
           items: [],
           collapsible: true,
           collapsedCount: meta.count,
@@ -385,7 +383,7 @@ export function SessionList({
       rows,
       groups: orderedGroups,
     }
-  }, [isSearchMode, matchingFilterItems, otherResultItems, flatItems, groupingMode, sessionStatuses, collapsedGroupsMeta, t])
+  }, [isSearchMode, matchingFilterItems, otherResultItems, flatItems, groupingMode, sessionStatuses, collapsedGroupsMeta, t, resolvedLanguage])
 
   const flatRows = rowData.rows
 

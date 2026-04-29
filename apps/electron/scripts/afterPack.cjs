@@ -17,6 +17,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const { execFileSync } = require('child_process');
 
 module.exports = async function afterPack(context) {
   // Only process macOS builds
@@ -26,30 +27,91 @@ module.exports = async function afterPack(context) {
   }
 
   const appPath = context.appOutDir;
-  const resourcesDir = path.join(appPath, 'ROX ONE.app', 'Contents', 'Resources');
+  const bundleName = 'ROX ONE.app';
+  const bundlePath = path.join(appPath, bundleName);
+  const resourcesDir = path.join(bundlePath, 'Contents', 'Resources');
   const precompiledAssets = path.join(context.packager.projectDir, 'resources', 'Assets.car');
   const rootIconSvg = path.join(context.packager.projectDir, 'resources', 'icon.svg');
+  const rootIconPng = path.join(context.packager.projectDir, 'resources', 'icon.png');
   const liquidGlassIconSvg = path.join(context.packager.projectDir, 'resources', 'icon.icon', 'Assets', 'icon.svg');
+  const liquidGlassIconPng = path.join(context.packager.projectDir, 'resources', 'icon.icon', 'Assets', 'icon.png');
 
   console.log(`afterPack: projectDir=${context.packager.projectDir}`);
   console.log(`afterPack: looking for Assets.car at ${precompiledAssets}`);
+
+  const helperNames = [
+    'ROX ONE Helper',
+    'ROX ONE Helper (GPU)',
+    'ROX ONE Helper (Plugin)',
+    'ROX ONE Helper (Renderer)',
+  ];
+
+  const updatePlistString = (plistPath, key, value) => {
+    if (!fs.existsSync(plistPath)) {
+      return;
+    }
+
+    try {
+      execFileSync('plutil', ['-replace', key, '-string', value, plistPath]);
+      console.log(`Updated ${key} in ${path.basename(path.dirname(plistPath))} -> ${value}`);
+    } catch (err) {
+      console.log(`Warning: Could not update ${key} in ${plistPath}: ${err.message}`);
+    }
+  };
+
+  const removePlistKey = (plistPath, key) => {
+    if (!fs.existsSync(plistPath)) {
+      return;
+    }
+
+    try {
+      execFileSync('plutil', ['-remove', key, plistPath]);
+      console.log(`Removed stale ${key} from ${path.basename(path.dirname(plistPath))}`);
+    } catch (err) {
+      if (!String(err.message).includes('Entry, "' + key + '", Does Not Exist')) {
+        console.log(`Warning: Could not remove ${key} in ${plistPath}: ${err.message}`);
+      }
+    }
+  };
+
+  const useFallbackIcns = () => {
+    removePlistKey(path.join(bundlePath, 'Contents', 'Info.plist'), 'CFBundleIconName');
+  };
+
+  // electron-builder brands helper app display names, but CFBundleName can
+  // still remain "Electron Helper" unless we normalize it before signing.
+  updatePlistString(path.join(bundlePath, 'Contents', 'Info.plist'), 'CFBundleName', 'ROX ONE');
+  for (const helperName of helperNames) {
+    updatePlistString(
+      path.join(bundlePath, 'Contents', 'Frameworks', `${helperName}.app`, 'Contents', 'Info.plist'),
+      'CFBundleName',
+      helperName,
+    );
+  }
 
   // Check if pre-compiled Assets.car exists
   if (!fs.existsSync(precompiledAssets)) {
     console.log('Warning: Pre-compiled Assets.car not found in resources/');
     console.log('The app will use the fallback icon.icns on all macOS versions');
+    useFallbackIcns();
     return;
   }
 
   // If the source icon changed after Assets.car was generated, prefer the
   // updated fallback icon.icns rather than shipping a stale Liquid Glass asset.
-  const assetCatalogSources = [rootIconSvg, liquidGlassIconSvg].filter(fs.existsSync);
+  const assetCatalogSources = [
+    rootIconSvg,
+    rootIconPng,
+    liquidGlassIconSvg,
+    liquidGlassIconPng,
+  ].filter(fs.existsSync);
   if (assetCatalogSources.length > 0) {
     const assetsCarMtime = fs.statSync(precompiledAssets).mtimeMs;
     const freshestSourceMtime = Math.max(...assetCatalogSources.map(source => fs.statSync(source).mtimeMs));
     if (freshestSourceMtime > assetsCarMtime) {
       console.log('Warning: Assets.car is older than the current icon sources');
       console.log('Skipping stale Liquid Glass asset; the app will use fallback icon.icns');
+      useFallbackIcns();
       return;
     }
   }
@@ -63,5 +125,6 @@ module.exports = async function afterPack(context) {
     // Don't fail the build if Assets.car can't be copied - app will use fallback icon.icns
     console.log(`Warning: Could not copy Assets.car: ${err.message}`);
     console.log('The app will use the fallback icon.icns on all macOS versions');
+    useFallbackIcns();
   }
 };

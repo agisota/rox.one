@@ -1,3 +1,4 @@
+/* eslint-disable craft-agent/no-localstorage -- Compatibility boundary: renderer settings still rely on synchronous reads during initial render. Keep direct localStorage access isolated here until callers are migrated to async preferences APIs. */
 /**
  * Centralized localStorage utility for the Electron renderer.
  * Provides type-safe access with consistent key prefixing.
@@ -59,6 +60,12 @@ export const KEYS = {
   // Workspace navigation state (workspace-scoped via suffix = workspaceSlug)
   // Stores the full URL search string so switching back restores panels/focus/sidebar
   workspaceUrl: 'workspace-url',
+
+  // Playground
+  playgroundPreviewSize: 'playground-preview-size',
+  playgroundSelectedComponent: 'playground-selected-component',
+  playgroundVariantsSidebarOpen: 'playground-variants-sidebar-open',
+  playgroundExpandedCategories: 'playground-expanded-categories',
 } as const
 
 export type StorageKey = typeof KEYS[keyof typeof KEYS]

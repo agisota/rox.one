@@ -4,10 +4,23 @@
 
 import type { PushTarget } from '@craft-agent/shared/protocol'
 
+export interface AuthIdentity {
+  userId: string
+  sessionId: string
+  email?: string
+  role?: string
+}
+
+export type SessionCookieValidationResult = boolean | AuthIdentity | null
+
 export interface RequestContext {
   clientId: string
   workspaceId: string | null
   webContentsId: number | null
+  userId?: string | null
+  sessionId?: string | null
+  userEmail?: string | null
+  userRole?: string | null
 }
 
 export type HandlerFn = (ctx: RequestContext, ...args: any[]) => Promise<any> | any

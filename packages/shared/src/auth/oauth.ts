@@ -960,7 +960,7 @@ export async function discoverOAuthMetadata(
 
   onLog?.(`Discovering OAuth metadata for ${mcpUrl}`);
 
-  // 1. Try RFC 9728 protected resource discovery first (handles Craft MCP and other compliant servers)
+  // 1. Try RFC 9728 protected resource discovery first (handles ROX ONE MCP and other compliant servers)
   const rfc9728Metadata = await discoverViaProtectedResource(mcpUrl, onLog);
   if (rfc9728Metadata) {
     return rfc9728Metadata;

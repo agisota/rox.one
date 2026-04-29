@@ -7,6 +7,7 @@ import { perf } from '@craft-agent/shared/utils'
 import { pushTyped, type RpcServer } from '@craft-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { isValidWorkspaceRootPath } from '../../utils/path-validation'
+import { filterOwnedWorkspaces, grantWorkspaceAccess, requireWorkspaceAccess } from './account-ownership'
 
 export const CORE_HANDLED_CHANNELS = [
   RPC_CHANNELS.workspaces.GET,
@@ -39,12 +40,12 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   const windowManager = deps.windowManager
 
   // Get workspaces (LOCAL_ONLY — includes rootPath for local Electron renderer)
-  server.handle(RPC_CHANNELS.workspaces.GET, async () => {
-    return sessionManager.getWorkspaces()
+  server.handle(RPC_CHANNELS.workspaces.GET, async (ctx) => {
+    return filterOwnedWorkspaces(deps, ctx, sessionManager.getWorkspaces())
   })
 
   // Create a new workspace at a folder path (Obsidian-style: folder IS the workspace)
-  server.handle(RPC_CHANNELS.workspaces.CREATE, async (_ctx, folderPath: string, name: string, remoteServer?: { url: string; token: string; remoteWorkspaceId: string }) => {
+  server.handle(RPC_CHANNELS.workspaces.CREATE, async (ctx, folderPath: string, name: string, remoteServer?: { url: string; token: string; remoteWorkspaceId: string }) => {
     const rootPath = folderPath.trim()
     const validation = isValidWorkspaceRootPath(rootPath)
     if (!validation.valid) {
@@ -52,6 +53,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
     }
 
     const workspace = addWorkspace({ name, rootPath, ...(remoteServer && { remoteServer }) })
+    await grantWorkspaceAccess(deps, ctx, workspace.id)
     // Make it active
     setActiveWorkspace(workspace.id)
     deps.platform.logger.info(`Created workspace "${name}" at ${rootPath}${remoteServer ? ` (remote: ${remoteServer.url})` : ''}`)
@@ -67,17 +69,19 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   })
 
   // Update remote server config for an existing workspace (reconnect flow)
-  server.handle(RPC_CHANNELS.workspaces.UPDATE_REMOTE, async (_ctx, workspaceId: string, remoteServer: { url: string; token: string; remoteWorkspaceId: string }) => {
+  server.handle(RPC_CHANNELS.workspaces.UPDATE_REMOTE, async (ctx, workspaceId: string, remoteServer: { url: string; token: string; remoteWorkspaceId: string }) => {
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
     updateWorkspaceRemoteServer(workspaceId, remoteServer)
     deps.platform.logger.info(`Updated remote server for workspace ${workspaceId}: ${remoteServer.url}`)
     return { success: true }
   })
 
   // Get workspace ID for the calling window
-  server.handle(RPC_CHANNELS.window.GET_WORKSPACE, (ctx) => {
+  server.handle(RPC_CHANNELS.window.GET_WORKSPACE, async (ctx) => {
     const workspaceId = ctx.workspaceId ?? windowManager?.getWorkspaceForWindow(ctx.webContentsId!)
     // Set up ConfigWatcher for live updates (labels, statuses, sources, themes)
     if (workspaceId) {
+      await requireWorkspaceAccess(deps, ctx, workspaceId)
       const workspace = getWorkspaceByNameOrId(workspaceId)
       if (workspace) {
         sessionManager.setupConfigWatcher(workspace.rootPath, workspaceId)
@@ -93,6 +97,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
 
   // Switch workspace in current window (in-window switching)
   server.handle(RPC_CHANNELS.window.SWITCH_WORKSPACE, async (ctx, workspaceId: string) => {
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
     const end = perf.start('ipc.switchWorkspace', { workspaceId })
 
     // Keep WS push routing in sync (works for both GUI and headless)
@@ -147,7 +152,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // ============================================================
 
   // Generic workspace image loading (for source icons, status icons, etc.)
-  server.handle(RPC_CHANNELS.workspace.READ_IMAGE, async (_ctx, workspaceId: string, relativePath: string) => {
+  server.handle(RPC_CHANNELS.workspace.READ_IMAGE, async (ctx, workspaceId: string, relativePath: string) => {
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) throw new Error('Workspace not found')
 
@@ -203,7 +209,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
 
   // Generic workspace image writing (for workspace icon, etc.)
   // Resizes images to max 256x256 to keep file sizes small
-  server.handle(RPC_CHANNELS.workspace.WRITE_IMAGE, async (_ctx, workspaceId: string, relativePath: string, base64: string, mimeType: string) => {
+  server.handle(RPC_CHANNELS.workspace.WRITE_IMAGE, async (ctx, workspaceId: string, relativePath: string, base64: string, mimeType: string) => {
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) throw new Error('Workspace not found')
 
@@ -309,7 +316,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   })
 
   // Workspace-level theme overrides
-  server.handle(RPC_CHANNELS.theme.GET_WORKSPACE_COLOR_THEME, async (_ctx, workspaceId: string) => {
+  server.handle(RPC_CHANNELS.theme.GET_WORKSPACE_COLOR_THEME, async (ctx, workspaceId: string) => {
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
     const { getWorkspaces } = await import('@craft-agent/shared/config/storage')
     const { getWorkspaceColorTheme } = await import('@craft-agent/shared/workspaces/storage')
     const workspaces = getWorkspaces()
@@ -318,7 +326,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
     return getWorkspaceColorTheme(workspace.rootPath) ?? null
   })
 
-  server.handle(RPC_CHANNELS.theme.SET_WORKSPACE_COLOR_THEME, async (_ctx, workspaceId: string, themeId: string | null) => {
+  server.handle(RPC_CHANNELS.theme.SET_WORKSPACE_COLOR_THEME, async (ctx, workspaceId: string, themeId: string | null) => {
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
     const { getWorkspaces } = await import('@craft-agent/shared/config/storage')
     const { setWorkspaceColorTheme } = await import('@craft-agent/shared/workspaces/storage')
     const workspaces = getWorkspaces()
@@ -327,10 +336,10 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
     setWorkspaceColorTheme(workspace.rootPath, themeId ?? undefined)
   })
 
-  server.handle(RPC_CHANNELS.theme.GET_ALL_WORKSPACE_THEMES, async () => {
+  server.handle(RPC_CHANNELS.theme.GET_ALL_WORKSPACE_THEMES, async (ctx) => {
     const { getWorkspaces } = await import('@craft-agent/shared/config/storage')
     const { getWorkspaceColorTheme } = await import('@craft-agent/shared/workspaces/storage')
-    const workspaces = getWorkspaces()
+    const workspaces = await filterOwnedWorkspaces(deps, ctx, getWorkspaces())
     const themes: Record<string, string | undefined> = {}
     for (const ws of workspaces) {
       themes[ws.id] = getWorkspaceColorTheme(ws.rootPath)
@@ -340,7 +349,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
 
   // Broadcast workspace theme change to all other windows (for cross-window sync)
   server.handle(RPC_CHANNELS.theme.BROADCAST_WORKSPACE_THEME, async (ctx, workspaceId: string, themeId: string | null) => {
-    pushTyped(server, RPC_CHANNELS.theme.WORKSPACE_THEME_CHANGED, { to: 'all' }, { workspaceId, themeId })
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
+    pushTyped(server, RPC_CHANNELS.theme.WORKSPACE_THEME_CHANGED, ctx.userId ? { to: 'workspace', workspaceId } : { to: 'all' }, { workspaceId, themeId })
   })
 
   // ============================================================
@@ -348,7 +358,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // ============================================================
 
   // List views for a workspace (dynamic expression-based filters stored in views.json)
-  server.handle(RPC_CHANNELS.views.LIST, async (_ctx, workspaceId: string) => {
+  server.handle(RPC_CHANNELS.views.LIST, async (ctx, workspaceId: string) => {
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) throw new Error('Workspace not found')
 
@@ -357,7 +368,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   })
 
   // Save views (replaces full array)
-  server.handle(RPC_CHANNELS.views.SAVE, async (_ctx, workspaceId: string, views: import('@craft-agent/shared/views').ViewConfig[]) => {
+  server.handle(RPC_CHANNELS.views.SAVE, async (ctx, workspaceId: string, views: import('@craft-agent/shared/views').ViewConfig[]) => {
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) throw new Error('Workspace not found')
 

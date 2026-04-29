@@ -124,7 +124,7 @@ export function validateJsonFileHasFields(
 ): ValidationResult {
   const result = readJsonFile(filePath);
 
-  if (!result.success) {
+  if ('error' in result) {
     return invalidResult(filePath, result.error, 'Check file exists and contains valid JSON');
   }
 

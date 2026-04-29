@@ -67,7 +67,7 @@ function collectDeepLinkParams(parsed: URL, pathId?: string): Record<string, str
 }
 
 function parseInternalCraftAgentsDeepLink(parsed: URL): ParsedInternalDeepLink | null {
-  if (parsed.protocol !== 'craftagents:') return null
+  if (parsed.protocol !== 'rox:' && parsed.protocol !== 'craftagents:') return null
 
   const host = parsed.hostname
   const pathParts = parsed.pathname.split('/').filter(Boolean)
@@ -282,7 +282,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
     try {
       const parsed = new URL(url)
 
-      if (parsed.protocol === 'craftagents:') {
+      if (parsed.protocol === 'rox:' || parsed.protocol === 'craftagents:') {
         const deepLink = parseInternalCraftAgentsDeepLink(parsed)
 
         if (deepLink?.handledNoop) {

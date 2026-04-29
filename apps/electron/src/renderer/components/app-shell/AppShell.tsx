@@ -568,7 +568,7 @@ function AppShellContent({
       const lastSeen = storage.get(storage.KEYS.whatsNewLastSeenVersion, '')
       setHasUnseenReleaseNotes(lastSeen !== latestVersion)
     })
-  }, [])
+  }, [t])
 
   const [isResizing, setIsResizing] = React.useState<'sidebar' | 'session-list' | null>(null)
   const [sidebarHandleY, setSidebarHandleY] = React.useState<number | null>(null)
@@ -1047,14 +1047,14 @@ function AppShellContent({
   const handleSkillSelect = React.useCallback((skill: LoadedSkill) => {
     if (!activeWorkspaceId) return
     navigate(routes.view.skills(skill.slug))
-  }, [activeWorkspaceId, navigate])
+  }, [activeWorkspaceId])
 
   // Handle selecting an automation from the list
   const handleAutomationSelect = React.useCallback((automationId: string) => {
     // Preserve current automation filter when selecting an automation
     const type = isAutomationsNavigation(navState) ? navState.filter?.automationType : undefined
     navigate(routes.view.automations({ automationId, type }))
-  }, [navState, navigate])
+  }, [navState])
 
   // Focus zone management
   const { focusZone, focusNextZone, focusPreviousZone } = useFocusContext()
@@ -1530,7 +1530,7 @@ function AppShellContent({
     }
 
     return result
-  }, [workspaceSessionMetas, activeSessionMetas, sessionFilter, listFilter, labelFilter, labelConfigs])
+  }, [workspaceSessionMetas, activeSessionMetas, sessionFilter, listFilter, labelFilter, labelConfigs, evaluateViews])
 
   // Derive "pinned" (non-removable) filters from the current sessionFilter path.
   // These represent filters that are implicit in the current deeplink/route and
@@ -1873,21 +1873,22 @@ function AppShellContent({
 
     // Focus the chat input after navigation completes
     setTimeout(() => focusZone('chat', { intent: 'programmatic' }), 50)
-  }, [activeWorkspace, focusZone, navigate])
+  }, [activeWorkspace, focusZone])
 
-  // Create a brand new dedicated browser window and focus it.
-  // Intentionally unbound: this action should always create a NEW window.
-  const handleNewBrowserWindow = useCallback(async () => {
+  // Create a brand new embedded browser tab and focus it.
+  const handleNewBrowserTab = useCallback(async () => {
     try {
       const instanceId = await window.electronAPI.browserPane.create({
         show: true,
+        initialUrl: 'https://rox.one/',
+        hostMode: 'embedded',
       })
       await window.electronAPI.browserPane.focus(instanceId)
     } catch (error) {
-      console.error('[Chat] Failed to create browser window:', error)
+      console.error('[Chat] Failed to create browser tab:', error)
       toast.error(t('toast.failedToCreateBrowser'))
     }
-  }, [])
+  }, [t])
 
   // Delete Source - simplified since agents system is removed
   const handleDeleteSource = useCallback(async (sourceSlug: string) => {
@@ -1899,7 +1900,7 @@ function AppShellContent({
       console.error('[Chat] Failed to delete source:', error)
       toast.error(t('toast.failedToDeleteSource'))
     }
-  }, [activeWorkspace])
+  }, [activeWorkspace, t])
 
   // Delete Skill
   const handleDeleteSkill = useCallback(async (skillSlug: string) => {
@@ -1911,7 +1912,7 @@ function AppShellContent({
       console.error('[Chat] Failed to delete skill:', error)
       toast.error(t('toast.failedToDeleteSkill'))
     }
-  }, [activeWorkspace])
+  }, [activeWorkspace, t])
 
   // Respond to menu bar "New Chat" trigger
   const menuTriggerRef = useRef(menuNewChatTrigger)
@@ -1961,7 +1962,7 @@ function AppShellContent({
     result.push({ id: 'nav:whats-new', type: 'nav', action: handleWhatsNewClick })
 
     return result
-  }, [handleAllSessionsClick, handleFlaggedClick, handleArchivedClick, handleSessionStatusClick, effectiveSessionStatuses, handleLabelClick, labelConfigs, labelTree, viewConfigs, handleViewClick, handleSourcesClick, handleSkillsClick, handleAutomationsClick, handleSettingsClick, handleWhatsNewClick])
+  }, [handleAllSessionsClick, handleFlaggedClick, handleArchivedClick, handleSessionStatusClick, effectiveSessionStatuses, handleLabelClick, labelTree, handleSourcesClick, handleSkillsClick, handleAutomationsClick, handleSettingsClick, handleWhatsNewClick])
 
   // Toggle folder expanded state
   const handleToggleFolder = React.useCallback((path: string) => {
@@ -2167,7 +2168,7 @@ function AppShellContent({
 
       return item
     })
-  }, [sessionFilter, labelCounts, activeWorkspace?.id, handleLabelClick, isExpanded, toggleExpanded, openConfigureLabels, handleAddLabel, handleDeleteLabel])
+  }, [sessionFilter, labelCounts, activeWorkspace?.id, handleLabelClick, isExpanded, toggleExpanded, openConfigureLabels, handleAddLabel, handleDeleteLabel, t])
 
   return (
     <AppShellProvider value={appShellContextValue}>
@@ -2193,7 +2194,7 @@ function AppShellContent({
           onToggleSidebar={handleToggleSidebar}
           onToggleFocusMode={() => setIsSidebarAndNavigatorHidden(prev => !prev)}
           onAddSessionPanel={() => handleNewChat(true)}
-          onAddBrowserPanel={() => { void handleNewBrowserWindow() }}
+          onAddBrowserPanel={() => { void handleNewBrowserTab() }}
           isCompact={isAutoCompact}
         />
 

@@ -53,22 +53,22 @@ export function SettingsRow({
       onClick={onClick}
       data-layout="settings-row"
       className={cn(
-        'w-full flex items-center justify-between text-left',
+        'w-full flex items-start justify-between gap-4 text-left',
         inCard ? 'px-4 py-3.5' : 'py-3',
         onClick && 'hover:bg-muted/70 transition-colors cursor-pointer',
         className
       )}
     >
       <div className="flex-1 min-w-0">
-        <div className={settingsUI.label}>{label}</div>
+        <div className={cn(settingsUI.label, 'break-words')}>{label}</div>
         {description && (
-          <div className={cn(settingsUI.description, settingsUI.labelDescriptionGap, 'truncate')}>
+          <div className={cn(settingsUI.description, settingsUI.labelDescriptionGap, 'break-words')}>
             {description}
           </div>
         )}
       </div>
       {(children || action) && (
-        <div data-layout="settings-control" className="flex items-center gap-3 ml-4 shrink-0">
+        <div data-layout="settings-control" className="flex items-center gap-3 shrink-0 self-start">
           {children}
           {action}
         </div>

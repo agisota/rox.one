@@ -12,7 +12,7 @@ When a user wants to add a new source, follow this conversational setup process 
 
 ### 0. Search for Specialized Source Guide (REQUIRED FIRST STEP)
 
-**Before doing anything else**, search for a specialized guide using the craft-agents-docs MCP:
+**Before doing anything else**, search for a specialized guide using ROX ONE Docs MCP (`craft-agents-docs`):
 
 ```
 mcp__craft-agents-docs__SearchCraftAgents({ query: "{service} source setup" })

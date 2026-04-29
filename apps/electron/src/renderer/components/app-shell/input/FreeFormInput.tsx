@@ -300,7 +300,10 @@ export function FreeFormInput({
   // Read connection default model, connections, and workspace info from context.
   // Uses optional variant so playground (no provider) doesn't crash.
   const appShellCtx = useOptionalAppShellContext()
-  const llmConnections = appShellCtx?.llmConnections ?? []
+  const llmConnections = React.useMemo(
+    () => appShellCtx?.llmConnections ?? [],
+    [appShellCtx?.llmConnections]
+  )
   const workspaceDefaultConnection = appShellCtx?.workspaceDefaultLlmConnection
 
   // Derive connectionDefaultModel per-session from the effective connection.
@@ -360,7 +363,7 @@ export function FreeFormInput({
     const groups: Record<string, typeof llmConnections> = {
       'Anthropic': [],
       'Local': [],
-      'ROX.ONE Backend': [],
+      'ROX ONE Backend': [],
     }
     for (const conn of llmConnections) {
       const provider = conn.providerType || 'anthropic'
@@ -370,7 +373,7 @@ export function FreeFormInput({
       } else if (provider === 'pi_compat' && isLocalConnection(conn)) {
         groups['Local'].push(conn)
       } else if (provider === 'pi' || provider === 'pi_compat') {
-        groups['ROX.ONE Backend'].push(conn)
+        groups['ROX ONE Backend'].push(conn)
       }
     }
     // Return only non-empty groups
@@ -817,6 +820,66 @@ export function FreeFormInput({
     return maxNum + 1
   }
 
+  // Check if running in Electron environment (has electronAPI)
+  const hasElectronAPI = typeof window !== 'undefined' && !!window.electronAPI
+
+  // Helper to read a File using FileReader API
+  const readFileAsAttachment = React.useCallback(async (file: File, overrideName?: string): Promise<FileAttachment | null> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = async () => {
+        const result = reader.result as ArrayBuffer
+        // Chunked base64 encoding — btoa + reduce fails on large files (>1MB)
+        // due to O(n²) string concatenation and browser string-length limits
+        const bytes = new Uint8Array(result)
+        let binary = ''
+        const chunkSize = 8192
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)))
+        }
+        const base64 = btoa(binary)
+
+        let type: FileAttachment['type'] = 'unknown'
+        const fileName = overrideName || file.name
+        if (file.type.startsWith('image/')) type = 'image'
+        else if (file.type === 'application/pdf') type = 'pdf'
+        else if (file.type.includes('text') || fileName.match(/\.(txt|md|json|js|ts|tsx|py|css|html)$/i)) type = 'text'
+        else if (file.type.includes('officedocument') || fileName.match(/\.(docx?|xlsx?|pptx?)$/i)) type = 'office'
+
+        const mimeType = file.type || 'application/octet-stream'
+
+        // For text files, decode the ArrayBuffer as UTF-8 text
+        let text: string | undefined
+        if (type === 'text') {
+          text = new TextDecoder('utf-8').decode(new Uint8Array(result))
+        }
+
+        let thumbnailBase64: string | undefined
+        if (hasElectronAPI) {
+          try {
+            const thumb = await window.electronAPI.generateThumbnail(base64, mimeType)
+            if (thumb) thumbnailBase64 = thumb
+          } catch {
+            // Thumbnail generation is optional, continue without it
+          }
+        }
+
+        resolve({
+          type,
+          path: fileName,
+          name: fileName,
+          mimeType,
+          base64,
+          text,
+          size: file.size,
+          thumbnailBase64,
+        })
+      }
+      reader.onerror = () => resolve(null)
+      reader.readAsArrayBuffer(file)
+    })
+  }, [hasElectronAPI])
+
   // Listen for craft:paste-files events (for global paste when input not focused)
   React.useEffect(() => {
     const handlePasteFiles = async (e: CustomEvent<{ files: File[]; sessionId?: string }>) => {
@@ -858,7 +921,7 @@ export function FreeFormInput({
 
     window.addEventListener('craft:paste-files', handlePasteFiles as unknown as EventListener)
     return () => window.removeEventListener('craft:paste-files', handlePasteFiles as unknown as EventListener)
-  }, [disabled, sessionId, isFocusedPanel, richInputRef])
+  }, [disabled, sessionId, isFocusedPanel, readFileAsAttachment, richInputRef])
 
   // Build active commands list for slash command menu
   const activeCommands = React.useMemo(() => {
@@ -1000,9 +1063,6 @@ export function FreeFormInput({
     // When not processing, ResizeObserver will report the full height
   }, [compactMode, isProcessing, onHeightChange])
 
-  // Check if running in Electron environment (has electronAPI)
-  const hasElectronAPI = typeof window !== 'undefined' && !!window.electronAPI
-
   // Shared helper: read a File, add as attachment, decrement loading count
   const processFileAttachment = async (file: File, overrideName?: string) => {
     try {
@@ -1065,63 +1125,6 @@ export function FreeFormInput({
     e.stopPropagation()
   }
 
-  // Helper to read a File using FileReader API
-  const readFileAsAttachment = async (file: File, overrideName?: string): Promise<FileAttachment | null> => {
-    return new Promise((resolve) => {
-      const reader = new FileReader()
-      reader.onload = async () => {
-        const result = reader.result as ArrayBuffer
-        // Chunked base64 encoding — btoa + reduce fails on large files (>1MB)
-        // due to O(n²) string concatenation and browser string-length limits
-        const bytes = new Uint8Array(result)
-        let binary = ''
-        const chunkSize = 8192
-        for (let i = 0; i < bytes.length; i += chunkSize) {
-          binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)))
-        }
-        const base64 = btoa(binary)
-
-        let type: FileAttachment['type'] = 'unknown'
-        const fileName = overrideName || file.name
-        if (file.type.startsWith('image/')) type = 'image'
-        else if (file.type === 'application/pdf') type = 'pdf'
-        else if (file.type.includes('text') || fileName.match(/\.(txt|md|json|js|ts|tsx|py|css|html)$/i)) type = 'text'
-        else if (file.type.includes('officedocument') || fileName.match(/\.(docx?|xlsx?|pptx?)$/i)) type = 'office'
-
-        const mimeType = file.type || 'application/octet-stream'
-
-        // For text files, decode the ArrayBuffer as UTF-8 text
-        let text: string | undefined
-        if (type === 'text') {
-          text = new TextDecoder('utf-8').decode(new Uint8Array(result))
-        }
-
-        let thumbnailBase64: string | undefined
-        if (hasElectronAPI) {
-          try {
-            const thumb = await window.electronAPI.generateThumbnail(base64, mimeType)
-            if (thumb) thumbnailBase64 = thumb
-          } catch {
-            // Thumbnail generation is optional, continue without it
-          }
-        }
-
-        resolve({
-          type,
-          path: fileName,
-          name: fileName,
-          mimeType,
-          base64,
-          text,
-          size: file.size,
-          thumbnailBase64,
-        })
-      }
-      reader.onerror = () => resolve(null)
-      reader.readAsArrayBuffer(file)
-    })
-  }
-
   // Clipboard paste handler for files/images
   const handlePaste = async (e: React.ClipboardEvent) => {
     if (disabled) return
@@ -1165,7 +1168,7 @@ export function FreeFormInput({
     setAttachments(prev => [...prev, attachment])
     // Focus input after adding attachment
     richInputRef.current?.focus()
-  }, []) // No deps needed - uses ref
+  }, [richInputRef])
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
@@ -1222,7 +1225,7 @@ export function FreeFormInput({
     })
 
     return true
-  }, [input, attachments, followUpItems, disabled, disableSend, onInputChange, onSubmit, skills, sources, optimisticSourceSlugs, onSourcesChange, onWorkingDirectoryChange, homeDir])
+  }, [input, attachments, followUpItems, disabled, disableSend, onInputChange, onSubmit, skills, sources, optimisticSourceSlugs, onSourcesChange, richInputRef])
 
   // Listen for craft:submit-input events (simulate pressing the Send button)
   React.useEffect(() => {
@@ -1386,7 +1389,7 @@ export function FreeFormInput({
       setInput(newValue)
       syncToParent(newValue)
     }
-  }, [inlineSlash, inlineMention, inlineLabel, syncToParent, autoCapitalisation])
+  }, [inlineSlash, inlineMention, inlineLabel, syncToParent, autoCapitalisation, richInputRef])
 
   // Handle inline slash command selection (removes the /command text)
   const handleInlineSlashCommandSelect = React.useCallback((commandId: SlashCommandId) => {
@@ -1394,7 +1397,7 @@ export function FreeFormInput({
     setInput(newValue)
     syncToParent(newValue)
     richInputRef.current?.focus()
-  }, [inlineSlash, syncToParent])
+  }, [inlineSlash, syncToParent, richInputRef])
 
   // Handle inline slash folder selection (inserts a directory badge)
   const handleInlineSlashFolderSelect = React.useCallback((path: string) => {
@@ -1402,7 +1405,7 @@ export function FreeFormInput({
     setInput(newValue)
     syncToParent(newValue)
     richInputRef.current?.focus()
-  }, [inlineSlash, syncToParent])
+  }, [inlineSlash, syncToParent, richInputRef])
 
   // Handle inline mention selection (inserts appropriate mention text)
   const handleInlineMentionSelect = React.useCallback((item: MentionItem) => {
@@ -1414,7 +1417,7 @@ export function FreeFormInput({
       richInputRef.current?.focus()
       richInputRef.current?.setSelectionRange(cursorPosition, cursorPosition)
     }, 0)
-  }, [inlineMention, syncToParent])
+  }, [inlineMention, syncToParent, richInputRef])
 
   // Handle inline label selection (removes the #label text from input)
   const handleInlineLabelSelect = React.useCallback((labelId: string) => {
@@ -1422,7 +1425,7 @@ export function FreeFormInput({
     setInput(newValue)
     syncToParent(newValue)
     richInputRef.current?.focus()
-  }, [inlineLabel, syncToParent])
+  }, [inlineLabel, syncToParent, richInputRef])
 
   // Handle inline state selection from # menu (removes #text, changes session state)
   const handleInlineStateSelect = React.useCallback((stateId: string) => {
@@ -1433,7 +1436,7 @@ export function FreeFormInput({
       onSessionStatusChange?.(sessionId, stateId)
     }
     richInputRef.current?.focus()
-  }, [inlineLabel, syncToParent, sessionId, onSessionStatusChange])
+  }, [inlineLabel, syncToParent, sessionId, onSessionStatusChange, richInputRef])
 
   const followUpLayoutKey = React.useMemo(
     () => followUpItems.map(item => [

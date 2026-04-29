@@ -108,6 +108,8 @@ export interface BrowserPaneCreateOptions {
   id?: string
   show?: boolean
   bindToSessionId?: string
+  initialUrl?: string
+  hostMode?: 'window' | 'embedded'
 }
 
 /**

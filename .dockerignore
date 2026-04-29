@@ -1,6 +1,20 @@
 # Dependencies (rebuilt inside container)
 node_modules/
 
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+config.json
+events.jsonl
+.brv/
+.claude-plugin/
+.codex/
+.omc/
+.omx/
+
 # Build artifacts
 dist/
 *.tgz

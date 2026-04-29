@@ -18,9 +18,16 @@
  *   CRAFT_VERSION              — app version (default: 0.0.0-dev)
  *   CRAFT_DEBUG                — 'true' for debug logging
  *   CRAFT_WEBUI_DIR            — path to built web UI assets (enables web UI on RPC port)
- *   CRAFT_WEBUI_PASSWORD       — optional shorter password for web login (falls back to CRAFT_SERVER_TOKEN)
+ *   CRAFT_WEBUI_PASSWORD       — optional shorter password for legacy web login (falls back to CRAFT_SERVER_TOKEN)
  *   CRAFT_WEBUI_SECURE_COOKIE  — optional true/false override for the session cookie Secure flag
  *   CRAFT_WEBUI_WS_URL         — optional browser-facing ws:// or wss:// URL returned by /api/config
+ *   CRAFT_WEBUI_TRUSTED_PROXIES — optional comma/space-separated proxy peer IPs allowed to set forwarded headers
+ *   CRAFT_DATABASE_URL         — optional Postgres URL enabling hosted accounts/signup
+ *   CRAFT_AUTH_JWT_SECRET      — optional JWT signing secret for WebUI account sessions
+ *   CRAFT_SIGNUP_ENABLED       — optional true/false open-signup switch (default true when DB is configured)
+ *   CRAFT_PUBLIC_APP_URL       — optional public HTTPS origin used in auth emails
+ *   RESEND_API_KEY             — optional Resend API key for account verification/reset emails
+ *   CRAFT_EMAIL_FROM           — optional sender address for account emails
  *   CRAFT_MESSAGING_WA_WORKER  — absolute path to worker.cjs (default: packages/messaging-whatsapp-worker/dist/worker.cjs)
  *   CRAFT_MESSAGING_NODE_BIN   — Node binary used to spawn the WhatsApp worker (default: node)
  */
@@ -31,8 +38,9 @@ import { readFileSync, existsSync } from 'node:fs'
 import { version as packageVersion } from '../package.json'
 import { enableDebug } from '@craft-agent/shared/utils/debug'
 import { bootstrapServer, startHealthHttpServer, generateServerToken } from '@craft-agent/server-core/bootstrap'
-import { validateSession, createWebuiHandler, nodeHttpAdapter } from '@craft-agent/server-core/webui'
+import { validateSession, validateAccountSession, createWebuiHandler, nodeHttpAdapter, createAccountEmailService } from '@craft-agent/server-core/webui'
 import type { WebuiHandler } from '@craft-agent/server-core/webui'
+import { createPostgresAccountStore } from '@craft-agent/server-core/accounts'
 import { getCredentialManager } from '@craft-agent/shared/credentials'
 import { getWorkspaces } from '@craft-agent/shared/config'
 import { createMessagingBootstrap, type MessagingBootstrapHandle } from '@craft-agent/messaging-gateway'
@@ -90,6 +98,11 @@ function parseOptionalWebSocketUrl(name: string, value: string | undefined): str
   }
 }
 
+function parseListEnv(value: string | undefined): string[] | undefined {
+  const entries = value?.split(/[,\s]+/).map(item => item.trim()).filter(Boolean)
+  return entries?.length ? entries : undefined
+}
+
 // In dev (monorepo), bundled assets root is the repo root (4 levels up from this file).
 // In packaged mode, use CRAFT_BUNDLED_ASSETS_ROOT env or cwd.
 const bundledAssetsRoot = process.env.CRAFT_BUNDLED_ASSETS_ROOT
@@ -116,7 +129,25 @@ const webuiDir = process.env.CRAFT_WEBUI_DIR || undefined
 const webuiEnabled = webuiDir && existsSync(webuiDir)
 const webuiSecureCookies = parseOptionalBooleanEnv('CRAFT_WEBUI_SECURE_COOKIE', process.env.CRAFT_WEBUI_SECURE_COOKIE)
 const webuiWsUrl = parseOptionalWebSocketUrl('CRAFT_WEBUI_WS_URL', process.env.CRAFT_WEBUI_WS_URL)
+const webuiTrustedProxies = parseListEnv(process.env.CRAFT_WEBUI_TRUSTED_PROXIES || process.env.CRAFT_TRUSTED_PROXIES)
 const serverToken = process.env.CRAFT_SERVER_TOKEN
+const authJwtSecret = process.env.CRAFT_AUTH_JWT_SECRET || serverToken
+const signupEnabled = parseOptionalBooleanEnv('CRAFT_SIGNUP_ENABLED', process.env.CRAFT_SIGNUP_ENABLED)
+const publicAppUrl = process.env.CRAFT_PUBLIC_APP_URL || undefined
+const accountStore = process.env.CRAFT_DATABASE_URL
+  ? createPostgresAccountStore({ connectionString: process.env.CRAFT_DATABASE_URL })
+  : null
+const accountEmailService = accountStore
+  ? createAccountEmailService({
+      resendApiKey: process.env.RESEND_API_KEY,
+      from: process.env.CRAFT_EMAIL_FROM,
+      logger: { info: console.log, warn: console.warn, error: console.error },
+    })
+  : undefined
+
+if (accountStore) {
+  await accountStore.migrate()
+}
 
 // ---------------------------------------------------------------------------
 // Create WebUI handler early so it can be embedded in the WsRpcServer.
@@ -137,7 +168,7 @@ if (webuiEnabled && serverToken) {
 
   webuiHandler = createWebuiHandler({
     webuiDir: webuiDir!,
-    secret: serverToken,
+    secret: accountStore ? authJwtSecret! : serverToken,
     password: process.env.CRAFT_WEBUI_PASSWORD || undefined,
     secureCookies: webuiSecureCookies,
     publicWsUrl: webuiWsUrl,
@@ -146,6 +177,19 @@ if (webuiEnabled && serverToken) {
     wsPort: rpcPort,
     getHealthCheck: () => healthCheckFn?.() ?? { status: 'starting' },
     logger: { info: console.log, warn: console.warn, error: console.error } as any,
+    accountStore: accountStore ?? undefined,
+    trustedProxies: webuiTrustedProxies,
+    signupEnabled,
+    publicAppUrl,
+    accountEmailService,
+    bootstrapAccount: accountStore
+      ? async (user) => {
+          if (await accountStore.getUserCount() !== 1) return
+          for (const workspace of getWorkspaces()) {
+            await accountStore.grantWorkspaceOwner(user.id, workspace.id)
+          }
+        }
+      : undefined,
   })
 
   webuiNodeHandler = nodeHttpAdapter(webuiHandler.fetch)
@@ -172,6 +216,12 @@ const instance = await (async () => {
       // When web UI is enabled, accept JWT session cookies on WebSocket upgrade
       validateSessionCookie: webuiEnabled && serverToken
         ? async (cookieHeader) => {
+            if (accountStore) {
+              const session = await validateAccountSession(cookieHeader, authJwtSecret!, accountStore)
+              return session
+                ? { userId: session.userId, sessionId: session.sessionId, email: session.email, role: session.role }
+                : null
+            }
             const session = await validateSession(cookieHeader, serverToken)
             return session !== null
           }
@@ -218,13 +268,14 @@ const instance = await (async () => {
             pairingMode: 'qr',
           },
         })
-        return {
-          sessionManager,
-          platform,
-          oauthFlowStore,
-          messagingRegistry: messagingHandle.registry,
-        }
-      },
+          return {
+            sessionManager,
+            platform,
+            oauthFlowStore,
+            messagingRegistry: messagingHandle.registry,
+            accountStore: accountStore ?? undefined,
+          }
+        },
       registerAllRpcHandlers: registerCoreRpcHandlers,
       setSessionEventSink: (sessionManager, sink) => {
         if (!messagingHandle) {
@@ -306,7 +357,7 @@ const healthServer = await startHealthHttpServer({
 
 const serverProto = instance.protocol === 'wss' ? 'https' : 'http'
 console.log(`CRAFT_SERVER_URL=${instance.protocol}://${instance.host}:${instance.port}`)
-console.log(`CRAFT_SERVER_TOKEN=${instance.token}`)
+console.log(`CRAFT_SERVER_TOKEN=${instance.token ? `${instance.token.slice(0, 6)}…${instance.token.slice(-4)}` : ''}`)
 if (webuiHandler) {
   console.log(`CRAFT_WEBUI_URL=${serverProto}://0.0.0.0:${instance.port}`)
 }
@@ -344,6 +395,7 @@ const shutdown = async () => {
       console.error('[messaging] dispose failed:', error)
     }
   }
+  await accountStore?.close?.()
   await instance.stop()
   process.exit(0)
 }

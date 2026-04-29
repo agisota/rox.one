@@ -165,7 +165,7 @@ export function BrowserTabStrip({
     }
   }, [orderedInstances, activeInstanceId, setActiveInstanceId])
 
-  const focusBrowserWindow = useCallback((instance: BrowserInstanceInfo) => {
+  const focusBrowserTab = useCallback((instance: BrowserInstanceInfo) => {
     setActiveInstanceId(instance.id)
     if (instancesOverride) return
 
@@ -176,24 +176,24 @@ export function BrowserTabStrip({
     }
 
     void browserPaneApi.focus(instance.id).catch((error) => {
-      console.warn(`[BrowserTabStrip] Failed to focus browser window ${instance.id}:`, error)
+      console.warn(`[BrowserTabStrip] Failed to focus browser tab ${instance.id}:`, error)
     })
   }, [instancesOverride, setActiveInstanceId])
 
-  const openSessionUsingWindow = useCallback((instance: BrowserInstanceInfo) => {
+  const openSessionUsingBrowser = useCallback((instance: BrowserInstanceInfo) => {
     const sessionId = instance.boundSessionId ?? instance.ownerSessionId
     if (!sessionId) return
     navigate(routes.view.allSessions(sessionId))
   }, [])
 
-  const terminateBrowserWindow = useCallback((instance: BrowserInstanceInfo) => {
+  const terminateBrowserTab = useCallback((instance: BrowserInstanceInfo) => {
     if (!instancesOverride) {
       const browserPaneApi = window.electronAPI?.browserPane
       if (!browserPaneApi) {
         console.warn('[BrowserTabStrip] browserPane API unavailable for terminate action')
       } else {
         void browserPaneApi.destroy(instance.id).catch((error) => {
-          console.warn(`[BrowserTabStrip] Failed to terminate browser window ${instance.id}:`, error)
+          console.warn(`[BrowserTabStrip] Failed to terminate browser tab ${instance.id}:`, error)
         })
       }
       removeInstance(instance.id)
@@ -211,22 +211,22 @@ export function BrowserTabStrip({
     const targetSessionId = instance.boundSessionId ?? instance.ownerSessionId
     const canOpenSession = !!targetSessionId
     const openSessionLabel = instance.agentControlActive
-      ? 'Open Session Using this Window'
-      : 'Open Session Which Used this Window'
+      ? 'Open Session Using this Browser'
+      : 'Open Session Which Used this Browser'
 
     return (
       <>
         <StyledDropdownMenuItem
           disabled={!canUseLiveWindowActions}
-          onSelect={() => focusBrowserWindow(instance)}
+          onSelect={() => focusBrowserTab(instance)}
         >
           <Icons.Monitor className="h-3.5 w-3.5" />
-          Show Browser Window
+          Show Browser Tab
         </StyledDropdownMenuItem>
 
         <StyledDropdownMenuItem
           disabled={!canOpenSession}
-          onSelect={() => openSessionUsingWindow(instance)}
+          onSelect={() => openSessionUsingBrowser(instance)}
         >
           <Icons.PanelRightOpen className="h-3.5 w-3.5" />
           {openSessionLabel}
@@ -237,14 +237,14 @@ export function BrowserTabStrip({
         <StyledDropdownMenuItem
           variant="destructive"
           disabled={!canUseLiveWindowActions}
-          onSelect={() => terminateBrowserWindow(instance)}
+          onSelect={() => terminateBrowserTab(instance)}
         >
           <Icons.XCircle className="h-3.5 w-3.5" />
           Terminate Browser
         </StyledDropdownMenuItem>
       </>
     )
-  }, [instancesOverride, focusBrowserWindow, openSessionUsingWindow, terminateBrowserWindow])
+  }, [instancesOverride, focusBrowserTab, openSessionUsingBrowser, terminateBrowserTab])
 
   if (orderedInstances.length === 0) return null
 

@@ -1,6 +1,6 @@
-# ROX.ONE Electron App
+# ROX ONE Electron App
 
-The primary desktop interface for ROX.ONE, built with Electron + React. Provides a multi-session inbox with chat interface for interacting with Claude via Craft workspaces.
+The primary desktop interface for ROX ONE, built with Electron + React. Provides a multi-session inbox with chat interface for interacting with Claude via Craft workspaces.
 
 ## Quick Start
 

@@ -1,0 +1,15 @@
+# Memory Swarm Configuration for ByteRover-CLI
+# Generated manually to provide a local, provider-free persistence lane
+# for accepted authority/product grammar decisions.
+
+providers:
+  byterover:
+    enabled: false
+  local_markdown:
+    enabled: true
+    folders:
+      - name: decision-records
+        path: /Users/marklindgreen/Projects/craft/craft/.brv/swarm/decision-records
+        read_only: false
+        follow_wikilinks: true
+    watch_for_changes: true

@@ -8,6 +8,7 @@
  */
 
 import { SignJWT, jwtVerify } from 'jose'
+import type { AccountStore, SessionIdentity } from '../accounts'
 
 // ---------------------------------------------------------------------------
 // JWT helpers (via jose library)
@@ -19,14 +20,18 @@ export interface JwtPayload {
   sub: string
   iat: number
   exp: number
+  sid?: string
+  email?: string
+  role?: string
 }
 
 export async function signJwt(payload: JwtPayload, secret: string): Promise<string> {
   const key = new TextEncoder().encode(secret)
-  return new SignJWT({ sub: payload.sub } as Record<string, unknown>)
+  const { iat, exp, ...claims } = payload
+  return new SignJWT(claims as Record<string, unknown>)
     .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt(payload.iat)
-    .setExpirationTime(payload.exp)
+    .setIssuedAt(iat)
+    .setExpirationTime(exp)
     .sign(key)
 }
 
@@ -38,6 +43,9 @@ export async function verifyJwt(token: string, secret: string): Promise<JwtPaylo
       sub: payload.sub as string,
       iat: payload.iat as number,
       exp: payload.exp as number,
+      sid: typeof payload.sid === 'string' ? payload.sid : undefined,
+      email: typeof payload.email === 'string' ? payload.email : undefined,
+      role: typeof payload.role === 'string' ? payload.role : undefined,
     }
   } catch {
     return null
@@ -47,6 +55,18 @@ export async function verifyJwt(token: string, secret: string): Promise<JwtPaylo
 export async function createSessionToken(secret: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
   return signJwt({ sub: 'webui', iat: now, exp: now + JWT_EXPIRY_SECONDS }, secret)
+}
+
+export async function createAccountSessionToken(secret: string, identity: SessionIdentity): Promise<string> {
+  const now = Math.floor(Date.now() / 1000)
+  return signJwt({
+    sub: identity.userId,
+    sid: identity.sessionId,
+    email: identity.email,
+    role: identity.role,
+    iat: now,
+    exp: now + JWT_EXPIRY_SECONDS,
+  }, secret)
 }
 
 // ---------------------------------------------------------------------------
@@ -184,4 +204,18 @@ export async function validateSession(
   const token = extractSessionCookie(cookieHeader)
   if (!token) return null
   return verifyJwt(token, secret)
+}
+
+export async function validateAccountSession(
+  cookieHeader: string | null,
+  secret: string,
+  accountStore: AccountStore,
+): Promise<SessionIdentity | null> {
+  const payload = await validateSession(cookieHeader, secret)
+  if (!payload?.sub || !payload.sid) return null
+
+  const identity = await accountStore.getSessionIdentity(payload.sid)
+  if (!identity) return null
+  if (identity.userId !== payload.sub) return null
+  return identity
 }

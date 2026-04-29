@@ -100,11 +100,11 @@ export function StepHeader({
 }: StepHeaderProps) {
   return (
     <div className={cn(centered && "text-center", className)}>
-      <h1 className="step-title text-lg font-semibold tracking-tight">
+      <h1 className="step-title text-[24px] font-semibold tracking-tight leading-[1.1] text-foreground">
         {title}
       </h1>
       {description && (
-        <p className="step-description mt-2 text-sm max-w-sm text-muted-foreground">
+        <p className="step-description mx-auto mt-2 max-w-[25rem] text-sm leading-6 text-muted-foreground">
           {description}
         </p>
       )}

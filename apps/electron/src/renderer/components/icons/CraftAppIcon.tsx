@@ -1,21 +1,19 @@
-import craftLogo from "@/assets/craft_logo_c.svg"
+import pzdrkIcon from "@/assets/pzdrk.png"
 
 interface CraftAppIconProps {
   className?: string
   size?: number
 }
 
-/**
- * CraftAppIcon - Displays the ROX ONE gemstone logo
- */
 export function CraftAppIcon({ className, size = 64 }: CraftAppIconProps) {
   return (
     <img
-      src={craftLogo}
+      src={pzdrkIcon}
       alt="ROX ONE"
       width={size}
       height={size}
       className={className}
+      draggable={false}
     />
   )
 }

@@ -208,7 +208,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       const parsed = new URL(url)
 
       // Handle rox:// URLs internally via deep link handler (GUI only)
-      if (parsed.protocol === 'craftagents:') {
+      if (parsed.protocol === 'rox:' || parsed.protocol === 'craftagents:') {
         if (!windowManager) return
         deps.platform.logger.info('[OPEN_URL] Handling as deep link')
         const { handleDeepLink } = await import('../deep-link')
@@ -294,7 +294,7 @@ export function registerSystemGuiHandlers(server: RpcServer, deps: HandlerDeps):
     return getDismissedUpdateVersion()
   })
 
-  // Menu actions from renderer (for unified Craft menu)
+  // Menu actions from renderer (for the unified app menu)
   server.handle(RPC_CHANNELS.menu.QUIT, async () => {
     deps.platform.quit?.()
   })

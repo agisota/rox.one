@@ -21,12 +21,14 @@ import { transportBannerComponents } from './transport-banner'
 import { containerTransitionsComponents } from './container-transitions'
 import { apiKeyInputComponents } from './api-key-input'
 import { messagingComponents } from './messaging'
+import { workspaceComponents } from './workspace'
 
 export * from './types'
 
 export const componentRegistry: ComponentEntry[] = [
   ...apiKeyInputComponents,
   ...onboardingComponents,
+  ...workspaceComponents,
   ...chatComponents,
   ...turnCardComponents,
   ...turnCardModesComponents,

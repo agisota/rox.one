@@ -1,4 +1,4 @@
-import { BrowserWindow, shell, nativeTheme, Menu, app } from 'electron'
+import { BrowserWindow, shell, nativeTheme, Menu, app, screen } from 'electron'
 import { windowLog } from './logger'
 import { join } from 'path'
 import { existsSync } from 'fs'
@@ -98,6 +98,66 @@ export class WindowManager {
   }
 
   /**
+   * Reveal a window aggressively enough for macOS post-install launches.
+   * A hidden BrowserWindow can still finish loading and connect to the RPC
+   * server, so startup logs alone are not enough proof that the UI is visible.
+   */
+  private forceRevealWindow(window: BrowserWindow): void {
+    if (window.isDestroyed()) return
+
+    if (window.isMinimized()) {
+      window.restore()
+    }
+
+    const bounds = window.getBounds()
+    const display = screen.getDisplayMatching(bounds)
+    const workArea = display.workArea
+    const intersectsVisibleArea =
+      bounds.x < workArea.x + workArea.width &&
+      bounds.x + bounds.width > workArea.x &&
+      bounds.y < workArea.y + workArea.height &&
+      bounds.y + bounds.height > workArea.y
+
+    if (!intersectsVisibleArea) {
+      const width = Math.min(Math.max(bounds.width, 800), workArea.width)
+      const height = Math.min(Math.max(bounds.height, 600), workArea.height)
+      window.setBounds({
+        x: Math.round(workArea.x + (workArea.width - width) / 2),
+        y: Math.round(workArea.y + (workArea.height - height) / 2),
+        width,
+        height,
+      })
+    }
+
+    if (process.platform === 'darwin') {
+      void app.dock?.show()
+      window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+    }
+
+    window.show()
+    window.focus()
+    window.moveTop()
+
+    if (process.platform === 'darwin') {
+      app.focus({ steal: true })
+      const resetAllSpaces = setTimeout(() => {
+        if (!window.isDestroyed()) {
+          window.setVisibleOnAllWorkspaces(false)
+        }
+      }, 1500)
+      resetAllSpaces.unref?.()
+    }
+
+    windowLog.info('Revealed window', {
+      webContentsId: window.webContents.id,
+      visible: window.isVisible(),
+      focused: window.isFocused(),
+      minimized: window.isMinimized(),
+      bounds: window.getBounds(),
+    })
+  }
+
+  /**
    * Create a new window for a workspace
    * @param options - Window creation options
    */
@@ -139,7 +199,7 @@ export class WindowManager {
       minWidth: 800,
       minHeight: 600,
       show: false, // Don't show until ready-to-show event (faster perceived startup)
-      title: '',
+      title: 'ROX ONE',
       icon: iconExists ? iconPath : undefined,
       // macOS-specific: hidden title bar with inset traffic lights
       ...(isMac && {
@@ -171,10 +231,22 @@ export class WindowManager {
       }
     })
 
-    // Show window when first paint is ready (faster perceived startup)
-    window.once('ready-to-show', () => {
-      window.show()
-    })
+    // Show window when first paint is ready. In packaged macOS launches,
+    // `ready-to-show` can be skipped or delayed by state restoration, leaving
+    // a hidden BrowserWindow and an apparently running app with no UI.
+    let didRevealWindow = false
+    let revealFallback: ReturnType<typeof setTimeout> | undefined
+    const revealWindow = () => {
+      if (didRevealWindow || window.isDestroyed()) return
+      didRevealWindow = true
+      if (revealFallback) clearTimeout(revealFallback)
+      this.forceRevealWindow(window)
+    }
+
+    window.once('ready-to-show', revealWindow)
+    window.webContents.once('did-finish-load', revealWindow)
+    revealFallback = setTimeout(revealWindow, 3000)
+    revealFallback.unref?.()
 
     // Open external links in default browser
     window.webContents.setWindowOpenHandler((details) => {
@@ -561,7 +633,10 @@ export class WindowManager {
       if (existing.isMinimized()) {
         existing.restore()
       }
-      existing.focus()
+      if (!existing.isVisible()) {
+        existing.show()
+      }
+      this.forceRevealWindow(existing)
       return existing
     }
     return this.createWindow({ workspaceId })

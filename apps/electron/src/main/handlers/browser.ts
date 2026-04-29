@@ -36,7 +36,7 @@ export function registerBrowserHandlers(server: RpcServer, deps: HandlerDeps): v
       return browserPaneManager.createForSession(input.bindToSessionId, { show: input.show ?? false })
     }
 
-    return browserPaneManager.createInstance(input?.id, { show: input?.show })
+    return browserPaneManager.createInstance(input?.id, { show: input?.show, initialUrl: input?.initialUrl, hostMode: input?.hostMode })
   })
 
   server.handle(RPC_CHANNELS.browserPane.DESTROY, (_ctx, id: string) => {
