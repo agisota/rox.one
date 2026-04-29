@@ -1,1 +1,6 @@
 preload = ["./packages/shared/src/unified-network-interceptor.ts"]
+
+[test]
+pathIgnorePatterns = [
+  "apps/electron/release/**",
+]

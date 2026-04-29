@@ -1133,7 +1133,7 @@ export function NavigationProvider({
     })
 
     return cleanup
-  }, [workspaceId, navigate])
+  }, [workspaceId, navigate, t])
 
   // =========================================================================
   // INTERNAL NAVIGATION EVENT LISTENER
@@ -1242,6 +1242,7 @@ export function NavigationProvider({
   }, [
     isReady,
     workspaceId,
+    store,
     navigationState,
     getLastSelectedSessionId,
     getFirstSessionId,

@@ -312,7 +312,7 @@ const EDIT_CONFIGS: Record<EditContextKey, (location: string) => EditConfig> = {
         'Follow the patterns in ~/.rox/docs/sources.md. ' +
         'After creating the source, call source_test with the source slug to verify the configuration.',
     },
-    example: 'Connect to my Rox space',
+    example: 'Connect to my ROX ONE space',
     overridePlaceholder: 'What would you like to connect?',
     displayLabelKey: 'editPopover.label.addSource',
     exampleKey: 'editPopover.example.addSource',
@@ -366,7 +366,7 @@ const EDIT_CONFIGS: Record<EditContextKey, (location: string) => EditConfig> = {
       filePath: `${location}/sources/`,
       context:
         'The user wants to add a local folder source. ' +
-        'First, look up the guide: mcp__rox-agents-docs__SearchRoxAgents({ query: "filesystem" }). ' +
+        'First, look up the ROX ONE Docs guide: mcp__rox-agents-docs__SearchRoxAgents({ query: "filesystem" }). ' +
         'Local folders are bookmarks - use type: "local" with a local.path field. ' +
         'They use existing Read, Write, Glob, Grep tools - no MCP server needed. ' +
         'If unclear, ask about the folder path they want to connect. ' +
@@ -753,13 +753,13 @@ export function EditPopover({
   const [internalOpen, setInternalOpen] = useState(false)
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
-  const setOpen = (value: boolean) => {
+  const setOpen = useCallback((value: boolean) => {
     if (isControlled) {
       controlledOnOpenChange?.(value)
     } else {
       setInternalOpen(value)
     }
-  }
+  }, [isControlled, controlledOnOpenChange])
 
   // Use App context for session management (same code path as main chat)
   const { onCreateSession, onSendMessage, onRespondToPermission, onRespondToCredential } = useAppShellContext()

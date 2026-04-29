@@ -1,0 +1,7 @@
+{
+  "tool_name": "mcp__peekaboo__analyze",
+  "tool_input_preview": "{\"image_path\":\"/Users/marklindgreen/Projects/rox/rox/apps/electron/resources/icon.png\",\"question\":\"Describe this icon in detail - what does it look like? Colors, shape, design elements, text?\"}",
+  "error": "AI analysis failed: Authentication failed: OPENAI_API_KEY not found",
+  "timestamp": "2026-04-24T05:27:53.744Z",
+  "retry_count": 1
+}

@@ -277,6 +277,25 @@ export default function App() {
   // Using ref instead of state to avoid re-renders during typing - drafts are only
   // needed for initial value restoration and disk persistence, not reactive updates
   const sessionDraftsRef = useRef<Map<string, string>>(new Map())
+  const draftSaveTimeoutRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const persistDraftValue = useCallback((sessionId: string, value: string) => {
+    if (value) {
+      sessionDraftsRef.current.set(sessionId, value)
+    } else {
+      sessionDraftsRef.current.delete(sessionId)
+    }
+
+    const existingTimeout = draftSaveTimeoutRef.current.get(sessionId)
+    if (existingTimeout) {
+      clearTimeout(existingTimeout)
+    }
+
+    const timeout = setTimeout(() => {
+      window.electronAPI.setDraft(sessionId, value)
+      draftSaveTimeoutRef.current.delete(sessionId)
+    }, DRAFT_SAVE_DEBOUNCE_MS)
+    draftSaveTimeoutRef.current.set(sessionId, timeout)
+  }, [])
   // Unified session options for all session-scoped settings
   const [sessionOptions, setSessionOptions] = useState<Map<string, SessionOptions>>(new Map())
 
@@ -547,7 +566,7 @@ export default function App() {
       // Still transition to ready — the app can recover via reconnect
     }
     setAppState('ready')
-  }, [])
+  }, [setWindowWorkspaceId])
 
   // Onboarding hook — onConfigSaved fires immediately when billing is saved,
   // ensuring connection state updates before the wizard closes.
@@ -605,7 +624,7 @@ export default function App() {
     }
 
     initialize()
-  }, [])
+  }, [setWindowWorkspaceId])
 
   // Session selection state
   const [sessionSelection, setSession] = useSession()
@@ -658,7 +677,7 @@ export default function App() {
     })
     // Load app-level theme
     window.electronAPI.getAppTheme().then(setAppTheme)
-  }, [appState, loadSessionsFromServer, resolveDefaultConnectionSlug])
+  }, [appState, loadSessionsFromServer, resolveDefaultConnectionSlug, t])
 
   // Subscribe to theme change events (live updates when theme.json changes)
   useEffect(() => {
@@ -771,8 +790,8 @@ export default function App() {
             const restored = existingDraft
               ? `${existingDraft}\n\n${effect.text}`
               : effect.text
-            handleInputChange(sessionId, restored)
-            // handleInputChange updates the ref but ChatPage has local state.
+            persistDraftValue(sessionId, restored)
+            // persistDraftValue updates the ref but ChatPage has local state.
             // Dispatch a custom event so ChatPage re-reads the draft.
             window.dispatchEvent(new CustomEvent('rox:restore-input', {
               detail: { sessionId, text: restored },
@@ -948,6 +967,7 @@ export default function App() {
     syncSessionOptionsFromSession,
     applyPermissionModeState,
     reconcilePermissionModeState,
+    persistDraftValue,
   ])
 
   // Transport reconnect recovery — refresh session metadata plus active/processing
@@ -1007,7 +1027,7 @@ export default function App() {
       setMenuNewChatTrigger(n => n + 1)
     })
     const unsubSettings = window.electronAPI.onMenuOpenSettings(() => {
-      handleOpenSettings()
+      navigate(routes.view.settings())
     })
     const unsubShortcuts = window.electronAPI.onMenuKeyboardShortcuts(() => {
       navigate(routes.view.settings('shortcuts'))
@@ -1274,7 +1294,7 @@ export default function App() {
         ]
       }))
     }
-  }, [sessionOptions, updateSessionById, skills, sources, windowWorkspaceId])
+  }, [updateSessionById, skills, sources, windowWorkspaceSlug])
 
   /**
    * Unified handler for all session option changes.
@@ -1297,16 +1317,14 @@ export default function App() {
       // Sync thinking level change with backend (session-level, persisted)
       window.electronAPI.sessionCommand(sessionId, { type: 'setThinkingLevel', level: updates.thinkingLevel })
     }
-  }, [sessionOptions])
-
-  // Handle input draft changes per session with debounced persistence
-  const draftSaveTimeoutRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  }, [])
 
   // Cleanup draft save timers on unmount to prevent memory leaks
   useEffect(() => {
+    const timeoutMap = draftSaveTimeoutRef.current
     return () => {
-      draftSaveTimeoutRef.current.forEach(clearTimeout)
-      draftSaveTimeoutRef.current.clear()
+      timeoutMap.forEach(clearTimeout)
+      timeoutMap.clear()
     }
   }, [])
 
@@ -1316,25 +1334,8 @@ export default function App() {
   }, [])
 
   const handleInputChange = useCallback((sessionId: string, value: string) => {
-    // Update ref immediately (no re-render triggered)
-    if (value) {
-      sessionDraftsRef.current.set(sessionId, value)
-    } else {
-      sessionDraftsRef.current.delete(sessionId) // Clean up empty drafts
-    }
-
-    // Debounced persistence to disk (500ms delay)
-    const existingTimeout = draftSaveTimeoutRef.current.get(sessionId)
-    if (existingTimeout) {
-      clearTimeout(existingTimeout)
-    }
-
-    const timeout = setTimeout(() => {
-      window.electronAPI.setDraft(sessionId, value)
-      draftSaveTimeoutRef.current.delete(sessionId)
-    }, DRAFT_SAVE_DEBOUNCE_MS)
-    draftSaveTimeoutRef.current.set(sessionId, timeout)
-  }, [])
+    persistDraftValue(sessionId, value)
+  }, [persistDraftValue])
 
   // Open new chat - creates session and selects it
   // Used by components via AppShellContext and for programmatic navigation
@@ -1483,7 +1484,7 @@ export default function App() {
       const message = error instanceof Error ? error.message : 'Unknown error'
       toast.error(t('toast.reconnectFailed'), { description: message })
     })
-  }, [])
+  }, [t])
 
   const handleOpenFile = linkInterceptor.handleOpenFile
   const handleOpenUrl = linkInterceptor.handleOpenUrl
@@ -1528,7 +1529,7 @@ export default function App() {
     } finally {
       setShowResetDialog(false)
     }
-  }, [onboarding, initializeSessions])
+  }, [onboarding, initializeSessions, setWindowWorkspaceId])
 
   // Handle workspace selection
   // - Default: switch workspace in same window (in-window switching)
@@ -1581,7 +1582,7 @@ export default function App() {
       // Sessions and theme will reload automatically due to windowWorkspaceId dependency
       // in useEffect hooks.
     }
-  }, [windowWorkspaceId, setSession, store])
+  }, [windowWorkspaceId, setSession, setWindowWorkspaceId, store])
 
   // Handle workspace switch by slug (called by NavigationContext on popstate when ?ws= changes)
   const handleSwitchWorkspaceBySlug = useCallback((slug: string) => {

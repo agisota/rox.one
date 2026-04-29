@@ -10,6 +10,7 @@ const VALID_THINKING_LEVELS_LIST = THINKING_LEVEL_IDS.map(id => `'${id}'`).join(
 import { pushTyped, type RpcServer } from '@rox-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { setTransferableHandler } from './transfer'
+import { requireSessionAccess, requireWorkspaceAccess } from './account-ownership'
 
 interface ClientSessionWatchState {
   watcher: import('fs').FSWatcher
@@ -123,27 +124,51 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
     }
     const end = perf.start('rpc.getSessions')
     const workspaceId = ctx.workspaceId ?? deps.windowManager?.getWorkspaceForWindow(ctx.webContentsId!)
+    if (workspaceId) {
+      await requireWorkspaceAccess(deps, ctx, workspaceId)
+    } else if (ctx.userId && deps.accountStore) {
+      const ownedIds = await deps.accountStore.listWorkspaceIds(ctx.userId)
+      const sessions = ownedIds.flatMap(id => sessionManager.getSessions(id))
+      end()
+      return sessions
+    }
     const sessions = sessionManager.getSessions(workspaceId ?? undefined)
     end()
     return sessions
   })
 
   // Get unread summary across all workspaces
-  server.handle(RPC_CHANNELS.sessions.GET_UNREAD_SUMMARY, async () => {
+  server.handle(RPC_CHANNELS.sessions.GET_UNREAD_SUMMARY, async (ctx) => {
     try {
       await sessionManager.waitForInit()
     } catch (error) {
       log.error('GET_UNREAD_SUMMARY continuing after initialization failure:', error)
     }
-    return sessionManager.getUnreadSummary()
+    const summary = sessionManager.getUnreadSummary()
+    if (!ctx.userId || !deps.accountStore) return summary
+
+    const ownedIds = new Set(await deps.accountStore.listWorkspaceIds(ctx.userId))
+    const byWorkspace = Object.fromEntries(
+      Object.entries(summary.byWorkspace).filter(([workspaceId]) => ownedIds.has(workspaceId)),
+    )
+    const hasUnreadByWorkspace = Object.fromEntries(
+      Object.entries(summary.hasUnreadByWorkspace).filter(([workspaceId]) => ownedIds.has(workspaceId)),
+    )
+    return {
+      totalUnreadSessions: Object.values(byWorkspace).reduce((sum, count) => sum + count, 0),
+      byWorkspace,
+      hasUnreadByWorkspace,
+    }
   })
 
-  server.handle(RPC_CHANNELS.sessions.MARK_ALL_READ, async (_ctx, workspaceId: string) => {
+  server.handle(RPC_CHANNELS.sessions.MARK_ALL_READ, async (ctx, workspaceId: string) => {
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
     return sessionManager.markAllSessionsRead(workspaceId)
   })
 
   // Get a single session with messages (for lazy loading)
-  server.handle(RPC_CHANNELS.sessions.GET_MESSAGES, async (_ctx, sessionId: string) => {
+  server.handle(RPC_CHANNELS.sessions.GET_MESSAGES, async (ctx, sessionId: string) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     const end = perf.start('rpc.getSessionMessages')
     const session = await sessionManager.getSession(sessionId)
     end()
@@ -151,7 +176,8 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   })
 
   // Create a new session
-  server.handle(RPC_CHANNELS.sessions.CREATE, async (_ctx, workspaceId: string, options?: import('@rox-agent/shared/protocol').CreateSessionOptions) => {
+  server.handle(RPC_CHANNELS.sessions.CREATE, async (ctx, workspaceId: string, options?: import('@rox-agent/shared/protocol').CreateSessionOptions) => {
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
     const end = perf.start('rpc.createSession', { workspaceId })
     const session = await sessionManager.createSession(workspaceId, options)
     end()
@@ -159,7 +185,8 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   })
 
   // Delete a session
-  server.handle(RPC_CHANNELS.sessions.DELETE, async (_ctx, sessionId: string) => {
+  server.handle(RPC_CHANNELS.sessions.DELETE, async (ctx, sessionId: string) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.deleteSession(sessionId)
   })
 
@@ -168,6 +195,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   // The IPC handler returns immediately, and results come through SESSION_EVENT channel.
   // attachments: FileAttachment[] for Claude (has content), storedAttachments: StoredAttachment[] for persistence (has thumbnailBase64)
   server.handle(RPC_CHANNELS.sessions.SEND_MESSAGE, async (ctx, sessionId: string, message: string, attachments?: FileAttachment[], storedAttachments?: StoredAttachment[], options?: SendMessageOptions) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     // Capture the caller's clientId for error routing
     const callerClientId = ctx.clientId
 
@@ -191,12 +219,14 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   })
 
   // Cancel processing
-  server.handle(RPC_CHANNELS.sessions.CANCEL, async (_ctx, sessionId: string, silent?: boolean) => {
+  server.handle(RPC_CHANNELS.sessions.CANCEL, async (ctx, sessionId: string, silent?: boolean) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.cancelProcessing(sessionId, silent)
   })
 
   // Kill background shell
-  server.handle(RPC_CHANNELS.sessions.KILL_SHELL, async (_ctx, sessionId: string, shellId: string) => {
+  server.handle(RPC_CHANNELS.sessions.KILL_SHELL, async (ctx, sessionId: string, shellId: string) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.killShell(sessionId, shellId)
   })
 
@@ -213,13 +243,15 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Respond to a permission request (bash command approval)
   // Returns true if the response was delivered, false if agent/session is gone
-  server.handle(RPC_CHANNELS.sessions.RESPOND_TO_PERMISSION, async (_ctx, sessionId: string, requestId: string, allowed: boolean, alwaysAllow: boolean) => {
+  server.handle(RPC_CHANNELS.sessions.RESPOND_TO_PERMISSION, async (ctx, sessionId: string, requestId: string, allowed: boolean, alwaysAllow: boolean) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.respondToPermission(sessionId, requestId, allowed, alwaysAllow)
   })
 
   // Respond to a credential request (secure auth input)
   // Returns true if the response was delivered, false if agent/session is gone
-  server.handle(RPC_CHANNELS.sessions.RESPOND_TO_CREDENTIAL, async (_ctx, sessionId: string, requestId: string, response: import('@rox-agent/shared/protocol').CredentialResponse) => {
+  server.handle(RPC_CHANNELS.sessions.RESPOND_TO_CREDENTIAL, async (ctx, sessionId: string, requestId: string, response: import('@rox-agent/shared/protocol').CredentialResponse) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.respondToCredential(sessionId, requestId, response)
   })
 
@@ -229,10 +261,11 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Session commands - consolidated handler for session operations
   server.handle(RPC_CHANNELS.sessions.COMMAND, async (
-    _ctx,
+    ctx,
     sessionId: string,
     command: import('@rox-agent/shared/protocol').SessionCommand
   ) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     switch (command.type) {
       case 'flag':
         return sessionManager.flagSession(sessionId)
@@ -316,17 +349,19 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Get pending plan execution state (for reload recovery)
   server.handle(RPC_CHANNELS.sessions.GET_PENDING_PLAN_EXECUTION, async (
-    _ctx,
+    ctx,
     sessionId: string
   ) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.getPendingPlanExecution(sessionId)
   })
 
   // Get authoritative permission mode diagnostics for renderer reconciliation
   server.handle(RPC_CHANNELS.sessions.GET_PERMISSION_MODE_STATE, async (
-    _ctx,
+    ctx,
     sessionId: string
   ) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.getSessionPermissionModeState(sessionId)
   })
 
@@ -335,7 +370,8 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   // ============================================================
 
   // Search session content using ripgrep
-  server.handle(RPC_CHANNELS.sessions.SEARCH_CONTENT, async (_ctx, workspaceId: string, query: string, searchId?: string) => {
+  server.handle(RPC_CHANNELS.sessions.SEARCH_CONTENT, async (ctx, workspaceId: string, query: string, searchId?: string) => {
+    await requireWorkspaceAccess(deps, ctx, workspaceId)
     const id = searchId || Date.now().toString(36)
     log.info('[search]','ipc:request', { searchId: id, query })
 
@@ -374,7 +410,8 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   // ============================================================
 
   // Get files in session directory (recursive tree structure)
-  server.handle(RPC_CHANNELS.sessions.GET_FILES, async (_ctx, sessionId: string) => {
+  server.handle(RPC_CHANNELS.sessions.GET_FILES, async (ctx, sessionId: string) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     const sessionPath = sessionManager.getSessionPath(sessionId)
     if (!sessionPath) return []
 
@@ -388,6 +425,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Start watching a session directory for file changes (per client)
   server.handle(RPC_CHANNELS.sessions.WATCH_FILES, async (ctx, sessionId: string) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     const clientId = ctx.clientId
     cleanupSessionFileWatchForClient(clientId)
 
@@ -431,7 +469,8 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   })
 
   // Get session notes (reads notes.md from session directory)
-  server.handle(RPC_CHANNELS.sessions.GET_NOTES, async (_ctx, sessionId: string) => {
+  server.handle(RPC_CHANNELS.sessions.GET_NOTES, async (ctx, sessionId: string) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     const sessionPath = sessionManager.getSessionPath(sessionId)
     if (!sessionPath) return ''
 
@@ -446,7 +485,8 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   })
 
   // Set session notes (writes to notes.md in session directory)
-  server.handle(RPC_CHANNELS.sessions.SET_NOTES, async (_ctx, sessionId: string, content: string) => {
+  server.handle(RPC_CHANNELS.sessions.SET_NOTES, async (ctx, sessionId: string, content: string) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     const sessionPath = sessionManager.getSessionPath(sessionId)
     if (!sessionPath) {
       throw new Error(`Session not found: ${sessionId}`)
@@ -467,6 +507,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Export a session as a portable bundle
   server.handle(RPC_CHANNELS.sessions.EXPORT, async (ctx, sessionId: string) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     await sessionManager.waitForInit()
     const workspaceId = ctx.workspaceId ?? deps.windowManager?.getWorkspaceForWindow(ctx.webContentsId!)
     if (!workspaceId) throw new Error('No workspace context')
@@ -479,9 +520,10 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   // Import a session bundle into a target workspace
   // targetWorkspaceId is passed explicitly (not from context) so the renderer
   // can import into any workspace the server manages, not just the active one.
-  const importHandler = async (_ctx: any, targetWorkspaceId: string, bundle: unknown, mode: string) => {
+  const importHandler = async (ctx: any, targetWorkspaceId: string, bundle: unknown, mode: string) => {
     await sessionManager.waitForInit()
     if (!targetWorkspaceId || typeof targetWorkspaceId !== 'string') throw new Error('targetWorkspaceId is required')
+    await requireWorkspaceAccess(deps, ctx, targetWorkspaceId)
     if (mode !== 'move' && mode !== 'fork') throw new Error(`Invalid dispatch mode: ${mode}`)
 
     return sessionManager.importSession(targetWorkspaceId, bundle as import('@rox-agent/shared/sessions').SessionBundle, mode)
@@ -492,6 +534,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Export a session as a summarized remote-transfer payload.
   server.handle(RPC_CHANNELS.sessions.EXPORT_REMOTE_TRANSFER, async (ctx, sessionId: string) => {
+    await requireSessionAccess(deps, ctx, sessionId)
     await sessionManager.waitForInit()
     const workspaceId = ctx.workspaceId ?? deps.windowManager?.getWorkspaceForWindow(ctx.webContentsId!)
     if (!workspaceId) throw new Error('No workspace context')
@@ -502,9 +545,10 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   })
 
   // Import a summarized remote-transfer payload into a target workspace.
-  server.handle(RPC_CHANNELS.sessions.IMPORT_REMOTE_TRANSFER, async (_ctx, targetWorkspaceId: string, payload: import('@rox-agent/shared/protocol').RemoteSessionTransferPayload) => {
+  server.handle(RPC_CHANNELS.sessions.IMPORT_REMOTE_TRANSFER, async (ctx, targetWorkspaceId: string, payload: import('@rox-agent/shared/protocol').RemoteSessionTransferPayload) => {
     await sessionManager.waitForInit()
     if (!targetWorkspaceId || typeof targetWorkspaceId !== 'string') throw new Error('targetWorkspaceId is required')
+    await requireWorkspaceAccess(deps, ctx, targetWorkspaceId)
     return sessionManager.importRemoteSessionTransfer(targetWorkspaceId, payload)
   })
 }

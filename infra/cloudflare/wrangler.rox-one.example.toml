@@ -1,0 +1,11 @@
+name = "rox-one-router"
+main = "./rox-one-router.worker.ts"
+compatibility_date = "2026-04-28"
+
+routes = [
+  { pattern = "rox.one/*", zone_name = "rox.one" }
+]
+
+[vars]
+ROX_ONE_MARKETING_ORIGIN = "https://rox-one.pages.dev"
+ROX_ONE_WEBUI_ORIGIN = "https://app.rox.one"

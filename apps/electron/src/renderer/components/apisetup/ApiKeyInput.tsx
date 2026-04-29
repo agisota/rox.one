@@ -32,6 +32,8 @@ import {
 
 import type { CustomEndpointApi, CustomEndpointConfig } from '@config/llm-connections'
 
+const DEFAULT_ENDPOINT_PROVIDERS = new Set(['anthropic', 'openai', 'pi', 'google'])
+
 export type ApiKeyStatus = 'idle' | 'validating' | 'success' | 'error'
 
 export type { CustomEndpointApi }
@@ -89,9 +91,13 @@ interface Preset {
   placeholder?: string
 }
 
+const ROX_ONE_MODELS = 'kmc/kimi-latest, kmc/kimi-k2.5-thinking, kmc/kimi-k2.5, kmc/kimi-k2.6, glm/glm-5, glm/glm-5-turbo, glm/glm-5.1, cx/gpt-5.5, cx/gpt-5.4, cx/gpt-5.3-codex, xai/grok-4.20-reasoning, xai/grok-4.20-non-reasoning, xai/grok-4-1-fast-reasoning, xai/grok-4-1-fast-non-reasoning'
+
 // Anthropic provider presets - for Claude Code backend
 // Also used by Pi API key flow (same providers, routed via Pi SDK)
+// ROX ONE is the default preset (first position = auto-selected)
 const ANTHROPIC_PRESETS: Preset[] = [
+  { key: 'rox-one', label: 'ROX ONE', url: 'https://api.rox.one/v1', placeholder: 'Paste your API key here...' },
   { key: 'anthropic', label: 'Anthropic', url: 'https://api.anthropic.com', placeholder: 'sk-ant-...' },
   { key: 'openai', label: 'OpenAI', url: 'https://api.openai.com/v1', placeholder: 'sk-...' },
   { key: 'openai-eu', label: 'OpenAI EU', url: 'https://eu.api.openai.com/v1', placeholder: 'sk-...' },
@@ -122,7 +128,7 @@ const OPENAI_PRESETS: Preset[] = [
 
 // Pi provider presets - unified API for 20+ LLM providers
 const PI_PRESETS: Preset[] = [
-  { key: 'pi', label: 'ROX.ONE Backend (Direct)', url: '' },
+  { key: 'pi', label: 'ROX ONE Backend (Direct)', url: '' },
   { key: 'openrouter', label: 'OpenRouter', url: 'https://openrouter.ai/api' },
   { key: 'custom', label: 'Custom', url: '' },
 ]
@@ -218,7 +224,6 @@ export function ApiKeyInput({
   const isPiApiKeyFlow = providerType === 'pi_api_key'
   const isBedrock = activePreset === 'amazon-bedrock'
   // Hide endpoint/model fields for providers with well-known endpoints handled by the SDK
-  const DEFAULT_ENDPOINT_PROVIDERS = new Set(['anthropic', 'openai', 'pi', 'google'])
   const isDefaultProviderPreset = DEFAULT_ENDPOINT_PROVIDERS.has(activePreset)
 
   // Provider-specific placeholders from the active preset
@@ -254,7 +259,7 @@ export function ApiKeyInput({
     } finally {
       setPiModelsLoading(false)
     }
-  }, [isPiApiKeyFlow])
+  }, [isPiApiKeyFlow, initialPreset, initialValues?.models])
 
   useEffect(() => {
     loadPiModels(activePreset)
@@ -276,7 +281,9 @@ export function ApiKeyInput({
     setModelError(null)
     // Pre-fill recommended model for Ollama; clear for all others
     // (Default provider presets hide the field entirely, others default to provider model IDs when empty)
-    if (preset.key === 'ollama') {
+    if (preset.key === 'rox-one') {
+      setConnectionDefaultModel(ROX_ONE_MODELS)
+    } else if (preset.key === 'ollama') {
       setConnectionDefaultModel('qwen3-coder')
     } else if (preset.key === 'openrouter' || preset.key === 'vercel-ai-gateway') {
       setConnectionDefaultModel(providerType === 'openai' ? COMPAT_OPENAI_DEFAULTS : COMPAT_ANTHROPIC_DEFAULTS)
@@ -305,7 +312,9 @@ export function ApiKeyInput({
     setLastNonCustomPreset(nextPresetState.lastNonCustomPreset)
     setModelError(null)
     if (!connectionDefaultModel.trim()) {
-      if (presetKey === 'ollama') {
+      if (presetKey === 'rox-one') {
+        setConnectionDefaultModel(ROX_ONE_MODELS)
+      } else if (presetKey === 'ollama') {
         setConnectionDefaultModel('qwen3-coder')
       } else if (presetKey === 'minimax-global' || presetKey === 'minimax-cn') {
         setConnectionDefaultModel(COMPAT_MINIMAX_DEFAULTS)

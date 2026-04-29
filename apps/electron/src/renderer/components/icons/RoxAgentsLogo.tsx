@@ -1,11 +1,9 @@
+import pzdrkIcon from "@/assets/pzdrk.png"
+
 interface RoxAgentsLogoProps {
   className?: string
 }
 
-/**
- * ROX ONE logo - crystal symbol + wordmark
- * Uses accent color from theme (currentColor from className)
- */
 export function RoxAgentsLogo({ className }: RoxAgentsLogoProps) {
   return (
     <svg
@@ -14,22 +12,13 @@ export function RoxAgentsLogo({ className }: RoxAgentsLogoProps) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <path
-        d="M12 2L22 12L12 22L2 12Z"
-        fill="currentColor"
-        fillOpacity="0.95"
-      />
-      <path
-        d="M12 2L12 22"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeOpacity="0.3"
-      />
-      <path
-        d="M2 12L22 12"
-        stroke="currentColor"
-        strokeWidth="1"
-        strokeOpacity="0.2"
+      <image
+        href={pzdrkIcon}
+        x="0"
+        y="0"
+        width="24"
+        height="24"
+        preserveAspectRatio="xMidYMid meet"
       />
       <text
         x="28"

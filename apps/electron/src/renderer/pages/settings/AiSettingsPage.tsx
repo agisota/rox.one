@@ -225,10 +225,10 @@ function ConnectionRow({ connection, isLastConnection, onRenameClick, onDelete, 
         const piLabel = !isSubscription && connection.piAuthProvider
           ? PI_AUTH_PROVIDER_LABELS[connection.piAuthProvider]
           : null
-        parts.push(piLabel ?? 'ROX.ONE Backend')
+        parts.push(piLabel ?? 'ROX ONE Backend')
         break
       }
-      case 'pi_compat': parts.push('ROX.ONE Backend Compatible'); break
+      case 'pi_compat': parts.push('ROX ONE Backend Compatible'); break
       default: parts.push(provider || 'Unknown')
     }
 
@@ -392,7 +392,7 @@ function WorkspaceOverrideCard({ workspace, llmConnections, onSettingsChange }: 
         description: message,
       })
     }
-  }, [workspace.id, onSettingsChange, settings])
+  }, [workspace.id, onSettingsChange, settings, t])
 
   const handleConnectionChange = useCallback((slug: string) => {
     // 'global' means use app default (clear workspace override)
@@ -502,7 +502,7 @@ function WorkspaceOverrideCard({ workspace, llmConnections, onSettingsChange }: 
                     value: conn.slug,
                     label: conn.name,
                     description: conn.providerType === 'anthropic' ? 'Anthropic' :
-                                 conn.providerType === 'pi' ? 'ROX.ONE Backend' :
+                                 conn.providerType === 'pi' ? 'ROX ONE Backend' :
                                  conn.providerType || 'Unknown',
                   })),
                 ]}
@@ -917,8 +917,8 @@ export default function AiSettingsPage() {
                       value: conn.slug,
                       label: conn.name,
                       description: conn.providerType === 'anthropic' ? 'Anthropic API' :
-                                   conn.providerType === 'pi' ? 'ROX.ONE Backend' :
-                                   conn.providerType === 'pi_compat' ? 'ROX.ONE Backend Compatible' :
+                                   conn.providerType === 'pi' ? 'ROX ONE Backend' :
+                                   conn.providerType === 'pi_compat' ? 'ROX ONE Backend Compatible' :
                                    conn.providerType || 'Unknown',
                     }))}
                   />

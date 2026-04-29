@@ -200,6 +200,9 @@ export function TopBar({
   const quitHotkey = useActionLabel('app.quit').hotkey
   const goBackHotkey = useActionLabel('nav.goBackAlt').hotkey
   const goForwardHotkey = useActionLabel('nav.goForwardAlt').hotkey
+  const browserTabLabel = t("browser.newWindow") === 'New Browser Window'
+    ? 'New Browser Tab'
+    : t("browser.newWindow")
 
   useEffect(() => {
     window.electronAPI.isDebugMode().then(setIsDebugMode)
@@ -264,7 +267,7 @@ export function TopBar({
         </Tooltip>
         )}
 
-        {/* Rox Menu */}
+        {/* ROX ONE Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <TopBarButton aria-label={t("menu.roxMenu")}>
@@ -430,10 +433,24 @@ export function TopBar({
             </StyledDropdownMenuItem>
             <StyledDropdownMenuItem onClick={onAddBrowserPanel}>
               <Icons.Globe className="h-3.5 w-3.5" />
-              {t("browser.newWindow")}
+              {browserTabLabel}
             </StyledDropdownMenuItem>
           </StyledDropdownMenuContent>
         </DropdownMenu>
+
+        {/* Account button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <TopBarButton
+              aria-label={t("settings.account.title")}
+              className="h-[26px] w-[26px] rounded-lg"
+              onClick={() => onOpenSettingsSubpage('account')}
+            >
+              <Icons.CircleUserRound className="h-4 w-4 text-foreground/50" strokeWidth={1.5} />
+            </TopBarButton>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">{t("settings.account.title")}</TooltipContent>
+        </Tooltip>
 
         {/* Help button */}
         <DropdownMenu>

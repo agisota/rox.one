@@ -8,6 +8,7 @@
  */
 
 import { resolve } from 'path'
+import { isLoopbackBaseUrl } from '@rox-agent/server-core/domain'
 import { CliRpcClient } from './client.ts'
 
 // ---------------------------------------------------------------------------
@@ -38,6 +39,24 @@ export interface CliArgs {
   model: string
   apiKey: string
   baseUrl: string
+}
+
+export function normalizeBaseUrl(provider: string, baseUrl: string): string {
+  const trimmed = baseUrl.trim()
+  if (!trimmed) return ''
+  if (provider === 'anthropic' || !isLoopbackBaseUrl(trimmed)) return trimmed
+
+  try {
+    const url = new URL(trimmed)
+    if (url.pathname === '' || url.pathname === '/') {
+      url.pathname = '/v1'
+      return url.toString()
+    }
+  } catch {
+    // Keep invalid values unchanged so downstream validation surfaces the error.
+  }
+
+  return trimmed
 }
 
 export function parseArgs(argv: string[]): CliArgs {
@@ -153,6 +172,7 @@ export function parseArgs(argv: string[]): CliArgs {
   if (!model) model = process.env.LLM_MODEL ?? ''
   if (!apiKey) apiKey = process.env.LLM_API_KEY ?? ''
   if (!baseUrl) baseUrl = process.env.LLM_BASE_URL ?? ''
+  baseUrl = normalizeBaseUrl(provider, baseUrl)
 
   return { url, token, workspace, timeout, json, tlsCa, sendTimeout, command, rest, sources, mode, outputFormat, noCleanup, noSpinner, verbose, serverEntry, workspaceDir, provider, model, apiKey, baseUrl }
 }
@@ -525,9 +545,10 @@ const PROVIDER_ENV_KEYS: Record<string, string> = {
   huggingface: 'HUGGINGFACE_API_KEY',
 }
 
-function resolveApiKey(provider: string, explicit: string): string {
+export function resolveApiKey(provider: string, explicit: string, baseUrl = ''): string {
   if (explicit) return explicit
   if (provider === 'amazon-bedrock') return '' // IAM credentials, not API key
+  if (baseUrl && isLoopbackBaseUrl(baseUrl)) return ''
   const envKey = PROVIDER_ENV_KEYS[provider]
   if (envKey && process.env[envKey]) return process.env[envKey]!
   throw new Error(
@@ -540,7 +561,7 @@ async function setupLlmConnection(
   args: CliArgs,
 ): Promise<{ connectionSlug: string }> {
   const { provider, baseUrl } = args
-  const key = resolveApiKey(provider, args.apiKey)
+  const key = resolveApiKey(provider, args.apiKey, baseUrl)
   const connectionSlug = `${provider}-cli`
 
   let providerType: string

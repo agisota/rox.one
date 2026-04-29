@@ -2,7 +2,7 @@
  * AI-powered URL validation using Claude Agent SDK
  *
  * Uses Claude Haiku for lightweight, cost-efficient URL validation
- * with contextual understanding of valid Rox MCP URL patterns.
+ * with contextual understanding of valid ROX ONE MCP URL patterns.
  */
 
 import { query, type Options } from '@anthropic-ai/claude-agent-sdk';
@@ -21,7 +21,7 @@ export interface UrlValidationResult {
   typedError?: AgentError;
 }
 
-const SYSTEM_PROMPT = `You are a URL validator for Rox MCP servers. Your ONLY job is to validate if a URL is a valid Rox MCP URL.
+const SYSTEM_PROMPT = `You are a URL validator for ROX ONE MCP servers. Your ONLY job is to validate if a URL is a valid ROX ONE MCP URL.
 
 VALID URL EXAMPLES:
 - https://mcp.rox.one/links/DSdsfdsjkf34235/mcp

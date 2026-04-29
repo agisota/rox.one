@@ -4,7 +4,7 @@ This guide covers how to present structured data using datatable and spreadsheet
 
 ## Overview
 
-ROX.ONE supports three ways to display tabular data:
+ROX ONE supports three ways to display tabular data:
 
 | Format | Best For | Interactivity |
 |--------|----------|---------------|

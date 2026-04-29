@@ -65,7 +65,7 @@ const failedAuthState: TransportConnectionState = {
   status: 'failed',
   url: 'wss://remote.example.com',
   attempt: 5,
-  lastError: { kind: 'auth', message: 'Authentication failed. Verify ROX_SERVER_TOKEN.' },
+  lastError: { kind: 'auth', message: 'Ошибка аутентификации. Проверьте ROX_SERVER_TOKEN.' },
   updatedAt: Date.now(),
 }
 
@@ -74,7 +74,7 @@ const failedNetworkState: TransportConnectionState = {
   status: 'failed',
   url: 'wss://remote.example.com',
   attempt: 3,
-  lastError: { kind: 'network', message: 'Could not connect to wss://remote.example.com. Is the remote server running?' },
+  lastError: { kind: 'network', message: 'Не удалось подключиться к wss://remote.example.com. Проверьте, что удалённый сервер запущен.' },
   updatedAt: Date.now(),
 }
 

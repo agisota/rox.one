@@ -269,7 +269,7 @@ function createSessionTools(includeDeveloperFeedback: boolean): Tool[] {
 }
 
 // ============================================================
-// ROX.ONE Docs Upstream Proxy
+// ROX ONE Docs Upstream Proxy
 // ============================================================
 
 const DOCS_MCP_URL = 'https://rox.one/docs/mcp';
@@ -279,7 +279,7 @@ let docsClient: Client | null = null;
 let docsTools: Tool[] = [];
 
 /**
- * Connect to the rox-agents-docs MCP server and fetch its tool definitions.
+ * Connect to the ROX ONE Docs MCP server (`rox-agents-docs`) and fetch its tool definitions.
  * Falls back gracefully if the server is unreachable (tools will just be empty).
  */
 async function connectDocsUpstream(): Promise<void> {
@@ -296,9 +296,9 @@ async function connectDocsUpstream(): Promise<void> {
     docsTools = (result.tools || []) as Tool[];
     docsClient = client;
 
-    console.error(`ROX.ONE Docs proxy connected: ${docsTools.length} tools`);
+    console.error(`ROX ONE Docs proxy connected: ${docsTools.length} tools`);
   } catch (err) {
-    console.error(`ROX.ONE Docs proxy connection failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`ROX ONE Docs proxy connection failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
     docsClient = null;
     docsTools = [];
   }
@@ -312,7 +312,7 @@ async function callDocsUpstream(
   args: Record<string, unknown>
 ): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
   if (!docsClient) {
-    return errorResponse(`ROX.ONE Docs server is not connected. Tool '${name}' unavailable.`);
+    return errorResponse(`ROX ONE Docs server is not connected. Tool '${name}' unavailable.`);
   }
 
   try {

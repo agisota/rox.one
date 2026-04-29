@@ -1516,13 +1516,17 @@ export class SessionManager implements ISessionManager {
 
       // Get the connection to use (explicit parameter or default)
       const slug = connectionSlug || getDefaultLlmConnection()
-      if (!slug) {
-        sessionLog.warn('No LLM connection slug available for reinitializeAuth')
-      }
-      const connection = slug ? getLlmConnection(slug) : null
 
       // Restore managed auth env vars to their baseline before applying this connection.
       resetManagedAnthropicAuthEnvVars()
+
+      if (!slug) {
+        sessionLog.info('Skipping auth reinitialization: no LLM connection configured yet')
+        resetSummarizationClient()
+        return
+      }
+
+      const connection = getLlmConnection(slug)
 
       if (!connection) {
         sessionLog.error(`No LLM connection found for slug: ${slug}`)

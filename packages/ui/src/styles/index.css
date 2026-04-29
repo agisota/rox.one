@@ -323,6 +323,14 @@ html[data-font="inter"] {
     --tw-ring-width: var(--ring-width);
     --tw-ring-color: var(--ring);
   }
+
+  [data-ca-block-annotated="true"] {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--info) 22%, transparent);
+  }
+
+  code[data-ca-annotation-inline-code="true"] {
+    box-shadow: none;
+  }
 }
 
 /* =============================================================================

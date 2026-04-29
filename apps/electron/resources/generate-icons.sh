@@ -4,7 +4,7 @@
 
 set -e
 
-INPUT_SOURCE="${1:-icon.svg}"
+INPUT_SOURCE="${1:-icon.icon/Assets/icon.png}"
 TEMP_SOURCE=""
 ICONSET="icon.iconset"
 
@@ -52,12 +52,23 @@ sips -z 512 512 "$SOURCE" --out "$ICONSET/icon_512x512.png" > /dev/null
 sips -z 1024 1024 "$SOURCE" --out "$ICONSET/icon_512x512@2x.png" > /dev/null
 
 # Generate .icns for macOS
-echo "Creating icon.icns..."
-iconutil -c icns "$ICONSET" -o icon.icns
-
 # Generate icon.png for Linux (512x512)
 echo "Creating icon.png for Linux..."
 sips -z 512 512 "$SOURCE" --out icon.png > /dev/null
+
+# Generate the macOS app icon. Some macOS/Xcode combinations reject a valid
+# iconset, so keep a sips fallback that still updates the packaged icon.
+echo "Creating icon.icns..."
+if ! iconutil -c icns "$ICONSET" -o icon.icns; then
+    echo "Warning: iconutil rejected the generated iconset. Falling back to sips."
+    sips -s format icns icon.png --out icon.icns > /dev/null
+fi
+
+# Generate the macOS 26+ Liquid Glass catalog source.
+if [ -d "icon.icon/Assets" ]; then
+    echo "Creating Liquid Glass catalog source..."
+    sips -z 1024 1024 "$SOURCE" --out "icon.icon/Assets/icon.png" > /dev/null
+fi
 
 # Generate icon.ico for Windows using ImageMagick when available,
 # otherwise fall back to Pillow if Python imaging support exists.

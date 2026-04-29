@@ -58,6 +58,9 @@ function extractSessionCookie(res: Response): string {
 }
 
 afterEach(() => {
+  delete process.env.ROX_TRUST_FORWARDED_HEADERS
+  delete process.env.ROX_WEBUI_TRUSTED_PROXIES
+
   while (SERVERS.length > 0) {
     SERVERS.pop()?.stop()
   }
@@ -92,6 +95,7 @@ describe('startWebuiHttpServer', () => {
     expect(configRes.status).toBe(200)
     expect(await configRes.json()).toEqual({
       wsUrl: 'wss://127.0.0.1:9100',
+      authMode: 'legacy',
     })
   })
 
@@ -122,6 +126,8 @@ describe('startWebuiHttpServer', () => {
   })
 
   it('infers secure cookies from proxy https headers when no override is set', async () => {
+    process.env.ROX_TRUST_FORWARDED_HEADERS = '1'
+    process.env.ROX_WEBUI_TRUSTED_PROXIES = '*'
     const { baseUrl } = await createServer({ wsProtocol: 'wss', wsPort: 9100 })
 
     const res = await fetch(`${baseUrl}/api/auth`, {
@@ -138,6 +144,8 @@ describe('startWebuiHttpServer', () => {
   })
 
   it('derives a browser-facing websocket URL from forwarded public host headers', async () => {
+    process.env.ROX_TRUST_FORWARDED_HEADERS = '1'
+    process.env.ROX_WEBUI_TRUSTED_PROXIES = '*'
     const { baseUrl } = await createServer({ wsProtocol: 'wss', wsPort: 9100 })
 
     const authRes = await fetch(`${baseUrl}/api/auth`, {
@@ -161,6 +169,7 @@ describe('startWebuiHttpServer', () => {
     expect(configRes.status).toBe(200)
     expect(await configRes.json()).toEqual({
       wsUrl: 'wss://rox.example.com:9100',
+      authMode: 'legacy',
     })
   })
 
@@ -186,6 +195,7 @@ describe('startWebuiHttpServer', () => {
     expect(configRes.status).toBe(200)
     expect(await configRes.json()).toEqual({
       wsUrl: 'wss://rox.example.com/ws',
+      authMode: 'legacy',
     })
   })
 })

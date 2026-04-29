@@ -49,7 +49,7 @@ export interface SessionViewerProps {
 }
 
 /**
- * RoxAgentLogo - The ROX "C" logo for branding
+ * RoxAgentLogo - The ROX.ONE crystal logo for branding
  */
 function RoxAgentLogo({ className }: { className?: string }) {
   return (
@@ -59,12 +59,23 @@ function RoxAgentLogo({ className }: { className?: string }) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g transform="translate(3.4502, 3)" fill="currentColor">
-        <path
-          d="M3.17890888,3.6 L3.17890888,0 L16,0 L16,3.6 L3.17890888,3.6 Z M9.642,7.2 L9.64218223,10.8 L0,10.8 L0,3.6 L16,3.6 L16,7.2 L9.642,7.2 Z M3.17890888,18 L3.178,14.4 L0,14.4 L0,10.8 L16,10.8 L16,18 L3.17890888,18 Z"
-          fillRule="nonzero"
-        />
-      </g>
+      <path
+        d="M12 2L22 12L12 22L2 12Z"
+        fill="currentColor"
+        fillOpacity="0.95"
+      />
+      <path
+        d="M12 2L12 22"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeOpacity="0.3"
+      />
+      <path
+        d="M2 12L22 12"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeOpacity="0.2"
+      />
     </svg>
   )
 }
@@ -225,7 +236,7 @@ export function SessionViewer({
 
             {/* Bottom branding */}
             <div className={CHAT_CLASSES.brandingContainer}>
-              <RoxAgentLogo className="w-8 h-8 text-[#9570BE]/40" />
+              <RoxAgentLogo className="w-8 h-8 text-[#7C3AED]/40" />
             </div>
             </div>
           </div>

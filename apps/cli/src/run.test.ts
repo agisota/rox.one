@@ -167,7 +167,7 @@ mock.module('./server-spawner.ts', () => ({
 }))
 
 // Import main AFTER mocking
-const { parseArgs } = await import('./index.ts')
+const { parseArgs, resolveApiKey, normalizeBaseUrl } = await import('./index.ts')
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -330,6 +330,20 @@ describe('run command', () => {
     expect(args.workspaceDir).toBeUndefined()
   })
 
+  it('parseArgs: normalizes loopback OpenAI-compatible base URLs to /v1', () => {
+    const args = parseArgs([
+      'bun', 'index.ts',
+      '--provider', 'openai',
+      '--base-url', 'http://localhost:11434',
+      'run', 'hello',
+    ])
+    expect(args.baseUrl).toBe('http://localhost:11434/v1')
+  })
+
+  it('normalizeBaseUrl: leaves Anthropic-compatible loopback endpoints unchanged', () => {
+    expect(normalizeBaseUrl('anthropic', 'http://localhost:11434')).toBe('http://localhost:11434')
+  })
+
   it('workspace:create returns ID used directly (no workspaces:get needed)', async () => {
     const { CliRpcClient } = await import('./client.ts')
 
@@ -424,5 +438,10 @@ describe('run command', () => {
     expect(mockWsServer!.invokedChannels).toEqual(['LLM_Connection:list'])
 
     client.destroy()
+  })
+
+  it('resolveApiKey: allows empty key for loopback custom endpoints', () => {
+    expect(resolveApiKey('openai', '', 'http://localhost:11434')).toBe('')
+    expect(resolveApiKey('anthropic', '', 'http://127.0.0.1:11434/v1')).toBe('')
   })
 })

@@ -16,12 +16,17 @@ import {
   initPasswordHash,
   verifyPassword,
   createSessionToken,
+  createAccountSessionToken,
   validateSession,
+  validateAccountSession,
   buildSessionCookie,
   buildLogoutCookie,
 } from './auth'
 import { generateCallbackPage } from '@rox-agent/shared/auth'
 import type { PlatformServices } from '../runtime/platform'
+import type { AccountStore, PublicUser, SessionIdentity } from '../accounts'
+import { AccountAuthError, AccountConflictError } from '../accounts'
+import type { AccountEmailService } from './email'
 
 // ---------------------------------------------------------------------------
 // MIME types for static file serving
@@ -50,6 +55,57 @@ function getMimeType(path: string): string {
   return MIME_TYPES[extname(path).toLowerCase()] ?? 'application/octet-stream'
 }
 
+function redactAuthUrl(rawUrl: string): string {
+  try {
+    const url = new URL(rawUrl)
+    for (const key of ['token', 'code', 'state']) {
+      if (url.searchParams.has(key)) url.searchParams.set(key, '[redacted]')
+    }
+    return url.toString()
+  } catch {
+    return rawUrl.replace(/([?&](?:token|code|state)=)[^&\s]+/gi, '$1[redacted]')
+  }
+}
+
+const PEER_IP_HEADER = 'x-rox-peer-ip'
+
+function normalizeIp(value: string | null | undefined): string | null {
+  const trimmed = value?.trim()
+  if (!trimmed) return null
+  if (trimmed.startsWith('::ffff:')) return trimmed.slice('::ffff:'.length)
+  if (trimmed === '::1') return '127.0.0.1'
+  return trimmed.replace(/^\[|\]$/g, '')
+}
+
+function isLoopbackHost(host: string | null | undefined): boolean {
+  const trimmed = host?.trim().toLowerCase().replace(/^\[|\]$/g, '')
+  const normalized = trimmed?.replace(/:\d+$/, '')
+  return normalized === 'localhost'
+    || normalized === '127.0.0.1'
+    || normalized === '::1'
+}
+
+function isLoopbackIp(ip: string | null): boolean {
+  return ip === '127.0.0.1' || ip === '::1'
+}
+
+function parseTrustedProxyEnv(): Set<string> {
+  const raw = process.env.ROX_WEBUI_TRUSTED_PROXIES || process.env.ROX_TRUSTED_PROXIES || ''
+  return new Set(raw.split(/[,\s]+/).map(item => normalizeIp(item)).filter((item): item is string => Boolean(item)))
+}
+
+function isTrustedProxyPeer(peerIp: string | null, trustedProxies: Set<string>): boolean {
+  if (trustedProxies.has('*')) return true
+  if (!peerIp) return false
+  return trustedProxies.has(peerIp) || isLoopbackIp(peerIp)
+}
+
+function shouldTrustForwardedHeaders(req: Request): boolean {
+  if (process.env.ROX_TRUST_FORWARDED_HEADERS !== '1') return false
+  const peerIp = normalizeIp(req.headers.get(PEER_IP_HEADER))
+  return isTrustedProxyPeer(peerIp, parseTrustedProxyEnv())
+}
+
 function getForwardedValue(req: Request, key: 'proto' | 'host'): string | null {
   const forwarded = req.headers.get('forwarded')
   if (!forwarded) return null
@@ -59,12 +115,18 @@ function getForwardedValue(req: Request, key: 'proto' | 'host'): string | null {
 }
 
 function getRequestProto(req: Request): string {
+  if (!shouldTrustForwardedHeaders(req)) {
+    return new URL(req.url).protocol.replace(/:$/, '')
+  }
   return req.headers.get('x-forwarded-proto')?.split(',')[0]?.trim()
     || getForwardedValue(req, 'proto')
     || new URL(req.url).protocol.replace(/:$/, '')
 }
 
 function getRequestHost(req: Request): string | null {
+  if (!shouldTrustForwardedHeaders(req)) {
+    return req.headers.get('host')
+  }
   return req.headers.get('x-forwarded-host')?.split(',')[0]?.trim()
     || getForwardedValue(req, 'host')
     || req.headers.get('host')
@@ -83,7 +145,8 @@ function formatHostWithPort(host: string, port: number): string {
 
 export function shouldUseSecureCookies(req: Request, secureCookies?: boolean): boolean {
   if (secureCookies != null) return secureCookies
-  return getRequestProto(req) === 'https'
+  if (getRequestProto(req) === 'https') return true
+  return !isLoopbackHost(getRequestHost(req) ?? new URL(req.url).hostname)
 }
 
 export interface ResolveWebSocketUrlOptions {
@@ -139,6 +202,16 @@ export interface WebuiHandlerOptions {
   logger: PlatformServices['logger']
   /** OAuth callback deps — when provided, enables /api/oauth/callback route. */
   oauthCallbackDeps?: OAuthCallbackDeps
+  /** Optional hosted-account store. When present, WebUI uses email/password account auth. */
+  accountStore?: AccountStore
+  /** Whether open signup is enabled for hosted account mode. Default: true when accountStore exists. */
+  signupEnabled?: boolean
+  /** Public base URL used in email verification and password reset links. */
+  publicAppUrl?: string
+  /** Transactional email delivery for verification/reset/security messages. */
+  accountEmailService?: AccountEmailService
+  /** Optional account bootstrap hook, e.g. grant first user access to existing workspaces. */
+  bootstrapAccount?: (user: PublicUser) => Promise<void>
   /**
    * Trusted proxy IPs/CIDRs. When set, proxy headers (x-forwarded-for, x-forwarded-proto)
    * are only trusted from these sources. When empty/unset, proxy headers are ignored
@@ -178,6 +251,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
     getHealthCheck,
     logger,
     trustedProxies,
+    accountStore,
   } = options
 
   const rateLimiter = new RateLimiter(5, 60_000)
@@ -185,18 +259,118 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
 
   const loginPassword = password || secret
   const trustedProxySet = new Set(trustedProxies ?? [])
+  const accountAuthEnabled = Boolean(accountStore)
+  const signupEnabled = options.signupEnabled ?? accountAuthEnabled
 
   // Hash the login password at startup (async, but resolves before first auth attempt in practice)
   const passwordReady = initPasswordHash(loginPassword)
 
   /** Extract client IP — only trusts proxy headers when trustedProxies is configured. */
   function getClientIp(req: Request): string {
+    const peerIp = normalizeIp(req.headers.get(PEER_IP_HEADER))
     if (trustedProxySet.size > 0) {
-      return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-        ?? req.headers.get('x-real-ip')
-        ?? 'direct'
+      if (isTrustedProxyPeer(peerIp, trustedProxySet)) {
+        return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+          ?? req.headers.get('x-real-ip')
+          ?? peerIp
+          ?? 'direct'
+      }
     }
-    return 'direct'
+    return peerIp ?? 'direct'
+  }
+
+  function isEmail(value: unknown): value is string {
+    return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+  }
+
+  function isStrongEnoughPassword(value: unknown): value is string {
+    return typeof value === 'string' && value.length >= 8
+  }
+
+  function getPublicBaseUrl(req: Request): string {
+    const configured = options.publicAppUrl?.trim().replace(/\/+$/, '')
+    if (configured) return configured
+
+    const host = getRequestHost(req)
+    if (host) return `${getRequestProto(req)}://${host}`
+
+    return new URL(req.url).origin
+  }
+
+  function buildPublicUrl(req: Request, path: string): string {
+    return new URL(path, getPublicBaseUrl(req)).toString()
+  }
+
+  async function sendVerificationEmail(user: PublicUser, req: Request): Promise<void> {
+    if (!accountStore) return
+    const token = await accountStore.createEmailToken({ userId: user.id, purpose: 'verify_email' })
+    const url = buildPublicUrl(req, `/api/auth/verify-email?token=${encodeURIComponent(token.rawToken)}`)
+    if (options.accountEmailService) {
+      await options.accountEmailService.sendVerificationEmail({
+        to: user.email,
+        displayName: user.displayName,
+        url,
+        expiresAt: token.expiresAt,
+      })
+    } else {
+      logger.info(`[webui] Email verification link for ${user.email}: ${redactAuthUrl(url)}`)
+    }
+  }
+
+  async function sendPasswordResetEmail(user: PublicUser, req: Request): Promise<void> {
+    if (!accountStore) return
+    const token = await accountStore.createEmailToken({ userId: user.id, purpose: 'password_reset' })
+    const url = buildPublicUrl(req, `/reset-password?token=${encodeURIComponent(token.rawToken)}`)
+    if (options.accountEmailService) {
+      await options.accountEmailService.sendPasswordResetEmail({
+        to: user.email,
+        displayName: user.displayName,
+        url,
+        expiresAt: token.expiresAt,
+      })
+    } else {
+      logger.info(`[webui] Password reset link for ${user.email}: ${redactAuthUrl(url)}`)
+    }
+  }
+
+  async function validateWebuiSession(cookieHeader: string | null): Promise<{ kind: 'account'; identity: SessionIdentity } | { kind: 'legacy' } | null> {
+    if (accountStore) {
+      const identity = await validateAccountSession(cookieHeader, secret, accountStore)
+      return identity ? { kind: 'account', identity } : null
+    }
+
+    const legacy = await validateSession(cookieHeader, secret)
+    return legacy ? { kind: 'legacy' } : null
+  }
+
+  async function createAccountCookie(user: PublicUser, req: Request, useSecureCookies: boolean, authMethod: 'password' | 'email_verification' | 'password_reset' = 'password'): Promise<string | Response> {
+    if (!accountStore) {
+      return Response.json({ error: 'Account auth is not configured' }, { status: 503 })
+    }
+
+    const session = await accountStore.createSession({
+      userId: user.id,
+      userAgent: req.headers.get('user-agent'),
+      ipAddress: getClientIp(req),
+      authMethod,
+    })
+    const identity = await accountStore.getSessionIdentity(session.id)
+    if (!identity) {
+      return Response.json({ error: 'Failed to create session' }, { status: 500 })
+    }
+    const jwt = await createAccountSessionToken(secret, identity)
+    return buildSessionCookie(jwt, useSecureCookies)
+  }
+
+  async function issueAccountCookie(user: PublicUser, req: Request, useSecureCookies: boolean, authMethod: 'password' | 'email_verification' | 'password_reset' = 'password'): Promise<Response> {
+    const cookie = await createAccountCookie(user, req, useSecureCookies, authMethod)
+    if (typeof cookie !== 'string') return cookie
+    return Response.json({ ok: true, user }, {
+      status: 200,
+      headers: {
+        'Set-Cookie': cookie,
+      },
+    })
   }
 
   async function fetch(req: Request): Promise<Response> {
@@ -213,7 +387,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
     }
 
     // ── Login page (no auth) ──
-    if (path === '/login' || path === '/login/') {
+    if (path === '/login' || path === '/login/' || path === '/reset-password' || path === '/reset-password/') {
       const loginFile = Bun.file(join(webuiDir, 'login.html'))
       if (await loginFile.exists()) {
         return new Response(loginFile, {
@@ -234,8 +408,221 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       return new Response('Not Found', { status: 404 })
     }
 
-    // ── Auth endpoint ──
+    // ── Public auth mode endpoint used by the login page ──
+    if (path === '/api/auth/mode' && req.method === 'GET') {
+      return Response.json({
+        mode: accountAuthEnabled ? 'account' : 'legacy',
+        signupEnabled,
+        emailVerificationRequired: accountAuthEnabled,
+        passwordResetEnabled: accountAuthEnabled,
+        tokenLoginEnabled: !accountAuthEnabled,
+      })
+    }
+
+    // ── Hosted account signup endpoint ──
+    if (path === '/api/auth/register' && req.method === 'POST') {
+      if (!accountStore) {
+        return Response.json({ error: 'Account auth is not configured' }, { status: 503 })
+      }
+      if (!signupEnabled) {
+        return Response.json({ error: 'Signup is disabled' }, { status: 403 })
+      }
+
+      const ip = getClientIp(req)
+      if (!rateLimiter.check(ip)) {
+        logger.warn(`[webui] Rate limited signup attempt from ${ip}`)
+        return Response.json({ error: 'Too many attempts. Try again later.' }, { status: 429 })
+      }
+
+      let body: { email?: string; password?: string; displayName?: string | null }
+      try {
+        body = await req.json() as { email?: string; password?: string; displayName?: string | null }
+      } catch {
+        return Response.json({ error: 'Invalid request body' }, { status: 400 })
+      }
+
+      if (!isEmail(body.email)) {
+        return Response.json({ error: 'Valid email is required' }, { status: 400 })
+      }
+      if (!isStrongEnoughPassword(body.password)) {
+        return Response.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
+      }
+
+      try {
+        const user = await accountStore.createUser({
+          email: body.email,
+          password: body.password,
+          displayName: typeof body.displayName === 'string' ? body.displayName : null,
+        })
+        await options.bootstrapAccount?.(user)
+        await sendVerificationEmail(user, req)
+        logger.info(`[webui] Registered account ${user.email} from ${ip}`)
+        return Response.json({
+          ok: true,
+          verificationRequired: true,
+          user: {
+            email: user.email,
+            displayName: user.displayName,
+          },
+        })
+      } catch (error) {
+        if (error instanceof AccountConflictError) {
+          return Response.json({ error: 'Email is already registered' }, { status: 409 })
+        }
+        throw error
+      }
+    }
+
+    // ── Hosted account email verification ──
+    if (path === '/api/auth/verify-email' && req.method === 'GET') {
+      if (!accountStore) {
+        return Response.redirect(new URL('/login', req.url).toString(), 302)
+      }
+      const token = url.searchParams.get('token')
+      if (!token) {
+        return Response.redirect(new URL('/login?verified=missing', req.url).toString(), 302)
+      }
+
+      const tokenUser = await accountStore.consumeEmailToken('verify_email', token)
+      if (!tokenUser) {
+        return Response.redirect(new URL('/login?verified=invalid', req.url).toString(), 302)
+      }
+
+      const user = await accountStore.markEmailVerified(tokenUser.id)
+      const cookie = await createAccountCookie(user, req, useSecureCookies, 'email_verification')
+      if (typeof cookie !== 'string') return cookie
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: new URL('/', req.url).toString(),
+          'Set-Cookie': cookie,
+        },
+      })
+    }
+
+    // ── Resend verification email by email address. Response is intentionally neutral. ──
+    if (path === '/api/auth/verify-email/resend' && req.method === 'POST') {
+      if (!accountStore) {
+        return Response.json({ ok: true })
+      }
+      const ip = getClientIp(req)
+      if (!rateLimiter.check(ip)) {
+        return Response.json({ ok: true })
+      }
+      let body: { email?: string }
+      try {
+        body = await req.json() as { email?: string }
+      } catch {
+        return Response.json({ ok: true })
+      }
+      if (isEmail(body.email)) {
+        const user = await accountStore.getUserByEmail(body.email)
+        if (user && !user.emailVerifiedAt && user.status !== 'disabled') {
+          await sendVerificationEmail(user, req)
+        }
+      }
+      return Response.json({ ok: true })
+    }
+
+    // ── Hosted account login endpoint ──
+    if (path === '/api/auth/login' && req.method === 'POST') {
+      if (!accountStore) {
+        return Response.json({ error: 'Account auth is not configured' }, { status: 503 })
+      }
+
+      const ip = getClientIp(req)
+      if (!rateLimiter.check(ip)) {
+        logger.warn(`[webui] Rate limited login attempt from ${ip}`)
+        return Response.json({ error: 'Too many attempts. Try again later.' }, { status: 429 })
+      }
+
+      let body: { email?: string; password?: string }
+      try {
+        body = await req.json() as { email?: string; password?: string }
+      } catch {
+        return Response.json({ error: 'Invalid request body' }, { status: 400 })
+      }
+
+      if (!isEmail(body.email) || typeof body.password !== 'string') {
+        return Response.json({ error: 'Email and password are required' }, { status: 400 })
+      }
+
+      const user = await accountStore.verifyPassword(body.email, body.password)
+      if (!user) {
+        logger.warn(`[webui] Failed account login from ${ip}`)
+        return Response.json({ error: 'Invalid credentials' }, { status: 401 })
+      }
+      if (user.status === 'disabled') {
+        return Response.json({ error: 'Account is disabled' }, { status: 403 })
+      }
+      if (!user.emailVerifiedAt) {
+        return Response.json({ error: 'Email verification required', code: 'email_unverified' }, { status: 403 })
+      }
+
+      logger.info(`[webui] Successful account login for ${user.email} from ${ip}`)
+      return issueAccountCookie(user, req, useSecureCookies)
+    }
+
+    // ── Password reset request. Response is neutral to avoid account enumeration. ──
+    if (path === '/api/auth/password-reset/request' && req.method === 'POST') {
+      if (!accountStore) {
+        return Response.json({ ok: true })
+      }
+      const ip = getClientIp(req)
+      if (!rateLimiter.check(ip)) {
+        return Response.json({ ok: true })
+      }
+      let body: { email?: string }
+      try {
+        body = await req.json() as { email?: string }
+      } catch {
+        return Response.json({ ok: true })
+      }
+      if (isEmail(body.email)) {
+        const user = await accountStore.getUserByEmail(body.email)
+        if (user && user.status !== 'disabled') {
+          await sendPasswordResetEmail(user, req)
+        }
+      }
+      return Response.json({ ok: true })
+    }
+
+    if (path === '/api/auth/password-reset/confirm' && req.method === 'POST') {
+      if (!accountStore) {
+        return Response.json({ error: 'Account auth is not configured' }, { status: 503 })
+      }
+      let body: { token?: string; newPassword?: string }
+      try {
+        body = await req.json() as { token?: string; newPassword?: string }
+      } catch {
+        return Response.json({ error: 'Invalid request body' }, { status: 400 })
+      }
+      if (typeof body.token !== 'string' || !isStrongEnoughPassword(body.newPassword)) {
+        return Response.json({ error: 'Valid reset token and new 8+ character password are required' }, { status: 400 })
+      }
+
+      const tokenUser = await accountStore.consumeEmailToken('password_reset', body.token)
+      if (!tokenUser || tokenUser.status === 'disabled') {
+        return Response.json({ error: 'Reset link is invalid or expired' }, { status: 400 })
+      }
+
+      await accountStore.setPassword(tokenUser.id, body.newPassword)
+      await accountStore.markEmailVerified(tokenUser.id)
+      await accountStore.revokeUserSessions(tokenUser.id)
+      const user = await accountStore.getUser(tokenUser.id)
+      if (!user) return Response.json({ error: 'User not found' }, { status: 404 })
+      const cookie = await createAccountCookie(user, req, useSecureCookies, 'password_reset')
+      if (typeof cookie !== 'string') return cookie
+      return Response.json({ ok: true, user }, {
+        headers: { 'Set-Cookie': cookie },
+      })
+    }
+
+    // ── Legacy token/password auth endpoint ──
     if (path === '/api/auth' && req.method === 'POST') {
+      if (accountStore) {
+        return Response.json({ error: 'Use /api/auth/login for account auth' }, { status: 400 })
+      }
       await passwordReady
       const ip = getClientIp(req)
 
@@ -276,12 +663,149 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
 
     // ── Logout endpoint ──
     if (path === '/api/auth/logout' && req.method === 'POST') {
+      if (accountStore) {
+        const session = await validateWebuiSession(req.headers.get('cookie'))
+        if (session?.kind === 'account') {
+          await accountStore.revokeSession(session.identity.sessionId)
+        }
+      }
       return new Response(null, {
         status: 204,
         headers: {
           'Set-Cookie': buildLogoutCookie(useSecureCookies),
         },
       })
+    }
+
+    // ── Current account endpoint ──
+    if (path === '/api/account/me' && req.method === 'GET') {
+      const session = await validateWebuiSession(req.headers.get('cookie'))
+      if (!session) {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      if (session.kind === 'legacy') {
+        return Response.json({ mode: 'legacy', user: null })
+      }
+      const user = await accountStore!.getUser(session.identity.userId)
+      return Response.json({ mode: 'account', user, currentSessionId: session.identity.sessionId })
+    }
+
+    if (path === '/api/account/me' && req.method === 'PATCH') {
+      if (!accountStore) {
+        return Response.json({ error: 'Account auth is not configured' }, { status: 503 })
+      }
+      const session = await validateWebuiSession(req.headers.get('cookie'))
+      if (!session || session.kind !== 'account') {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      let body: { displayName?: string | null }
+      try {
+        body = await req.json() as { displayName?: string | null }
+      } catch {
+        return Response.json({ error: 'Invalid request body' }, { status: 400 })
+      }
+
+      const user = await accountStore.updateUser(session.identity.userId, {
+        displayName: typeof body.displayName === 'string' ? body.displayName : null,
+      })
+      return Response.json({ user })
+    }
+
+    if (path === '/api/account/password' && req.method === 'POST') {
+      if (!accountStore) {
+        return Response.json({ error: 'Account auth is not configured' }, { status: 503 })
+      }
+      const session = await validateWebuiSession(req.headers.get('cookie'))
+      if (!session || session.kind !== 'account') {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      let body: { currentPassword?: string; newPassword?: string }
+      try {
+        body = await req.json() as { currentPassword?: string; newPassword?: string }
+      } catch {
+        return Response.json({ error: 'Invalid request body' }, { status: 400 })
+      }
+
+      if (typeof body.currentPassword !== 'string' || !isStrongEnoughPassword(body.newPassword)) {
+        return Response.json({ error: 'Current password and a new 8+ character password are required' }, { status: 400 })
+      }
+
+      try {
+        await accountStore.changePassword(session.identity.userId, body.currentPassword, body.newPassword)
+        await accountStore.revokeOtherSessions(session.identity.userId, session.identity.sessionId)
+        const user = await accountStore.getUser(session.identity.userId)
+        if (user) await options.accountEmailService?.sendPasswordChangedEmail({ to: user.email, displayName: user.displayName })
+        return Response.json({ ok: true })
+      } catch (error) {
+        if (error instanceof AccountAuthError) {
+          return Response.json({ error: 'Current password is invalid' }, { status: 401 })
+        }
+        throw error
+      }
+    }
+
+    if (path === '/api/account/email/verify' && req.method === 'POST') {
+      if (!accountStore) {
+        return Response.json({ error: 'Account auth is not configured' }, { status: 503 })
+      }
+      const session = await validateWebuiSession(req.headers.get('cookie'))
+      if (!session || session.kind !== 'account') {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      const user = await accountStore.getUser(session.identity.userId)
+      if (user && !user.emailVerifiedAt && user.status !== 'disabled') {
+        await sendVerificationEmail(user, req)
+      }
+      return Response.json({ ok: true })
+    }
+
+    if (path === '/api/account/sessions' && req.method === 'GET') {
+      if (!accountStore) {
+        return Response.json({ error: 'Account auth is not configured' }, { status: 503 })
+      }
+      const session = await validateWebuiSession(req.headers.get('cookie'))
+      if (!session || session.kind !== 'account') {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      return Response.json({
+        currentSessionId: session.identity.sessionId,
+        sessions: await accountStore.listSessions(session.identity.userId),
+      })
+    }
+
+    if (path === '/api/account/sessions/revoke-all' && req.method === 'POST') {
+      if (!accountStore) {
+        return Response.json({ error: 'Account auth is not configured' }, { status: 503 })
+      }
+      const session = await validateWebuiSession(req.headers.get('cookie'))
+      if (!session || session.kind !== 'account') {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      await accountStore.revokeOtherSessions(session.identity.userId, session.identity.sessionId)
+      return Response.json({ ok: true })
+    }
+
+    if (path.startsWith('/api/account/sessions/') && req.method === 'DELETE') {
+      if (!accountStore) {
+        return Response.json({ error: 'Account auth is not configured' }, { status: 503 })
+      }
+      const session = await validateWebuiSession(req.headers.get('cookie'))
+      if (!session || session.kind !== 'account') {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+      const sessionId = decodeURIComponent(path.slice('/api/account/sessions/'.length))
+      const sessions = await accountStore.listSessions(session.identity.userId)
+      if (!sessions.some(item => item.id === sessionId)) {
+        return Response.json({ error: 'Session not found' }, { status: 404 })
+      }
+      await accountStore.revokeSession(sessionId)
+      const headers = new Headers()
+      if (sessionId === session.identity.sessionId) {
+        headers.set('Set-Cookie', buildLogoutCookie(useSecureCookies))
+      }
+      return Response.json({ ok: true }, { headers })
     }
 
     // ── OAuth callback (no cookie auth — state param is CSRF protection) ──
@@ -347,23 +871,33 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
 
     // ── Config endpoint (requires session cookie) ──
     if (path === '/api/config' && req.method === 'GET') {
-      const configSession = await validateSession(req.headers.get('cookie'), secret)
+      const configSession = await validateWebuiSession(req.headers.get('cookie'))
       if (!configSession) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 })
       }
       return Response.json({
         wsUrl: resolveWebSocketUrl(req, { publicWsUrl, wsProtocol, wsPort }),
+        authMode: accountAuthEnabled ? 'account' : 'legacy',
       })
     }
 
     // Return the default workspace ID so the webui can include it in the WS handshake
     if (path === '/api/config/workspaces' && req.method === 'GET') {
-      const configSession = await validateSession(req.headers.get('cookie'), secret)
+      const configSession = await validateWebuiSession(req.headers.get('cookie'))
       if (!configSession) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 })
       }
       const { getActiveWorkspace } = await import('@rox-agent/shared/config/storage')
+      const { getWorkspaces } = await import('@rox-agent/shared/config/storage')
       const active = getActiveWorkspace()
+      if (configSession.kind === 'account' && accountStore) {
+        const ownedIds = new Set(await accountStore.listWorkspaceIds(configSession.identity.userId))
+        if (active && ownedIds.has(active.id)) {
+          return Response.json({ defaultWorkspaceId: active.id })
+        }
+        const firstOwned = getWorkspaces().find(workspace => ownedIds.has(workspace.id))
+        return Response.json({ defaultWorkspaceId: firstOwned?.id ?? null })
+      }
       return Response.json({
         defaultWorkspaceId: active?.id ?? null,
       })
@@ -371,7 +905,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
 
     // ── Everything below requires a valid session cookie ──
     const cookieHeader = req.headers.get('cookie')
-    const session = await validateSession(cookieHeader, secret)
+    const session = await validateWebuiSession(cookieHeader)
 
     if (!session) {
       const accept = req.headers.get('accept') ?? ''

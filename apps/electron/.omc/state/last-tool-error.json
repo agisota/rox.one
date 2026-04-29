@@ -1,0 +1,7 @@
+{
+  "tool_name": "mcp__peekaboo__analyze",
+  "tool_input_preview": "{\"image_path\":\"/tmp/rox-app-verify.png\",\"question\":\"What does the ROX.ONE app look like? Can you see the app icon in the dock or title bar? Is the premium gemstone diamond icon visible? What branding ...",
+  "error": "AI analysis failed: Authentication failed: OPENAI_API_KEY not found",
+  "timestamp": "2026-04-24T06:45:31.977Z",
+  "retry_count": 1
+}

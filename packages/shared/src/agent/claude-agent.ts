@@ -845,7 +845,7 @@ export class ClaudeAgent extends BaseAgent {
       const fullMcpServers: Options['mcpServers'] = {
         // Session-scoped tools (SubmitPlan, source_test, update_user_preferences, transform_data, etc.)
         session: getSessionScopedTools(sessionId, this.workspaceRootPath),
-        // ROX.ONE documentation - always available for searching setup guides
+        // ROX ONE documentation - always available for searching setup guides
         // This is a public Mintlify MCP server, no auth needed
         'rox-agents-docs': {
           type: 'http',

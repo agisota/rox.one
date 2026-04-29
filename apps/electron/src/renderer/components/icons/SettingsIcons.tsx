@@ -208,4 +208,5 @@ export const SETTINGS_ICONS: Record<SettingsSubpage, React.ComponentType<IconPro
   server: ServerSettingsIcon,
   shortcuts: ShortcutsIcon,
   preferences: PreferencesIcon,
+  account: PreferencesIcon,
 }

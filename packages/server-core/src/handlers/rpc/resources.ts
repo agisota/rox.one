@@ -9,6 +9,7 @@ import { getWorkspaceByNameOrId } from '@rox-agent/shared/config'
 import { getCredentialManager, SOURCE_CREDENTIAL_TYPES } from '@rox-agent/shared/credentials'
 import type { RpcServer } from '@rox-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
+import { requireWorkspaceAccess } from './account-ownership'
 import type {
   ResourceBundle,
   ResourceImportMode,
@@ -24,7 +25,8 @@ export function registerResourcesHandlers(server: RpcServer, deps: HandlerDeps):
   // Export workspace resources to a portable bundle
   server.handle(
     RPC_CHANNELS.resources.EXPORT,
-    async (_ctx, workspaceId: string, options: ExportResourcesOptions) => {
+    async (ctx, workspaceId: string, options: ExportResourcesOptions) => {
+      await requireWorkspaceAccess(deps, ctx, workspaceId)
       const workspace = getWorkspaceByNameOrId(workspaceId)
       if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
 
@@ -46,7 +48,8 @@ export function registerResourcesHandlers(server: RpcServer, deps: HandlerDeps):
   // Import a resource bundle into a workspace
   server.handle(
     RPC_CHANNELS.resources.IMPORT,
-    async (_ctx, workspaceId: string, bundle: ResourceBundle, mode: ResourceImportMode) => {
+    async (ctx, workspaceId: string, bundle: ResourceBundle, mode: ResourceImportMode) => {
+      await requireWorkspaceAccess(deps, ctx, workspaceId)
       const workspace = getWorkspaceByNameOrId(workspaceId)
       if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
 

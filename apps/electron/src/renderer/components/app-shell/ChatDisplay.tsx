@@ -404,7 +404,7 @@ function ScrollOnMount({
     if (skip) return
     targetRef.current?.scrollIntoView({ behavior: 'instant' })
     onScroll?.()
-  }, [skip])
+  }, [skip, targetRef, onScroll])
   return null
 }
 
@@ -582,10 +582,10 @@ export const ChatDisplay = React.forwardRef<ChatDisplayHandle, ChatDisplayProps>
   // focus stealing when search is open but query is empty
   // In multi-panel layouts, only the focused panel should auto-focus its textarea
   useEffect(() => {
-    if (session && !isSearchModeActive && isFocused && isFocusedPanel) {
+    if (session?.id && !isSearchModeActive && isFocused && isFocusedPanel) {
       textareaRef.current?.focus()
     }
-  }, [session?.id, isFocused, isSearchModeActive, isFocusedPanel])
+  }, [session?.id, isFocused, isSearchModeActive, isFocusedPanel, textareaRef])
 
   useEffect(() => {
     let isMounted = true
@@ -933,7 +933,7 @@ export const ChatDisplay = React.forwardRef<ChatDisplayHandle, ChatDisplayProps>
     matchCount: validMatches.length,
     currentMatchIndex,
     isHighlighting,
-  }), [goToNextMatch, goToPrevMatch, validMatches.length, currentMatchIndex])
+  }), [goToNextMatch, goToPrevMatch, validMatches.length, currentMatchIndex, isHighlighting])
 
   // Notify parent when match info (count, index, highlighting state) changes
   useEffect(() => {
@@ -1270,7 +1270,7 @@ export const ChatDisplay = React.forwardRef<ChatDisplayHandle, ChatDisplayProps>
         detail: { sessionId: session.id },
       }))
     }, 0)
-  }, [session, isInputDisabled, disableSend, connectionUnavailable])
+  }, [session, isInputDisabled, disableSend, connectionUnavailable, t])
 
   // Handle stop request from InputContainer
   // silent=true when redirecting (sending new message), silent=false when user clicks Stop button
@@ -1349,8 +1349,9 @@ export const ChatDisplay = React.forwardRef<ChatDisplayHandle, ChatDisplayProps>
 
   // Memoize turn grouping - avoids O(n) iteration on every render/keystroke
   const allTurns = React.useMemo(() => {
-    if (!session) return []
-    return groupMessagesByTurn(session.messages)
+    const messages = session?.messages
+    if (!messages) return []
+    return groupMessagesByTurn(messages)
   }, [session?.messages])
 
   // Keep ref in sync for scroll handler

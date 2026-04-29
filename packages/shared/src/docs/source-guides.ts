@@ -2,7 +2,8 @@
  * Source Guides System
  *
  * Provides parsing utilities for source guides.
- * Guides are now served exclusively via the rox-agents-docs MCP server.
+ * Guides are now served exclusively via the ROX ONE Docs MCP server
+ * (`rox-agents-docs`).
  *
  * The agent should search the MCP docs for setup guidance when creating sources.
  */
@@ -189,7 +190,7 @@ export function extractDomainFromSource(source: {
 
 /**
  * @deprecated Bundled guides have been removed.
- * Use the rox-agents-docs MCP server to search for setup guides.
+ * Use the ROX ONE Docs MCP server (`rox-agents-docs`) to search for setup guides.
  *
  * Example: mcp__rox-agents-docs__SearchRoxAgents({ query: "github source setup guide" })
  */
@@ -200,7 +201,7 @@ export function getSourceGuideForDomain(_domain: string): ParsedSourceGuide | nu
 
 /**
  * @deprecated Bundled guides have been removed.
- * Use the rox-agents-docs MCP server to search for setup guides.
+ * Use the ROX ONE Docs MCP server (`rox-agents-docs`) to search for setup guides.
  */
 export function getSourceGuide(_source: {
   type?: string;
@@ -214,7 +215,7 @@ export function getSourceGuide(_source: {
 
 /**
  * @deprecated Bundled guides have been removed.
- * Use the rox-agents-docs MCP server to search for setup guides.
+ * Use the ROX ONE Docs MCP server (`rox-agents-docs`) to search for setup guides.
  */
 export function getSourceKnowledge(_source: {
   type?: string;

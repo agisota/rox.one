@@ -32,12 +32,18 @@ interface AddWorkspaceContainerProps {
  */
 export function AddWorkspaceContainer({ children, className }: AddWorkspaceContainerProps) {
   return (
-    <div className={cn(
-      "flex w-full max-w-[28rem] flex-col items-center",
-      "bg-background rounded-[20px] shadow-strong p-8",
-      className
-    )}>
-      {children}
+    <div className={cn("relative w-full max-w-[30rem]", className)}>
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-24 rounded-full bg-accent/10 blur-3xl opacity-80" />
+      <div
+        className={cn(
+          "relative flex w-full flex-col items-center overflow-hidden rounded-[24px]",
+          "border border-border/50 bg-background/92 px-8 py-8 shadow-strong backdrop-blur-xl",
+          "supports-[backdrop-filter]:bg-background/84"
+        )}
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/35 to-transparent" />
+        {children}
+      </div>
     </div>
   )
 }
@@ -66,11 +72,14 @@ export function AddWorkspaceStepHeader({
 }: AddWorkspaceStepHeaderProps) {
   return (
     <div className={cn("text-center", className)}>
-      <h1 className="text-lg font-semibold tracking-tight">
+      <div className="mb-3 inline-flex items-center rounded-full border border-border/60 bg-background/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground shadow-minimal">
+        ROX ONE
+      </div>
+      <h1 className="text-[24px] font-semibold tracking-tight leading-[1.1] text-foreground">
         {title}
       </h1>
       {description && (
-        <p className="mt-1 text-sm max-w-sm text-muted-foreground mx-auto">
+        <p className="mx-auto mt-2 max-w-[26rem] text-sm leading-6 text-muted-foreground">
           {description}
         </p>
       )}

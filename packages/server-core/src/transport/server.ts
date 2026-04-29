@@ -22,7 +22,7 @@ import {
   type PushTarget,
   type ErrorCode,
 } from '@rox-agent/shared/protocol'
-import type { RpcServer, HandlerFn, RequestContext } from './types'
+import type { RpcServer, HandlerFn, RequestContext, AuthIdentity, SessionCookieValidationResult } from './types'
 import { serializeEnvelope, deserializeEnvelope } from './codec'
 import { createLogger } from '@rox-agent/shared/utils'
 
@@ -42,6 +42,7 @@ interface ClientConnection {
   ws: WebSocket
   workspaceId: string | null
   webContentsId: number | null
+  auth: AuthIdentity | null
   capabilities: Set<string>
   missedPongs: number
   alive: boolean
@@ -89,7 +90,7 @@ export interface WsRpcServerOptions {
    * Called with the Cookie header from the HTTP upgrade request.
    * If provided, a valid session cookie is accepted as an alternative to a bearer token.
    */
-  validateSessionCookie?: (cookieHeader: string | null) => Promise<boolean>
+  validateSessionCookie?: (cookieHeader: string | null) => Promise<SessionCookieValidationResult>
   /** Server identity stamp on outgoing events. Default: 'local' */
   serverId?: string
   /** TLS configuration. When provided, the server listens on wss:// instead of ws://. */
@@ -136,7 +137,7 @@ export class WsRpcServer implements RpcServer {
   private readonly requestedPort: number
   private readonly requireAuth: boolean
   private readonly validateToken: ((token: string) => Promise<boolean>) | null
-  private readonly validateSessionCookie: ((cookieHeader: string | null) => Promise<boolean>) | null
+  private readonly validateSessionCookie: ((cookieHeader: string | null) => Promise<SessionCookieValidationResult>) | null
   private readonly serverId: string
   private readonly tlsOptions: WsRpcTlsOptions | null
   private readonly serverVersion: string
@@ -410,6 +411,8 @@ export class WsRpcServer implements RpcServer {
           return
         }
 
+        let authIdentity: AuthIdentity | null = null
+
         // Auth check — bearer token OR session cookie (web UI)
         if (this.requireAuth) {
           let authenticated = false
@@ -421,7 +424,9 @@ export class WsRpcServer implements RpcServer {
 
           // 2. Fallback: try session cookie from HTTP upgrade request (web UI path)
           if (!authenticated && this.validateSessionCookie && upgradeRequestCookie) {
-            authenticated = await this.validateSessionCookie(upgradeRequestCookie)
+            const sessionResult = await this.validateSessionCookie(upgradeRequestCookie)
+            authenticated = Boolean(sessionResult)
+            authIdentity = typeof sessionResult === 'object' ? sessionResult : null
           }
 
           if (!authenticated) {
@@ -441,7 +446,9 @@ export class WsRpcServer implements RpcServer {
             // Identity must match (workspace + webContentsId)
             const identityMatch =
               prevClient.workspaceId === (envelope.workspaceId ?? null) &&
-              prevClient.webContentsId === (envelope.webContentsId ?? null)
+              prevClient.webContentsId === (envelope.webContentsId ?? null) &&
+              prevClient.auth?.userId === authIdentity?.userId &&
+              prevClient.auth?.sessionId === authIdentity?.sessionId
 
             if (identityMatch) {
               // Valid reconnect — prepare client state but do NOT add to
@@ -453,6 +460,7 @@ export class WsRpcServer implements RpcServer {
               clearTimeout(entry.timer)
 
               prevClient.ws = ws
+              prevClient.auth = authIdentity
               prevClient.alive = true
               prevClient.missedPongs = 0
               handshakeCompleted = true
@@ -544,6 +552,7 @@ export class WsRpcServer implements RpcServer {
           ws,
           workspaceId: envelope.workspaceId ?? null,
           webContentsId: envelope.webContentsId ?? null,
+          auth: authIdentity,
           capabilities: new Set(envelope.clientCapabilities ?? []),
           missedPongs: 0,
           alive: true,
@@ -639,6 +648,10 @@ export class WsRpcServer implements RpcServer {
       clientId: client.id,
       workspaceId: client.workspaceId,
       webContentsId: client.webContentsId,
+      userId: client.auth?.userId ?? null,
+      sessionId: client.auth?.sessionId ?? null,
+      userEmail: client.auth?.email ?? null,
+      userRole: client.auth?.role ?? null,
     }
 
     try {

@@ -67,7 +67,7 @@ function collectDeepLinkParams(parsed: URL, pathId?: string): Record<string, str
 }
 
 function parseInternalRoxAgentsDeepLink(parsed: URL): ParsedInternalDeepLink | null {
-  if (parsed.protocol !== 'roxagents:') return null
+  if (parsed.protocol !== 'rox:' && parsed.protocol !== 'roxagents:') return null
 
   const host = parsed.hostname
   const pathParts = parsed.pathname.split('/').filter(Boolean)
@@ -282,7 +282,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
     try {
       const parsed = new URL(url)
 
-      if (parsed.protocol === 'roxagents:') {
+      if (parsed.protocol === 'rox:' || parsed.protocol === 'roxagents:') {
         const deepLink = parseInternalRoxAgentsDeepLink(parsed)
 
         if (deepLink?.handledNoop) {

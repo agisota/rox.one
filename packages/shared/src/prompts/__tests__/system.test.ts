@@ -85,7 +85,7 @@ describe('includeCoAuthoredBy handling', () => {
       '/tmp/workspace',
       '/tmp/workspace',
       undefined,
-      'ROX.ONE Backend'
+      'ROX ONE Backend'
       // 7th arg omitted — must not regress to `true` default
     )
 

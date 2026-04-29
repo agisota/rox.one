@@ -5,6 +5,7 @@ import { loadSource, loadWorkspaceSources, getSourceCredentialManager } from '@r
 import { createPendingFlow } from '@rox-agent/shared/auth'
 import { pushTyped, type RpcServer } from '@rox-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
+import { requireWorkspaceAccess } from './account-ownership'
 
 export const HANDLED_CHANNELS = [
   RPC_CHANNELS.oauth.START,
@@ -93,6 +94,7 @@ export function registerOAuthHandlers(server: RpcServer, deps: HandlerDeps): voi
     if (!ctx.workspaceId) {
       throw new Error('No workspace bound to this client')
     }
+    await requireWorkspaceAccess(deps, ctx, ctx.workspaceId)
 
     const workspace = getWorkspaceByNameOrId(ctx.workspaceId)
     if (!workspace) {
@@ -140,6 +142,10 @@ export function registerOAuthHandlers(server: RpcServer, deps: HandlerDeps): voi
     const flow = flowStore.getByState(state)
     if (!flow) throw new Error('Unknown or expired OAuth flow')
     if (flow.flowId !== flowId) throw new Error('Flow ID mismatch')
+    if (!ctx.workspaceId) {
+      throw new Error('No workspace bound to this client')
+    }
+    await requireWorkspaceAccess(deps, ctx, ctx.workspaceId)
 
     return completeOAuthFlow({
       code,
@@ -180,6 +186,7 @@ export function registerOAuthHandlers(server: RpcServer, deps: HandlerDeps): voi
     if (!ctx.workspaceId) {
       throw new Error('No workspace bound to this client')
     }
+    await requireWorkspaceAccess(deps, ctx, ctx.workspaceId)
 
     const workspace = getWorkspaceByNameOrId(ctx.workspaceId)
     if (!workspace) {

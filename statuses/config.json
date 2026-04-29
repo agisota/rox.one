@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "statuses": [
+    {
+      "id": "backlog",
+      "label": "В очереди",
+      "category": "open",
+      "isFixed": false,
+      "isDefault": true,
+      "order": 0
+    },
+    {
+      "id": "todo",
+      "label": "К выполнению",
+      "category": "open",
+      "isFixed": true,
+      "isDefault": false,
+      "order": 1
+    },
+    {
+      "id": "needs-review",
+      "label": "На проверке",
+      "category": "open",
+      "isFixed": false,
+      "isDefault": true,
+      "order": 2
+    },
+    {
+      "id": "done",
+      "label": "Готово",
+      "category": "closed",
+      "isFixed": true,
+      "isDefault": false,
+      "order": 3
+    },
+    {
+      "id": "cancelled",
+      "label": "Отменено",
+      "category": "closed",
+      "isFixed": true,
+      "isDefault": false,
+      "order": 4
+    }
+  ],
+  "defaultStatusId": "todo"
+}

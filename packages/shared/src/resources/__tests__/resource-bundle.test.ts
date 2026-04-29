@@ -4,7 +4,8 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { exportResources, importResources, validateResourceBundle } from '../resource-bundle'
 import type { ResourceBundle, SourceBundleEntry, SkillBundleEntry, AutomationBundleEntry } from '../types'
-import type { FolderSourceConfig } from '../../sources/types'
+import { isSourceUsable } from '../../sources/storage'
+import type { FolderSourceConfig, LoadedSource } from '../../sources/types'
 import type { AutomationMatcher } from '../../automations/types'
 
 // ============================================================
@@ -136,9 +137,16 @@ describe('resource-bundle', () => {
       expect(bundle.resources.sources).toHaveLength(1)
 
       const source = bundle.resources.sources![0]!
+      const exportedSource: LoadedSource = {
+        config: source.config,
+        guide: null,
+        folderPath: '',
+        workspaceRootPath: wsDir,
+        workspaceId: 'workspace',
+      }
       expect(source.slug).toBe('github')
       // Auth state should be reset
-      expect(source.config.isAuthenticated).toBe(false)
+      expect(isSourceUsable(exportedSource)).toBe(false)
       expect(source.config.connectionStatus).toBe('needs_auth')
       expect(source.config.connectionError).toBeUndefined()
       expect(source.config.lastTestedAt).toBeUndefined()

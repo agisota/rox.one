@@ -302,6 +302,7 @@ if (!gotTheLock) {
       if (windows.length > 0) {
         const win = windows[0].window
         if (win.isMinimized()) win.restore()
+        if (!win.isVisible()) win.show()
         win.focus()
       }
     }
@@ -323,7 +324,7 @@ async function createInitialWindows(): Promise<void> {
       saveConfig({ workspaces: [], activeWorkspaceId: null, activeSessionId: null })
     }
     const defaultPath = join(getDefaultWorkspacesDir(), 'my-workspace')
-    addWorkspace({ rootPath: defaultPath, name: 'My Workspace' })
+    addWorkspace({ rootPath: defaultPath, name: 'Моя рабочая область' })
     workspaces = getWorkspaces() // Refresh after creation
     mainLog.info('Created default workspace on first run')
   }
@@ -1089,7 +1090,16 @@ app.whenReady().then(async () => {
 
   // macOS: Re-create window when dock icon is clicked
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0 && windowManager) {
+    const windows = BrowserWindow.getAllWindows().filter(win => !win.isDestroyed())
+    if (windows.length > 0) {
+      const win = BrowserWindow.getFocusedWindow() || windows[0]
+      if (win.isMinimized()) win.restore()
+      if (!win.isVisible()) win.show()
+      win.focus()
+      return
+    }
+
+    if (windowManager) {
       // Open first workspace or last focused
       const workspaces = getWorkspaces()
       if (workspaces.length > 0) {
@@ -1125,6 +1135,19 @@ app.on('before-quit', async (event) => {
 
   // Ensure Cmd+Q/app quit bypasses layered window close interception (Cmd+W behavior).
   windowManager?.setAppQuitting(true)
+
+  // electron-updater/Squirrel owns the shutdown path during quitAndInstall().
+  // Intercepting before-quit with async cleanup + app.quit() prevents the
+  // macOS ShipIt helper from starting reliably after the update has downloaded.
+  if (isUpdating()) {
+    mainLog.info('Update in progress, bypassing async quit cleanup for electron-updater')
+    try {
+      releaseServerLock()
+    } catch (error) {
+      mainLog.error('Failed to release server lock before update quit:', error)
+    }
+    return
+  }
 
   if (windowManager) {
     // Get full window states (includes bounds, type, and query)
@@ -1185,14 +1208,6 @@ app.on('before-quit', async (event) => {
     // Release the server lock file so the next launch doesn't see a stale PID.
     // This must happen regardless of the exit path (normal quit or update quit).
     releaseServerLock()
-
-    // If update is in progress, let electron-updater handle the quit flow
-    // Force exit breaks the NSIS installer on Windows
-    if (isUpdating()) {
-      mainLog.info('Update in progress, letting electron-updater handle quit')
-      app.quit()
-      return
-    }
 
     // Now actually quit
     app.exit(0)

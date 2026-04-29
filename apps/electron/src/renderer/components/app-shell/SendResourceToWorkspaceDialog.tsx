@@ -108,7 +108,7 @@ export function SendResourceToWorkspaceDialog({
     }
 
     return () => abort.abort()
-  }, [open, targetWorkspaces.map(w => w.id).join(',')])
+  }, [open, targetWorkspaces])
 
   const handleSend = useCallback(async () => {
     if (!selectedWorkspaceId || !activeWorkspaceId || resourceIds.length === 0) return

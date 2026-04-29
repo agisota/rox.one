@@ -1,4 +1,5 @@
 import * as React from 'react'
+import * as storage from '@/lib/local-storage'
 import { cn } from '@/lib/utils'
 import type { ComponentEntry } from './registry'
 import { TooltipProvider } from '@rox-agent/ui'
@@ -12,22 +13,15 @@ const MIN_WIDTH = 100
 const MIN_HEIGHT = 100
 const DEFAULT_WIDTH = 800
 const DEFAULT_HEIGHT = 600
-const STORAGE_KEY = 'playground-preview-size'
+const STORAGE_KEY = storage.KEYS.playgroundPreviewSize
 
 function loadSavedSize(): { width: number; height: number } {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      if (typeof parsed.width === 'number' && typeof parsed.height === 'number') {
-        return {
-          width: Math.max(MIN_WIDTH, parsed.width),
-          height: Math.max(MIN_HEIGHT, parsed.height),
-        }
-      }
+  const saved = storage.get<{ width?: number; height?: number } | null>(STORAGE_KEY, null)
+  if (saved && typeof saved.width === 'number' && typeof saved.height === 'number') {
+    return {
+      width: Math.max(MIN_WIDTH, saved.width),
+      height: Math.max(MIN_HEIGHT, saved.height),
     }
-  } catch {
-    // Ignore parse errors
   }
   return { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT }
 }
@@ -84,9 +78,9 @@ export function ComponentPreview({ component, props }: ComponentPreviewProps) {
 
     const handleMouseUp = () => {
       if (isDraggingRef.current) {
-        // Save size to localStorage when drag ends
+        // Save size when drag ends
         setSize(currentSize => {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(currentSize))
+          storage.set(STORAGE_KEY, currentSize)
           return currentSize
         })
       }
@@ -122,7 +116,7 @@ export function ComponentPreview({ component, props }: ComponentPreviewProps) {
             <button
               onClick={() => {
                 setSize({ width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT })
-                localStorage.removeItem(STORAGE_KEY)
+                storage.remove(STORAGE_KEY)
               }}
               className="px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors"
             >

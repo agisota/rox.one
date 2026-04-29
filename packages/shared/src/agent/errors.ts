@@ -164,7 +164,7 @@ const ERROR_DEFINITIONS: Record<ErrorCode, Omit<AgentError, 'code' | 'originalEr
   },
   mcp_unreachable: {
     title: 'MCP Server Unreachable',
-    message: 'Cannot connect to the Rox MCP server. Check your network connection.',
+    message: 'Cannot connect to the ROX ONE MCP server. Check your network connection.',
     actions: [
       { key: 'r', label: 'Retry', action: 'retry' },
     ],
