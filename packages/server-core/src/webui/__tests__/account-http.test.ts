@@ -7,6 +7,7 @@ import type { AccountEmailInput, AccountEmailService } from '../email'
 import { InMemoryAccountUsageLedger } from '../account-ledger'
 import { InMemoryAccountEventHistory } from '../account-events'
 import { InMemoryAccountTeamStore } from '../account-teams'
+import { InMemoryManagedCloudWorkspaceStore } from '../account-cloud-workspaces'
 
 class MemoryAccountStore implements AccountStore {
   users = new Map<string, PublicUser & { passwordHash: string }>()
@@ -216,6 +217,7 @@ describe('account webui auth', () => {
     usageLedger?: InMemoryAccountUsageLedger,
     eventHistory?: InMemoryAccountEventHistory,
     teamStore?: InMemoryAccountTeamStore,
+    cloudWorkspaceStore?: InMemoryManagedCloudWorkspaceStore,
   ) {
     const handler = createWebuiHandler({
       webuiDir: '/tmp/does-not-need-static-assets',
@@ -230,6 +232,7 @@ describe('account webui auth', () => {
       accountUsageLedger: usageLedger,
       accountEventHistory: eventHistory,
       accountTeamStore: teamStore,
+      accountCloudWorkspaceStore: cloudWorkspaceStore,
     })
     handlers.push(handler)
     return handler
@@ -656,6 +659,80 @@ describe('account webui auth', () => {
       body: JSON.stringify({ code: invite.code }),
     }))
     expect(reused.status).toBe(400)
+  })
+
+  it('creates managed cloud workspaces through account sessions and grants explicit ownership', async () => {
+    const store = new MemoryAccountStore()
+    const cloudWorkspaces = new InMemoryManagedCloudWorkspaceStore()
+    const created = await store.createUser({ email: 'user@example.com', password: 'password123' })
+    await store.markEmailVerified(created.id)
+    const handler = createHandler(store, undefined, undefined, undefined, undefined, cloudWorkspaces)
+
+    const login = await handler.fetch(new Request('http://rox.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'user@example.com', password: 'password123' }),
+    }))
+    const cookie = login.headers.get('set-cookie') ?? ''
+    expect(login.status).toBe(200)
+
+    const createWorkspace = await handler.fetch(new Request('http://rox.test/api/account/workspaces', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie },
+      body: JSON.stringify({ name: 'Research Ops' }),
+    }))
+    expect(createWorkspace.status).toBe(201)
+    const createBody = await createWorkspace.json() as { workspace: { id: string; name: string; slug: string; ownerUserId: string; storage: { prefix: string } } }
+
+    expect(createBody.workspace).toMatchObject({
+      name: 'Research Ops',
+      slug: 'research-ops',
+      ownerUserId: created.id,
+      storage: { prefix: `managed-workspaces/${createBody.workspace.id}/` },
+    })
+    expect(await store.isWorkspaceOwner(created.id, createBody.workspace.id)).toBe(true)
+
+    const me = await handler.fetch(new Request('http://rox.test/api/account/me', {
+      headers: { cookie },
+    }))
+    const meBody = await me.json() as { sessionBoundary: { workspaceIds: string[] } }
+    expect(meBody.sessionBoundary.workspaceIds).toContain(createBody.workspace.id)
+  })
+
+  it('lists only current users managed cloud workspaces and rejects unauthenticated creation', async () => {
+    const store = new MemoryAccountStore()
+    const cloudWorkspaces = new InMemoryManagedCloudWorkspaceStore()
+    const firstUser = await store.createUser({ email: 'first@example.com', password: 'password123' })
+    await store.markEmailVerified(firstUser.id)
+    const secondUser = await store.createUser({ email: 'second@example.com', password: 'password123' })
+    await store.markEmailVerified(secondUser.id)
+    await cloudWorkspaces.createWorkspace({ ownerUserId: firstUser.id, name: 'First Cloud' })
+    await cloudWorkspaces.createWorkspace({ ownerUserId: secondUser.id, name: 'Second Cloud' })
+    const handler = createHandler(store, undefined, undefined, undefined, undefined, cloudWorkspaces)
+
+    const login = await handler.fetch(new Request('http://rox.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'first@example.com', password: 'password123' }),
+    }))
+    const cookie = login.headers.get('set-cookie') ?? ''
+    expect(login.status).toBe(200)
+
+    const listWorkspaces = await handler.fetch(new Request('http://rox.test/api/account/workspaces', {
+      headers: { cookie },
+    }))
+    expect(listWorkspaces.status).toBe(200)
+    const listBody = await listWorkspaces.json() as { workspaces: Array<{ name: string; ownerUserId: string }> }
+    expect(listBody.workspaces).toEqual([
+      expect.objectContaining({ name: 'First Cloud', ownerUserId: firstUser.id }),
+    ])
+
+    const unauthenticatedCreate = await handler.fetch(new Request('http://rox.test/api/account/workspaces', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'No Session' }),
+    }))
+    expect(unauthenticatedCreate.status).toBe(401)
   })
 
   it('returns account billing from the injected usage ledger without leaking other users balances', async () => {
