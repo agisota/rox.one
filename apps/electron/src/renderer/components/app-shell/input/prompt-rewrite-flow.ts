@@ -12,7 +12,7 @@ export interface PromptRewriteSpecBuilderIntent {
 }
 
 export function shouldOpenPromptRewriteForIntent(intent: ProductModeIntent): boolean {
-  return intent.actionId === 'rewrite-prompt';
+  return intent.actionId === 'improve-prompt';
 }
 
 export function createPromptRewriteRequestFromComposer(

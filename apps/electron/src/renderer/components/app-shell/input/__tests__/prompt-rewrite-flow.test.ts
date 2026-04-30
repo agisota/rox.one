@@ -11,8 +11,8 @@ import {
 
 describe('prompt rewrite composer flow', () => {
   test('opens only for the rewrite prompt intent', () => {
-    expect(shouldOpenPromptRewriteForIntent(createProductModeIntent('rewrite-prompt', 'build'))).toBe(true);
-    expect(shouldOpenPromptRewriteForIntent(createProductModeIntent('think-with-me', 'think'))).toBe(false);
+    expect(shouldOpenPromptRewriteForIntent(createProductModeIntent('improve-prompt', 'build'))).toBe(true);
+    expect(shouldOpenPromptRewriteForIntent(createProductModeIntent('run-tdd-plan', 'tdd'))).toBe(false);
   });
 
   test('creates a build-ready request from composer input', () => {
@@ -20,7 +20,7 @@ describe('prompt rewrite composer flow', () => {
 
     expect(request.originalPrompt).toBe('Build an account cabinet');
     expect(request.rewriteStyle).toBe('build_ready');
-    expect(request.targetMode).toBe('rewrite');
+    expect(request.targetMode).toBe('research');
   });
 
   test('rejects empty composer input before provider execution', () => {

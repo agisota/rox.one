@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ThinkingPartnerOutput } from '@craft-agent/shared/workbench/thinking-partner';
-import { createProductModeIntent } from '../product-mode-toolbar';
+import { createProductModeIntent, type ProductModeIntent } from '../product-mode-toolbar';
 import {
   THINKING_PARTNER_SPEC_BUILDER_EVENT,
   createAddToSpecIntentFromSelections,
@@ -11,8 +11,16 @@ import {
 
 describe('thinking partner composer flow', () => {
   test('opens only for the Think With Me intent', () => {
-    expect(shouldOpenThinkingPartnerForIntent(createProductModeIntent('think-with-me', 'rewrite'))).toBe(true);
-    expect(shouldOpenThinkingPartnerForIntent(createProductModeIntent('rewrite-prompt', 'rewrite'))).toBe(false);
+    const legacyThinkingIntent: ProductModeIntent = {
+      type: 'product-mode-intent',
+      source: 'composer-toolbar',
+      actionId: 'think-with-me' as ProductModeIntent['actionId'],
+      mode: 'think',
+      labelKey: 'workbench.actions.thinkWithMe',
+    };
+
+    expect(shouldOpenThinkingPartnerForIntent(legacyThinkingIntent)).toBe(true);
+    expect(shouldOpenThinkingPartnerForIntent(createProductModeIntent('improve-prompt', 'rewrite'))).toBe(false);
   });
 
   test('creates a thinking partner request from composer input', () => {
