@@ -11,6 +11,7 @@ class MemoryAccountStore implements AccountStore {
   users = new Map<string, PublicUser & { passwordHash: string }>()
   sessions = new Map<string, AccountSession>()
   tokens = new Map<string, { userId: string; purpose: EmailTokenPurpose; expiresAt: string; consumedAt: string | null }>()
+  workspaceIdsByUserId = new Map<string, Set<string>>()
   latestToken: string | null = null
   latestTokensByPurpose = new Map<EmailTokenPurpose, string>()
 
@@ -168,9 +169,19 @@ class MemoryAccountStore implements AccountStore {
     }
     await this.setPassword(userId, newPassword)
   }
-  async grantWorkspaceOwner(): Promise<void> {}
-  async isWorkspaceOwner(): Promise<boolean> { return true }
-  async listWorkspaceIds(): Promise<string[]> { return [] }
+  async grantWorkspaceOwner(userId: string, workspaceId: string): Promise<void> {
+    const workspaceIds = this.workspaceIdsByUserId.get(userId) ?? new Set<string>()
+    workspaceIds.add(workspaceId)
+    this.workspaceIdsByUserId.set(userId, workspaceIds)
+  }
+
+  async isWorkspaceOwner(userId: string, workspaceId: string): Promise<boolean> {
+    return this.workspaceIdsByUserId.get(userId)?.has(workspaceId) ?? false
+  }
+
+  async listWorkspaceIds(userId: string): Promise<string[]> {
+    return [...(this.workspaceIdsByUserId.get(userId) ?? [])].sort()
+  }
 }
 
 class RecordingAccountEmailService implements AccountEmailService {
@@ -221,6 +232,19 @@ describe('account webui auth', () => {
     return handler
   }
 
+  function createLegacyHandler() {
+    const handler = createWebuiHandler({
+      webuiDir: '/tmp/does-not-need-static-assets',
+      secret: 'test-secret-with-enough-length',
+      wsProtocol: 'ws',
+      wsPort: 9100,
+      getHealthCheck: () => ({ status: 'ok' }),
+      logger: { info() {}, warn() {}, error() {}, debug() {} } as any,
+    })
+    handlers.push(handler)
+    return handler
+  }
+
   it('registers, verifies email, sets a session cookie, and returns the current account', async () => {
     const store = new MemoryAccountStore()
     const emailService = new RecordingAccountEmailService()
@@ -251,6 +275,55 @@ describe('account webui auth', () => {
     expect(body.user.email).toBe('user@example.com')
   })
 
+  it('exposes a cloud session boundary with only the current users workspace ids', async () => {
+    const store = new MemoryAccountStore()
+    const firstUser = await store.createUser({ email: 'first@example.com', password: 'password123' })
+    await store.markEmailVerified(firstUser.id)
+    const secondUser = await store.createUser({ email: 'second@example.com', password: 'password123' })
+    await store.markEmailVerified(secondUser.id)
+    await store.grantWorkspaceOwner(firstUser.id, 'workspace-a')
+    await store.grantWorkspaceOwner(firstUser.id, 'workspace-b')
+    await store.grantWorkspaceOwner(secondUser.id, 'workspace-other')
+    const handler = createHandler(store)
+
+    const login = await handler.fetch(new Request('http://craft.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'first@example.com', password: 'password123' }),
+    }))
+    const cookie = login.headers.get('set-cookie') ?? ''
+    expect(login.status).toBe(200)
+
+    const me = await handler.fetch(new Request('http://craft.test/api/account/me', {
+      headers: { cookie },
+    }))
+    expect(me.status).toBe(200)
+    const body = await me.json() as {
+      mode: string
+      sessionBoundary: {
+        mode: string
+        cloud: boolean
+        userId: string
+        sessionId: string
+        email: string
+        role: string
+        workspaceIds: string[]
+      }
+    }
+
+    expect(body.mode).toBe('account')
+    expect(body.sessionBoundary).toMatchObject({
+      mode: 'cloud',
+      cloud: true,
+      userId: firstUser.id,
+      email: 'first@example.com',
+      role: 'user',
+      workspaceIds: ['workspace-a', 'workspace-b'],
+    })
+    expect(body.sessionBoundary.sessionId).toBeTruthy()
+    expect(body.sessionBoundary.workspaceIds).not.toContain('workspace-other')
+  })
+
   it('rejects invalid hosted-account login credentials', async () => {
     const store = new MemoryAccountStore()
     await store.createUser({ email: 'user@example.com', password: 'password123' })
@@ -263,6 +336,35 @@ describe('account webui auth', () => {
     }))
 
     expect(login.status).toBe(401)
+  })
+
+  it('reports legacy auth as a local session boundary without cloud access', async () => {
+    const handler = createLegacyHandler()
+
+    const auth = await handler.fetch(new Request('http://craft.test/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'test-secret-with-enough-length' }),
+    }))
+    expect(auth.status).toBe(200)
+    const cookie = auth.headers.get('set-cookie') ?? ''
+
+    const me = await handler.fetch(new Request('http://craft.test/api/account/me', {
+      headers: { cookie },
+    }))
+    expect(me.status).toBe(200)
+    const body = await me.json() as { mode: string; sessionBoundary: unknown }
+
+    expect(body.mode).toBe('legacy')
+    expect(body.sessionBoundary).toEqual({
+      mode: 'local',
+      cloud: false,
+      userId: null,
+      sessionId: null,
+      email: null,
+      role: null,
+      workspaceIds: [],
+    })
   })
 
   it('logs in verified users, returns account details, updates profile, and logs out', async () => {
