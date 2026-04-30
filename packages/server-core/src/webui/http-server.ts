@@ -37,6 +37,10 @@ import {
 } from './account-cabinet'
 import type { AccountUsageLedger } from './account-ledger'
 import type { AccountEventHistory } from './account-events'
+import {
+  createCloudSessionBoundary,
+  createLocalSessionBoundary,
+} from './account-session-boundary'
 
 // ---------------------------------------------------------------------------
 // MIME types for static file serving
@@ -711,10 +715,20 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         return Response.json({ error: 'Unauthorized' }, { status: 401 })
       }
       if (session.kind === 'legacy') {
-        return Response.json({ mode: 'legacy', user: null })
+        return Response.json({
+          mode: 'legacy',
+          user: null,
+          sessionBoundary: createLocalSessionBoundary(),
+        })
       }
       const user = await accountStore!.getUser(session.identity.userId)
-      return Response.json({ mode: 'account', user, currentSessionId: session.identity.sessionId })
+      const workspaceIds = await accountStore!.listWorkspaceIds(session.identity.userId)
+      return Response.json({
+        mode: 'account',
+        user,
+        currentSessionId: session.identity.sessionId,
+        sessionBoundary: createCloudSessionBoundary(session.identity, workspaceIds),
+      })
     }
 
     if (path === '/api/account/me' && req.method === 'PATCH') {
