@@ -29,13 +29,13 @@ export function PromptLabScreen({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" disabled={!state.canReplaceInput} onClick={() => onSendToTddPlan?.(improvedPrompt)}>
+            <Button type="button" variant="outline" disabled={!state.canReplaceInput} onClick={() => onSendToTddPlan?.(improvedPrompt)}>
               Send to TDD Plan
             </Button>
-            <Button variant="outline" disabled={!state.canReplaceInput} onClick={() => onSendToSpec?.(improvedPrompt)}>
+            <Button type="button" variant="outline" disabled={!state.canReplaceInput} onClick={() => onSendToSpec?.(improvedPrompt)}>
               Send to Spec
             </Button>
-            <Button disabled={!state.canReplaceInput} onClick={() => onReplaceInput?.(improvedPrompt)}>
+            <Button type="button" disabled={!state.canReplaceInput} onClick={() => onReplaceInput?.(improvedPrompt)}>
               Replace Input
             </Button>
           </div>

@@ -3,7 +3,7 @@ import { runReviewBoard, type ReviewBoardResult } from '@craft-agent/shared/work
 import {
   generateTddTaskPack,
   type TddTaskPack,
-} from '@craft-agent/shared/workbench/tdd-task-generator';
+} from '@craft-agent/shared/workbench';
 import type { ProductMode, ValidationGate } from '@craft-agent/shared/workbench/product-mode-registry';
 
 export type ArtifactScreenStatus = 'idle' | 'success' | 'error';

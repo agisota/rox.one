@@ -143,9 +143,15 @@ import {
   type ThinkingPartnerOutput,
 } from '@craft-agent/shared/workbench/thinking-partner';
 import { ProductModeToolbar } from './ProductModeToolbar';
+import { ComposerArtifactPanel } from './ComposerArtifactPanel';
 import { PromptRewriteDialog } from './PromptRewriteDialog';
 import { ThinkingPartnerRoundTableDialog } from './ThinkingPartnerRoundTableDialog';
 import type { ThinkingPartnerRoundTableSelection } from './ThinkingPartnerRoundTableDialog';
+import {
+  createComposerArtifactState,
+  shouldOpenComposerArtifactForIntent,
+  type ComposerArtifactState,
+} from './composer-artifact-flow';
 import {
   PROMPT_REWRITE_SPEC_BUILDER_EVENT,
   applyPromptRewriteAcceptance,
@@ -1516,6 +1522,7 @@ export function FreeFormInput({
     output?: ThinkingPartnerOutput
     error?: string
   }>({ open: false, status: 'idle' })
+  const [composerArtifactState, setComposerArtifactState] = React.useState<ComposerArtifactState | null>(null)
 
   const runPromptRewrite = React.useCallback(async (targetMode: ProductMode) => {
     setPromptRewriteState({ open: true, status: 'loading' })
@@ -1555,13 +1562,28 @@ export function FreeFormInput({
 
   const handleProductModeIntent = React.useCallback((intent: ProductModeIntent) => {
     window.dispatchEvent(new CustomEvent<ProductModeIntent>('craft:product-mode-intent', { detail: intent }))
+    if (shouldOpenComposerArtifactForIntent(intent)) {
+      setComposerArtifactState(createComposerArtifactState({ intent, rawInput: input }))
+      return
+    }
     if (shouldOpenPromptRewriteForIntent(intent)) {
       void runPromptRewrite(intent.mode)
     }
     if (shouldOpenThinkingPartnerForIntent(intent)) {
       void runThinkingPartner()
     }
-  }, [runPromptRewrite, runThinkingPartner])
+  }, [input, runPromptRewrite, runThinkingPartner])
+
+  const handleComposerArtifactClose = React.useCallback(() => {
+    setComposerArtifactState(null)
+  }, [])
+
+  const handleComposerArtifactReplaceInput = React.useCallback((nextInput: string) => {
+    setInput(nextInput)
+    syncToParent(nextInput)
+    setComposerArtifactState(null)
+    richInputRef.current?.focus()
+  }, [richInputRef, syncToParent])
 
   const handlePromptRewriteAccept = React.useCallback((editedPrompt?: string) => {
     if (!promptRewriteState.output) {
@@ -1795,6 +1817,12 @@ export function FreeFormInput({
             onModeChange={setSelectedProductMode}
           />
         )}
+
+        <ComposerArtifactPanel
+          artifact={composerArtifactState}
+          onClose={handleComposerArtifactClose}
+          onReplaceInput={handleComposerArtifactReplaceInput}
+        />
 
         <PromptRewriteDialog
           open={promptRewriteState.open}
