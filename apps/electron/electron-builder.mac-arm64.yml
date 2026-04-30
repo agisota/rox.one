@@ -1,0 +1,13 @@
+# Contract fixture for the arm64-only target shape. The package script generates
+# a full config from this target because electron-builder merges extended mac
+# target arrays instead of replacing them reliably.
+extends: electron-builder.yml
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+    - target: zip
+      arch:
+        - arm64
