@@ -6,6 +6,19 @@ export type ExperienceTone = 'command' | 'game' | 'arena' | 'success' | 'warning
 export type ExperienceStatus = 'ready' | 'running' | 'queued' | 'completed' | 'locked' | 'warning' | 'blocking' | 'success' | 'draft';
 
 const motionClass = 'transition-[transform,box-shadow,border-color,background-color,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none';
+const interactiveSurfaceClass = cn(
+  "before:pointer-events-none before:absolute before:inset-0 before:rounded-[inherit] before:content-['']",
+  'before:bg-gradient-to-br before:from-white/10 before:via-transparent before:to-cyan-300/10',
+  'before:opacity-0 before:transition-opacity before:duration-300',
+  "after:pointer-events-none after:absolute after:inset-px after:rounded-[17px] after:content-['']",
+  'after:border after:border-white/[0.06] after:opacity-0 after:transition-opacity after:duration-300',
+  'motion-reduce:before:transition-none motion-reduce:after:transition-none',
+);
+const runningStatusPulseClass = "after:absolute after:inset-0 after:rounded-full after:bg-sky-200/10 after:content-[''] motion-safe:after:animate-pulse motion-reduce:after:animate-none";
+const progressFillClass = cn(
+  "relative h-full rounded-full bg-gradient-to-r from-cyan-300 via-sky-200 to-violet-300 shadow-tinted after:absolute after:inset-0 after:bg-white/20 after:opacity-0 after:content-['']",
+  'motion-safe:after:animate-pulse motion-reduce:after:animate-none',
+);
 
 const toneClasses: Record<ExperienceTone, string> = {
   command: 'border-cyan-400/20 bg-cyan-400/[0.06] text-cyan-100',
@@ -110,7 +123,7 @@ export function ExperiencePanel({
   className?: string;
 }) {
   return (
-    <section className={cn('rounded-[22px] border bg-[#0b0d12] p-1 shadow-thin', toneClasses[tone], className)}>
+    <section data-tone={tone} className={cn('relative overflow-hidden rounded-[22px] border bg-[#0b0d12] p-1 shadow-thin', toneClasses[tone], className)}>
       <div className="rounded-[17px] border border-white/[0.06] bg-[#090b10] p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -147,24 +160,30 @@ export function ExperienceCard({
     <Component
       {...props}
       type={interactive ? 'button' : undefined}
+      disabled={interactive ? disabled : undefined}
       aria-pressed={interactive ? selected : undefined}
       aria-disabled={disabled || undefined}
+      data-selected={selected ? 'true' : 'false'}
+      data-disabled={disabled ? 'true' : 'false'}
+      data-tone={tone}
       className={cn(
-        'group block w-full rounded-[18px] border p-4 text-left shadow-thin',
+        'group relative overflow-hidden block w-full rounded-[18px] border p-4 text-left shadow-thin',
         motionClass,
-        interactive && 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/40 active:scale-[0.99] hover:-translate-y-0.5 hover:shadow-tinted',
-        selected ? 'border-cyan-300/40 bg-cyan-300/12 text-foreground' : toneClasses[tone],
-        disabled && 'cursor-not-allowed opacity-60',
+        interactive && cn(interactiveSurfaceClass, 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/40 focus-visible:before:opacity-100 active:scale-[0.99] hover:-translate-y-0.5 hover:before:opacity-100 hover:after:opacity-100 hover:shadow-tinted motion-safe:hover:-translate-y-0.5'),
+        selected
+          ? 'border-cyan-300/40 bg-cyan-300/12 text-foreground shadow-panel-focused'
+          : toneClasses[tone],
+        disabled && 'cursor-not-allowed opacity-60 hover:translate-y-0 hover:before:opacity-0 hover:after:opacity-0 active:scale-100',
         className,
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="relative z-10 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[15px] font-semibold leading-5">{title}</div>
           {meta && <div className="mt-1 text-xs leading-5 text-muted-foreground">{meta}</div>}
         </div>
       </div>
-      <div className="mt-3 text-sm leading-6 text-muted-foreground">{children}</div>
+      <div className="relative z-10 mt-3 text-sm leading-6 text-muted-foreground">{children}</div>
     </Component>
   );
 }
@@ -181,7 +200,7 @@ export function ExperienceMetricCard({
   tone?: ExperienceTone;
 }) {
   return (
-    <div className={cn('rounded-[18px] border p-4', toneClasses[tone])}>
+    <div data-tone={tone} className={cn('group relative overflow-hidden rounded-[18px] border p-4 shadow-thin hover:border-white/20 hover:bg-white/[0.055]', motionClass, toneClasses[tone])}>
       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
       <div className="mt-2 text-3xl font-semibold leading-none">{value}</div>
       {detail && <div className="mt-2 text-xs leading-5 text-muted-foreground">{detail}</div>}
@@ -208,8 +227,18 @@ export function ExperienceStatusChip({
   className?: string;
 }) {
   return (
-    <span className={cn('inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none', statusClasses[status], className)}>
-      {label}
+    <span
+      data-status={status}
+      className={cn(
+        'relative inline-flex items-center overflow-hidden rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none',
+        motionClass,
+        statusClasses[status],
+        status === 'running' && runningStatusPulseClass,
+        className,
+      )}
+    >
+      <span aria-hidden="true" className={cn('relative z-10 mr-1.5 h-1.5 w-1.5 rounded-full bg-current opacity-80', status === 'running' && 'motion-safe:animate-pulse')} />
+      <span className="relative z-10">{label}</span>
     </span>
   );
 }
@@ -219,9 +248,16 @@ export function ExperienceProgressBar({ value, label }: { value: number; label?:
   return (
     <div className="mt-3">
       {label && <div className="mb-1 text-xs text-muted-foreground">{label}</div>}
-      <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
+      <div
+        role="progressbar"
+        aria-label={label ?? 'Progress'}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={safeValue}
+        className="relative h-2.5 overflow-hidden rounded-full bg-white/[0.06]"
+      >
         <div
-          className={cn('h-full rounded-full bg-cyan-300/80', motionClass)}
+          className={cn(progressFillClass, motionClass)}
           style={{ transform: `scaleX(${safeValue / 100})`, transformOrigin: 'left center' }}
         />
       </div>

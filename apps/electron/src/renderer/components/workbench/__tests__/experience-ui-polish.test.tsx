@@ -5,6 +5,7 @@ import {
   ExperienceCard,
   ExperienceMetricCard,
   ExperiencePanel,
+  ExperienceProgressBar,
   ExperienceShell,
   ExperienceStatusChip,
 } from '../experience-ui';
@@ -52,5 +53,32 @@ describe('Experience visual system', () => {
     expect(markup).toContain('VDI');
     expect(markup).toContain('bg-rose-500/12');
     expect(markup).toContain('bg-emerald-500/12');
+  });
+
+  test('renders polished game and arena affordances with accessible state hooks', () => {
+    const markup = renderToStaticMarkup(
+      <div>
+        <ExperienceCard interactive selected tone="arena" title="Swarm mission" meta={<ExperienceStatusChip status="running" label="В работе" />}>
+          Стая агентов собирает сигналы, дедуплицирует шум и повышает VDI только по доказательствам.
+        </ExperienceCard>
+        <ExperienceCard interactive disabled title="Locked quest" meta={<ExperienceStatusChip status="locked" label="Заблокировано" />}>
+          Квест откроется после прохождения validation gate.
+        </ExperienceCard>
+        <ExperienceProgressBar value={72} label="Прогресс VDI" />
+      </div>,
+    );
+
+    expect(markup).toContain('data-selected="true"');
+    expect(markup).toContain('data-disabled="true"');
+    expect(markup).toContain('data-tone="arena"');
+    expect(markup).toContain('data-status="running"');
+    expect(markup).toContain('relative overflow-hidden');
+    expect(markup).toContain('hover:before:opacity-100');
+    expect(markup).toContain('motion-safe:animate-pulse');
+    expect(markup).toContain('shadow-panel-focused');
+    expect(markup).toContain('role="progressbar"');
+    expect(markup).toContain('aria-valuenow="72"');
+    expect(markup).toContain('bg-gradient-to-r from-cyan-300 via-sky-200 to-violet-300');
+    expect(markup).toContain('motion-reduce:after:animate-none');
   });
 });
