@@ -854,6 +854,104 @@ describe('account webui auth', () => {
     expect(unauthenticatedCreate.status).toBe(401)
   })
 
+  it('shares team cloud workspaces with team members and keeps outsiders denied', async () => {
+    const store = new MemoryAccountStore()
+    const teamStore = new InMemoryAccountTeamStore()
+    const cloudWorkspaces = new InMemoryManagedCloudWorkspaceStore()
+    const owner = await store.createUser({ email: 'owner@example.com', password: 'password123' })
+    await store.markEmailVerified(owner.id)
+    const member = await store.createUser({ email: 'member@example.com', password: 'password123' })
+    await store.markEmailVerified(member.id)
+    const outsider = await store.createUser({ email: 'outsider-workspace@example.com', password: 'password123' })
+    await store.markEmailVerified(outsider.id)
+    const handler = createHandler(store, undefined, undefined, undefined, teamStore, cloudWorkspaces)
+
+    const ownerLogin = await handler.fetch(new Request('http://rox.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'owner@example.com', password: 'password123' }),
+    }))
+    const ownerCookie = ownerLogin.headers.get('set-cookie') ?? ''
+
+    const createTeam = await handler.fetch(new Request('http://rox.test/api/account/teams', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ name: 'Shared Ops' }),
+    }))
+    const createTeamBody = await createTeam.json() as { teams: Array<{ id: string }> }
+    const teamId = createTeamBody.teams[0]!.id
+
+    const invite = await handler.fetch(new Request(`http://rox.test/api/account/teams/${teamId}/invites`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ role: 'member' }),
+    }))
+    const inviteBody = await invite.json() as { invite: { code: string } }
+
+    const memberLogin = await handler.fetch(new Request('http://rox.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'member@example.com', password: 'password123' }),
+    }))
+    const memberCookie = memberLogin.headers.get('set-cookie') ?? ''
+    await handler.fetch(new Request(`http://rox.test/api/account/invites/${inviteBody.invite.code}/accept`, {
+      method: 'POST',
+      headers: { cookie: memberCookie },
+    }))
+
+    const createWorkspace = await handler.fetch(new Request(`http://rox.test/api/account/teams/${teamId}/workspaces`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ name: 'Launch Room' }),
+    }))
+    expect(createWorkspace.status).toBe(201)
+    const createWorkspaceBody = await createWorkspace.json() as { workspace: { id: string; teamId: string; visibility: string; storage: { prefix: string } } }
+    expect(createWorkspaceBody.workspace).toMatchObject({
+      teamId,
+      visibility: 'team',
+      storage: { prefix: `teams/${teamId}/workspaces/${createWorkspaceBody.workspace.id}/` },
+    })
+
+    const memberWorkspaces = await handler.fetch(new Request('http://rox.test/api/account/workspaces', {
+      headers: { cookie: memberCookie },
+    }))
+    expect(memberWorkspaces.status).toBe(200)
+    const memberWorkspacesBody = await memberWorkspaces.json() as { workspaces: Array<{ id: string; visibility: string; teamId: string }> }
+    expect(memberWorkspacesBody.workspaces).toEqual([
+      expect.objectContaining({ id: createWorkspaceBody.workspace.id, visibility: 'team', teamId }),
+    ])
+
+    const memberMe = await handler.fetch(new Request('http://rox.test/api/account/me', {
+      headers: { cookie: memberCookie },
+    }))
+    const memberMeBody = await memberMe.json() as { sessionBoundary: { workspaceIds: string[] } }
+    expect(memberMeBody.sessionBoundary.workspaceIds).toContain(createWorkspaceBody.workspace.id)
+
+    const memberCreate = await handler.fetch(new Request(`http://rox.test/api/account/teams/${teamId}/workspaces`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: memberCookie },
+      body: JSON.stringify({ name: 'Member Draft' }),
+    }))
+    expect(memberCreate.status).toBe(403)
+
+    const outsiderLogin = await handler.fetch(new Request('http://rox.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'outsider-workspace@example.com', password: 'password123' }),
+    }))
+    const outsiderCookie = outsiderLogin.headers.get('set-cookie') ?? ''
+    const outsiderTeamWorkspaces = await handler.fetch(new Request(`http://rox.test/api/account/teams/${teamId}/workspaces`, {
+      headers: { cookie: outsiderCookie },
+    }))
+    expect(outsiderTeamWorkspaces.status).toBe(403)
+
+    const outsiderWorkspaces = await handler.fetch(new Request('http://rox.test/api/account/workspaces', {
+      headers: { cookie: outsiderCookie },
+    }))
+    const outsiderWorkspacesBody = await outsiderWorkspaces.json() as { workspaces: unknown[] }
+    expect(outsiderWorkspacesBody.workspaces).toEqual([])
+  })
+
   it('returns account billing from the injected usage ledger without leaking other users balances', async () => {
     const store = new MemoryAccountStore()
     const ledger = new InMemoryAccountUsageLedger()

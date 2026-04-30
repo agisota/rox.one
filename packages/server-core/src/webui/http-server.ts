@@ -407,6 +407,37 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
     return session.identity
   }
 
+  async function listTeamIdsForUser(userId: string): Promise<string[]> {
+    if (!options.accountTeamStore) return []
+    const teams = await options.accountTeamStore.listOrganizations(userId)
+    return teams.map(team => team.id)
+  }
+
+  async function listAccessibleWorkspaceIds(userId: string): Promise<string[]> {
+    if (!accountStore) return []
+    const workspaceIds = new Set(await accountStore.listWorkspaceIds(userId))
+    if (options.accountCloudWorkspaceStore && options.accountTeamStore) {
+      const teamWorkspaces = await options.accountCloudWorkspaceStore.listTeamWorkspaces(await listTeamIdsForUser(userId))
+      for (const workspace of teamWorkspaces) workspaceIds.add(workspace.id)
+    }
+    return [...workspaceIds].sort()
+  }
+
+  async function requireTeamMembership(userId: string, teamId: string): Promise<{ id: string; role: string } | Response> {
+    if (!options.accountTeamStore) {
+      return Response.json({ error: 'Team workspaces are not available until team workspaces are enabled.' }, { status: 501 })
+    }
+    const team = (await options.accountTeamStore.listOrganizations(userId)).find(candidate => candidate.id === teamId)
+    if (!team) {
+      return Response.json({ error: 'Team membership is required' }, { status: 403 })
+    }
+    return { id: team.id, role: team.role }
+  }
+
+  function canManageTeamWorkspace(role: string): boolean {
+    return role === 'owner' || role === 'admin'
+  }
+
   async function createAccountCookie(user: PublicUser, req: Request, useSecureCookies: boolean, authMethod: 'password' | 'email_verification' | 'password_reset' = 'password'): Promise<string | Response> {
     if (!accountStore) {
       return Response.json({ error: 'Account auth is not configured' }, { status: 503 })
@@ -755,7 +786,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         })
       }
       const user = await accountStore!.getUser(session.identity.userId)
-      const workspaceIds = await accountStore!.listWorkspaceIds(session.identity.userId)
+      const workspaceIds = await listAccessibleWorkspaceIds(session.identity.userId)
       return Response.json({
         mode: 'account',
         user,
@@ -1132,8 +1163,12 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       if (!options.accountCloudWorkspaceStore) {
         return Response.json({ workspaces: [] })
       }
+      const privateWorkspaces = await options.accountCloudWorkspaceStore.listWorkspaces(identity.userId)
+      const teamWorkspaces = options.accountTeamStore
+        ? await options.accountCloudWorkspaceStore.listTeamWorkspaces(await listTeamIdsForUser(identity.userId))
+        : []
       return Response.json({
-        workspaces: await options.accountCloudWorkspaceStore.listWorkspaces(identity.userId),
+        workspaces: [...privateWorkspaces, ...teamWorkspaces].sort((left, right) => left.createdAt.localeCompare(right.createdAt)),
       })
     }
 
@@ -1163,6 +1198,48 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         return Response.json({ workspace }, { status: 201 })
       } catch (error) {
         return Response.json({ error: error instanceof Error ? error.message : 'Workspace creation failed' }, { status: 400 })
+      }
+    }
+
+    const teamWorkspacesMatch = path.match(/^\/api\/account\/teams\/([^/]+)\/workspaces$/)
+    if (teamWorkspacesMatch && (req.method === 'GET' || req.method === 'POST')) {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      if (!options.accountCloudWorkspaceStore) {
+        return Response.json({ error: 'Managed cloud workspaces are not configured.' }, { status: 501 })
+      }
+
+      const teamId = decodeURIComponent(teamWorkspacesMatch[1]!)
+      const membership = await requireTeamMembership(identity.userId, teamId)
+      if (membership instanceof Response) return membership
+
+      if (req.method === 'GET') {
+        return Response.json({
+          workspaces: await options.accountCloudWorkspaceStore.listTeamWorkspaces([teamId]),
+        })
+      }
+
+      if (!canManageTeamWorkspace(membership.role)) {
+        return Response.json({ error: 'Only owners and admins can create team workspaces' }, { status: 403 })
+      }
+
+      let body: { name?: string }
+      try {
+        body = await req.json() as { name?: string }
+      } catch {
+        return Response.json({ error: 'Invalid request body' }, { status: 400 })
+      }
+
+      try {
+        const workspace = await options.accountCloudWorkspaceStore.createTeamWorkspace({
+          ownerUserId: identity.userId,
+          teamId,
+          name: typeof body.name === 'string' ? body.name : '',
+        })
+        await accountStore!.grantWorkspaceOwner(identity.userId, workspace.id)
+        return Response.json({ workspace }, { status: 201 })
+      } catch (error) {
+        return Response.json({ error: error instanceof Error ? error.message : 'Team workspace creation failed' }, { status: 400 })
       }
     }
 

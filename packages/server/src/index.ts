@@ -38,7 +38,15 @@ import { readFileSync, existsSync } from 'node:fs'
 import { version as packageVersion } from '../package.json'
 import { enableDebug } from '@rox-agent/shared/utils/debug'
 import { bootstrapServer, startHealthHttpServer, generateServerToken } from '@rox-agent/server-core/bootstrap'
-import { validateSession, validateAccountSession, createWebuiHandler, nodeHttpAdapter, createAccountEmailService } from '@rox-agent/server-core/webui'
+import {
+  validateSession,
+  validateAccountSession,
+  createWebuiHandler,
+  nodeHttpAdapter,
+  createAccountEmailService,
+  InMemoryAccountTeamStore,
+  InMemoryManagedCloudWorkspaceStore,
+} from '@rox-agent/server-core/webui'
 import type { WebuiHandler } from '@rox-agent/server-core/webui'
 import { createPostgresAccountStore } from '@rox-agent/server-core/accounts'
 import { getCredentialManager } from '@rox-agent/shared/credentials'
@@ -144,6 +152,8 @@ const accountEmailService = accountStore
       logger: { info: console.log, warn: console.warn, error: console.error },
     })
   : undefined
+const accountTeamStore = accountStore ? new InMemoryAccountTeamStore() : undefined
+const accountCloudWorkspaceStore = accountStore ? new InMemoryManagedCloudWorkspaceStore() : undefined
 
 if (accountStore) {
   await accountStore.migrate()
@@ -182,6 +192,8 @@ if (webuiEnabled && serverToken) {
     signupEnabled,
     publicAppUrl,
     accountEmailService,
+    accountTeamStore,
+    accountCloudWorkspaceStore,
     bootstrapAccount: accountStore
       ? async (user) => {
           if (await accountStore.getUserCount() !== 1) return
