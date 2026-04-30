@@ -6,6 +6,7 @@ import { AccountAuthError, AccountConflictError } from '../../accounts'
 import type { AccountEmailInput, AccountEmailService } from '../email'
 import { InMemoryAccountUsageLedger } from '../account-ledger'
 import { InMemoryAccountEventHistory } from '../account-events'
+import { InMemoryAccountTeamStore } from '../account-teams'
 
 class MemoryAccountStore implements AccountStore {
   users = new Map<string, PublicUser & { passwordHash: string }>()
@@ -214,6 +215,7 @@ describe('account webui auth', () => {
     emailService?: AccountEmailService,
     usageLedger?: InMemoryAccountUsageLedger,
     eventHistory?: InMemoryAccountEventHistory,
+    teamStore?: InMemoryAccountTeamStore,
   ) {
     const handler = createWebuiHandler({
       webuiDir: '/tmp/does-not-need-static-assets',
@@ -227,6 +229,7 @@ describe('account webui auth', () => {
       accountEmailService: emailService,
       accountUsageLedger: usageLedger,
       accountEventHistory: eventHistory,
+      accountTeamStore: teamStore,
     })
     handlers.push(handler)
     return handler
@@ -580,6 +583,79 @@ describe('account webui auth', () => {
       body: JSON.stringify({ code: 'rox-ops' }),
     }))
     expect(joinOrg.status).toBe(501)
+  })
+
+  it('creates account organizations through an injected team store', async () => {
+    const store = new MemoryAccountStore()
+    const teams = new InMemoryAccountTeamStore()
+    const created = await store.createUser({ email: 'user@example.com', password: 'password123' })
+    await store.markEmailVerified(created.id)
+    const handler = createHandler(store, undefined, undefined, undefined, teams)
+
+    const login = await handler.fetch(new Request('http://rox.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'user@example.com', password: 'password123' }),
+    }))
+    const cookie = login.headers.get('set-cookie') ?? ''
+    expect(login.status).toBe(200)
+
+    const createOrg = await handler.fetch(new Request('http://rox.test/api/account/organizations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie },
+      body: JSON.stringify({ name: 'ROX Ops' }),
+    }))
+    expect(createOrg.status).toBe(200)
+    const createBody = await createOrg.json() as { organizations: Array<{ name: string; role: string; slug: string }> }
+
+    expect(createBody.organizations).toHaveLength(1)
+    expect(createBody.organizations[0]).toMatchObject({
+      name: 'ROX Ops',
+      role: 'owner',
+    })
+    expect(createBody.organizations[0]!.slug).toStartWith('rox-ops-')
+  })
+
+  it('joins account organizations through single-use invites without leaking unrelated teams', async () => {
+    const store = new MemoryAccountStore()
+    const teams = new InMemoryAccountTeamStore()
+    const owner = await store.createUser({ email: 'owner@example.com', password: 'password123' })
+    await store.markEmailVerified(owner.id)
+    const member = await store.createUser({ email: 'member@example.com', password: 'password123' })
+    await store.markEmailVerified(member.id)
+    const otherOwner = await store.createUser({ email: 'other@example.com', password: 'password123' })
+    await store.markEmailVerified(otherOwner.id)
+    const organization = await teams.createOrganization({ actorUserId: owner.id, name: 'ROX Ops' })
+    await teams.createOrganization({ actorUserId: otherOwner.id, name: 'Other Team' })
+    const invite = await teams.createInvite({ actorUserId: owner.id, organizationId: organization.id })
+    const handler = createHandler(store, undefined, undefined, undefined, teams)
+
+    const login = await handler.fetch(new Request('http://rox.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'member@example.com', password: 'password123' }),
+    }))
+    const cookie = login.headers.get('set-cookie') ?? ''
+    expect(login.status).toBe(200)
+
+    const joinOrg = await handler.fetch(new Request('http://rox.test/api/account/organizations/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie },
+      body: JSON.stringify({ code: invite.code }),
+    }))
+    expect(joinOrg.status).toBe(200)
+    const joinBody = await joinOrg.json() as { organizations: Array<{ name: string; role: string }> }
+
+    expect(joinBody.organizations).toEqual([
+      expect.objectContaining({ name: 'ROX Ops', role: 'member' }),
+    ])
+
+    const reused = await handler.fetch(new Request('http://rox.test/api/account/organizations/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie },
+      body: JSON.stringify({ code: invite.code }),
+    }))
+    expect(reused.status).toBe(400)
   })
 
   it('returns account billing from the injected usage ledger without leaking other users balances', async () => {
