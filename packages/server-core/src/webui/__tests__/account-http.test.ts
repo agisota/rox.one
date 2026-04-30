@@ -5,6 +5,7 @@ import type { AccountSession, AccountStore, CreateAccountSessionInput, CreateEma
 import { AccountAuthError, AccountConflictError } from '../../accounts'
 import type { AccountEmailInput, AccountEmailService } from '../email'
 import { InMemoryAccountUsageLedger } from '../account-ledger'
+import { InMemoryAccountEventHistory } from '../account-events'
 
 class MemoryAccountStore implements AccountStore {
   users = new Map<string, PublicUser & { passwordHash: string }>()
@@ -197,7 +198,12 @@ describe('account webui auth', () => {
     for (const handler of handlers.splice(0)) handler.dispose()
   })
 
-  function createHandler(store = new MemoryAccountStore(), emailService?: AccountEmailService, usageLedger?: InMemoryAccountUsageLedger) {
+  function createHandler(
+    store = new MemoryAccountStore(),
+    emailService?: AccountEmailService,
+    usageLedger?: InMemoryAccountUsageLedger,
+    eventHistory?: InMemoryAccountEventHistory,
+  ) {
     const handler = createWebuiHandler({
       webuiDir: '/tmp/does-not-need-static-assets',
       secret: 'test-secret-with-enough-length',
@@ -209,6 +215,7 @@ describe('account webui auth', () => {
       publicAppUrl: 'https://app.rox.one',
       accountEmailService: emailService,
       accountUsageLedger: usageLedger,
+      accountEventHistory: eventHistory,
     })
     handlers.push(handler)
     return handler
@@ -521,5 +528,53 @@ describe('account webui auth', () => {
     })
     expect(body.ledger.entries.map(entry => entry.userId)).toEqual([firstUser.id, firstUser.id])
     expect(body.ledger.entries.map(entry => entry.amountUnits)).toEqual([1000, 125])
+  })
+
+  it('returns account events from injected history without leaking other users or raw user ids', async () => {
+    const store = new MemoryAccountStore()
+    const eventHistory = new InMemoryAccountEventHistory()
+    const firstUser = await store.createUser({ email: 'first@example.com', password: 'password123' })
+    await store.markEmailVerified(firstUser.id)
+    const secondUser = await store.createUser({ email: 'second@example.com', password: 'password123' })
+    await store.markEmailVerified(secondUser.id)
+    await eventHistory.append({
+      userId: firstUser.id,
+      type: 'account.login',
+      title: 'Signed in',
+      details: { method: 'password', token: 'raw-token' },
+    })
+    await eventHistory.append({
+      userId: secondUser.id,
+      type: 'account.login',
+      title: 'Other user signed in',
+      details: { method: 'password' },
+    })
+    await eventHistory.append({
+      userId: firstUser.id,
+      type: 'billing.debit',
+      title: 'Usage debit',
+      details: { amountUnits: 125 },
+    })
+    const handler = createHandler(store, undefined, undefined, eventHistory)
+
+    const login = await handler.fetch(new Request('http://craft.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'first@example.com', password: 'password123' }),
+    }))
+    const cookie = login.headers.get('set-cookie') ?? ''
+    expect(login.status).toBe(200)
+
+    const events = await handler.fetch(new Request('http://craft.test/api/account/events', {
+      headers: { cookie },
+    }))
+    expect(events.status).toBe(200)
+    const body = await events.json() as { events: Array<Record<string, unknown>> }
+
+    expect(body.events).toHaveLength(2)
+    expect(body.events.map(event => event.type)).toEqual(['billing.debit', 'account.login'])
+    expect(body.events.some(event => event.title === 'Other user signed in')).toBe(false)
+    expect(body.events.some(event => 'userId' in event)).toBe(false)
+    expect(body.events[1]!.details).toEqual({ method: 'password', token: '[redacted]' })
   })
 })
