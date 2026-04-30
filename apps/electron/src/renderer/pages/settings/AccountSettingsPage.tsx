@@ -21,6 +21,14 @@ import {
   summarizeAccountStorage,
   type AccountStorageResponse,
 } from './account-storage-summary'
+import {
+  buildAcceptInvitePath,
+  buildCreateInvitePath,
+  buildTeamSpacesPath,
+  summarizeAccountTeams,
+  type AccountTeam,
+  type AccountTeamSpace,
+} from './account-teams-summary'
 
 const ACCOUNT_WEB_ORIGIN = 'https://rox.one'
 
@@ -75,16 +83,6 @@ interface AccountEvent {
   createdAt: string
 }
 
-interface AccountOrganization {
-  id: string
-  name: string
-  slug: string
-  role: string
-  status: string
-  createdAt: string
-  updatedAt?: string
-}
-
 interface AccountResponse {
   mode: 'account' | 'legacy'
   user: AccountUser | null
@@ -132,11 +130,16 @@ export default function AccountSettingsPage() {
   const [storage, setStorage] = useState<AccountStorageResponse | null>(null)
   const [sessions, setSessions] = useState<SessionsResponse | null>(null)
   const [events, setEvents] = useState<AccountEvent[]>([])
-  const [organizations, setOrganizations] = useState<AccountOrganization[]>([])
+  const [teams, setTeams] = useState<AccountTeam[]>([])
+  const [teamSpaces, setTeamSpaces] = useState<Record<string, AccountTeamSpace[]>>({})
+  const [teamsError, setTeamsError] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
-  const [newOrganizationName, setNewOrganizationName] = useState('')
+  const [newTeamName, setNewTeamName] = useState('')
+  const [selectedTeamId, setSelectedTeamId] = useState('')
+  const [newSpaceName, setNewSpaceName] = useState('')
+  const [inviteTeamId, setInviteTeamId] = useState('')
   const [joinCode, setJoinCode] = useState('')
 
   const isHostedHttp = window.location.protocol === 'http:' || window.location.protocol === 'https:'
@@ -182,19 +185,35 @@ export default function AccountSettingsPage() {
       setDisplayName(accountData.user?.displayName ?? '')
 
       if (accountData.mode === 'account' && accountData.user) {
-        const [billingResult, storageResult, sessionsResult, eventsResult, organizationsResult] = await Promise.allSettled([
+        const [billingResult, storageResult, sessionsResult, eventsResult, teamsResult] = await Promise.allSettled([
           accountApi<BillingResponse>('/api/account/billing'),
           accountApi<AccountStorageResponse>('/api/account/storage'),
           accountApi<SessionsResponse>('/api/account/sessions'),
           accountApi<{ events: AccountEvent[] }>('/api/account/events'),
-          accountApi<{ organizations: AccountOrganization[] }>('/api/account/organizations'),
+          accountApi<{ teams: AccountTeam[] }>('/api/account/teams'),
         ])
 
         setBilling(billingResult.status === 'fulfilled' ? billingResult.value : null)
         setStorage(storageResult.status === 'fulfilled' ? storageResult.value : null)
         setSessions(sessionsResult.status === 'fulfilled' ? sessionsResult.value : null)
         setEvents(eventsResult.status === 'fulfilled' ? eventsResult.value.events : [])
-        setOrganizations(organizationsResult.status === 'fulfilled' ? organizationsResult.value.organizations : [])
+        if (teamsResult.status === 'fulfilled') {
+          setTeams(teamsResult.value.teams)
+          setTeamsError(null)
+          const spaceEntries = await Promise.allSettled(teamsResult.value.teams.map(async (team) => {
+            const data = await accountApi<{ spaces: AccountTeamSpace[] }>(buildTeamSpacesPath(team.id))
+            return [team.id, data.spaces] as const
+          }))
+          const nextSpaces: Record<string, AccountTeamSpace[]> = {}
+          for (const entry of spaceEntries) {
+            if (entry.status === 'fulfilled') nextSpaces[entry.value[0]] = entry.value[1]
+          }
+          setTeamSpaces(nextSpaces)
+        } else {
+          setTeams([])
+          setTeamSpaces({})
+          setTeamsError(teamsResult.reason instanceof Error ? teamsResult.reason.message : String(teamsResult.reason))
+        }
       }
     } catch (err) {
       setAccount(null)
@@ -202,7 +221,9 @@ export default function AccountSettingsPage() {
       setStorage(null)
       setSessions(null)
       setEvents([])
-      setOrganizations([])
+      setTeams([])
+      setTeamSpaces({})
+      setTeamsError(null)
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
@@ -332,18 +353,23 @@ export default function AccountSettingsPage() {
     }
   }
 
-  async function createOrganization() {
+  async function createTeam() {
     setSaving(true)
     setError(null)
     setSaved(null)
     try {
-      const data = await accountApi<{ organizations: AccountOrganization[] }>('/api/account/organizations', {
+      const data = await accountApi<{ teams: AccountTeam[] }>('/api/account/teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newOrganizationName }),
+        body: JSON.stringify({ name: newTeamName }),
       })
-      setOrganizations(data.organizations)
-      setNewOrganizationName('')
+      setTeams(data.teams)
+      const newestTeam = data.teams.at(-1)
+      if (newestTeam) {
+        setSelectedTeamId(newestTeam.id)
+        setInviteTeamId(newestTeam.id)
+      }
+      setNewTeamName('')
       setSaved('Команда создана.')
       await loadAccount()
     } catch (err) {
@@ -353,20 +379,59 @@ export default function AccountSettingsPage() {
     }
   }
 
-  async function joinOrganization() {
+  async function acceptTeamInvite() {
     setSaving(true)
     setError(null)
     setSaved(null)
     try {
-      const data = await accountApi<{ organizations: AccountOrganization[] }>('/api/account/organizations/join', {
+      const data = await accountApi<{ teams: AccountTeam[] }>(buildAcceptInvitePath(joinCode), {
+        method: 'POST',
+      })
+      setTeams(data.teams)
+      setJoinCode('')
+      setSaved('Вы присоединились к команде.')
+      await loadAccount()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function createTeamSpace() {
+    if (!selectedTeamId) return
+    setSaving(true)
+    setError(null)
+    setSaved(null)
+    try {
+      const data = await accountApi<{ spaces: AccountTeamSpace[] }>(buildTeamSpacesPath(selectedTeamId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: joinCode }),
+        body: JSON.stringify({ name: newSpaceName }),
       })
-      setOrganizations(data.organizations)
-      setJoinCode('')
-      setSaved('Вы присоединились к организации.')
+      setTeamSpaces(prev => ({ ...prev, [selectedTeamId]: data.spaces }))
+      setNewSpaceName('')
+      setSaved('Space создан.')
       await loadAccount()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function createTeamInvite() {
+    if (!inviteTeamId) return
+    setSaving(true)
+    setError(null)
+    setSaved(null)
+    try {
+      const data = await accountApi<{ invite: { code: string; role: string } }>(buildCreateInvitePath(inviteTeamId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'member' }),
+      })
+      setSaved(`Инвайт создан: ${data.invite.code} (${data.invite.role})`)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -416,7 +481,9 @@ export default function AccountSettingsPage() {
     setStorage(null)
     setSessions(null)
     setEvents([])
-    setOrganizations([])
+    setTeams([])
+    setTeamSpaces({})
+    setTeamsError(null)
     if (isHostedHttp) window.location.href = '/login'
   }
 
@@ -427,6 +494,8 @@ export default function AccountSettingsPage() {
   const accountUser = account?.mode === 'account' ? account.user : null
   const brandSummaryRows = getAccountBrandSummaryRows(undefined, t)
   const storageSummary = summarizeAccountStorage(storage)
+  const teamsSummary = summarizeAccountTeams({ teams, spacesByTeamId: teamSpaces, error: teamsError })
+  const manageableTeams = teamsSummary.rows.filter(row => row.canCreateInvite || row.canCreateSpace)
 
   return (
     <div className="h-full flex flex-col">
@@ -505,28 +574,46 @@ export default function AccountSettingsPage() {
                   </SettingsCard>
                 </SettingsSection>
 
-                <SettingsSection title="Команды и организации" description="Создание команды, присоединение к организации и список доступных рабочих контуров.">
+                <SettingsSection title="Команды и Spaces" description="Команда владеет collaborative spaces, storage prefixes and invite flow. Legacy organizations stay behind the same compatibility layer.">
                   <SettingsCard divided>
-                    <SettingsInput label="Название новой команды" value={newOrganizationName} onChange={setNewOrganizationName} placeholder="например, ROX Ops" inCard />
+                    <SettingsRow label="Подключено" description={`${teamsSummary.totalTeamsLabel} / ${teamsSummary.totalSpacesLabel}`} />
+                    <SettingsInput label="Название новой команды" value={newTeamName} onChange={setNewTeamName} placeholder="например, ROX Ops" inCard />
                     <SettingsRow
                       label="Создать команду"
-                      description="Вы станете владельцем команды. Slug можно передать другим пользователям как код подключения."
-                      action={<Button size="sm" onClick={createOrganization} disabled={saving || newOrganizationName.trim().length < 2}>Создать команду</Button>}
+                      description="Вы станете владельцем команды. Инвайты создаются отдельно и принимаются одноразовым кодом."
+                      action={<Button size="sm" onClick={createTeam} disabled={saving || newTeamName.trim().length < 2}>Создать команду</Button>}
                     />
-                    <SettingsInput label="Код или slug организации" value={joinCode} onChange={setJoinCode} placeholder="например, rox-ops-a1b2c3" inCard />
+                    <SettingsInput label="Код приглашения" value={joinCode} onChange={setJoinCode} placeholder="например, dv7Z... одноразовый invite code" inCard />
                     <SettingsRow
-                      label="Присоединиться к организации"
-                      description="Введите slug/id организации, созданной другим пользователем."
-                      action={<Button size="sm" variant="outline" onClick={joinOrganization} disabled={saving || !joinCode.trim()}>Присоединиться</Button>}
+                      label="Принять приглашение"
+                      description="Invite code принимается через team endpoint и больше не используется повторно."
+                      action={<Button size="sm" variant="outline" onClick={acceptTeamInvite} disabled={saving || !joinCode.trim()}>Присоединиться</Button>}
                     />
-                    {organizations.length ? organizations.map((organization) => (
+                    {manageableTeams.length ? (
+                      <>
+                        <SettingsInput label="ID команды для space/invite" value={selectedTeamId} onChange={setSelectedTeamId} placeholder={manageableTeams[0]?.id || 'team id'} inCard />
+                        <SettingsInput label="Название нового Space" value={newSpaceName} onChange={setNewSpaceName} placeholder="например, Release Room" inCard />
+                        <SettingsRow
+                          label="Создать Space"
+                          description="Space получает отдельный prefix внутри team bucket."
+                          action={<Button size="sm" onClick={createTeamSpace} disabled={saving || !selectedTeamId || newSpaceName.trim().length < 2}>Создать Space</Button>}
+                        />
+                        <SettingsInput label="ID команды для invite" value={inviteTeamId} onChange={setInviteTeamId} placeholder={manageableTeams[0]?.id || 'team id'} inCard />
+                        <SettingsRow
+                          label="Создать invite"
+                          description="Создает одноразовое приглашение с ролью member."
+                          action={<Button size="sm" variant="outline" onClick={createTeamInvite} disabled={saving || !inviteTeamId}>Создать invite</Button>}
+                        />
+                      </>
+                    ) : null}
+                    {teamsSummary.rows.length ? teamsSummary.rows.map((team) => (
                       <SettingsRow
-                        key={organization.id}
-                        label={organization.name}
-                        description={`${organization.role} / ${organization.status} / код: ${organization.slug}`}
+                        key={team.id}
+                        label={team.label}
+                        description={team.description}
                       />
                     )) : (
-                      <SettingsRow label="Организации не подключены" description="Создайте команду или присоединитесь по коду." />
+                      <SettingsRow label={teamsSummary.emptyLabel} description="Создайте команду или примите одноразовое приглашение." />
                     )}
                   </SettingsCard>
                 </SettingsSection>
