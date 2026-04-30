@@ -818,6 +818,11 @@ Slice K:
 - `bun test infra/__tests__/rox-one-auth-server-contract.test.ts`
 - `node --check infra/rox-one-auth-server.mjs`
 
+Slice L:
+
+- `bun test infra/__tests__/rox-one-auth-server-contract.test.ts`
+- `node --check infra/rox-one-auth-server.mjs`
+
 ## 17. Passing test output summary
 
 - Slice A targeted tests: `17 pass`, `0 fail`, `63 expect() calls`.
@@ -866,6 +871,9 @@ Slice K:
 - Slice K expected failure: hosted auth contract test failed on missing `rox_team_spaces`, `rox_team_invites`, team-first routes, storage route, and invite accept route.
 - Slice K hosted auth contract tests: `3 pass`, `0 fail`, `11 expect() calls`.
 - Slice K `node --check infra/rox-one-auth-server.mjs`: passed.
+- Slice L expected failure: hosted auth contract test failed on missing `rox_billing_topups`, `rox_dvnet_webhook_events`, DV.net payment-form intent config, `/api/webhooks/dvnet`, `X-SIGN` raw-body verification, and tx idempotency.
+- Slice L hosted auth contract tests: `6 pass`, `0 fail`, `28 expect() calls`.
+- Slice L `node --check infra/rox-one-auth-server.mjs`: passed.
 
 ## 18. Build output summary
 
@@ -881,6 +889,7 @@ Slice K:
 - Slice I `bun run webui:build` passed; Vite built the renderer bundle in `24.11s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
 - Slice J `bun run webui:build` passed; Vite built the renderer bundle in `23.82s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
 - Slice K has no renderer build impact; syntax validation passed with `node --check`.
+- Slice L has no renderer build impact; syntax validation passed with `node --check`.
 
 ## 19. Remaining risks
 
@@ -899,6 +908,7 @@ Slice K:
 - DV.net webhook hardening currently covers signature, idempotency, intent resolution, status checks, and body size; network/IP rate limiting remains outside this slice.
 - Teams/Spaces UI now uses team-first endpoints and readable team pickers for owner/admin actions.
 - Hosted auth script now declares durable `rox_team_spaces`, `rox_team_invites`, and `rox_storage_buckets` tables and exposes team-first aliases, spaces, invites, invite acceptance, and account storage endpoints.
+- Hosted auth script now also declares durable `rox_billing_topups` and `rox_dvnet_webhook_events`, creates DV.net payment-form intents server-side, verifies public webhooks with raw-body `X-SIGN`, credits confirmed `PaymentReceived` webhooks only once by `tx_hash + bc_uniq_key`, and keeps DV.net secrets out of response DTOs.
 - Hosted auth coverage is currently a static contract test plus syntax check because `infra/rox-one-auth-server.mjs` starts the server at module top level and is not yet importable as an HTTP harness.
 - Existing hosted auth DB rows that already contain `ROX` are not migrated automatically by this slice.
 - Existing unrelated dirty files remain excluded from this task commit: `apps/electron/src/main/index.ts`, `events.jsonl`, and auto-update files.
@@ -927,4 +937,5 @@ Slice K:
 | Teams/Spaces UI uses team-first endpoints | Pass | Slice I tests assert `/api/account/teams`, `/spaces`, `/invites`, and `/invites/:code/accept` path mapping plus account page integration |
 | Teams/Spaces controls avoid raw team-id UX | Pass | Slice J readable manageable-team option tests and account page Select controls |
 | Hosted auth server exposes T032 team/storage compatibility | Pass | Slice K contract test asserts SQL tables and route contracts; `node --check` passes |
+| Hosted auth server exposes T032 DV.net billing compatibility | Pass | Slice L contract test asserts top-up/webhook tables, intent route, X-SIGN raw-body verification, idempotent tx recording, and secret-free DTO contract |
 | TDD-first implementation plan exists | Planned | Phase A-D test-first path |

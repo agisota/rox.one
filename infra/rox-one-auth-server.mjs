@@ -27,6 +27,10 @@ const WS_URL = process.env.ROX_AUTH_WS_URL || process.env.CRAFT_WEBUI_WS_URL || 
 const BILLING_CURRENCY = process.env.ROX_BILLING_CURRENCY || 'USDT'
 const BILLING_INITIAL_BALANCE_UNITS = Number(process.env.ROX_BILLING_INITIAL_BALANCE_UNITS || 0)
 const BILLING_TOP_UP_URL = (process.env.ROX_BILLING_TOP_UP_URL || '').trim()
+const DVNET_PAYMENT_BASE_URL = (process.env.ROX_DVNET_PAYMENT_BASE_URL || process.env.DVNET_PAYMENT_BASE_URL || 'https://checkout.dv.net').replace(/\/+$/, '')
+const DVNET_STORE_UUID = (process.env.ROX_DVNET_STORE_UUID || process.env.DVNET_STORE_UUID || '').trim()
+const DVNET_WEBHOOK_SECRET = process.env.ROX_DVNET_WEBHOOK_SECRET || process.env.DVNET_WEBHOOK_SECRET || ''
+const DVNET_WEBHOOK_MAX_BYTES = Number(process.env.ROX_DVNET_WEBHOOK_MAX_BYTES || 64 * 1024)
 const S3_ENDPOINT_CANDIDATES = (process.env.ROX_S3_ENDPOINTS || 'http://s3.max:9000,http://s3.rox:9000')
   .split(',')
   .map((entry) => entry.trim())
@@ -325,6 +329,29 @@ function sqliteStore() {
       FOREIGN KEY(user_id) REFERENCES rox_users(id)
     );
     CREATE INDEX IF NOT EXISTS rox_account_events_user_idx ON rox_account_events(user_id, created_at);
+    CREATE TABLE IF NOT EXISTS rox_billing_topups (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      provider TEXT NOT NULL DEFAULT 'dv.net',
+      status TEXT NOT NULL DEFAULT 'ready',
+      payment_url TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      completed_at TEXT,
+      FOREIGN KEY(user_id) REFERENCES rox_users(id)
+    );
+    CREATE INDEX IF NOT EXISTS rox_billing_topups_user_idx ON rox_billing_topups(user_id, created_at);
+    CREATE TABLE IF NOT EXISTS rox_dvnet_webhook_events (
+      id TEXT PRIMARY KEY,
+      topup_id TEXT,
+      user_id TEXT,
+      tx_hash TEXT NOT NULL,
+      bc_uniq_key TEXT NOT NULL,
+      amount_units INTEGER NOT NULL,
+      received_at TEXT NOT NULL,
+      UNIQUE(tx_hash, bc_uniq_key),
+      FOREIGN KEY(topup_id) REFERENCES rox_billing_topups(id),
+      FOREIGN KEY(user_id) REFERENCES rox_users(id)
+    );
     CREATE TABLE IF NOT EXISTS rox_organizations (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -450,6 +477,26 @@ async function postgresStore(connectionString) {
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS rox_account_events_user_idx ON rox_account_events(user_id, created_at);
+    CREATE TABLE IF NOT EXISTS rox_billing_topups (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES rox_users(id) ON DELETE CASCADE,
+      provider TEXT NOT NULL DEFAULT 'dv.net',
+      status TEXT NOT NULL DEFAULT 'ready',
+      payment_url TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      completed_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS rox_billing_topups_user_idx ON rox_billing_topups(user_id, created_at);
+    CREATE TABLE IF NOT EXISTS rox_dvnet_webhook_events (
+      id TEXT PRIMARY KEY,
+      topup_id TEXT REFERENCES rox_billing_topups(id) ON DELETE SET NULL,
+      user_id TEXT REFERENCES rox_users(id) ON DELETE SET NULL,
+      tx_hash TEXT NOT NULL,
+      bc_uniq_key TEXT NOT NULL,
+      amount_units INTEGER NOT NULL,
+      received_at TEXT NOT NULL,
+      UNIQUE(tx_hash, bc_uniq_key)
+    );
     CREATE TABLE IF NOT EXISTS rox_organizations (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -743,11 +790,126 @@ function billingOverview(balance) {
   return {
     balance,
     topUp: {
-      enabled: Boolean(BILLING_TOP_UP_URL),
-      provider: BILLING_TOP_UP_URL ? 'external' : 'not_configured',
+      enabled: Boolean(DVNET_STORE_UUID || BILLING_TOP_UP_URL),
+      provider: DVNET_STORE_UUID ? 'dv.net' : (BILLING_TOP_UP_URL ? 'external' : 'not_configured'),
       url: BILLING_TOP_UP_URL || null,
     },
   }
+}
+
+function createDvnetWebhookSignature(rawBody) {
+  return createHash('sha256').update(`${rawBody}${DVNET_WEBHOOK_SECRET}`).digest('hex')
+}
+
+function verifyDvnetWebhookSignature(rawBody, signature) {
+  if (!DVNET_WEBHOOK_SECRET || !signature) return false
+  const expected = createDvnetWebhookSignature(rawBody)
+  const expectedBytes = Buffer.from(expected, 'utf8')
+  const actualBytes = Buffer.from(String(signature), 'utf8')
+  return expectedBytes.length === actualBytes.length && timingSafeEqual(expectedBytes, actualBytes)
+}
+
+function parseUsdtAmountUnits(value) {
+  const amount = String(value || '').trim()
+  if (!/^\d+(?:\.\d{1,6})?$/.test(amount)) {
+    const error = new Error('Invalid DV.net amount')
+    error.statusCode = 400
+    throw error
+  }
+  const [whole, fraction = ''] = amount.split('.')
+  const units = Number(whole) * 1_000_000 + Number(fraction.padEnd(6, '0'))
+  if (!Number.isSafeInteger(units) || units <= 0) {
+    const error = new Error('Invalid DV.net amount')
+    error.statusCode = 400
+    throw error
+  }
+  return units
+}
+
+function requireDvnetString(value, field) {
+  if (typeof value !== 'string' || !value.trim()) {
+    const error = new Error(`Invalid DV.net webhook field: ${field}`)
+    error.statusCode = 400
+    throw error
+  }
+  return value.trim()
+}
+
+async function createDvnetTopUpIntent(userId) {
+  if (!DVNET_STORE_UUID) return null
+  const intent = { id: id('dvtop'), userId, createdAt: nowIso() }
+  const paymentPath = `/pay/store/${encodeURIComponent(DVNET_STORE_UUID)}/${encodeURIComponent(intent.id)}`
+  const redirectUrl = `${DVNET_PAYMENT_BASE_URL}${paymentPath}`
+  await db.run(`
+    INSERT INTO rox_billing_topups (id, user_id, provider, status, payment_url, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `, intent.id, intent.userId, 'dv.net', 'ready', redirectUrl, intent.createdAt)
+  return {
+    status: 'ready',
+    provider: 'dv.net',
+    redirectUrl,
+    clientId: intent.id,
+  }
+}
+
+async function recordDvnetWebhookEvent(txHash, bcUniqKey, topup, amountUnits) {
+  try {
+    await db.run(`
+      INSERT INTO rox_dvnet_webhook_events (id, topup_id, user_id, tx_hash, bc_uniq_key, amount_units, received_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, id('dvweb'), topup.id, topup.user_id, txHash, bcUniqKey, amountUnits, nowIso())
+    return true
+  } catch (error) {
+    if (String(error?.message || '').toLowerCase().includes('unique')) return false
+    throw error
+  }
+}
+
+async function creditAccountBalance(userId, amountUnits, metadata = {}) {
+  const balance = await accountBalance(userId)
+  const updatedAt = nowIso()
+  await db.run(`
+    UPDATE rox_account_balances
+    SET balance_units = balance_units + ?, currency = ?, updated_at = ?
+    WHERE user_id = ?
+  `, amountUnits, balance.currency || BILLING_CURRENCY, updatedAt, userId)
+  await recordAccountEvent(userId, 'billing.dvnet_top_up_confirmed', 'DV.net пополнение подтверждено', metadata)
+  return accountBalance(userId)
+}
+
+async function processDvnetWebhookPayload(rawBody, signature) {
+  if (!DVNET_STORE_UUID || !DVNET_WEBHOOK_SECRET) {
+    const error = new Error('DV.net billing is not configured')
+    error.statusCode = 503
+    throw error
+  }
+  if (!verifyDvnetWebhookSignature(rawBody, signature)) {
+    const error = new Error('Invalid DV.net webhook signature')
+    error.statusCode = 400
+    throw error
+  }
+  const payload = JSON.parse(rawBody || '{}')
+  if (payload.type !== 'PaymentReceived' || payload.status !== 'completed') {
+    return { success: true, credited: false, duplicate: false }
+  }
+
+  const txHash = requireDvnetString(payload.transactions?.tx_hash, 'transactions.tx_hash')
+  const bcUniqKey = requireDvnetString(payload.transactions?.bc_uniq_key, 'transactions.bc_uniq_key')
+  const intentId = requireDvnetString(payload.wallet?.store_external_id, 'wallet.store_external_id')
+  const amountUnits = parseUsdtAmountUnits(payload.transactions?.amount_usd ?? payload.amount)
+  const intent = await db.get('SELECT * FROM rox_billing_topups WHERE id = ? AND provider = ?', intentId, 'dv.net')
+  if (!intent) {
+    const error = new Error('Unknown DV.net billing intent')
+    error.statusCode = 400
+    throw error
+  }
+
+  const inserted = await recordDvnetWebhookEvent(txHash, bcUniqKey, intent, amountUnits)
+  if (!inserted) return { success: true, credited: false, duplicate: true }
+
+  await creditAccountBalance(intent.user_id, amountUnits, { provider: 'dv.net', txHash, bcUniqKey, topUpId: intent.id })
+  await db.run('UPDATE rox_billing_topups SET status = ?, completed_at = COALESCE(completed_at, ?) WHERE id = ?', 'completed', nowIso(), intent.id)
+  return { success: true, credited: true, duplicate: false }
 }
 
 function parseDetails(value) {
@@ -1714,6 +1876,24 @@ async function handle(req, res) {
     return json(res, 200, { ok: true }, { 'set-cookie': logoutCookie() })
   }
 
+  if (req.method === 'POST' && url.pathname === '/api/webhooks/dvnet') {
+    const declaredSize = Number(req.headers['content-length'] || 0)
+    if (declaredSize > DVNET_WEBHOOK_MAX_BYTES) {
+      return json(res, 413, { error: { message: 'DV.net webhook body is too large' } })
+    }
+    const rawBody = await readBodyText(req)
+    if (Buffer.byteLength(rawBody, 'utf8') > DVNET_WEBHOOK_MAX_BYTES) {
+      return json(res, 413, { error: { message: 'DV.net webhook body is too large' } })
+    }
+    const signature = req.headers['x-sign'] || req.headers['x-dv-signature'] || null
+    try {
+      await processDvnetWebhookPayload(rawBody, signature)
+      return json(res, 200, { success: true })
+    } catch (error) {
+      return json(res, error.statusCode || 400, { error: { message: error.message || 'Invalid DV.net webhook payload' } })
+    }
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/account/me') {
     const session = await requireSession(req, res)
     if (!session) return
@@ -1835,7 +2015,14 @@ async function handle(req, res) {
     const session = await requireSession(req, res)
     if (!session) return
     const balance = await accountBalance(session.id)
-    await recordAccountEvent(session.id, 'billing.top_up_requested', 'Запрошено пополнение баланса', { configured: Boolean(BILLING_TOP_UP_URL) })
+    const dvnetIntent = await createDvnetTopUpIntent(session.id)
+    await recordAccountEvent(session.id, 'billing.top_up_requested', 'Запрошено пополнение баланса', { configured: Boolean(dvnetIntent || BILLING_TOP_UP_URL), provider: dvnetIntent ? 'dv.net' : 'external' })
+    if (dvnetIntent) {
+      return json(res, 200, {
+        ...dvnetIntent,
+        billing: billingOverview(balance),
+      })
+    }
     return json(res, 200, {
       ok: Boolean(BILLING_TOP_UP_URL),
       status: BILLING_TOP_UP_URL ? 'redirect_required' : 'not_configured',
