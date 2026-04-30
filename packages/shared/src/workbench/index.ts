@@ -11,5 +11,6 @@ export * from './prompt-rewrite-engine';
 export * from './review-board';
 export * from './thinking-partner';
 export * from './spec-compiler';
+export * from './swarm-signal-processor';
 export * from './tdd-task-generator';
 export * from './validation-gates';
