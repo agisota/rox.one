@@ -27,6 +27,10 @@ const WS_URL = process.env.ROX_AUTH_WS_URL || process.env.CRAFT_WEBUI_WS_URL || 
 const BILLING_CURRENCY = process.env.ROX_BILLING_CURRENCY || 'USDT'
 const BILLING_INITIAL_BALANCE_UNITS = Number(process.env.ROX_BILLING_INITIAL_BALANCE_UNITS || 0)
 const BILLING_TOP_UP_URL = (process.env.ROX_BILLING_TOP_UP_URL || '').trim()
+const S3_ENDPOINT_CANDIDATES = (process.env.ROX_S3_ENDPOINTS || 'http://s3.max:9000,http://s3.rox:9000')
+  .split(',')
+  .map((entry) => entry.trim())
+  .filter(Boolean)
 const TRUST_FORWARDED_HEADERS = process.env.ROX_AUTH_TRUST_FORWARDED_HEADERS === '1' || process.env.CRAFT_TRUST_FORWARDED_HEADERS === '1'
 const TRUSTED_PROXIES = parseTrustedProxyEnv(process.env.ROX_AUTH_TRUSTED_PROXIES || process.env.CRAFT_WEBUI_TRUSTED_PROXIES || process.env.CRAFT_TRUSTED_PROXIES || '')
 const SESSION_COOKIE = '__Host-rox_session'
@@ -340,6 +344,45 @@ function sqliteStore() {
       FOREIGN KEY(organization_id) REFERENCES rox_organizations(id),
       FOREIGN KEY(user_id) REFERENCES rox_users(id)
     );
+    CREATE TABLE IF NOT EXISTS rox_team_spaces (
+      id TEXT PRIMARY KEY,
+      organization_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      storage_prefix TEXT NOT NULL,
+      created_by_user_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(organization_id) REFERENCES rox_organizations(id),
+      FOREIGN KEY(created_by_user_id) REFERENCES rox_users(id)
+    );
+    CREATE INDEX IF NOT EXISTS rox_team_spaces_org_idx ON rox_team_spaces(organization_id, created_at);
+    CREATE TABLE IF NOT EXISTS rox_team_invites (
+      id TEXT PRIMARY KEY,
+      organization_id TEXT NOT NULL,
+      code TEXT NOT NULL UNIQUE,
+      role TEXT NOT NULL DEFAULT 'member',
+      created_by_user_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      consumed_at TEXT,
+      consumed_by_user_id TEXT,
+      FOREIGN KEY(organization_id) REFERENCES rox_organizations(id),
+      FOREIGN KEY(created_by_user_id) REFERENCES rox_users(id),
+      FOREIGN KEY(consumed_by_user_id) REFERENCES rox_users(id)
+    );
+    CREATE INDEX IF NOT EXISTS rox_team_invites_code_idx ON rox_team_invites(code, consumed_at);
+    CREATE TABLE IF NOT EXISTS rox_storage_buckets (
+      id TEXT PRIMARY KEY,
+      owner_type TEXT NOT NULL,
+      owner_id TEXT NOT NULL,
+      bucket TEXT NOT NULL,
+      prefix TEXT NOT NULL,
+      quota_bytes INTEGER NOT NULL DEFAULT 0,
+      endpoint TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(owner_type, owner_id)
+    );
   `)
   return {
     backend: 'sqlite',
@@ -422,6 +465,40 @@ async function postgresStore(connectionString) {
       status TEXT NOT NULL DEFAULT 'active',
       created_at TEXT NOT NULL,
       PRIMARY KEY (organization_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS rox_team_spaces (
+      id TEXT PRIMARY KEY,
+      organization_id TEXT NOT NULL REFERENCES rox_organizations(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      storage_prefix TEXT NOT NULL,
+      created_by_user_id TEXT NOT NULL REFERENCES rox_users(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS rox_team_spaces_org_idx ON rox_team_spaces(organization_id, created_at);
+    CREATE TABLE IF NOT EXISTS rox_team_invites (
+      id TEXT PRIMARY KEY,
+      organization_id TEXT NOT NULL REFERENCES rox_organizations(id) ON DELETE CASCADE,
+      code TEXT NOT NULL UNIQUE,
+      role TEXT NOT NULL DEFAULT 'member',
+      created_by_user_id TEXT NOT NULL REFERENCES rox_users(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL,
+      consumed_at TEXT,
+      consumed_by_user_id TEXT REFERENCES rox_users(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS rox_team_invites_code_idx ON rox_team_invites(code, consumed_at);
+    CREATE TABLE IF NOT EXISTS rox_storage_buckets (
+      id TEXT PRIMARY KEY,
+      owner_type TEXT NOT NULL,
+      owner_id TEXT NOT NULL,
+      bucket TEXT NOT NULL,
+      prefix TEXT NOT NULL,
+      quota_bytes INTEGER NOT NULL DEFAULT 0,
+      endpoint TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(owner_type, owner_id)
     );
   `)
   return {
@@ -737,6 +814,32 @@ function publicOrganization(row) {
   }
 }
 
+function publicTeamSpace(row) {
+  return {
+    id: row.id,
+    organizationId: row.organization_id || row.organizationid,
+    name: row.name,
+    slug: row.slug,
+    storagePrefix: row.storage_prefix || row.storageprefix,
+    createdByUserId: row.created_by_user_id || row.createdbyuserid,
+    createdAt: row.created_at || row.createdat,
+    updatedAt: row.updated_at || row.updatedat,
+  }
+}
+
+function publicTeamInvite(row) {
+  return {
+    id: row.id,
+    organizationId: row.organization_id || row.organizationid,
+    code: row.code,
+    role: row.role || 'member',
+    createdByUserId: row.created_by_user_id || row.createdbyuserid,
+    createdAt: row.created_at || row.createdat,
+    consumedAt: row.consumed_at || row.consumedat || null,
+    consumedByUserId: row.consumed_by_user_id || row.consumedbyuserid || null,
+  }
+}
+
 async function listOrganizations(userId) {
   return (await db.all(`
     SELECT o.id, o.name, o.slug, o.created_at, o.updated_at, m.role, m.status
@@ -807,6 +910,194 @@ async function joinOrganization(userId, code) {
     slug: organization.slug,
   })
   return publicOrganization({ ...organization, role: 'member', status: 'active' })
+}
+
+async function membershipFor(userId, organizationId) {
+  return db.get(`
+    SELECT organization_id, user_id, role, status, created_at
+    FROM rox_organization_members
+    WHERE user_id = ? AND organization_id = ? AND status = 'active'
+  `, userId, organizationId)
+}
+
+function canManageTeam(role) {
+  return role === 'owner' || role === 'admin'
+}
+
+async function listTeamSpaces(userId, organizationId) {
+  const membership = await membershipFor(userId, organizationId)
+  if (!membership) {
+    const error = new Error('Team membership is required')
+    error.statusCode = 403
+    throw error
+  }
+  return (await db.all(`
+    SELECT id, organization_id, name, slug, storage_prefix, created_by_user_id, created_at, updated_at
+    FROM rox_team_spaces
+    WHERE organization_id = ?
+    ORDER BY created_at DESC
+  `, organizationId)).map(publicTeamSpace)
+}
+
+async function createTeamSpace(userId, organizationId, name) {
+  const membership = await membershipFor(userId, organizationId)
+  if (!canManageTeam(membership?.role)) {
+    const error = new Error('Only owners and admins can create team spaces')
+    error.statusCode = membership ? 403 : 404
+    throw error
+  }
+  const cleanName = String(name || '').trim()
+  if (cleanName.length < 2) {
+    const error = new Error('Название Space должно быть не короче 2 символов.')
+    error.statusCode = 400
+    throw error
+  }
+  const createdAt = nowIso()
+  const spaceId = id('space')
+  const space = {
+    id: spaceId,
+    organization_id: organizationId,
+    name: cleanName,
+    slug: `${organizationSlug(cleanName)}-${randomUUID().slice(0, 6)}`,
+    storage_prefix: `teams/${organizationId}/spaces/${spaceId}/`,
+    created_by_user_id: userId,
+    created_at: createdAt,
+    updated_at: createdAt,
+  }
+  await db.run(`
+    INSERT INTO rox_team_spaces (id, organization_id, name, slug, storage_prefix, created_by_user_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `, space.id, space.organization_id, space.name, space.slug, space.storage_prefix, space.created_by_user_id, space.created_at, space.updated_at)
+  await recordAccountEvent(userId, 'team.space_created', 'Создан team space', {
+    organizationId,
+    spaceId,
+    name: cleanName,
+  })
+  return publicTeamSpace(space)
+}
+
+async function createTeamInvite(userId, organizationId, role = 'member') {
+  const membership = await membershipFor(userId, organizationId)
+  if (!canManageTeam(membership?.role)) {
+    const error = new Error('Only owners and admins can create team invites')
+    error.statusCode = membership ? 403 : 404
+    throw error
+  }
+  const inviteRole = ['admin', 'member', 'viewer'].includes(role) ? role : 'member'
+  const createdAt = nowIso()
+  const invite = {
+    id: id('invite'),
+    organization_id: organizationId,
+    code: randomBytes(18).toString('base64url'),
+    role: inviteRole,
+    created_by_user_id: userId,
+    created_at: createdAt,
+    consumed_at: null,
+    consumed_by_user_id: null,
+  }
+  await db.run(`
+    INSERT INTO rox_team_invites (id, organization_id, code, role, created_by_user_id, created_at, consumed_at, consumed_by_user_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `, invite.id, invite.organization_id, invite.code, invite.role, invite.created_by_user_id, invite.created_at, null, null)
+  await recordAccountEvent(userId, 'team.invite_created', 'Создан team invite', {
+    organizationId,
+    inviteId: invite.id,
+    role: invite.role,
+  })
+  return publicTeamInvite(invite)
+}
+
+async function acceptTeamInvite(userId, code) {
+  const normalized = String(code || '').trim()
+  if (!normalized) {
+    const error = new Error('Введите код приглашения.')
+    error.statusCode = 400
+    throw error
+  }
+  const invite = await db.get(`
+    SELECT id, organization_id, code, role, created_by_user_id, created_at, consumed_at, consumed_by_user_id
+    FROM rox_team_invites
+    WHERE code = ?
+  `, normalized)
+  if (!invite || invite.consumed_at || invite.consumedat) {
+    const error = new Error('Team invite is invalid or expired')
+    error.statusCode = 400
+    throw error
+  }
+  const now = nowIso()
+  await db.run(`
+    UPDATE rox_team_invites
+    SET consumed_at = ?, consumed_by_user_id = ?
+    WHERE code = ? AND consumed_at IS NULL
+  `, now, userId, normalized)
+  await db.run(`
+    INSERT INTO rox_organization_members (organization_id, user_id, role, status, created_at)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT (organization_id, user_id) DO UPDATE SET role = ?, status = 'active'
+  `, invite.organization_id, userId, invite.role || 'member', 'active', now, invite.role || 'member')
+  const organization = await db.get(`
+    SELECT id, name, slug, created_at, updated_at
+    FROM rox_organizations
+    WHERE id = ?
+  `, invite.organization_id)
+  await recordAccountEvent(userId, 'team.invite_accepted', 'Принят team invite', {
+    organizationId: invite.organization_id,
+    inviteId: invite.id,
+  })
+  return publicOrganization({ ...organization, role: invite.role || 'member', status: 'active' })
+}
+
+async function ensureStorageBucket(ownerType, ownerId, endpoint) {
+  const existing = await db.get(`
+    SELECT id, owner_type, owner_id, bucket, prefix, quota_bytes, endpoint, created_at, updated_at
+    FROM rox_storage_buckets
+    WHERE owner_type = ? AND owner_id = ?
+  `, ownerType, ownerId)
+  if (existing) return existing
+  const now = nowIso()
+  const bucket = ownerType === 'team' ? `rox-team-${ownerId}` : `rox-user-${ownerId}`
+  const prefix = ownerType === 'team' ? `teams/${ownerId}/` : `users/${ownerId}/`
+  const record = {
+    id: id('bucket'),
+    owner_type: ownerType,
+    owner_id: ownerId,
+    bucket,
+    prefix,
+    quota_bytes: 0,
+    endpoint,
+    created_at: now,
+    updated_at: now,
+  }
+  await db.run(`
+    INSERT INTO rox_storage_buckets (id, owner_type, owner_id, bucket, prefix, quota_bytes, endpoint, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, record.id, record.owner_type, record.owner_id, record.bucket, record.prefix, record.quota_bytes, record.endpoint, record.created_at, record.updated_at)
+  return record
+}
+
+async function accountStorageOverview(userId) {
+  const activeEndpoint = S3_ENDPOINT_CANDIDATES[0] || 'http://s3.max:9000'
+  const ownedTeams = await listOrganizations(userId)
+  const records = [await ensureStorageBucket('user', userId, activeEndpoint)]
+  for (const team of ownedTeams) {
+    records.push(await ensureStorageBucket('team', team.id, activeEndpoint))
+  }
+  return {
+    endpointStatus: 'configured',
+    activeEndpoint,
+    candidates: S3_ENDPOINT_CANDIDATES,
+    buckets: records.map((record) => ({
+      id: record.id,
+      ownerType: record.owner_type,
+      ownerId: record.owner_id,
+      bucket: record.bucket,
+      prefix: record.prefix,
+      quotaBytes: Number(record.quota_bytes || 0),
+      usedBytes: 0,
+      endpoint: record.endpoint,
+      status: 'ready',
+    })),
+  }
 }
 
 function accountDashboardHtml(session, billing, sessions) {
@@ -1436,16 +1727,40 @@ async function handle(req, res) {
     return json(res, 200, billingOverview(balance))
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/account/storage') {
+    const session = await requireSession(req, res)
+    if (!session) return
+    return json(res, 200, await accountStorageOverview(session.id))
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/account/events') {
     const session = await requireSession(req, res)
     if (!session) return
     return json(res, 200, { events: await accountEvents(session.id) })
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/account/teams') {
+    const session = await requireSession(req, res)
+    if (!session) return
+    return json(res, 200, { teams: await listOrganizations(session.id) })
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/account/organizations') {
     const session = await requireSession(req, res)
     if (!session) return
     return json(res, 200, { organizations: await listOrganizations(session.id) })
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/account/teams') {
+    const session = await requireSession(req, res)
+    if (!session) return
+    const body = await readJson(req)
+    try {
+      const team = await createOrganization(session.id, body.name)
+      return json(res, 201, { ok: true, team, teams: await listOrganizations(session.id) })
+    } catch (error) {
+      return json(res, error.statusCode || 500, { error: { message: error.message || 'Не удалось создать команду.' } })
+    }
   }
 
   if (req.method === 'POST' && url.pathname === '/api/account/organizations') {
@@ -1457,6 +1772,49 @@ async function handle(req, res) {
       return json(res, 201, { ok: true, organization, organizations: await listOrganizations(session.id) })
     } catch (error) {
       return json(res, error.statusCode || 500, { error: { message: error.message || 'Не удалось создать команду.' } })
+    }
+  }
+
+  const teamSpacesMatch = url.pathname.match(/^\/api\/account\/teams\/([^/]+)\/spaces$/)
+  if (teamSpacesMatch && (req.method === 'GET' || req.method === 'POST')) {
+    const session = await requireSession(req, res)
+    if (!session) return
+    const teamId = decodeURIComponent(teamSpacesMatch[1])
+    try {
+      if (req.method === 'POST') {
+        const body = await readJson(req)
+        await createTeamSpace(session.id, teamId, body.name)
+        return json(res, 201, { spaces: await listTeamSpaces(session.id, teamId) })
+      }
+      return json(res, 200, { spaces: await listTeamSpaces(session.id, teamId) })
+    } catch (error) {
+      return json(res, error.statusCode || 500, { error: { message: error.message || 'Team space action failed' } })
+    }
+  }
+
+  const teamInvitesMatch = url.pathname.match(/^\/api\/account\/teams\/([^/]+)\/invites$/)
+  if (teamInvitesMatch && req.method === 'POST') {
+    const session = await requireSession(req, res)
+    if (!session) return
+    const body = await readJson(req)
+    try {
+      const invite = await createTeamInvite(session.id, decodeURIComponent(teamInvitesMatch[1]), body.role)
+      return json(res, 201, { invite })
+    } catch (error) {
+      return json(res, error.statusCode || 500, { error: { message: error.message || 'Team invite action failed' } })
+    }
+  }
+
+  const inviteAcceptMatch = url.pathname.match(/^\/api\/account\/invites\/([^/]+)\/accept$/)
+  if (inviteAcceptMatch && req.method === 'POST') {
+    const session = await requireSession(req, res)
+    if (!session) return
+    try {
+      const team = await acceptTeamInvite(session.id, decodeURIComponent(inviteAcceptMatch[1]))
+      return json(res, 200, { ok: true, team, teams: await listOrganizations(session.id) })
+    } catch (error) {
+      await recordAccountEvent(session.id, 'team.invite_accept_failed', 'Не удалось принять team invite', { reason: error.message })
+      return json(res, error.statusCode || 500, { error: { message: error.message || 'Не удалось принять приглашение.' } })
     }
   }
 
