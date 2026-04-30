@@ -49,7 +49,7 @@ export function ProductModeToolbar({
           aria-haspopup="listbox"
           aria-label={t('workbench.toolbar.modeAriaLabel')}
           aria-labelledby="product-mode-picker-label"
-          className="inline-flex h-8 max-w-full items-center gap-2 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground shadow-sm outline-none transition-colors hover:bg-accent focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-8 max-w-full items-center gap-2 rounded-md border border-border bg-background px-2.5 text-xs font-medium text-foreground shadow-xs outline-none transition-colors hover:bg-accent focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           data-testid="product-mode-picker"
           disabled={disabled}
           type="button"
@@ -61,7 +61,7 @@ export function ProductModeToolbar({
         {modePickerOpen && !disabled && (
           <div
             aria-labelledby="product-mode-picker-label"
-            className="absolute left-0 top-9 z-50 max-h-72 w-64 overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-lg"
+            className="absolute left-0 top-9 z-50 max-h-72 w-64 overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-modal-small"
             role="listbox"
           >
             {modeOptions.map(option => (
@@ -91,7 +91,7 @@ export function ProductModeToolbar({
           <button
             key={action.id}
             aria-label={t(action.ariaLabelKey)}
-            className="rounded-md border border-border/70 bg-background px-2.5 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-border/70 bg-background px-2.5 py-1.5 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             data-product-mode-action={action.id}
             disabled={disabled}
             type="button"
