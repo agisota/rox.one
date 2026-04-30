@@ -76,6 +76,29 @@ const runSteps = [
   { label: 'Проверка сборки', value: 94 },
 ]
 
+const terminalRelease = {
+  version: '0.8.12',
+  pageUrl: 'https://github.com/agisota/rox-one-terminal/releases/tag/v0.8.12',
+  baseUrl: 'https://github.com/agisota/rox-one-terminal/releases/download/v0.8.12',
+}
+
+const terminalDownloads = [
+  {
+    title: 'macOS Apple Silicon',
+    subtitle: 'Для Mac на M1, M2, M3 и M4',
+    fileName: 'ROX-ONE-arm64.dmg',
+    size: '228 MB',
+    sha256: '43f9e85f6ea221774df014527dd7f7766d930d1baabb9dc18c70acc19a0a1cb3',
+  },
+  {
+    title: 'macOS Intel',
+    subtitle: 'Для Mac на x64 / Intel',
+    fileName: 'ROX-ONE-x64.dmg',
+    size: '234 MB',
+    sha256: '1a540dfa7ae76e1d1c4a96e70d7bb1189cf8cc7841648edf1f467f25d351af4a',
+  },
+]
+
 function ProductDemo() {
   return (
     <div className="demo-shell" aria-label="Анимированный предпросмотр приложения ROX ONE">
@@ -186,6 +209,7 @@ export function App() {
         <nav aria-label="Основная навигация">
           <a href="#product">Продукт</a>
           <a href="#use-cases">Кейсы</a>
+          <a href="#download">Скачать</a>
           <a href="#install">Self-host</a>
           <a href="/login">Войти</a>
           <a className="nav-cta" href="/login?tab=register">Начать</a>
@@ -213,6 +237,10 @@ export function App() {
               <a className="button secondary" href="/login">
                 <Play aria-hidden="true" />
                 <span>Войти в workspace</span>
+              </a>
+              <a className="button secondary" href="#download">
+                <MonitorDown aria-hidden="true" />
+                <span>Скачать терминал</span>
               </a>
             </div>
           </div>
@@ -271,6 +299,60 @@ export function App() {
                 <span>{useCase}</span>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="download-section" id="download" aria-labelledby="download-title">
+          <div className="section-heading">
+            <span>Desktop terminal</span>
+            <h2 id="download-title">ROX ONE Terminal для macOS уже собран и доступен в приватном релизе.</h2>
+          </div>
+          <div className="download-layout">
+            <div className="download-intro">
+              <p>
+                Скачайте нативное приложение ROX ONE Terminal. Сборка использует бренд ROX ONE,
+                bundle id <code>com.rox.one</code> и поставляется через private GitHub release
+                для участников проекта.
+              </p>
+              <a className="repo-link release-link" href={terminalRelease.pageUrl}>
+                <GitBranch aria-hidden="true" />
+                <span>Открыть релиз v{terminalRelease.version}</span>
+                <ArrowRight aria-hidden="true" />
+              </a>
+            </div>
+            <div className="download-grid">
+              {terminalDownloads.map((download) => (
+                <article className="download-card" key={download.fileName}>
+                  <div className="download-card-header">
+                    <div className="feature-icon">
+                      <MonitorDown aria-hidden="true" />
+                    </div>
+                    <div>
+                      <h3>{download.title}</h3>
+                      <p>{download.subtitle}</p>
+                    </div>
+                  </div>
+                  <dl className="download-meta">
+                    <div>
+                      <dt>Файл</dt>
+                      <dd>{download.fileName}</dd>
+                    </div>
+                    <div>
+                      <dt>Размер</dt>
+                      <dd>{download.size}</dd>
+                    </div>
+                    <div>
+                      <dt>SHA-256</dt>
+                      <dd className="checksum">{download.sha256}</dd>
+                    </div>
+                  </dl>
+                  <a className="button primary download-button" href={`${terminalRelease.baseUrl}/${download.fileName}`}>
+                    <MonitorDown aria-hidden="true" />
+                    <span>Скачать DMG</span>
+                  </a>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 

@@ -668,6 +668,7 @@ p {
 }
 
 .section,
+.download-section,
 .install-section {
   width: min(1180px, calc(100% - 48px));
   margin: 0 auto;
@@ -690,6 +691,7 @@ p {
 }
 
 .section h2,
+.download-section h2,
 .install-section h2 {
   max-width: 860px;
   font-size: 42px;
@@ -814,6 +816,115 @@ p {
   height: 18px;
   margin-top: 1px;
   color: var(--green);
+}
+
+.download-section {
+  border-top: 1px solid rgba(17, 20, 15, 0.08);
+}
+
+.download-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.download-intro {
+  position: sticky;
+  top: 86px;
+}
+
+.download-intro p {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.download-intro code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: var(--green-dark);
+  background: #e6f4ec;
+  font-family: "SF Mono", "Cascadia Code", ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.release-link {
+  margin-top: 22px;
+}
+
+.download-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.download-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(17, 20, 15, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 14px 40px rgba(17, 20, 15, 0.08);
+}
+
+.download-card-header {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.download-card h3 {
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.download-card p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.download-meta {
+  display: grid;
+  gap: 10px;
+  margin: 22px 0;
+}
+
+.download-meta div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.download-meta dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.download-meta dd {
+  min-width: 0;
+  margin: 0;
+  color: #2d352c;
+  font-size: 14px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.download-meta .checksum {
+  font-family: "SF Mono", "Cascadia Code", ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.download-button {
+  width: 100%;
 }
 
 .install-section {
@@ -977,8 +1088,14 @@ p {
   .pillar-grid,
   .feature-grid,
   .use-case-band,
+  .download-layout,
+  .download-grid,
   .install-section {
     grid-template-columns: 1fr;
+  }
+
+  .download-intro {
+    position: static;
   }
 
   .section-heading {
@@ -1105,6 +1222,7 @@ p {
 
   .section,
   .use-case-band,
+  .download-section,
   .install-section {
     width: calc(100% - 32px);
     padding: 60px 0;
@@ -1112,6 +1230,7 @@ p {
 
   .section h2,
   .use-case-band h2,
+  .download-section h2,
   .install-section h2 {
     font-size: 30px;
   }
