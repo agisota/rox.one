@@ -4,6 +4,7 @@ import {
   buildCreateInvitePath,
   buildTeamSpacesPath,
   createEmptyAccountTeamsState,
+  getManageableTeamOptions,
   summarizeAccountTeams,
   type AccountTeam,
   type AccountTeamSpace,
@@ -86,6 +87,38 @@ describe('account teams summary', () => {
         description: 'Team spaces are not available',
         canCreateInvite: false,
         canCreateSpace: false,
+      },
+    ]);
+  });
+
+  test('builds readable team picker options without exposing raw ids as labels', () => {
+    const summary = summarizeAccountTeams({
+      teams: [
+        {
+          id: 'team-a',
+          name: 'ROX Ops',
+          slug: 'rox-ops',
+          role: 'owner',
+          status: 'active',
+          createdAt: '2026-04-30T10:00:00.000Z',
+        },
+        {
+          id: 'team-b',
+          name: 'Client View',
+          slug: 'client-view',
+          role: 'viewer',
+          status: 'active',
+          createdAt: '2026-04-30T11:00:00.000Z',
+        },
+      ],
+      spacesByTeamId: {},
+    });
+
+    expect(getManageableTeamOptions(summary.rows)).toEqual([
+      {
+        value: 'team-a',
+        label: 'ROX Ops',
+        description: 'owner / active / slug: rox-ops / spaces: нет',
       },
     ]);
   });
