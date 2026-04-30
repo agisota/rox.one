@@ -27,6 +27,12 @@ import type { PlatformServices } from '../runtime/platform'
 import type { AccountStore, PublicUser, SessionIdentity } from '../accounts'
 import { AccountAuthError, AccountConflictError } from '../accounts'
 import type { AccountEmailService } from './email'
+import {
+  createAccountCabinetBilling,
+  createAccountCabinetEvents,
+  createAccountCabinetOrganizations,
+  createDisabledTopUpIntent,
+} from './account-cabinet'
 
 // ---------------------------------------------------------------------------
 // MIME types for static file serving
@@ -341,6 +347,19 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
 
     const legacy = await validateSession(cookieHeader, secret)
     return legacy ? { kind: 'legacy' } : null
+  }
+
+  async function requireAccountSession(req: Request): Promise<SessionIdentity | Response> {
+    if (!accountStore) {
+      return Response.json({ error: 'Account auth is not configured' }, { status: 503 })
+    }
+
+    const session = await validateWebuiSession(req.headers.get('cookie'))
+    if (!session || session.kind !== 'account') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    return session.identity
   }
 
   async function createAccountCookie(user: PublicUser, req: Request, useSecureCookies: boolean, authMethod: 'password' | 'email_verification' | 'password_reset' = 'password'): Promise<string | Response> {
@@ -773,6 +792,48 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         currentSessionId: session.identity.sessionId,
         sessions: await accountStore.listSessions(session.identity.userId),
       })
+    }
+
+    if (path === '/api/account/billing' && req.method === 'GET') {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      return Response.json(createAccountCabinetBilling(identity))
+    }
+
+    if (path === '/api/account/billing/top-up-intent' && req.method === 'POST') {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      return Response.json(createDisabledTopUpIntent(identity))
+    }
+
+    if (path === '/api/account/events' && req.method === 'GET') {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      return Response.json(createAccountCabinetEvents())
+    }
+
+    if (path === '/api/account/organizations' && req.method === 'GET') {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      return Response.json(createAccountCabinetOrganizations())
+    }
+
+    if (path === '/api/account/organizations' && req.method === 'POST') {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      return Response.json(
+        { error: 'Organization creation is not available until team workspaces are enabled.' },
+        { status: 501 },
+      )
+    }
+
+    if (path === '/api/account/organizations/join' && req.method === 'POST') {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      return Response.json(
+        { error: 'Organization join is not available until team workspaces are enabled.' },
+        { status: 501 },
+      )
     }
 
     if (path === '/api/account/sessions/revoke-all' && req.method === 'POST') {
