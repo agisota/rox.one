@@ -40,7 +40,9 @@ import type { AccountEventHistory } from './account-events'
 import {
   createDvnetTopUpIntent,
   DvnetWebhookSignatureError,
+  InMemoryDvnetBillingIntentStore,
   processDvnetWebhook,
+  type DvnetBillingIntentStore,
 } from './account-billing'
 import {
   createCloudSessionBoundary,
@@ -99,6 +101,7 @@ function redactAuthUrl(rawUrl: string): string {
 }
 
 const PEER_IP_HEADER = 'x-rox-peer-ip'
+const DVNET_WEBHOOK_MAX_BYTES = 64 * 1024
 
 function normalizeIp(value: string | null | undefined): string | null {
   const trimmed = value?.trim()
@@ -255,6 +258,8 @@ export interface WebuiHandlerOptions {
     paymentBaseUrl: string
     webhookSecret: string
   }
+  /** Optional DV.net intent store; defaults to process-local memory for embedded deployments/tests. */
+  accountDvnetBillingIntentStore?: DvnetBillingIntentStore
   /** Optional account bootstrap hook, e.g. grant first user access to existing workspaces. */
   bootstrapAccount?: (user: PublicUser) => Promise<void>
   /**
@@ -306,6 +311,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
   const trustedProxySet = new Set(trustedProxies ?? [])
   const accountAuthEnabled = Boolean(accountStore)
   const signupEnabled = options.signupEnabled ?? accountAuthEnabled
+  const dvnetBillingIntentStore = options.accountDvnetBillingIntentStore ?? new InMemoryDvnetBillingIntentStore()
 
   // Hash the login password at startup (async, but resolves before first auth attempt in practice)
   const passwordReady = initPasswordHash(loginPassword)
@@ -859,11 +865,12 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       if (options.accountDvnetBilling && options.accountUsageLedger) {
         const balance = await options.accountUsageLedger.getBalance(identity.userId)
         const billing = createAccountCabinetBillingFromLedger(balance)
+        const storedIntent = await dvnetBillingIntentStore.createIntent({ userId: identity.userId })
         const intent = createDvnetTopUpIntent({
           userId: identity.userId,
           storeUuid: options.accountDvnetBilling.storeUuid,
           paymentBaseUrl: options.accountDvnetBilling.paymentBaseUrl,
-          clientId: identity.sessionId,
+          clientId: storedIntent.id,
         })
         return Response.json({
           ...intent,
@@ -884,13 +891,18 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       if (!options.accountDvnetBilling || !options.accountUsageLedger) {
         return Response.json({ error: 'DV.net billing is not configured' }, { status: 503 })
       }
+      const contentLength = Number(req.headers.get('content-length') ?? 0)
+      if (Number.isFinite(contentLength) && contentLength > DVNET_WEBHOOK_MAX_BYTES) {
+        return Response.json({ error: 'DV.net webhook body is too large' }, { status: 413 })
+      }
 
       try {
         await processDvnetWebhook({
           rawBody: await req.text(),
-          signature: req.headers.get('x-dv-signature'),
+          signature: req.headers.get('x-sign'),
           webhookSecret: options.accountDvnetBilling.webhookSecret,
           ledger: options.accountUsageLedger,
+          intents: dvnetBillingIntentStore,
         })
         return Response.json({ success: true })
       } catch (error) {
