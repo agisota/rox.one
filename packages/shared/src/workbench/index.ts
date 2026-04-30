@@ -4,6 +4,7 @@ export * from './bundle-types';
 export * from './experience-layer';
 export * from './experience-layer-registry';
 export * from './markdown-entity-graph';
+export * from './mission-scheduler-adapter';
 export * from './option-graph';
 export * from './product-mode-registry.ts';
 export * from './prompt-rewrite-engine';
