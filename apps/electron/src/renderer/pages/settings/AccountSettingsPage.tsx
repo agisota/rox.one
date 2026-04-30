@@ -5,6 +5,7 @@ import { PanelHeader } from '@/components/app-shell/PanelHeader'
 import { HeaderMenu } from '@/components/ui/HeaderMenu'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { routes } from '@/lib/navigate'
 import { Spinner } from '@craft-agent/ui'
 import { SettingsCard, SettingsInput, SettingsSection } from '@/components/settings'
@@ -25,6 +26,7 @@ import {
   buildAcceptInvitePath,
   buildCreateInvitePath,
   buildTeamSpacesPath,
+  getManageableTeamOptions,
   summarizeAccountTeams,
   type AccountTeam,
   type AccountTeamSpace,
@@ -398,18 +400,18 @@ export default function AccountSettingsPage() {
     }
   }
 
-  async function createTeamSpace() {
-    if (!selectedTeamId) return
+  async function createTeamSpace(teamId: string) {
+    if (!teamId) return
     setSaving(true)
     setError(null)
     setSaved(null)
     try {
-      const data = await accountApi<{ spaces: AccountTeamSpace[] }>(buildTeamSpacesPath(selectedTeamId), {
+      const data = await accountApi<{ spaces: AccountTeamSpace[] }>(buildTeamSpacesPath(teamId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newSpaceName }),
       })
-      setTeamSpaces(prev => ({ ...prev, [selectedTeamId]: data.spaces }))
+      setTeamSpaces(prev => ({ ...prev, [teamId]: data.spaces }))
       setNewSpaceName('')
       setSaved('Space создан.')
       await loadAccount()
@@ -420,13 +422,13 @@ export default function AccountSettingsPage() {
     }
   }
 
-  async function createTeamInvite() {
-    if (!inviteTeamId) return
+  async function createTeamInvite(teamId: string) {
+    if (!teamId) return
     setSaving(true)
     setError(null)
     setSaved(null)
     try {
-      const data = await accountApi<{ invite: { code: string; role: string } }>(buildCreateInvitePath(inviteTeamId), {
+      const data = await accountApi<{ invite: { code: string; role: string } }>(buildCreateInvitePath(teamId), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'member' }),
@@ -495,7 +497,8 @@ export default function AccountSettingsPage() {
   const brandSummaryRows = getAccountBrandSummaryRows(undefined, t)
   const storageSummary = summarizeAccountStorage(storage)
   const teamsSummary = summarizeAccountTeams({ teams, spacesByTeamId: teamSpaces, error: teamsError })
-  const manageableTeams = teamsSummary.rows.filter(row => row.canCreateInvite || row.canCreateSpace)
+  const manageableTeamOptions = getManageableTeamOptions(teamsSummary.rows)
+  const firstManageableTeamId = manageableTeamOptions[0]?.value ?? ''
 
   return (
     <div className="h-full flex flex-col">
@@ -589,20 +592,50 @@ export default function AccountSettingsPage() {
                       description="Invite code принимается через team endpoint и больше не используется повторно."
                       action={<Button size="sm" variant="outline" onClick={acceptTeamInvite} disabled={saving || !joinCode.trim()}>Присоединиться</Button>}
                     />
-                    {manageableTeams.length ? (
+                    {manageableTeamOptions.length ? (
                       <>
-                        <SettingsInput label="ID команды для space/invite" value={selectedTeamId} onChange={setSelectedTeamId} placeholder={manageableTeams[0]?.id || 'team id'} inCard />
+                        <SettingsRow
+                          label="Команда для Space"
+                          description={manageableTeamOptions.find(option => option.value === selectedTeamId)?.description || 'Выберите команду, где у вас роль owner/admin.'}
+                          action={
+                            <Select value={selectedTeamId || firstManageableTeamId} onValueChange={setSelectedTeamId}>
+                              <SelectTrigger className="w-56">
+                                <SelectValue placeholder="Выбрать команду" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {manageableTeamOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          }
+                        />
                         <SettingsInput label="Название нового Space" value={newSpaceName} onChange={setNewSpaceName} placeholder="например, Release Room" inCard />
                         <SettingsRow
                           label="Создать Space"
                           description="Space получает отдельный prefix внутри team bucket."
-                          action={<Button size="sm" onClick={createTeamSpace} disabled={saving || !selectedTeamId || newSpaceName.trim().length < 2}>Создать Space</Button>}
+                          action={<Button size="sm" onClick={() => createTeamSpace(selectedTeamId || firstManageableTeamId)} disabled={saving || !(selectedTeamId || firstManageableTeamId) || newSpaceName.trim().length < 2}>Создать Space</Button>}
                         />
-                        <SettingsInput label="ID команды для invite" value={inviteTeamId} onChange={setInviteTeamId} placeholder={manageableTeams[0]?.id || 'team id'} inCard />
+                        <SettingsRow
+                          label="Команда для invite"
+                          description={manageableTeamOptions.find(option => option.value === inviteTeamId)?.description || 'Выберите команду, где можно выпускать приглашения.'}
+                          action={
+                            <Select value={inviteTeamId || firstManageableTeamId} onValueChange={setInviteTeamId}>
+                              <SelectTrigger className="w-56">
+                                <SelectValue placeholder="Выбрать команду" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {manageableTeamOptions.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          }
+                        />
                         <SettingsRow
                           label="Создать invite"
                           description="Создает одноразовое приглашение с ролью member."
-                          action={<Button size="sm" variant="outline" onClick={createTeamInvite} disabled={saving || !inviteTeamId}>Создать invite</Button>}
+                          action={<Button size="sm" variant="outline" onClick={() => createTeamInvite(inviteTeamId || firstManageableTeamId)} disabled={saving || !(inviteTeamId || firstManageableTeamId)}>Создать invite</Button>}
                         />
                       </>
                     ) : null}

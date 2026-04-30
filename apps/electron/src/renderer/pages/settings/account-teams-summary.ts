@@ -42,6 +42,12 @@ export interface AccountTeamsSummary {
   rows: AccountTeamSummaryRow[]
 }
 
+export interface AccountTeamOption {
+  value: string
+  label: string
+  description: string
+}
+
 export function buildTeamSpacesPath(teamId: string): string {
   return `/api/account/teams/${encodeURIComponent(teamId)}/spaces`
 }
@@ -100,4 +106,14 @@ export function summarizeAccountTeams(state: AccountTeamsState): AccountTeamsSum
       }
     }),
   }
+}
+
+export function getManageableTeamOptions(rows: AccountTeamSummaryRow[]): AccountTeamOption[] {
+  return rows
+    .filter(row => row.canCreateInvite || row.canCreateSpace)
+    .map(row => ({
+      value: row.id,
+      label: row.label,
+      description: row.description,
+    }))
 }
