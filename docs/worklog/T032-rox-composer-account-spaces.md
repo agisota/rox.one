@@ -813,6 +813,11 @@ Slice J:
 - `bun run typecheck:electron`
 - `bun run webui:build`
 
+Slice K:
+
+- `bun test infra/__tests__/rox-one-auth-server-contract.test.ts`
+- `node --check infra/rox-one-auth-server.mjs`
+
 ## 17. Passing test output summary
 
 - Slice A targeted tests: `17 pass`, `0 fail`, `63 expect() calls`.
@@ -858,6 +863,9 @@ Slice J:
 - Slice J expected failure: `Export named 'getManageableTeamOptions' not found` before implementation.
 - Slice J focused account UI tests: `10 pass`, `0 fail`, `32 expect() calls`.
 - Slice J `bun run typecheck:electron`: passed.
+- Slice K expected failure: hosted auth contract test failed on missing `rox_team_spaces`, `rox_team_invites`, team-first routes, storage route, and invite accept route.
+- Slice K hosted auth contract tests: `3 pass`, `0 fail`, `11 expect() calls`.
+- Slice K `node --check infra/rox-one-auth-server.mjs`: passed.
 
 ## 18. Build output summary
 
@@ -872,6 +880,7 @@ Slice J:
 - Slice H `bun run webui:build` passed; Vite built the renderer bundle in `26.64s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
 - Slice I `bun run webui:build` passed; Vite built the renderer bundle in `24.11s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
 - Slice J `bun run webui:build` passed; Vite built the renderer bundle in `23.82s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
+- Slice K has no renderer build impact; syntax validation passed with `node --check`.
 
 ## 19. Remaining risks
 
@@ -889,6 +898,8 @@ Slice J:
 - The account storage panel exposes authenticated bucket/prefix topology for operator visibility, but no S3 credentials or secret material.
 - DV.net webhook hardening currently covers signature, idempotency, intent resolution, status checks, and body size; network/IP rate limiting remains outside this slice.
 - Teams/Spaces UI now uses team-first endpoints and readable team pickers for owner/admin actions.
+- Hosted auth script now declares durable `rox_team_spaces`, `rox_team_invites`, and `rox_storage_buckets` tables and exposes team-first aliases, spaces, invites, invite acceptance, and account storage endpoints.
+- Hosted auth coverage is currently a static contract test plus syntax check because `infra/rox-one-auth-server.mjs` starts the server at module top level and is not yet importable as an HTTP harness.
 - Existing hosted auth DB rows that already contain `ROX` are not migrated automatically by this slice.
 - Existing unrelated dirty files remain excluded from this task commit: `apps/electron/src/main/index.ts`, `events.jsonl`, and auto-update files.
 
@@ -915,4 +926,5 @@ Slice J:
 | Account storage UX remains in-app and secret-free | Pass | Slice H account storage summary tests and account page storage section |
 | Teams/Spaces UI uses team-first endpoints | Pass | Slice I tests assert `/api/account/teams`, `/spaces`, `/invites`, and `/invites/:code/accept` path mapping plus account page integration |
 | Teams/Spaces controls avoid raw team-id UX | Pass | Slice J readable manageable-team option tests and account page Select controls |
+| Hosted auth server exposes T032 team/storage compatibility | Pass | Slice K contract test asserts SQL tables and route contracts; `node --check` passes |
 | TDD-first implementation plan exists | Planned | Phase A-D test-first path |
