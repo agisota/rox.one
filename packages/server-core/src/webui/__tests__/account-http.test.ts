@@ -505,12 +505,35 @@ describe('account webui auth', () => {
     }))
     expect(organizations.status).toBe(200)
     expect(await organizations.json()).toEqual({ organizations: [] })
+
+    const storage = await handler.fetch(new Request('http://craft.test/api/account/storage', {
+      headers: { cookie },
+    }))
+    expect(storage.status).toBe(200)
+    const storageBody = await storage.json() as {
+      endpointStatus: string
+      buckets: Array<{ ownerType: string; ownerId: string; bucket: string; prefix: string; endpoint: string | null; quotaBytes: number }>
+    }
+    expect(storageBody.endpointStatus).toBe('unhealthy')
+    expect(storageBody.buckets).toEqual([
+      expect.objectContaining({
+        ownerType: 'user',
+        ownerId: created.id,
+        bucket: `rox-user-${created.id}`,
+        prefix: `users/${created.id}/`,
+        endpoint: null,
+        quotaBytes: 1024 ** 3,
+      }),
+    ])
+    expect(JSON.stringify(storageBody)).not.toContain('secret')
+    expect(JSON.stringify(storageBody)).not.toContain('accessKey')
+    expect(JSON.stringify(storageBody)).not.toContain('credential')
   })
 
   it('denies cabinet data and mutations without an account session', async () => {
     const handler = createHandler(new MemoryAccountStore())
 
-    for (const path of ['/api/account/billing', '/api/account/events', '/api/account/organizations']) {
+    for (const path of ['/api/account/billing', '/api/account/events', '/api/account/organizations', '/api/account/storage']) {
       const res = await handler.fetch(new Request(`http://craft.test${path}`))
       expect(res.status).toBe(401)
     }

@@ -480,11 +480,21 @@ Implemented in slice E:
   - `/api/account/invites/:code/accept` accepts invites once;
   - viewer create and outsider read paths return `403`.
 
+Implemented in slice F:
+
+- `packages/server-core/src/storage/__tests__/object-storage.test.ts`
+  - S3 endpoint preference tries `http://s3.max:9000` before `http://s3.rox:9000` with a fake health probe;
+  - unhealthy storage status does not leak secrets, access keys, or credentials;
+  - user and team bucket records use per-owner buckets, scoped prefixes, and default quotas;
+  - team spaces map to validated prefixes inside the team bucket and reject traversal-like IDs.
+- `packages/server-core/src/webui/__tests__/account-http.test.ts`
+  - `/api/account/storage` requires an account session;
+  - authenticated storage status returns the current user's bucket DTO without renderer credentials.
+
 Planned follow-up tests:
 
 - Server account tests for login/register/account compatibility.
 - Team API tests for create/list/invite/accept-once and role matrix denial.
-- Storage tests for fake S3 health, bucket records, quotas, prefix traversal, and cross-team denial.
 - Billing tests for USDT display, fake DV.net intent, invalid signature rejection, duplicate webhook rejection, and confirmed-only crediting.
 
 ## 14. Expected failing test output
@@ -573,6 +583,24 @@ Expected: 200
 Received: 404
 ```
 
+First red runs for slice F:
+
+```text
+bun test packages/server-core/src/storage/__tests__/object-storage.test.ts
+
+SyntaxError: Export named 'createTeamSpaceStoragePrefix' not found in module
+0 pass
+1 fail
+1 error
+```
+
+```text
+bun test packages/server-core/src/webui/__tests__/account-http.test.ts --test-name-pattern "protected cabinet defaults"
+
+Expected: 200
+Received: 404
+```
+
 ## 15. Implementation changes
 
 Slice A:
@@ -624,6 +652,14 @@ Slice E:
 - Added `/api/account/teams` aliases over the existing organization compatibility layer.
 - Added `/api/account/teams/:teamId/spaces`, `/api/account/teams/:teamId/invites`, and `/api/account/invites/:code/accept`.
 - Preserved existing `/api/account/organizations` and `/api/account/organizations/join` compatibility endpoints.
+
+Slice F:
+
+- Added backend-only S3-compatible storage endpoint preference policy with `s3.max` first and `s3.rox` fallback.
+- Added user/team storage bucket records with per-owner bucket names, tenant prefixes, and existing 1 GiB/10 GiB default quotas.
+- Added team-space storage prefixes under `teams/<teamId>/spaces/<spaceId>/` using the same tenant ID validation boundary.
+- Added secret-free storage status DTOs; renderer-facing responses expose endpoint health, bucket, prefix, usage, and quota only.
+- Added `GET /api/account/storage`, protected by account sessions, returning the user bucket and current team buckets when a team store is present.
 
 ## 16. Validation commands run
 
@@ -688,6 +724,17 @@ Slice E:
 - `bun run typecheck:all`
 - `bun run webui:build`
 
+Slice F:
+
+- `bun test packages/server-core/src/storage/__tests__/object-storage.test.ts`
+- `bun test packages/server-core/src/webui/__tests__/account-http.test.ts --test-name-pattern "protected cabinet defaults"`
+- `bun test packages/server-core/src/storage/__tests__/object-storage.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts --test-name-pattern "storage|protected cabinet defaults|cabinet data"`
+- `bun test packages/server-core/src/storage/__tests__/object-storage.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts packages/server-core/src/webui/__tests__/account-teams.test.ts`
+- `cd packages/server-core && bun run tsc --noEmit`
+- `bun run typecheck:all`
+- `bun run webui:build`
+- `git diff --check`
+
 ## 17. Passing test output summary
 
 - Slice A targeted tests: `17 pass`, `0 fail`, `63 expect() calls`.
@@ -708,6 +755,11 @@ Slice E:
 - Slice E team/http tests: `20 pass`, `0 fail`, `115 expect() calls`.
 - Slice E server-core `tsc --noEmit`: passed.
 - Slice E `bun run typecheck:all`: passed.
+- Slice F storage tests: `8 pass`, `0 fail`, `34 expect() calls`.
+- Slice F storage/account focused tests: `10 pass`, `0 fail`, `54 expect() calls`.
+- Slice F broader server/storage/team tests: `28 pass`, `0 fail`, `156 expect() calls`.
+- Slice F server-core `tsc --noEmit`: passed.
+- Slice F `bun run typecheck:all`: passed.
 
 ## 18. Build output summary
 
@@ -717,18 +769,20 @@ Slice E:
 - Slice C `bun run webui:build` initially failed on a deep shared package import, then passed after switching to the exported workbench barrel; Vite built the renderer bundle in `23.95s`.
 - Slice D `bun run webui:build` passed; Vite built the renderer bundle in `29.58s`.
 - Slice E `bun run webui:build` passed; Vite built the renderer bundle in `26.61s`.
+- Slice F `bun run webui:build` passed; Vite built the renderer bundle in `26.62s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
 
 ## 19. Remaining risks
 
 - The current account page likely has hidden browser pane coupling even after visible auth panes are removed; the API client boundary should be extracted and tested.
 - DV.net signature verification details require opening the official signature verification page before coding.
 - The app currently uses `localhost`/`127.0.0.1` exceptions in packaged Info.plist; this plan does not change that.
-- S3 endpoint reachability (`s3.max` vs `s3.rox`) was not live-probed in this planning pass.
+- S3 endpoint reachability (`s3.max` vs `s3.rox`) is modeled through a backend health boundary with fake tests; live network provisioning is still pending.
 - `Разъебать` is an explicit product label requested by the user; localization and enterprise builds may need a softer alias later.
 - Prompt Lab, TDD Plan, Review Gate, and Spec Builder are now reachable from composer action buttons, but browser visual smoke is still pending.
 - Desktop account fetch now goes directly to `https://rox.one`; live cookie/CORS behavior still needs packaged-app smoke testing against the real account service.
 - Teams/spaces are implemented in the in-memory server-core store and HTTP handler; persistent SQL backing in `infra/rox-one-auth-server.mjs` remains pending.
-- Storage and billing implementation remains pending beyond the DV.net checkout URL boundary.
+- Storage bucket/status implementation is present for backend/account DTOs; real S3 SDK provisioning and persistent bucket records remain pending.
+- Billing implementation remains pending beyond the DV.net checkout URL boundary.
 - Existing unrelated dirty files remain excluded from this task commit: `apps/electron/src/main/index.ts`, `events.jsonl`, and auto-update files.
 
 ## 20. Acceptance criteria matrix
@@ -748,6 +802,6 @@ Slice E:
 | Account auth is in-app, not browser-pane based | Pass | Slice D native account panel tests and no account `browserPane` grep matches |
 | External account navigation is limited to DV.net checkout | Pass | Slice D `isAllowedAccountExternalUrl` tests |
 | Teams and collaborative spaces are specified | Pass | Slice E team/spaces/invites API and RBAC tests |
-| S3 storage boundary is backend-only | Planned | Data-flow and API plan |
+| S3 storage boundary is backend-only | Pass | Slice F backend-only endpoint preference, bucket records, `/api/account/storage`, and secret-free DTO tests |
 | USDT/DV.net billing boundary is specified | Planned | Sequence diagram and DV.net docs notes |
 | TDD-first implementation plan exists | Planned | Phase A-D test-first path |
