@@ -22,6 +22,7 @@ import { expandPath, toPortablePath } from '../utils/paths.ts';
 import { atomicWriteFileSync, readJsonFileSync } from '../utils/files.ts';
 import { getDefaultStatusConfig, saveStatusConfig, ensureDefaultIconFiles } from '../statuses/storage.ts';
 import { getDefaultLabelConfig, saveLabelConfig } from '../labels/storage.ts';
+import { installDefaultWorkbenchBundle } from '../workbench/default-workspace-bundle.ts';
 import { loadConfigDefaults } from '../config/storage.ts';
 import { parsePermissionMode, PERMISSION_MODE_ORDER } from '../agent/mode-types.ts';
 import { normalizeThinkingLevel } from '../agent/thinking-levels.ts';
@@ -342,6 +343,9 @@ export function createWorkspaceAtPath(
 
   // Initialize plugin manifest for SDK integration (enables skills, commands, agents)
   ensurePluginManifest(rootPath, name);
+
+  // Install Agent Workbench starter skills/statuses/labels without overwriting user edits.
+  installDefaultWorkbenchBundle(rootPath);
 
   return config;
 }
