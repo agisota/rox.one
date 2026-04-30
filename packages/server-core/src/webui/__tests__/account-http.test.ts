@@ -344,4 +344,130 @@ describe('account webui auth', () => {
     }))
     expect(newLogin.status).toBe(200)
   })
+
+  it('returns protected cabinet defaults for billing, events, and organizations', async () => {
+    const store = new MemoryAccountStore()
+    const created = await store.createUser({ email: 'user@example.com', password: 'password123', displayName: 'User' })
+    await store.markEmailVerified(created.id)
+    const handler = createHandler(store)
+
+    const login = await handler.fetch(new Request('http://craft.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'user@example.com', password: 'password123' }),
+    }))
+    const cookie = login.headers.get('set-cookie') ?? ''
+    expect(login.status).toBe(200)
+
+    const billing = await handler.fetch(new Request('http://craft.test/api/account/billing', {
+      headers: { cookie },
+    }))
+    expect(billing.status).toBe(200)
+    expect(await billing.json()).toEqual({
+      balance: {
+        userId: created.id,
+        balanceUnits: 0,
+        currency: 'ROX',
+        updatedAt: null,
+      },
+      topUp: {
+        enabled: false,
+        provider: 'manual',
+        url: null,
+      },
+    })
+
+    const events = await handler.fetch(new Request('http://craft.test/api/account/events', {
+      headers: { cookie },
+    }))
+    expect(events.status).toBe(200)
+    expect(await events.json()).toEqual({ events: [] })
+
+    const organizations = await handler.fetch(new Request('http://craft.test/api/account/organizations', {
+      headers: { cookie },
+    }))
+    expect(organizations.status).toBe(200)
+    expect(await organizations.json()).toEqual({ organizations: [] })
+  })
+
+  it('denies cabinet data and mutations without an account session', async () => {
+    const handler = createHandler(new MemoryAccountStore())
+
+    for (const path of ['/api/account/billing', '/api/account/events', '/api/account/organizations']) {
+      const res = await handler.fetch(new Request(`http://craft.test${path}`))
+      expect(res.status).toBe(401)
+    }
+
+    const topUp = await handler.fetch(new Request('http://craft.test/api/account/billing/top-up-intent', {
+      method: 'POST',
+    }))
+    expect(topUp.status).toBe(401)
+
+    const createOrg = await handler.fetch(new Request('http://craft.test/api/account/organizations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'ROX Ops' }),
+    }))
+    expect(createOrg.status).toBe(401)
+
+    const joinOrg = await handler.fetch(new Request('http://craft.test/api/account/organizations/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: 'rox-ops' }),
+    }))
+    expect(joinOrg.status).toBe(401)
+  })
+
+  it('keeps unavailable cabinet mutations explicit instead of faking billing or team setup', async () => {
+    const store = new MemoryAccountStore()
+    const created = await store.createUser({ email: 'user@example.com', password: 'password123' })
+    await store.markEmailVerified(created.id)
+    const handler = createHandler(store)
+
+    const login = await handler.fetch(new Request('http://craft.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'user@example.com', password: 'password123' }),
+    }))
+    const cookie = login.headers.get('set-cookie') ?? ''
+    expect(login.status).toBe(200)
+
+    const topUp = await handler.fetch(new Request('http://craft.test/api/account/billing/top-up-intent', {
+      method: 'POST',
+      headers: { cookie },
+    }))
+    expect(topUp.status).toBe(200)
+    expect(await topUp.json()).toEqual({
+      status: 'disabled',
+      redirectUrl: null,
+      message: 'Billing top-up is not configured for this workspace.',
+      billing: {
+        balance: {
+          userId: created.id,
+          balanceUnits: 0,
+          currency: 'ROX',
+          updatedAt: null,
+        },
+        topUp: {
+          enabled: false,
+          provider: 'manual',
+          url: null,
+        },
+      },
+    })
+
+    const createOrg = await handler.fetch(new Request('http://craft.test/api/account/organizations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie },
+      body: JSON.stringify({ name: 'ROX Ops' }),
+    }))
+    expect(createOrg.status).toBe(501)
+
+    const joinOrg = await handler.fetch(new Request('http://craft.test/api/account/organizations/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie },
+      body: JSON.stringify({ code: 'rox-ops' }),
+    }))
+    expect(joinOrg.status).toBe(501)
+  })
 })
