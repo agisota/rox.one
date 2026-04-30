@@ -787,6 +787,16 @@ Slice G:
 - `node --check infra/rox-one-auth-server.mjs`
 - `git diff --check`
 
+Slice H:
+
+- `bun test packages/server-core/src/webui/__tests__/account-billing.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts --test-name-pattern "DV.net|billing and DV.net"`
+- `bun test packages/server-core/src/webui/__tests__/account-billing.test.ts packages/server-core/src/webui/__tests__/account-ledger.test.ts packages/server-core/src/webui/__tests__/account-cabinet.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts packages/server-core/src/storage/__tests__/object-storage.test.ts apps/electron/src/renderer/pages/settings/__tests__/account-auth-panel.test.tsx apps/electron/src/renderer/pages/settings/__tests__/account-storage-summary.test.ts`
+- `cd packages/server-core && bun run tsc --noEmit`
+- `bun run typecheck:electron`
+- `bun run typecheck:all`
+- `bun run webui:build`
+- `git diff --check`
+
 ## 17. Passing test output summary
 
 - Slice A targeted tests: `17 pass`, `0 fail`, `63 expect() calls`.
@@ -817,6 +827,12 @@ Slice G:
 - Slice G `bun run typecheck:electron`: passed.
 - Slice G `bun run typecheck:all`: passed.
 - Slice G `node --check infra/rox-one-auth-server.mjs`: passed.
+- Slice H DV.net focused tests: `5 pass`, `0 fail`, `26 expect() calls`.
+- Slice H broader account/storage/UI tests: `42 pass`, `0 fail`, `204 expect() calls`.
+- Slice H server-core `tsc --noEmit`: passed.
+- Slice H `bun run typecheck:electron`: passed.
+- Slice H `bun run typecheck:all`: passed.
+- Slice H `git diff --check`: passed.
 
 ## 18. Build output summary
 
@@ -828,6 +844,7 @@ Slice G:
 - Slice E `bun run webui:build` passed; Vite built the renderer bundle in `26.61s`.
 - Slice F `bun run webui:build` passed; Vite built the renderer bundle in `26.62s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
 - Slice G `bun run webui:build` passed; Vite built the renderer bundle in `26.26s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
+- Slice H `bun run webui:build` passed; Vite built the renderer bundle in `26.64s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
 
 ## 19. Remaining risks
 
@@ -840,8 +857,10 @@ Slice G:
 - Desktop account fetch now goes directly to `https://rox.one`; live cookie/CORS behavior still needs packaged-app smoke testing against the real account service.
 - Teams/spaces are implemented in the in-memory server-core store and HTTP handler; persistent SQL backing in `infra/rox-one-auth-server.mjs` remains pending.
 - Storage bucket/status implementation is present for backend/account DTOs; real S3 SDK provisioning and persistent bucket records remain pending.
-- Billing implementation now covers USDT ledger/cabinet defaults, DV.net checkout intent, signature verification, confirmed-only crediting, and duplicate webhook idempotency.
+- Billing implementation now covers USDT ledger/cabinet defaults, DV.net checkout intent, official `X-SIGN` signature verification, intent-resolved confirmed-only crediting, duplicate webhook idempotency, and a 64 KiB webhook body cap.
 - Real DV.net deployment secrets and live webhook delivery remain untested and must stay server-side.
+- The account storage panel exposes authenticated bucket/prefix topology for operator visibility, but no S3 credentials or secret material.
+- DV.net webhook hardening currently covers signature, idempotency, intent resolution, status checks, and body size; network/IP rate limiting remains outside this slice.
 - Existing hosted auth DB rows that already contain `ROX` are not migrated automatically by this slice.
 - Existing unrelated dirty files remain excluded from this task commit: `apps/electron/src/main/index.ts`, `events.jsonl`, and auto-update files.
 
@@ -864,4 +883,6 @@ Slice G:
 | Teams and collaborative spaces are specified | Pass | Slice E team/spaces/invites API and RBAC tests |
 | S3 storage boundary is backend-only | Pass | Slice F backend-only endpoint preference, bucket records, `/api/account/storage`, and secret-free DTO tests |
 | USDT/DV.net billing boundary is implemented with fake-provider tests | Pass | Slice G account-billing and account-http tests cover USDT, top-up intent, signature rejection, confirmed-only credit, and duplicate idempotency |
+| DV.net webhook follows official signature and opaque intent boundary | Pass | Slice H uses `X-SIGN`, `sha256(rawJson + secret)`, server-side billing intents, and oversize webhook rejection tests |
+| Account storage UX remains in-app and secret-free | Pass | Slice H account storage summary tests and account page storage section |
 | TDD-first implementation plan exists | Planned | Phase A-D test-first path |

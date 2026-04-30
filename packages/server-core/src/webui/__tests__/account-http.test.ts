@@ -928,10 +928,12 @@ describe('account webui auth', () => {
       headers: { cookie },
     }))
     expect(topUp.status).toBe(200)
-    const topUpBody = await topUp.json() as { status: string; provider: string; redirectUrl: string; billing: { balance: { currency: string } } }
+    const topUpBody = await topUp.json() as { status: string; provider: string; redirectUrl: string; clientId: string; billing: { balance: { currency: string } } }
     expect(topUpBody.status).toBe('ready')
     expect(topUpBody.provider).toBe('dv.net')
     expect(topUpBody.redirectUrl).toContain('https://checkout.dv.net/pay/store/0cbffe2b-d2a5-433d-94f5-77ce93a7c0eb/')
+    expect(topUpBody.clientId).not.toBe(created.id)
+    expect(topUpBody.redirectUrl).toEndWith(`/${topUpBody.clientId}`)
     expect(topUpBody.billing.balance.currency).toBe('USDT')
     expect(JSON.stringify(topUpBody)).not.toContain('webhook-secret')
 
@@ -945,14 +947,14 @@ describe('account webui auth', () => {
         tx_hash: 'tx-hash-http-1',
       },
       wallet: {
-        store_external_id: created.id,
+        store_external_id: topUpBody.clientId,
       },
     })
     const signature = createDvnetWebhookSignature(rawBody, 'webhook-secret')
 
     const webhook = await handler.fetch(new Request('http://craft.test/api/webhooks/dvnet', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-dv-signature': signature },
+      headers: { 'Content-Type': 'application/json', 'x-sign': signature },
       body: rawBody,
     }))
     expect(webhook.status).toBe(200)
@@ -960,7 +962,7 @@ describe('account webui auth', () => {
 
     const duplicate = await handler.fetch(new Request('http://craft.test/api/webhooks/dvnet', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-dv-signature': signature },
+      headers: { 'Content-Type': 'application/json', 'x-sign': signature },
       body: rawBody,
     }))
     expect(duplicate.status).toBe(200)
@@ -969,10 +971,17 @@ describe('account webui auth', () => {
 
     const invalid = await handler.fetch(new Request('http://craft.test/api/webhooks/dvnet', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-dv-signature': 'bad' },
+      headers: { 'Content-Type': 'application/json', 'x-sign': 'bad' },
       body: rawBody,
     }))
     expect(invalid.status).toBe(400)
+
+    const oversized = await handler.fetch(new Request('http://craft.test/api/webhooks/dvnet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-sign': signature, 'content-length': String(128 * 1024) },
+      body: rawBody,
+    }))
+    expect(oversized.status).toBe(413)
   })
 
   it('returns account events from injected history without leaking other users or raw user ids', async () => {

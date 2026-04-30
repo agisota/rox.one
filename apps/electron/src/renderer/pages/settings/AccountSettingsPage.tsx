@@ -17,6 +17,10 @@ import {
   type AccountAuthTab,
   type NativeAccountAuthRequest,
 } from './AccountAuthPanel'
+import {
+  summarizeAccountStorage,
+  type AccountStorageResponse,
+} from './account-storage-summary'
 
 const ACCOUNT_WEB_ORIGIN = 'https://rox.one'
 
@@ -125,6 +129,7 @@ export default function AccountSettingsPage() {
   const [saved, setSaved] = useState<string | null>(null)
   const [account, setAccount] = useState<AccountResponse | null>(null)
   const [billing, setBilling] = useState<BillingResponse | null>(null)
+  const [storage, setStorage] = useState<AccountStorageResponse | null>(null)
   const [sessions, setSessions] = useState<SessionsResponse | null>(null)
   const [events, setEvents] = useState<AccountEvent[]>([])
   const [organizations, setOrganizations] = useState<AccountOrganization[]>([])
@@ -177,14 +182,16 @@ export default function AccountSettingsPage() {
       setDisplayName(accountData.user?.displayName ?? '')
 
       if (accountData.mode === 'account' && accountData.user) {
-        const [billingResult, sessionsResult, eventsResult, organizationsResult] = await Promise.allSettled([
+        const [billingResult, storageResult, sessionsResult, eventsResult, organizationsResult] = await Promise.allSettled([
           accountApi<BillingResponse>('/api/account/billing'),
+          accountApi<AccountStorageResponse>('/api/account/storage'),
           accountApi<SessionsResponse>('/api/account/sessions'),
           accountApi<{ events: AccountEvent[] }>('/api/account/events'),
           accountApi<{ organizations: AccountOrganization[] }>('/api/account/organizations'),
         ])
 
         setBilling(billingResult.status === 'fulfilled' ? billingResult.value : null)
+        setStorage(storageResult.status === 'fulfilled' ? storageResult.value : null)
         setSessions(sessionsResult.status === 'fulfilled' ? sessionsResult.value : null)
         setEvents(eventsResult.status === 'fulfilled' ? eventsResult.value.events : [])
         setOrganizations(organizationsResult.status === 'fulfilled' ? organizationsResult.value.organizations : [])
@@ -192,6 +199,7 @@ export default function AccountSettingsPage() {
     } catch (err) {
       setAccount(null)
       setBilling(null)
+      setStorage(null)
       setSessions(null)
       setEvents([])
       setOrganizations([])
@@ -405,6 +413,7 @@ export default function AccountSettingsPage() {
     await accountApi('/api/auth/logout', { method: 'POST' }).catch(() => null)
     setAccount(null)
     setBilling(null)
+    setStorage(null)
     setSessions(null)
     setEvents([])
     setOrganizations([])
@@ -417,6 +426,7 @@ export default function AccountSettingsPage() {
 
   const accountUser = account?.mode === 'account' ? account.user : null
   const brandSummaryRows = getAccountBrandSummaryRows(undefined, t)
+  const storageSummary = summarizeAccountStorage(storage)
 
   return (
     <div className="h-full flex flex-col">
@@ -445,9 +455,9 @@ export default function AccountSettingsPage() {
                     <div className="mt-1 text-xs text-muted-foreground">Активные входы аккаунта</div>
                   </div>
                   <div className="rounded-xl border border-border bg-card px-4 py-4">
-                    <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Организации</div>
-                    <div className="mt-2 text-2xl font-semibold text-foreground">{organizations.length}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">Команды и рабочие контуры</div>
+                    <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Storage</div>
+                    <div className="mt-2 text-2xl font-semibold text-foreground">{storageSummary.totalUsedLabel.replace(' used', '')}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{storageSummary.endpointLabel}</div>
                   </div>
                 </div>
 
@@ -459,6 +469,15 @@ export default function AccountSettingsPage() {
                       description="Создать intent пополнения и открыть платежную страницу, если provider включен на сервере."
                       action={<Button size="sm" onClick={topUpBalance} disabled={saving}>{billing?.topUp.enabled ? 'Пополнить' : 'Проверить пополнение'}</Button>}
                     />
+                  </SettingsCard>
+                </SettingsSection>
+
+                <SettingsSection title="Хранилище" description="User/team buckets, quotas and S3-compatible backend health stay inside the app UI. Credentials are server-side only.">
+                  <SettingsCard divided>
+                    <SettingsRow label="S3 backend" description={`${storageSummary.endpointLabel} / ${storageSummary.totalQuotaLabel}`} />
+                    {storageSummary.rows.map((row) => (
+                      <SettingsRow key={`${row.label}:${row.description}`} label={row.label} description={row.description} />
+                    ))}
                   </SettingsCard>
                 </SettingsSection>
 

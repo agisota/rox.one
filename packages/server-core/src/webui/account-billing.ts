@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto'
+import { createHash, timingSafeEqual, randomUUID } from 'node:crypto'
 import type { AccountUsageLedger } from './account-ledger'
 
 const USDT_UNIT_SCALE = 1_000_000
@@ -30,6 +30,7 @@ export interface ProcessDvnetWebhookInput {
   signature: string | null
   webhookSecret: string
   ledger: AccountUsageLedger
+  intents: DvnetBillingIntentStore
 }
 
 export interface ProcessDvnetWebhookResult {
@@ -37,6 +38,17 @@ export interface ProcessDvnetWebhookResult {
   credited: boolean
   duplicate: boolean
   idempotencyKey: string | null
+}
+
+export interface DvnetBillingIntent {
+  id: string
+  userId: string
+  createdAt: string
+}
+
+export interface DvnetBillingIntentStore {
+  createIntent(input: { id?: string; userId: string }): Promise<DvnetBillingIntent>
+  getIntent(id: string): Promise<DvnetBillingIntent | null>
 }
 
 interface DvnetWebhookPayload {
@@ -68,7 +80,7 @@ export function createDvnetTopUpIntent(input: DvnetTopUpIntentInput): DvnetTopUp
 }
 
 export function createDvnetWebhookSignature(rawBody: string, webhookSecret: string): string {
-  return createHmac('sha256', webhookSecret).update(rawBody).digest('hex')
+  return createHash('sha256').update(`${rawBody}${webhookSecret}`).digest('hex')
 }
 
 export async function processDvnetWebhook(input: ProcessDvnetWebhookInput): Promise<ProcessDvnetWebhookResult> {
@@ -83,24 +95,47 @@ export async function processDvnetWebhook(input: ProcessDvnetWebhookInput): Prom
 
   const txHash = requireString(payload.transactions?.tx_hash, 'transactions.tx_hash')
   const bcUniqKey = requireString(payload.transactions?.bc_uniq_key, 'transactions.bc_uniq_key')
-  const userId = requireString(payload.wallet?.store_external_id, 'wallet.store_external_id')
+  const intentId = requireString(payload.wallet?.store_external_id, 'wallet.store_external_id')
+  const intent = await input.intents.getIntent(intentId)
+  if (!intent) {
+    throw new Error('Unknown DV.net billing intent')
+  }
   const amountUnits = parseUsdtAmountUnits(payload.transactions?.amount_usd ?? payload.amount)
   const idempotencyKey = `${txHash}:${bcUniqKey}`
-  const before = await input.ledger.getBalance(userId)
+  const before = await input.ledger.getBalance(intent.userId)
   await input.ledger.recordCredit({
-    userId,
+    userId: intent.userId,
     amountUnits,
     reason: 'dvnet_top_up',
     idempotencyKey,
     metadata: { provider: 'dv.net', txHash, bcUniqKey },
   })
-  const after = await input.ledger.getBalance(userId)
+  const after = await input.ledger.getBalance(intent.userId)
 
   return {
     success: true,
     credited: after.entries.length > before.entries.length,
     duplicate: after.entries.length === before.entries.length,
     idempotencyKey,
+  }
+}
+
+export class InMemoryDvnetBillingIntentStore implements DvnetBillingIntentStore {
+  private readonly intents = new Map<string, DvnetBillingIntent>()
+
+  async createIntent(input: { id?: string; userId: string }): Promise<DvnetBillingIntent> {
+    const intent = {
+      id: input.id ?? randomUUID(),
+      userId: input.userId,
+      createdAt: new Date().toISOString(),
+    }
+    this.intents.set(intent.id, intent)
+    return { ...intent }
+  }
+
+  async getIntent(id: string): Promise<DvnetBillingIntent | null> {
+    const intent = this.intents.get(id)
+    return intent ? { ...intent } : null
   }
 }
 
