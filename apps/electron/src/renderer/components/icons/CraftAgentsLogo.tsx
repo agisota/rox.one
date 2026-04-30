@@ -1,13 +1,16 @@
+import { AGENT_WORKBENCH_BRAND_CONFIG, type BrandConfig } from "@craft-agent/shared/branding"
 import pzdrkIcon from "@/assets/pzdrk.png"
+import { getBrandLogoText } from "./brand-icon-copy"
 
 interface CraftAgentsLogoProps {
   className?: string
+  brand?: BrandConfig
 }
 
-export function CraftAgentsLogo({ className }: CraftAgentsLogoProps) {
+export function CraftAgentsLogo({ className, brand = AGENT_WORKBENCH_BRAND_CONFIG }: CraftAgentsLogoProps) {
   return (
     <svg
-      viewBox="0 0 120 24"
+      viewBox="0 0 220 24"
       className={className}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -29,7 +32,7 @@ export function CraftAgentsLogo({ className }: CraftAgentsLogoProps) {
         letterSpacing="0.5"
         fill="currentColor"
       >
-        ROX ONE
+        {getBrandLogoText(brand)}
       </text>
     </svg>
   )
