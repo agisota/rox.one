@@ -16,6 +16,7 @@ import type {
   AutomationFilter,
   RightSidebarPanel,
 } from './types'
+import { DEFAULT_WORKBENCH_SCREEN, isWorkbenchScreen } from './types'
 import { isValidSettingsSubpage, type SettingsSubpage } from './settings-registry'
 
 // =============================================================================
@@ -35,7 +36,7 @@ export interface ParsedRoute {
 // Compound Route Types (new format)
 // =============================================================================
 
-export type NavigatorType = 'sessions' | 'sources' | 'skills' | 'automations' | 'settings'
+export type NavigatorType = 'sessions' | 'sources' | 'skills' | 'automations' | 'settings' | 'workbench'
 
 export interface ParsedCompoundRoute {
   /** The navigator type */
@@ -61,7 +62,7 @@ export interface ParsedCompoundRoute {
  * Known prefixes that indicate a compound route
  */
 const COMPOUND_ROUTE_PREFIXES = [
-  'allSessions', 'flagged', 'archived', 'state', 'label', 'view', 'sources', 'skills', 'automations', 'settings'
+  'allSessions', 'flagged', 'archived', 'state', 'label', 'view', 'sources', 'skills', 'automations', 'settings', 'workbench'
 ]
 
 /**
@@ -93,6 +94,16 @@ export function parseCompoundRoute(route: string): ParsedCompoundRoute | null {
   if (segments.length === 0) return null
 
   const first = segments[0]
+
+  // Workbench navigator - Experience Layer screens
+  if (first === 'workbench') {
+    const screen = segments[1] || DEFAULT_WORKBENCH_SCREEN
+    if (!isWorkbenchScreen(screen)) return null
+    return {
+      navigator: 'workbench',
+      details: { type: 'workbench', id: screen },
+    }
+  }
 
   // Settings navigator
   if (first === 'settings') {
@@ -255,6 +266,13 @@ export function parseCompoundRoute(route: string): ParsedCompoundRoute | null {
  * Build a compound route string from parsed state
  */
 export function buildCompoundRoute(parsed: ParsedCompoundRoute): string {
+  if (parsed.navigator === 'workbench') {
+    const screen = parsed.details?.id && isWorkbenchScreen(parsed.details.id)
+      ? parsed.details.id
+      : DEFAULT_WORKBENCH_SCREEN
+    return `workbench/${screen}`
+  }
+
   if (parsed.navigator === 'settings') {
     const detailsType = parsed.details?.type || 'app'
     return `settings/${detailsType}`
@@ -375,6 +393,13 @@ export function parseRoute(route: string): ParsedRoute | null {
  * Convert a parsed compound route to ParsedRoute format (type: 'view')
  */
 function convertCompoundToViewRoute(compound: ParsedCompoundRoute): ParsedRoute {
+  if (compound.navigator === 'workbench') {
+    const screen = compound.details?.id && isWorkbenchScreen(compound.details.id)
+      ? compound.details.id
+      : DEFAULT_WORKBENCH_SCREEN
+    return { type: 'view', name: 'workbench', id: screen, params: {} }
+  }
+
   // Settings
   if (compound.navigator === 'settings') {
     const subpage = compound.details?.type || 'app'
@@ -492,6 +517,13 @@ export function parseRouteToNavigationState(
  * Convert a ParsedCompoundRoute to NavigationState
  */
 function convertCompoundToNavigationState(compound: ParsedCompoundRoute): NavigationState {
+  if (compound.navigator === 'workbench') {
+    const screen = compound.details?.id && isWorkbenchScreen(compound.details.id)
+      ? compound.details.id
+      : DEFAULT_WORKBENCH_SCREEN
+    return { navigator: 'workbench', screen }
+  }
+
   // Settings
   if (compound.navigator === 'settings') {
     const subpage = (compound.details?.type || 'app') as SettingsSubpage
@@ -567,6 +599,11 @@ function convertParsedRouteToNavigationState(parsed: ParsedRoute): NavigationSta
   }
 
   switch (parsed.name) {
+    case 'workbench':
+      return {
+        navigator: 'workbench',
+        screen: parsed.id && isWorkbenchScreen(parsed.id) ? parsed.id : DEFAULT_WORKBENCH_SCREEN,
+      }
     case 'settings':
       return { navigator: 'settings', subpage: 'app' }
     case 'workspace':
@@ -693,6 +730,13 @@ function convertParsedRouteToNavigationState(parsed: ParsedRoute): NavigationSta
  * Convert NavigationState to ParsedCompoundRoute
  */
 function navigationStateToCompoundRoute(state: NavigationState): ParsedCompoundRoute {
+  if (state.navigator === 'workbench') {
+    return {
+      navigator: 'workbench',
+      details: { type: 'workbench', id: state.screen },
+    }
+  }
+
   if (state.navigator === 'settings') {
     return {
       navigator: 'settings',

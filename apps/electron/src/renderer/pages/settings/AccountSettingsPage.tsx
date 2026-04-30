@@ -18,6 +18,7 @@ import {
   type AccountAuthTab,
   type NativeAccountAuthRequest,
 } from './AccountAuthPanel'
+import { getAccountAuthSuccessMessage } from './account-auth-feedback'
 import {
   summarizeAccountStorage,
   type AccountStorageResponse,
@@ -168,6 +169,10 @@ export default function AccountSettingsPage() {
   }, [isHostedHttp])
 
   const accountApi = useCallback(async <T,>(path: string, init: AccountApiInit = {}): Promise<T> => {
+    if (!isHostedHttp && window.electronAPI?.accountRequest) {
+      return await window.electronAPI.accountRequest<T>(path, init)
+    }
+
     const requestUrl = isHostedHttp ? path : `${ACCOUNT_WEB_ORIGIN}${path}`
     const res = await fetch(requestUrl, {
       method: init.method || 'GET',
@@ -217,6 +222,7 @@ export default function AccountSettingsPage() {
           setTeamsError(teamsResult.reason instanceof Error ? teamsResult.reason.message : String(teamsResult.reason))
         }
       }
+      return accountData
     } catch (err) {
       setAccount(null)
       setBilling(null)
@@ -227,6 +233,7 @@ export default function AccountSettingsPage() {
       setTeamSpaces({})
       setTeamsError(null)
       setError(err instanceof Error ? err.message : String(err))
+      return null
     } finally {
       setLoading(false)
     }
@@ -250,8 +257,17 @@ export default function AccountSettingsPage() {
         setSaved(t('settings.account.passwordResetSent'))
         return
       }
-      setSaved(tab === 'register' ? 'Аккаунт создан. Кабинет обновлен.' : 'Вход выполнен. Кабинет обновлен.')
-      await loadAccount()
+      const refreshedAccount = await loadAccount()
+      const successMessage = getAccountAuthSuccessMessage(
+        tab,
+        refreshedAccount?.mode === 'account' && Boolean(refreshedAccount.user),
+      )
+      if (successMessage) {
+        setSaved(successMessage)
+      } else {
+        setSaved(null)
+        setError((current) => current || 'Вход принят, но кабинет не вернул активную сессию. Обновите кабинет или войдите заново.')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -506,15 +522,40 @@ export default function AccountSettingsPage() {
       <div className="flex-1 min-h-0 mask-fade-y">
         <ScrollArea className="h-full">
           <div className="px-5 py-7 max-w-5xl mx-auto space-y-8">
-            <SettingsSection title={t("workbench.brand.section")} description="White-label сведения, которые используются в shell, меню, документации и поддержке.">
-              <SettingsCard divided>
-                {brandSummaryRows.map((row) => (
-                  <SettingsRow key={row.label} label={row.label} description={row.description} />
-                ))}
-              </SettingsCard>
-            </SettingsSection>
             {accountUser ? (
               <>
+                <section className="rounded-2xl border border-border bg-card px-5 py-5">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-border bg-muted text-xl font-semibold text-foreground">
+                        {(accountUser.displayName || accountUser.email || 'U').slice(0, 1).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">ROX ID</p>
+                        <h2 className="mt-1 text-2xl font-semibold text-foreground">
+                          {accountUser.displayName || accountUser.email}
+                        </h2>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {accountUser.email} / {accountUser.role} / {accountUser.status}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-right">
+                      <div className="rounded-xl border border-border bg-background px-3 py-2">
+                        <div className="text-xs text-muted-foreground">VDI</div>
+                        <div className="text-lg font-semibold">--</div>
+                      </div>
+                      <div className="rounded-xl border border-border bg-background px-3 py-2">
+                        <div className="text-xs text-muted-foreground">XP</div>
+                        <div className="text-lg font-semibold">--</div>
+                      </div>
+                      <div className="rounded-xl border border-border bg-background px-3 py-2">
+                        <div className="text-xs text-muted-foreground">Teams</div>
+                        <div className="text-lg font-semibold">{teams.length}</div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="rounded-xl border border-border bg-card px-4 py-4">
                     <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Баланс</div>
@@ -713,17 +754,33 @@ export default function AccountSettingsPage() {
                 </SettingsSection>
               </>
             ) : (
-              <SettingsSection title={t('settings.account.desktopAuthTitle')} description="Вход, регистрация и сброс пароля выполняются внутри ROX ONE. После успешного входа кабинет обновится автоматически.">
-                <AccountAuthPanel
-                  error={error}
-                  saving={saving}
-                  onSubmit={submitNativeAuth}
-                  onRefresh={() => { setLoading(true); void loadAccount() }}
-                />
-              </SettingsSection>
+              <>
+                <section className="rounded-2xl border border-border bg-card px-5 py-5">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Личный кабинет</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-foreground">Войдите в ROX ID</h2>
+                  <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+                    Здесь будет профиль, баланс, команды, storage, публичные ссылки сессий и персональный прогресс Experience Layer.
+                  </p>
+                </section>
+                <SettingsSection title={t('settings.account.desktopAuthTitle')} description="Вход, регистрация и сброс пароля выполняются внутри ROX ONE. Success показывается только после подтвержденной account session.">
+                  <AccountAuthPanel
+                    error={error}
+                    saving={saving}
+                    onSubmit={submitNativeAuth}
+                    onRefresh={() => { setLoading(true); void loadAccount() }}
+                  />
+                </SettingsSection>
+              </>
             )}
             {saved && <p className="text-sm text-muted-foreground px-1">{saved}</p>}
             {error && accountUser && <p className="text-sm text-destructive px-1">{error}</p>}
+            <footer className="border-t border-border pt-4 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                {brandSummaryRows.map((row) => (
+                  <span key={row.label}>{row.label}: {row.description}</span>
+                ))}
+              </div>
+            </footer>
           </div>
         </ScrollArea>
       </div>

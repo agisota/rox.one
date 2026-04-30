@@ -16,6 +16,8 @@
  */
 
 import type { SettingsSubpage } from './settings-registry'
+import type { WorkbenchScreen } from './types'
+import { DEFAULT_WORKBENCH_SCREEN } from './types'
 import type { PermissionMode } from '@craft-agent/shared/agent/mode-types'
 
 // Helper to build query strings from params
@@ -182,6 +184,10 @@ export const routes = {
       subpage
         ? `settings/${subpage}` as const
         : 'settings' as const,
+
+    /** Experience Layer / mission-control surfaces */
+    workbench: (screen: WorkbenchScreen = DEFAULT_WORKBENCH_SCREEN) =>
+      `workbench/${screen}` as const,
   },
 } as const
 
