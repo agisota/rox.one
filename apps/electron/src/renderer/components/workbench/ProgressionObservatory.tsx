@@ -32,7 +32,7 @@ export function ProgressionObservatory({ initialState, initialInput }: Progressi
       description="Сквозная метрика продукта: VDI как North Star, а качество постановки и готовность к выполнению остаются доказательными подметриками."
       aside={(
         <>
-          <ExperiencePanel title="Журнал экономики" subtitle="XP и credits записываются только от evidence-событий.">
+          <ExperiencePanel title="Журнал экономики" subtitle="XP и кредиты записываются только от событий с доказательствами.">
             {state.ledger.map((entry) => (
               <ExperienceMetricRow key={entry.id} label={localizeLedgerReason(entry.reason)} value={`${entry.amount} ${entry.currency}`} />
             ))}
@@ -50,7 +50,7 @@ export function ProgressionObservatory({ initialState, initialInput }: Progressi
 
           <ExperiencePanel title="Правила честности">
             <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
-              <li>XP и unlocks требуют артефакт или validation gate evidence.</li>
+              <li>XP и разблокировки требуют артефакт или доказательство валидационного гейта.</li>
               <li>Платная емкость может увеличить только слоты и длительность.</li>
               <li>Очки качества и VDI остаются доказательными метриками.</li>
             </ul>
@@ -58,13 +58,13 @@ export function ProgressionObservatory({ initialState, initialInput }: Progressi
         </>
       )}
     >
-      <ExperiencePanel title="Индекс проверенного результата" subtitle="Verified Deliverable Index показывает, дошла ли работа до принятого проверенного результата.">
+      <ExperiencePanel title="Индекс проверенного результата" subtitle="VDI показывает, дошла ли работа до принятого проверенного результата.">
         <div className="mt-4 rounded-[22px] border border-emerald-400/20 bg-emerald-400/[0.06] p-5">
           <div className="text-5xl font-semibold leading-none">{state.latestSnapshot.verifiedDeliverableIndex}</div>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Evidence: {state.latestSnapshot.evidenceRefs.join(', ')}
+            Доказательства: {state.latestSnapshot.evidenceRefs.join(', ')}
           </p>
-          <ExperienceProgressBar value={state.latestSnapshot.verifiedDeliverableIndex} label="VDI progress" />
+          <ExperienceProgressBar value={state.latestSnapshot.verifiedDeliverableIndex} label="Прогресс VDI" />
         </div>
       </ExperiencePanel>
 
@@ -74,7 +74,7 @@ export function ProgressionObservatory({ initialState, initialInput }: Progressi
         <ExperienceMetricCard label="Эффективность стоимости" value={`${state.latestSnapshot.costEfficiency}`} detail="Результат на единицу бюджета." />
         <ExperienceMetricCard label="Открытый риск" value={`${state.latestSnapshot.openRiskScore}`} tone="warning" detail="Незакрытые риски перед финальным pass." />
         <ExperienceMetricCard label="Шум" value={`${state.latestSnapshot.noiseScore}`} detail="Дубли, слабые сигналы и лишние ответы." />
-        <ExperienceMetricCard label="Емкость swarm" value={`${state.capacity.swarmSlots} слота / ${state.capacity.maxMissionHours}ч`} tone="arena" detail="Capacity, не качество." />
+        <ExperienceMetricCard label="Емкость swarm" value={`${state.capacity.swarmSlots} слота / ${state.capacity.maxMissionHours}ч`} tone="arena" detail="Емкость, не качество." />
       </div>
     </ExperienceShell>
   );
@@ -82,6 +82,6 @@ export function ProgressionObservatory({ initialState, initialInput }: Progressi
 
 function localizeLedgerReason(reason: string): string {
   if (reason === 'Accepted verified mission artifact') return 'Принят проверенный артефакт миссии';
-  if (reason === 'Initial swarm pass') return 'Первичный swarm pass';
+  if (reason === 'Initial swarm pass') return 'Первичный проход swarm';
   return reason;
 }

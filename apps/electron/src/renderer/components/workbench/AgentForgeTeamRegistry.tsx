@@ -31,27 +31,27 @@ export function AgentForgeTeamRegistry({ initialState, initialInput }: AgentForg
       tone="arena"
       eyebrow="Кузница"
       title="Кузница агентов"
-      description="Создавайте, проверяйте, устанавливайте и форкайте приватные или командные пакеты до публичного marketplace. Trust checks обязательны."
+      description="Создавайте, проверяйте, устанавливайте и форкайте приватные или командные пакеты до публичного каталога. Проверки доверия обязательны."
       aside={(
         <>
           <ExperiencePanel title="Проверочный гаунтлет" subtitle="Публичная публикация закрыта, пока эти проверки не пройдены.">
             <ExperienceMetricRow label="Контракт" value="обязателен" />
             <ExperienceMetricRow label="Ревью" value="обязательно" />
             <ExperienceMetricRow label="Тесты" value="обязательны" />
-            <ExperienceMetricRow label="Prompt injection scan" value="блокирует public publish" />
+            <ExperienceMetricRow label="Проверка prompt-injection" value="блокирует публичную публикацию" />
           </ExperiencePanel>
 
           <ExperiencePanel title="Защитные правила реестра">
             <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
-              <li>Публичный marketplace выключен до прохождения team/private registry checks.</li>
+              <li>Публичный каталог выключен до прохождения проверок командного и приватного реестра.</li>
               <li>Пакеты без контрактов нельзя установить.</li>
-              <li>Team-private пакеты скрыты между tenants.</li>
+              <li>Командно-приватные пакеты скрыты между рабочими пространствами.</li>
             </ul>
           </ExperiencePanel>
         </>
       )}
     >
-      <ExperiencePanel title="Приватные и командные пакеты" subtitle="Каждый пакет должен иметь контракт, проверки и понятный trust score.">
+      <ExperiencePanel title="Приватные и командные пакеты" subtitle="Каждый пакет должен иметь контракт, проверки и понятную оценку доверия.">
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
             {visiblePackages.map((pkg) => {
               const contract = state.contractsByPackageId[pkg.id];
@@ -61,7 +61,7 @@ export function AgentForgeTeamRegistry({ initialState, initialInput }: AgentForg
                 <ExperienceCard
                   key={pkg.id}
                   title={pkg.name}
-                  meta={`${localizeVisibility(pkg.visibility)} / trust ${trustScore}`}
+                  meta={`${localizeVisibility(pkg.visibility)} / доверие ${trustScore}`}
                   tone={warnings.length > 0 ? 'danger' : contract ? 'success' : 'warning'}
                 >
                   <p>{localizePackageDescription(pkg.description)}</p>
@@ -71,7 +71,7 @@ export function AgentForgeTeamRegistry({ initialState, initialInput }: AgentForg
                     <ExperienceStatusChip status={contract ? 'ready' : 'locked'} label={contract ? 'Установить' : 'Заблокировано'} />
                     <ExperienceStatusChip status="draft" label="Форкнуть" />
                   </div>
-                  <ExperienceProgressBar value={trustScore} label="Trust score" />
+                  <ExperienceProgressBar value={trustScore} label="Оценка доверия" />
                 </ExperienceCard>
               );
             })}
@@ -97,8 +97,8 @@ function localizeVisibility(visibility: string): string {
 }
 
 function localizePackageDescription(description: string): string {
-  if (description.includes('Private team reviewer')) return 'Приватный командный reviewer для consistency, evidence и fix plans.';
-  if (description.includes('Legacy prompt pack')) return 'Legacy prompt pack без формального контракта.';
-  if (description.includes('Persona candidate')) return 'Кандидат persona с unresolved prompt-injection warning.';
+  if (description.includes('Private team reviewer')) return 'Приватный командный ревьюер для согласованности, доказательств и планов исправления.';
+  if (description.includes('Legacy prompt pack')) return 'Устаревший prompt-пак без формального контракта.';
+  if (description.includes('Persona candidate')) return 'Кандидат persona с незакрытым предупреждением prompt-injection.';
   return description;
 }
