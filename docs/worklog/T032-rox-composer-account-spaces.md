@@ -57,6 +57,13 @@ The account surface should become a first-class native app section:
 - `apps/electron/src/renderer/components/app-shell/input/__tests__/prompt-rewrite-flow.test.ts`
 - `apps/electron/src/renderer/components/app-shell/input/prompt-rewrite-flow.ts`
 - `apps/electron/src/renderer/components/app-shell/input/thinking-partner-flow.ts`
+- `apps/electron/src/renderer/components/workbench/SpecBuilderScreen.tsx`
+- `apps/electron/src/renderer/components/workbench/spec-builder-state.ts`
+- `apps/electron/src/renderer/components/workbench/__tests__/spec-builder-screen.test.tsx`
+- `packages/shared/src/workbench/prompt-rewrite-engine.ts`
+- `packages/shared/src/workbench/tdd-task-generator.ts`
+- `packages/shared/src/workbench/review-board.ts`
+- `packages/shared/src/workbench/validation-gates.ts`
 - `apps/electron/src/renderer/components/app-shell/input/FreeFormInput.tsx`
 - `packages/shared/src/i18n/locales/en.json`
 - `packages/shared/src/i18n/locales/ru.json`
@@ -421,9 +428,18 @@ Implemented in slice A:
 - `apps/electron/src/renderer/components/app-shell/input/__tests__/thinking-partner-flow.test.ts`
   - legacy `think-with-me` flow remains covered without exposing it in the new toolbar action row.
 
+Implemented in slice B:
+
+- `apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx`
+  - Prompt Lab empty state disables `Replace Input` and does not imply provider execution;
+  - Prompt Lab error state renders inline error text;
+  - Prompt Lab success state renders original prompt, improved prompt, and handoff actions;
+  - TDD Plan renders RED/GREEN/VERIFY/WORKLOG phases and fake-provider requirements;
+  - Review Gate renders `Проверка` and `Разъебать` tabs with review-board findings.
+
 Planned follow-up tests:
 
-- Prompt Lab/TDD/Review Gate tests for artifact generation and empty/error states.
+- Composer-to-artifact screen routing tests for toolbar intents.
 - Account UI tests for native unauthenticated forms and no visible `browserPane.create`.
 - Server account tests for login/register/account compatibility.
 - Team API tests for create/list/invite/accept-once and role matrix denial.
@@ -449,6 +465,17 @@ Unknown composer product mode action: improve-prompt
 Expected markup to contain data-testid="product-mode-picker"
 ```
 
+First red run for slice B:
+
+```text
+bun test apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx
+
+error: Cannot find module '../PromptLabScreen'
+0 pass
+1 fail
+1 error
+```
+
 ## 15. Implementation changes
 
 Slice A:
@@ -465,6 +492,14 @@ Slice A:
 - Renamed the prompt rewrite trigger to `improve-prompt` while reusing the existing rewrite flow.
 - Preserved legacy Thinking Partner flow as an internal compatibility helper; it is no longer emitted by the toolbar action row.
 - Added `workbench.actions.improvePrompt` and `workbench.actions.tearDown` across locale files and updated the Russian labels.
+
+Slice B:
+
+- Added `artifact-screen-state.ts` with state builders for Prompt Lab, TDD Plan, and Review Gate.
+- Added `PromptLabScreen.tsx` with empty/error/success rendering and handoff controls.
+- Added `TddPlanScreen.tsx` backed by the shared TDD task-pack generator.
+- Added `ReviewGateScreen.tsx` backed by the shared review-board engine and validation gates.
+- Kept the screens provider-free and deterministic; composer wiring remains a separate follow-up slice.
 
 ## 16. Validation commands run
 
@@ -494,6 +529,14 @@ Slice A:
 - `bun run webui:build`
 - `git diff --check`
 
+Slice B:
+
+- `bun test apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx`
+- `bun test apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx apps/electron/src/renderer/components/workbench/__tests__/spec-builder-screen.test.tsx apps/electron/src/renderer/components/app-shell/input/__tests__/product-mode-toolbar.test.ts`
+- `bun run typecheck:electron`
+- `bun run webui:build`
+- `git diff --check`
+
 ## 17. Passing test output summary
 
 - Slice A targeted tests: `17 pass`, `0 fail`, `63 expect() calls`.
@@ -501,11 +544,15 @@ Slice A:
 - `bun run typecheck:shared`: passed.
 - `bun run lint:i18n:parity`: `i18n parity OK (7 locales, 1425 keys each)`.
 - `git diff --check`: passed with no whitespace errors.
+- Slice B targeted workbench tests: `4 pass`, `0 fail`, `27 expect() calls`.
+- Slice B relevant renderer tests: `16 pass`, `0 fail`, `92 expect() calls`.
+- Slice B `bun run typecheck:electron`: passed.
 
 ## 18. Build output summary
 
 - `bun run webui:build` passed; Vite built the renderer bundle in `23.35s`.
 - Warnings only: outDir warning, deprecated Jotai Babel plugin notices, and existing large chunk warnings.
+- Slice B `bun run webui:build` passed; Vite built the renderer bundle in `22.75s`.
 
 ## 19. Remaining risks
 
@@ -514,7 +561,7 @@ Slice A:
 - The app currently uses `localhost`/`127.0.0.1` exceptions in packaged Info.plist; this plan does not change that.
 - S3 endpoint reachability (`s3.max` vs `s3.rox`) was not live-probed in this planning pass.
 - `Разъебать` is an explicit product label requested by the user; localization and enterprise builds may need a softer alias later.
-- Slice A is only the composer toolbar contract. Prompt Lab, TDD Plan, and Review Gate artifact screens are still pending.
+- Prompt Lab, TDD Plan, and Review Gate now exist as standalone screens, but composer intent routing to those screens is still pending.
 - Account, teams/spaces, storage, and billing implementation remains pending.
 - Existing unrelated dirty files remain excluded from this task commit: `apps/electron/src/main/index.ts`, `events.jsonl`, and auto-update files.
 
@@ -527,6 +574,9 @@ Slice A:
 | Prompt Lab screen is specified | Planned | Prompt Lab wireframe |
 | TDD Plan screen is specified | Planned | TDD Plan wireframe |
 | Review Gate screen is specified | Planned | Review Gate wireframe |
+| Prompt Lab renders empty/error/success states | Pass | Slice B artifact-screen tests |
+| TDD Plan renders task-pack phases | Pass | Slice B artifact-screen tests |
+| Review Gate renders check and adversarial review state | Pass | Slice B artifact-screen tests |
 | Account auth is in-app, not browser-pane based | Planned | Account unauthenticated wireframe and implementation path |
 | Teams and collaborative spaces are specified | Planned | Team spaces wireframe and API plan |
 | S3 storage boundary is backend-only | Planned | Data-flow and API plan |
