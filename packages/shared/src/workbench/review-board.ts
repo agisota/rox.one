@@ -8,6 +8,7 @@ import {
   CompiledWorkbenchSpecSchema,
   type CompiledWorkbenchSpec,
 } from './spec-compiler';
+import { runValidationGates } from './validation-gates';
 
 export const ReviewBoardVerdictSchema = z.enum(['pass', 'warn', 'fail'] as const);
 export type ReviewBoardVerdict = z.infer<typeof ReviewBoardVerdictSchema>;
@@ -109,16 +110,6 @@ const DEFAULT_REVIEWERS: ReviewBoardReviewer[] = [
 
 const SECRET_PATTERN = /\b(?:[a-z0-9_]*_)?(?:secret|api[_-]?key|token|password)(?:_[a-z0-9]+)*\b\s*[:=]/iu;
 const UNCERTAIN_CLAIM_PATTERN = /\b(leading|best|fastest|largest|growing quickly|guaranteed)\b/iu;
-const EVIDENCE_REQUIRED_GATES = new Set<ValidationGate>([
-  'rbac_check',
-  'quota_check',
-  'sync_check',
-  'unit_tests',
-  'integration_tests',
-  'ui_tests',
-  'e2e_tests',
-]);
-
 function unique<T>(values: T[]): T[] {
   return [...new Set(values)];
 }
@@ -235,23 +226,25 @@ function findFactIssues(input: ParsedReviewBoardInput, offset: number): ReviewFi
 
 function findMissingEvidenceIssues(input: ParsedReviewBoardInput, offset: number): ReviewFinding[] {
   const findings: ReviewFinding[] = [];
+  const validationResult = runValidationGates({
+    runId: `${input.boardId}-validation`,
+    requiredGates: input.requiredGates,
+    evidence: input.evidence,
+  });
 
-  for (const gateId of input.requiredGates) {
-    if (!EVIDENCE_REQUIRED_GATES.has(gateId)) {
-      continue;
-    }
-    if (input.evidence.some((item) => item.gateId === gateId)) {
+  for (const check of validationResult.checks) {
+    if (!check.missingEvidence) {
       continue;
     }
 
     findings.push(
       makeFinding(
         {
-          reviewerId: reviewerIdForGate(input, gateId, 'completion-verifier'),
-          severity: ['rbac_check', 'quota_check', 'sync_check'].includes(gateId) ? 'high' : 'medium',
-          gateIds: [gateId],
+          reviewerId: reviewerIdForGate(input, check.gateId, 'completion-verifier'),
+          severity: check.severity,
+          gateIds: [check.gateId],
           title: 'Required validation evidence is missing',
-          evidence: `No evidence was supplied for required gate ${gateId}.`,
+          evidence: check.evidence,
           recommendation: 'Attach command or review evidence for this gate before marking the board complete.',
         },
         offset + findings.length,
