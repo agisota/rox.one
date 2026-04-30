@@ -1,5 +1,6 @@
 export * from './default-workspace-bundle.ts';
 export * from './agent-pipeline-planner';
+export * from './markdown-entity-graph';
 export * from './option-graph';
 export * from './product-mode-registry.ts';
 export * from './prompt-rewrite-engine';
