@@ -41,6 +41,12 @@ import {
   createCloudSessionBoundary,
   createLocalSessionBoundary,
 } from './account-session-boundary'
+import {
+  AccountTeamForbiddenError,
+  AccountTeamInviteError,
+  createAccountCabinetOrganizationsFromTeams,
+  type AccountTeamStore,
+} from './account-teams'
 
 // ---------------------------------------------------------------------------
 // MIME types for static file serving
@@ -228,6 +234,8 @@ export interface WebuiHandlerOptions {
   accountUsageLedger?: AccountUsageLedger
   /** Optional account event history for the account cabinet events panel. */
   accountEventHistory?: AccountEventHistory
+  /** Optional account team store for organizations, invites, and RBAC. */
+  accountTeamStore?: AccountTeamStore
   /** Optional account bootstrap hook, e.g. grant first user access to existing workspaces. */
   bootstrapAccount?: (user: PublicUser) => Promise<void>
   /**
@@ -845,12 +853,34 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
     if (path === '/api/account/organizations' && req.method === 'GET') {
       const identity = await requireAccountSession(req)
       if (identity instanceof Response) return identity
+      if (options.accountTeamStore) {
+        const organizations = await options.accountTeamStore.listOrganizations(identity.userId)
+        return Response.json(createAccountCabinetOrganizationsFromTeams(organizations))
+      }
       return Response.json(createAccountCabinetOrganizations())
     }
 
     if (path === '/api/account/organizations' && req.method === 'POST') {
       const identity = await requireAccountSession(req)
       if (identity instanceof Response) return identity
+      if (options.accountTeamStore) {
+        let body: { name?: string }
+        try {
+          body = await req.json() as { name?: string }
+        } catch {
+          return Response.json({ error: 'Invalid request body' }, { status: 400 })
+        }
+        try {
+          await options.accountTeamStore.createOrganization({
+            actorUserId: identity.userId,
+            name: typeof body.name === 'string' ? body.name : '',
+          })
+          const organizations = await options.accountTeamStore.listOrganizations(identity.userId)
+          return Response.json(createAccountCabinetOrganizationsFromTeams(organizations))
+        } catch (error) {
+          return Response.json({ error: error instanceof Error ? error.message : 'Organization creation failed' }, { status: 400 })
+        }
+      }
       return Response.json(
         { error: 'Organization creation is not available until team workspaces are enabled.' },
         { status: 501 },
@@ -860,6 +890,30 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
     if (path === '/api/account/organizations/join' && req.method === 'POST') {
       const identity = await requireAccountSession(req)
       if (identity instanceof Response) return identity
+      if (options.accountTeamStore) {
+        let body: { code?: string }
+        try {
+          body = await req.json() as { code?: string }
+        } catch {
+          return Response.json({ error: 'Invalid request body' }, { status: 400 })
+        }
+        try {
+          await options.accountTeamStore.joinWithInvite({
+            userId: identity.userId,
+            code: typeof body.code === 'string' ? body.code : '',
+          })
+          const organizations = await options.accountTeamStore.listOrganizations(identity.userId)
+          return Response.json(createAccountCabinetOrganizationsFromTeams(organizations))
+        } catch (error) {
+          if (error instanceof AccountTeamForbiddenError) {
+            return Response.json({ error: error.message }, { status: 403 })
+          }
+          if (error instanceof AccountTeamInviteError) {
+            return Response.json({ error: error.message }, { status: 400 })
+          }
+          throw error
+        }
+      }
       return Response.json(
         { error: 'Organization join is not available until team workspaces are enabled.' },
         { status: 501 },
