@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { PermissionMode } from '../agent/mode-types';
-import type { WorkbenchBundleSkillSlug } from './default-workspace-bundle';
+import type { WorkbenchBundleSkillSlug } from './bundle-types';
 import {
   ArtifactTypeSchema,
   ProductAgentRoleSchema,

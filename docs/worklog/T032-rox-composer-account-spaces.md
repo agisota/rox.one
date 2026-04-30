@@ -511,6 +511,11 @@ Planned follow-up tests:
 - Server account tests for login/register/account compatibility.
 - Team API tests for create/list/invite/accept-once and role matrix denial.
 
+Implemented in slice N:
+
+- `packages/shared/src/workbench/__tests__/browser-barrel.test.ts`
+  - asserts the renderer-facing workbench barrel does not export the Node-only default workspace bundle.
+
 ## 14. Expected failing test output
 
 First red run for slice A:
@@ -632,6 +637,17 @@ Expected: "ready"
 Received: "disabled"
 ```
 
+First red run for slice N:
+
+```text
+bun test packages/shared/src/workbench/__tests__/browser-barrel.test.ts
+
+Expected to not contain: "default-workspace-bundle"
+Received: "export * from './default-workspace-bundle.ts';..."
+0 pass
+1 fail
+```
+
 ## 15. Implementation changes
 
 Slice A:
@@ -700,6 +716,14 @@ Slice G:
 - Added public `/api/webhooks/dvnet` handler that verifies `x-dv-signature`, credits only confirmed payments, and remains idempotent by `tx_hash:bc_uniq_key`.
 - Updated account settings balance fallback to `USDT`.
 - Updated persistent auth server defaults for new billing rows from `ROX` to `USDT`; existing rows are not mutated in this slice.
+
+Slice N:
+
+- Added a browser-safety regression test for the public workbench barrel.
+- Moved `WORKBENCH_BUNDLE_SKILL_SLUGS` and `WorkbenchBundleSkillSlug` into browser-safe `bundle-types.ts`.
+- Kept `default-workspace-bundle.ts` as a direct Node/workspace install module and re-exported the shared bundle types from it for compatibility.
+- Updated product mode and option graph type imports to use the browser-safe bundle type module.
+- Removed `default-workspace-bundle.ts` from `packages/shared/src/workbench/index.ts` so renderer imports from `@craft-agent/shared/workbench` do not pull `fs`, `path`, label storage, or status storage into the browser bundle.
 
 ## 16. Validation commands run
 
@@ -830,6 +854,13 @@ Slice M:
 - `node --check infra/rox-one-auth-server.mjs`
 - `node --check infra/__tests__/rox-one-auth-server-http.test.mjs`
 
+Slice N:
+
+- `bun test packages/shared/src/workbench/__tests__/browser-barrel.test.ts`
+- `bun test packages/shared/src/workbench/__tests__/browser-barrel.test.ts packages/shared/src/workbench/__tests__/default-workspace-bundle.test.ts packages/shared/src/workbench/__tests__/product-mode-registry.test.ts packages/shared/src/workbench/__tests__/option-graph.test.ts`
+- `bun run typecheck:shared`
+- `bun run electron:build`
+
 ## 17. Passing test output summary
 
 - Slice A targeted tests: `17 pass`, `0 fail`, `63 expect() calls`.
@@ -886,6 +917,10 @@ Slice M:
 - Slice M live HTTP-like Node harness: `1 pass`, `0 fail`; covers register, DB activation, login, DV.net top-up intent, confirmed webhook, duplicate webhook, and billing balance.
 - Slice M `node --check infra/rox-one-auth-server.mjs`: passed.
 - Slice M `node --check infra/__tests__/rox-one-auth-server-http.test.mjs`: passed.
+- Slice N expected failure: workbench browser barrel test failed because `index.ts` still exported Node-only `default-workspace-bundle.ts`.
+- Slice N focused workbench tests: `17 pass`, `0 fail`, `230 expect() calls`.
+- Slice N `bun run typecheck:shared`: passed.
+- Slice N `bun run electron:build`: passed.
 
 ## 18. Build output summary
 
@@ -903,6 +938,7 @@ Slice M:
 - Slice K has no renderer build impact; syntax validation passed with `node --check`.
 - Slice L has no renderer build impact; syntax validation passed with `node --check`.
 - Slice M has no renderer build impact; syntax validation passed with `node --check`.
+- Slice N `bun run electron:build` passed after removing the Node-only default workspace bundle from the browser-facing workbench barrel; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
 
 ## 19. Remaining risks
 
@@ -925,6 +961,7 @@ Slice M:
 - Hosted auth coverage now includes static contract tests plus a Node HTTP-like harness that imports `handle` with `ROX_AUTH_NO_LISTEN=1`; this closes the main static-only risk for the DV.net billing path.
 - Hosted auth is still not validated through a real bound socket or deployed postgres instance in this slice.
 - Existing hosted auth DB rows that already contain `ROX` are not migrated automatically by this slice.
+- Electron build now proves renderer imports from `@craft-agent/shared/workbench` no longer pull `fs`/`path` through the Node-only default workspace bundle.
 - Existing unrelated dirty files remain excluded from this task commit: `apps/electron/src/main/index.ts`, `events.jsonl`, and auto-update files.
 
 ## 20. Acceptance criteria matrix
@@ -933,9 +970,9 @@ Slice M:
 | --- | --- | --- |
 | Composer mode and action concepts are separated | Pass | Slice A replaces native select with custom picker and separate action row |
 | New action buttons are defined | Pass | Toolbar tests assert `improve-prompt`, `run-tdd-plan`, `verify`, `tear-down`, `build-spec`, `review`; RU labels include requested text |
-| Prompt Lab screen is specified | Planned | Prompt Lab wireframe |
-| TDD Plan screen is specified | Planned | TDD Plan wireframe |
-| Review Gate screen is specified | Planned | Review Gate wireframe |
+| Prompt Lab screen is specified | Pass | Prompt Lab wireframe and Slice B/C in-app artifact screen tests |
+| TDD Plan screen is specified | Pass | TDD Plan wireframe and Slice B/C in-app artifact screen tests |
+| Review Gate screen is specified | Pass | Review Gate wireframe and Slice B/C in-app artifact screen tests |
 | Prompt Lab renders empty/error/success states | Pass | Slice B artifact-screen tests |
 | TDD Plan renders task-pack phases | Pass | Slice B artifact-screen tests |
 | Review Gate renders check and adversarial review state | Pass | Slice B artifact-screen tests |
@@ -953,4 +990,5 @@ Slice M:
 | Hosted auth server exposes T032 team/storage compatibility | Pass | Slice K contract test asserts SQL tables and route contracts; `node --check` passes |
 | Hosted auth server exposes T032 DV.net billing compatibility | Pass | Slice L contract test asserts top-up/webhook tables, intent route, X-SIGN raw-body verification, idempotent tx recording, and secret-free DTO contract |
 | Hosted auth server has executable route coverage for DV.net billing | Pass | Slice M Node harness imports `handle` without listener and proves top-up plus webhook duplicate behavior against sqlite |
-| TDD-first implementation plan exists | Planned | Phase A-D test-first path |
+| Electron build stays browser-safe for workbench imports | Pass | Slice N browser barrel regression test and `bun run electron:build` |
+| TDD-first implementation plan exists | Pass | Slices A-N record expected failing tests before implementation |
