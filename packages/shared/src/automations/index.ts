@@ -69,6 +69,22 @@ export { buildEnvFromSdkInput } from './sdk-bridge.ts';
 export { parsePromptReferences } from './utils.ts';
 
 // ============================================================================
+// Presets
+// ============================================================================
+
+export {
+  AutomationPresetConfigSchema,
+  AutomationPresetIdSchema,
+  AutomationPresetSchema,
+  applyAutomationPresets,
+  getAutomationPresetCatalog,
+  materializeAutomationPreset,
+  type AutomationPreset,
+  type AutomationPresetConfig,
+  type AutomationPresetId,
+} from './presets.ts';
+
+// ============================================================================
 // Re-exports from sub-modules
 // ============================================================================
 
