@@ -1,6 +1,7 @@
 export * from './agent-pipeline-planner';
 export * from './browser-research-integration';
 export * from './bundle-types';
+export * from './experience-layer';
 export * from './markdown-entity-graph';
 export * from './option-graph';
 export * from './product-mode-registry.ts';
