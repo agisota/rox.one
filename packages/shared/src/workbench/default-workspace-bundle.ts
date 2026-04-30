@@ -4,19 +4,10 @@ import { loadLabelConfig, saveLabelConfig } from '../labels/storage';
 import type { LabelConfig, WorkspaceLabelConfig } from '../labels/types';
 import { getDefaultStatusConfig, loadStatusConfig, saveStatusConfig } from '../statuses/storage';
 import type { StatusConfig, WorkspaceStatusConfig } from '../statuses/types';
+import { WORKBENCH_BUNDLE_SKILL_SLUGS, type WorkbenchBundleSkillSlug } from './bundle-types';
 
-export const WORKBENCH_BUNDLE_SKILL_SLUGS = [
-  'prompt-rewriter-pack',
-  'thinking-partner-pack',
-  'spec-builder-pack',
-  'multi-agent-planning-pack',
-  'review-board-pack',
-  'tdd-qa-verification-pack',
-  'research-fact-check-pack',
-  'founder-strategy-pack',
-  'design-critique-pack',
-  'security-compliance-pack',
-] as const;
+export { WORKBENCH_BUNDLE_SKILL_SLUGS };
+export type { WorkbenchBundleSkillSlug };
 
 export const WORKBENCH_REQUIRED_STATUS_IDS = [
   'inbox',
@@ -51,7 +42,6 @@ export const WORKBENCH_REQUIRED_LABEL_ENTRIES = [
   'scope::team',
 ] as const;
 
-export type WorkbenchBundleSkillSlug = typeof WORKBENCH_BUNDLE_SKILL_SLUGS[number];
 export type WorkbenchRequiredStatusId = typeof WORKBENCH_REQUIRED_STATUS_IDS[number];
 export type WorkbenchRequiredLabelEntry = typeof WORKBENCH_REQUIRED_LABEL_ENTRIES[number];
 
