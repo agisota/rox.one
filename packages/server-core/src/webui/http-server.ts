@@ -29,10 +29,12 @@ import { AccountAuthError, AccountConflictError } from '../accounts'
 import type { AccountEmailService } from './email'
 import {
   createAccountCabinetBilling,
+  createAccountCabinetBillingFromLedger,
   createAccountCabinetEvents,
   createAccountCabinetOrganizations,
   createDisabledTopUpIntent,
 } from './account-cabinet'
+import type { AccountUsageLedger } from './account-ledger'
 
 // ---------------------------------------------------------------------------
 // MIME types for static file serving
@@ -216,6 +218,8 @@ export interface WebuiHandlerOptions {
   publicAppUrl?: string
   /** Transactional email delivery for verification/reset/security messages. */
   accountEmailService?: AccountEmailService
+  /** Optional account usage ledger for balance and billing history. */
+  accountUsageLedger?: AccountUsageLedger
   /** Optional account bootstrap hook, e.g. grant first user access to existing workspaces. */
   bootstrapAccount?: (user: PublicUser) => Promise<void>
   /**
@@ -797,6 +801,10 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
     if (path === '/api/account/billing' && req.method === 'GET') {
       const identity = await requireAccountSession(req)
       if (identity instanceof Response) return identity
+      if (options.accountUsageLedger) {
+        const balance = await options.accountUsageLedger.getBalance(identity.userId)
+        return Response.json(createAccountCabinetBillingFromLedger(balance))
+      }
       return Response.json(createAccountCabinetBilling(identity))
     }
 
