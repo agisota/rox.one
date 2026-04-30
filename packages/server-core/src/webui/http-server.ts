@@ -48,6 +48,11 @@ import {
   type AccountTeamStore,
 } from './account-teams'
 import type { ManagedCloudWorkspaceStore } from './account-cloud-workspaces'
+import {
+  createStorageBucketRecord,
+  resolveS3EndpointPreference,
+  toStorageStatusDto,
+} from '../storage/object-storage'
 
 // ---------------------------------------------------------------------------
 // MIME types for static file serving
@@ -851,6 +856,42 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         return Response.json(createAccountCabinetEventsFromHistory(events))
       }
       return Response.json(createAccountCabinetEvents())
+    }
+
+    if (path === '/api/account/storage' && req.method === 'GET') {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+
+      const endpointPreference = await resolveS3EndpointPreference()
+      const records = [
+        createStorageBucketRecord({
+          ownerType: 'user',
+          ownerId: identity.userId,
+          endpoint: endpointPreference.activeEndpoint,
+        }),
+      ]
+
+      if (options.accountTeamStore) {
+        const teams = await options.accountTeamStore.listOrganizations(identity.userId)
+        for (const team of teams) {
+          records.push(createStorageBucketRecord({
+            ownerType: 'team',
+            ownerId: team.id,
+            endpoint: endpointPreference.activeEndpoint,
+          }))
+        }
+      }
+
+      return Response.json({
+        endpointStatus: endpointPreference.status,
+        activeEndpoint: endpointPreference.activeEndpoint,
+        candidates: endpointPreference.candidates,
+        buckets: records.map(record => toStorageStatusDto({
+          record,
+          endpointPreference,
+          usedBytes: 0,
+        })),
+      })
     }
 
     if ((path === '/api/account/organizations' || path === '/api/account/teams') && req.method === 'GET') {

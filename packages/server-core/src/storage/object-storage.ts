@@ -1,7 +1,9 @@
 export const DEFAULT_USER_STORAGE_QUOTA_BYTES = 1024 ** 3
 export const DEFAULT_TEAM_STORAGE_QUOTA_BYTES = 10 * 1024 ** 3
+export const DEFAULT_S3_ENDPOINT_CANDIDATES = ['http://s3.max:9000', 'http://s3.rox:9000'] as const
 
 export type ObjectStorageTenantType = 'user' | 'team'
+export type ObjectStorageEndpointStatus = 'healthy' | 'unhealthy'
 
 export interface ObjectStorageTenantScope {
   type: ObjectStorageTenantType
@@ -61,6 +63,52 @@ export interface TenantObjectStorageEntry {
 }
 
 export interface TenantObjectStorageUsage {
+  usedBytes: number
+  quotaBytes: number
+}
+
+export interface ObjectStorageEndpointCandidate {
+  endpoint: string
+  healthy: boolean
+  selected: boolean
+}
+
+export interface ObjectStorageEndpointPreference {
+  activeEndpoint: string | null
+  status: ObjectStorageEndpointStatus
+  checkedAt: string
+  candidates: ObjectStorageEndpointCandidate[]
+}
+
+export interface ResolveS3EndpointPreferenceOptions {
+  endpoints?: readonly string[]
+  probe?: (endpoint: string) => Promise<boolean>
+  now?: () => Date
+}
+
+export interface StorageBucketRecordInput {
+  ownerType: ObjectStorageTenantType
+  ownerId: string
+  endpoint?: string | null
+  quotaBytes?: number
+}
+
+export interface StorageBucketRecord {
+  ownerType: ObjectStorageTenantType
+  ownerId: string
+  bucket: string
+  prefix: string
+  endpoint: string | null
+  quotaBytes: number
+}
+
+export interface StorageStatusDto {
+  ownerType: ObjectStorageTenantType
+  ownerId: string
+  bucket: string
+  prefix: string
+  endpoint: string | null
+  endpointStatus: ObjectStorageEndpointStatus
   usedBytes: number
   quotaBytes: number
 }
@@ -234,9 +282,73 @@ export class QuotaObjectStorageService {
   }
 }
 
+export async function resolveS3EndpointPreference(options: ResolveS3EndpointPreferenceOptions = {}): Promise<ObjectStorageEndpointPreference> {
+  const endpoints = options.endpoints ?? DEFAULT_S3_ENDPOINT_CANDIDATES
+  const probe = options.probe ?? (async () => false)
+  const checkedAt = (options.now ?? (() => new Date()))().toISOString()
+  const candidates: ObjectStorageEndpointCandidate[] = []
+  let activeEndpoint: string | null = null
+
+  for (const endpoint of endpoints) {
+    const healthy = await probe(endpoint)
+    const selected = activeEndpoint === null && healthy
+    if (selected) activeEndpoint = endpoint
+    candidates.push({ endpoint, healthy, selected })
+  }
+
+  return {
+    activeEndpoint,
+    status: activeEndpoint === null ? 'unhealthy' : 'healthy',
+    checkedAt,
+    candidates,
+  }
+}
+
+export function createStorageBucketRecord(input: StorageBucketRecordInput): StorageBucketRecord {
+  const ownerId = normalizeTenantId(input.ownerId)
+  const scope = { type: input.ownerType, id: ownerId, quotaBytes: input.quotaBytes }
+
+  return {
+    ownerType: input.ownerType,
+    ownerId,
+    bucket: createOwnerBucketName(input.ownerType, ownerId),
+    prefix: createTenantPrefix(scope),
+    endpoint: input.endpoint ?? null,
+    quotaBytes: resolveQuotaBytes(scope),
+  }
+}
+
+export function createTeamSpaceStoragePrefix(teamId: string, spaceId: string): string {
+  const teamPrefix = createTenantPrefix({ type: 'team', id: teamId })
+  const normalizedSpaceId = normalizeTenantId(spaceId)
+  return `${teamPrefix}spaces/${normalizedSpaceId}/`
+}
+
+export function toStorageStatusDto(input: {
+  record: StorageBucketRecord
+  endpointPreference: ObjectStorageEndpointPreference
+  usedBytes: number
+}): StorageStatusDto {
+  return {
+    ownerType: input.record.ownerType,
+    ownerId: input.record.ownerId,
+    bucket: input.record.bucket,
+    prefix: input.record.prefix,
+    endpoint: input.endpointPreference.activeEndpoint,
+    endpointStatus: input.endpointPreference.status,
+    usedBytes: input.usedBytes,
+    quotaBytes: input.record.quotaBytes,
+  }
+}
+
 export function createTenantPrefix(scope: ObjectStorageTenantScope): string {
   const tenantId = normalizeTenantId(scope.id)
   return scope.type === 'user' ? `users/${tenantId}/` : `teams/${tenantId}/`
+}
+
+function createOwnerBucketName(ownerType: ObjectStorageTenantType, ownerId: string): string {
+  const safeOwnerId = ownerId.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '')
+  return `rox-${ownerType}-${safeOwnerId}`
 }
 
 function resolveQuotaBytes(scope: ObjectStorageTenantScope): number {
