@@ -1,0 +1,84 @@
+name: Mac ARM Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/mac-arm-build.yml"
+      - "apps/electron/**"
+      - "packages/**"
+      - "scripts/**"
+      - "package.json"
+      - "bun.lock"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/mac-arm-build.yml"
+      - "apps/electron/**"
+      - "packages/**"
+      - "scripts/**"
+      - "package.json"
+      - "bun.lock"
+
+concurrency:
+  group: mac-arm-build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  mac-arm-build:
+    name: ROX ONE macOS ARM64 package
+    runs-on: macos-15-xlarge
+    timeout-minutes: 60
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      CRAFT_DEV_RUNTIME: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate Mac ARM workflow contract
+        run: bun run validate:mac-arm-build-workflow
+
+      - name: Typecheck all packages
+        run: bun run typecheck:all
+
+      - name: Check i18n parity
+        run: bun run lint:i18n:parity
+
+      - name: Build Electron app
+        run: bun run electron:build
+
+      - name: Package ROX ONE for macOS ARM64
+        run: bun run electron:dist:dev:mac:arm64
+
+      - name: Smoke packaged ROX ONE app
+        run: bun run electron:smoke:packaged:mac
+
+      - name: Smoke Electron startup path
+        run: bun run electron:smoke
+
+      - name: Upload Mac ARM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-mac-arm64
+          path: |
+            apps/electron/release/ROX-ONE-arm64.dmg
+            apps/electron/release/ROX-ONE-arm64.zip
+            apps/electron/release/mac-arm64/ROX ONE.app
+          if-no-files-found: error
