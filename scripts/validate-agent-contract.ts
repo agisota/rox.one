@@ -1,6 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+const root = process.env.AGENT_CONTRACT_ROOT ?? process.cwd()
+
 const requiredSkills = [
   'repo-cartographer',
   'tdd-loop',
@@ -33,14 +35,19 @@ const requiredAgentHeadings = [
   'Definition of Done',
 ]
 
+function resolvePath(path: string): string {
+  return join(root, path)
+}
+
 function fail(message: string): never {
   console.error(`[agent-contract] ${message}`)
   process.exit(1)
 }
 
 function assertFile(path: string): string {
-  if (!existsSync(path)) fail(`missing required file: ${path}`)
-  return readFileSync(path, 'utf8')
+  const absolutePath = resolvePath(path)
+  if (!existsSync(absolutePath)) fail(`missing required file: ${path}`)
+  return readFileSync(absolutePath, 'utf8')
 }
 
 for (const path of requiredDocs) {
@@ -60,7 +67,7 @@ for (const skill of requiredSkills) {
   if (!/^description:\s*\S.+$/m.test(body)) fail(`${path} missing description frontmatter`)
 }
 
-const ticketFiles = readdirSync('docs/tickets').filter((name) => /^T\d{3}-.+\.md$/.test(name))
+const ticketFiles = readdirSync(resolvePath('docs/tickets')).filter((name) => /^T\d{3}-.+\.md$/.test(name))
 if (ticketFiles.length < 41) fail(`expected at least 41 ticket files, found ${ticketFiles.length}`)
 
 console.log(`[agent-contract] ok: ${requiredSkills.length} skills, ${ticketFiles.length} tickets, ${requiredDocs.length} required docs`)
