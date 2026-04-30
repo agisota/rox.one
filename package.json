@@ -96,8 +96,9 @@
     "oss:sync": "bun run scripts/oss-sync.ts",
     "prepare": "husky",
     "validate:agent-contract": "bun run scripts/validate-agent-contract.ts",
-    "validate:docs": "bun run validate:agent-contract && bun run validate:architecture-docs",
+    "validate:docs": "bun run validate:agent-contract && bun run validate:architecture-docs && bun run validate:sync-v2-design",
     "validate:architecture-docs": "bun run scripts/validate-architecture-docs.ts",
+    "validate:sync-v2-design": "bun run scripts/validate-sync-v2-design.ts",
     "validate:ci-contract": "bun run scripts/validate-ci-contract.ts"
   },
   "devDependencies": {
