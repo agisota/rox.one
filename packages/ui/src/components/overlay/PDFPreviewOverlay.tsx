@@ -11,10 +11,11 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Document, Page, pdfjs } from 'react-pdf'
-import { FileText } from 'lucide-react'
+import { ChevronLeft, ChevronRight, FileText, ZoomIn, ZoomOut } from 'lucide-react'
 import { PreviewOverlay } from './PreviewOverlay'
 import { CopyButton } from './CopyButton'
 import { ItemNavigator } from './ItemNavigator'
+import { clampPdfPage, getPdfPageLabel, getPdfZoomLabel, stepPdfZoom } from './pdf-viewer-state'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
@@ -61,6 +62,8 @@ export function PDFPreviewOverlay({
   const [activeIdx, setActiveIdx] = useState(initialIndex)
   const [pdfData, setPdfData] = useState<Uint8Array | null>(null)
   const [numPages, setNumPages] = useState<number>(0)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageScale, setPageScale] = useState(1)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -82,6 +85,7 @@ export function PDFPreviewOverlay({
     setError(null)
     setPdfData(null)
     setNumPages(0)
+    setCurrentPage(1)
 
     loadPdfData(activeItem.src)
       .then((data) => {
@@ -102,6 +106,7 @@ export function PDFPreviewOverlay({
 
   const onDocumentLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
     setNumPages(numPages)
+    setCurrentPage(page => clampPdfPage(page, numPages))
   }, [])
 
   const onDocumentLoadError = useCallback((error: Error) => {
@@ -118,6 +123,52 @@ export function PDFPreviewOverlay({
   const headerActions = (
     <div className="flex items-center gap-2">
       <ItemNavigator items={resolvedItems} activeIndex={activeIdx} onSelect={setActiveIdx} size="md" />
+      <div className="flex items-center gap-1 rounded-[8px] bg-background shadow-minimal px-1 py-1">
+        <button
+          type="button"
+          onClick={() => setCurrentPage(page => clampPdfPage(page - 1, numPages))}
+          disabled={numPages <= 1 || currentPage <= 1}
+          className="p-1 rounded-[6px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
+          title="Previous page"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </button>
+        <span className="min-w-[48px] text-center text-[12px] font-medium tabular-nums text-muted-foreground">
+          {getPdfPageLabel(currentPage, numPages)}
+        </span>
+        <button
+          type="button"
+          onClick={() => setCurrentPage(page => clampPdfPage(page + 1, numPages))}
+          disabled={numPages <= 1 || currentPage >= numPages}
+          className="p-1 rounded-[6px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
+          title="Next page"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <div className="flex items-center gap-1 rounded-[8px] bg-background shadow-minimal px-1 py-1">
+        <button
+          type="button"
+          onClick={() => setPageScale(scale => stepPdfZoom(scale, 'out'))}
+          disabled={pageScale <= 0.25}
+          className="p-1 rounded-[6px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
+          title={t('overlay.zoomOut')}
+        >
+          <ZoomOut className="w-3.5 h-3.5" />
+        </button>
+        <span className="min-w-[44px] text-center text-[12px] font-medium tabular-nums text-muted-foreground">
+          {getPdfZoomLabel(pageScale)}
+        </span>
+        <button
+          type="button"
+          onClick={() => setPageScale(scale => stepPdfZoom(scale, 'in'))}
+          disabled={pageScale >= 4}
+          className="p-1 rounded-[6px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
+          title={t('overlay.zoomIn')}
+        >
+          <ZoomIn className="w-3.5 h-3.5" />
+        </button>
+      </div>
       <CopyButton content={activeItem?.src || filePath} title={t('common.copyPath')} className="bg-background shadow-minimal" />
     </div>
   )
@@ -147,15 +198,14 @@ export function PDFPreviewOverlay({
             onLoadError={onDocumentLoadError}
             loading={<div className="text-muted-foreground text-sm">{t('common.rendering')}</div>}
           >
-            {Array.from({ length: numPages }, (_, i) => (
-              <Page
-                key={i + 1}
-                pageNumber={i + 1}
-                renderTextLayer={true}
-                renderAnnotationLayer={true}
-                className="pdf-page"
-              />
-            ))}
+            <Page
+              key={`${activeItem?.src ?? filePath}:${currentPage}:${pageScale}`}
+              pageNumber={clampPdfPage(currentPage, numPages)}
+              scale={pageScale}
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+              className="pdf-page"
+            />
           </Document>
         )}
       </div>
