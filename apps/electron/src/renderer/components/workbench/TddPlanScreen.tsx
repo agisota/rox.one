@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { renderTddTaskPackMarkdown } from '@rox-agent/shared/workbench';
 import { Button } from '../ui/button';
 import type { TddPlanState } from './artifact-screen-state';
 
@@ -30,10 +31,10 @@ export function TddPlanScreen({ state, onInsertPlan, onStartTdd }: TddPlanScreen
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" disabled={!state.canInsertPlan} onClick={() => onInsertPlan?.(state.pack.title)}>
+            <Button type="button" variant="outline" disabled={!state.canInsertPlan} onClick={() => onInsertPlan?.(renderTddTaskPackMarkdown(state.pack))}>
               Insert Plan
             </Button>
-            <Button disabled={!state.canInsertPlan} onClick={() => onStartTdd?.(state)}>
+            <Button type="button" disabled={!state.canInsertPlan} onClick={() => onStartTdd?.(state)}>
               Start TDD
             </Button>
           </div>

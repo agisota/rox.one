@@ -3,7 +3,7 @@ import { runReviewBoard, type ReviewBoardResult } from '@rox-agent/shared/workbe
 import {
   generateTddTaskPack,
   type TddTaskPack,
-} from '@rox-agent/shared/workbench/tdd-task-generator';
+} from '@rox-agent/shared/workbench';
 import type { ProductMode, ValidationGate } from '@rox-agent/shared/workbench/product-mode-registry';
 
 export type ArtifactScreenStatus = 'idle' | 'success' | 'error';

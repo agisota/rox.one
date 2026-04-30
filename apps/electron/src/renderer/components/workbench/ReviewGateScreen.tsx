@@ -21,8 +21,8 @@ export function ReviewGateScreen({ state, onApplyNotes, onRunCheck }: ReviewGate
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => onRunCheck?.(state)}>Run Check</Button>
-            <Button disabled={!state.canApplyNotes} onClick={() => onApplyNotes?.(state)}>Apply Notes</Button>
+            <Button type="button" variant="outline" onClick={() => onRunCheck?.(state)}>Run Check</Button>
+            <Button type="button" disabled={!state.canApplyNotes} onClick={() => onApplyNotes?.(state)}>Apply Notes</Button>
           </div>
         </div>
       </header>

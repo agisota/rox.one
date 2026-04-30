@@ -60,6 +60,10 @@ The account surface should become a first-class native app section:
 - `apps/electron/src/renderer/components/workbench/SpecBuilderScreen.tsx`
 - `apps/electron/src/renderer/components/workbench/spec-builder-state.ts`
 - `apps/electron/src/renderer/components/workbench/__tests__/spec-builder-screen.test.tsx`
+- `apps/electron/src/renderer/components/app-shell/input/ComposerArtifactPanel.tsx`
+- `apps/electron/src/renderer/components/app-shell/input/composer-artifact-flow.ts`
+- `apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-flow.test.ts`
+- `apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-panel.test.tsx`
 - `packages/shared/src/workbench/prompt-rewrite-engine.ts`
 - `packages/shared/src/workbench/tdd-task-generator.ts`
 - `packages/shared/src/workbench/review-board.ts`
@@ -437,9 +441,21 @@ Implemented in slice B:
   - TDD Plan renders RED/GREEN/VERIFY/WORKLOG phases and fake-provider requirements;
   - Review Gate renders `Проверка` and `Разъебать` tabs with review-board findings.
 
+Implemented in slice C:
+
+- `apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-flow.test.ts`
+  - `Улучшить prompt` routes to Prompt Lab and never submits directly;
+  - empty prompt routes to Prompt Lab error state without provider execution;
+  - `TDD Plan` routes to TDD Plan with red/green/verify/worklog phases;
+  - `Проверить` routes to Review Gate in check mode;
+  - `Разъебать` routes to Review Gate in adversarial mode;
+  - `Собрать ТЗ` routes to the Spec Builder artifact.
+- `apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-panel.test.tsx`
+  - panel renders Prompt Lab, TDD Plan, and Review Gate artifacts;
+  - panel renders nothing when no artifact is selected.
+
 Planned follow-up tests:
 
-- Composer-to-artifact screen routing tests for toolbar intents.
 - Account UI tests for native unauthenticated forms and no visible `browserPane.create`.
 - Server account tests for login/register/account compatibility.
 - Team API tests for create/list/invite/accept-once and role matrix denial.
@@ -476,6 +492,36 @@ error: Cannot find module '../PromptLabScreen'
 1 error
 ```
 
+First red runs for slice C:
+
+```text
+bun test apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-flow.test.ts
+
+error: Cannot find module '../composer-artifact-flow'
+0 pass
+1 fail
+1 error
+```
+
+```text
+bun test apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-panel.test.tsx
+
+error: Cannot find module '../ComposerArtifactPanel'
+0 pass
+1 fail
+1 error
+```
+
+First build run after implementation exposed a package-boundary issue:
+
+```text
+bun run webui:build
+
+Missing "./workbench/tdd-task-generator" specifier in "@rox-agent/shared" package
+```
+
+The fix was to import the TDD task generator from the existing `@rox-agent/shared/workbench` barrel instead of a deep package path.
+
 ## 15. Implementation changes
 
 Slice A:
@@ -500,6 +546,15 @@ Slice B:
 - Added `TddPlanScreen.tsx` backed by the shared TDD task-pack generator.
 - Added `ReviewGateScreen.tsx` backed by the shared review-board engine and validation gates.
 - Kept the screens provider-free and deterministic; composer wiring remains a separate follow-up slice.
+
+Slice C:
+
+- Added `composer-artifact-flow.ts` as a pure intent-to-artifact resolver for composer action buttons.
+- Added `ComposerArtifactPanel.tsx` to render Prompt Lab, TDD Plan, Review Gate, and Spec Builder as in-app composer artifacts.
+- Wired `FreeFormInput.tsx` so approved action buttons open artifacts and return `shouldSubmit=false` instead of submitting the session.
+- Added replacement handoff from Prompt Lab/TDD Plan back into the composer input.
+- Marked artifact screen action buttons as `type="button"` so nested composer form submission cannot be triggered accidentally.
+- Fixed TDD generator imports to use the shared workbench barrel and respect package exports.
 
 ## 16. Validation commands run
 
@@ -537,6 +592,16 @@ Slice B:
 - `bun run webui:build`
 - `git diff --check`
 
+Slice C:
+
+- `bun test apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-flow.test.ts`
+- `bun test apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-panel.test.tsx`
+- `bun test apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-flow.test.ts apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-panel.test.tsx apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx`
+- `bun test apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-flow.test.ts apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-panel.test.tsx apps/electron/src/renderer/components/app-shell/input/__tests__/product-mode-toolbar.test.ts apps/electron/src/renderer/components/app-shell/input/__tests__/prompt-rewrite-flow.test.ts apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx apps/electron/src/renderer/components/workbench/__tests__/spec-builder-screen.test.tsx`
+- `bun run typecheck:electron`
+- `bun run webui:build`
+- `git diff --check`
+
 ## 17. Passing test output summary
 
 - Slice A targeted tests: `17 pass`, `0 fail`, `63 expect() calls`.
@@ -547,12 +612,17 @@ Slice B:
 - Slice B targeted workbench tests: `4 pass`, `0 fail`, `27 expect() calls`.
 - Slice B relevant renderer tests: `16 pass`, `0 fail`, `92 expect() calls`.
 - Slice B `bun run typecheck:electron`: passed.
+- Slice C artifact routing tests: `11 pass`, `0 fail`, `51 expect() calls`.
+- Slice C broader relevant renderer tests: `28 pass`, `0 fail`, `127 expect() calls`.
+- Slice C `bun run typecheck:electron`: passed.
+- Slice C `git diff --check`: passed.
 
 ## 18. Build output summary
 
 - `bun run webui:build` passed; Vite built the renderer bundle in `23.35s`.
 - Warnings only: outDir warning, deprecated Jotai Babel plugin notices, and existing large chunk warnings.
 - Slice B `bun run webui:build` passed; Vite built the renderer bundle in `22.75s`.
+- Slice C `bun run webui:build` initially failed on a deep shared package import, then passed after switching to the exported workbench barrel; Vite built the renderer bundle in `23.95s`.
 
 ## 19. Remaining risks
 
@@ -561,7 +631,7 @@ Slice B:
 - The app currently uses `localhost`/`127.0.0.1` exceptions in packaged Info.plist; this plan does not change that.
 - S3 endpoint reachability (`s3.max` vs `s3.rox`) was not live-probed in this planning pass.
 - `Разъебать` is an explicit product label requested by the user; localization and enterprise builds may need a softer alias later.
-- Prompt Lab, TDD Plan, and Review Gate now exist as standalone screens, but composer intent routing to those screens is still pending.
+- Prompt Lab, TDD Plan, Review Gate, and Spec Builder are now reachable from composer action buttons, but browser visual smoke is still pending.
 - Account, teams/spaces, storage, and billing implementation remains pending.
 - Existing unrelated dirty files remain excluded from this task commit: `apps/electron/src/main/index.ts`, `events.jsonl`, and auto-update files.
 
@@ -577,6 +647,8 @@ Slice B:
 | Prompt Lab renders empty/error/success states | Pass | Slice B artifact-screen tests |
 | TDD Plan renders task-pack phases | Pass | Slice B artifact-screen tests |
 | Review Gate renders check and adversarial review state | Pass | Slice B artifact-screen tests |
+| Composer action buttons open in-app artifact screens | Pass | Slice C `composer-artifact-flow` and `composer-artifact-panel` tests |
+| Composer action buttons do not submit directly | Pass | Slice C resolver returns `shouldSubmit=false`; artifact buttons are `type="button"` |
 | Account auth is in-app, not browser-pane based | Planned | Account unauthenticated wireframe and implementation path |
 | Teams and collaborative spaces are specified | Planned | Team spaces wireframe and API plan |
 | S3 storage boundary is backend-only | Planned | Data-flow and API plan |
