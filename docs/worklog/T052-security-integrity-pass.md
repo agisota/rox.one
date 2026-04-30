@@ -78,4 +78,4 @@ Add a dedicated security/integrity pass across Experience Layer missions, packag
 | Prompt injection baseline enforced for public publish | Pass | `assertPublicPackagePublishable` test blocks unresolved warning. |
 | Tests pass | Pass | Targeted shared security/integrity suite: 17 pass, 0 fail. |
 | Validation commands pass | Pass | `typecheck:shared`, `lint:shared`, and `validate:agent-contract` passed. |
-| Scoped commit exists | Pending |  |
+| Scoped commit exists | Pass | `0a2a0db` |

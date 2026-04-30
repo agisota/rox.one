@@ -83,4 +83,4 @@ Implement a deterministic fake end-to-end Experience Layer scenario that creates
 | No real LLM/billing/storage/browser/marketplace providers called | Pass | Test asserts all external provider call counters are zero. |
 | Tests pass | Pass | Targeted shared test suite: 12 pass, 0 fail. |
 | Validation commands pass | Pass | `typecheck:shared`, `lint:shared`, and `validate:agent-contract` passed. |
-| Scoped commit exists | Pending |  |
+| Scoped commit exists | Pass | `d78ade7` |
