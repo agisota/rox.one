@@ -4,6 +4,7 @@ import { createWebuiHandler, type WebuiHandler } from '../http-server'
 import type { AccountSession, AccountStore, CreateAccountSessionInput, CreateEmailTokenInput, CreateUserInput, EmailTokenPurpose, PublicUser, SessionIdentity } from '../../accounts'
 import { AccountAuthError, AccountConflictError } from '../../accounts'
 import type { AccountEmailInput, AccountEmailService } from '../email'
+import { InMemoryAccountUsageLedger } from '../account-ledger'
 
 class MemoryAccountStore implements AccountStore {
   users = new Map<string, PublicUser & { passwordHash: string }>()
@@ -196,7 +197,7 @@ describe('account webui auth', () => {
     for (const handler of handlers.splice(0)) handler.dispose()
   })
 
-  function createHandler(store = new MemoryAccountStore(), emailService?: AccountEmailService) {
+  function createHandler(store = new MemoryAccountStore(), emailService?: AccountEmailService, usageLedger?: InMemoryAccountUsageLedger) {
     const handler = createWebuiHandler({
       webuiDir: '/tmp/does-not-need-static-assets',
       secret: 'test-secret-with-enough-length',
@@ -207,6 +208,7 @@ describe('account webui auth', () => {
       accountStore: store,
       publicAppUrl: 'https://app.rox.one',
       accountEmailService: emailService,
+      accountUsageLedger: usageLedger,
     })
     handlers.push(handler)
     return handler
@@ -469,5 +471,55 @@ describe('account webui auth', () => {
       body: JSON.stringify({ code: 'rox-ops' }),
     }))
     expect(joinOrg.status).toBe(501)
+  })
+
+  it('returns account billing from the injected usage ledger without leaking other users balances', async () => {
+    const store = new MemoryAccountStore()
+    const ledger = new InMemoryAccountUsageLedger()
+    const firstUser = await store.createUser({ email: 'first@example.com', password: 'password123' })
+    await store.markEmailVerified(firstUser.id)
+    const secondUser = await store.createUser({ email: 'second@example.com', password: 'password123' })
+    await store.markEmailVerified(secondUser.id)
+    await ledger.recordCredit({
+      userId: firstUser.id,
+      amountUnits: 1000,
+      reason: 'manual_top_up',
+      idempotencyKey: 'first-credit',
+    })
+    await ledger.recordCredit({
+      userId: secondUser.id,
+      amountUnits: 2222,
+      reason: 'manual_top_up',
+      idempotencyKey: 'second-credit',
+    })
+    await ledger.recordDebit({
+      userId: firstUser.id,
+      amountUnits: 125,
+      reason: 'agent_usage',
+      idempotencyKey: 'first-usage',
+      metadata: { sessionId: 'session-1' },
+    })
+    const handler = createHandler(store, undefined, ledger)
+
+    const login = await handler.fetch(new Request('http://craft.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'first@example.com', password: 'password123' }),
+    }))
+    const cookie = login.headers.get('set-cookie') ?? ''
+    expect(login.status).toBe(200)
+
+    const billing = await handler.fetch(new Request('http://craft.test/api/account/billing', {
+      headers: { cookie },
+    }))
+    expect(billing.status).toBe(200)
+    const body = await billing.json() as { balance: { userId: string; balanceUnits: number }; ledger: { entries: Array<{ userId: string; amountUnits: number }> } }
+
+    expect(body.balance).toMatchObject({
+      userId: firstUser.id,
+      balanceUnits: 875,
+    })
+    expect(body.ledger.entries.map(entry => entry.userId)).toEqual([firstUser.id, firstUser.id])
+    expect(body.ledger.entries.map(entry => entry.amountUnits)).toEqual([1000, 125])
   })
 })

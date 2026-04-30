@@ -1,4 +1,5 @@
 import type { SessionIdentity } from '../accounts'
+import type { AccountLedgerBalance } from './account-ledger'
 
 export interface AccountCabinetBalance {
   userId: string
@@ -13,6 +14,9 @@ export interface AccountCabinetBilling {
     enabled: boolean
     provider: 'manual'
     url: string | null
+  }
+  ledger?: {
+    entries: AccountLedgerBalance['entries']
   }
 }
 
@@ -46,6 +50,25 @@ export function createAccountCabinetBilling(identity: SessionIdentity): AccountC
       enabled: false,
       provider: 'manual',
       url: null,
+    },
+  }
+}
+
+export function createAccountCabinetBillingFromLedger(balance: AccountLedgerBalance): AccountCabinetBilling {
+  return {
+    balance: {
+      userId: balance.userId,
+      balanceUnits: balance.balanceUnits,
+      currency: balance.currency,
+      updatedAt: balance.updatedAt,
+    },
+    topUp: {
+      enabled: false,
+      provider: 'manual',
+      url: null,
+    },
+    ledger: {
+      entries: balance.entries,
     },
   }
 }
