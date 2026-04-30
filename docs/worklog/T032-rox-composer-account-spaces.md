@@ -73,6 +73,8 @@ The account surface should become a first-class native app section:
 - `packages/shared/src/i18n/locales/ru.json`
 - `apps/electron/src/renderer/components/app-shell/input/__tests__/prompt-rewrite-flow.test.ts`
 - `apps/electron/src/renderer/pages/settings/AccountSettingsPage.tsx`
+- `apps/electron/src/renderer/pages/settings/AccountAuthPanel.tsx`
+- `apps/electron/src/renderer/pages/settings/__tests__/account-auth-panel.test.tsx`
 - `packages/server-core/src/webui/account-teams.ts`
 - `packages/server-core/src/webui/account-ledger.ts`
 - `packages/server-core/src/storage/object-storage.ts`
@@ -454,9 +456,16 @@ Implemented in slice C:
   - panel renders Prompt Lab, TDD Plan, and Review Gate artifacts;
   - panel renders nothing when no artifact is selected.
 
+Implemented in slice D:
+
+- `apps/electron/src/renderer/pages/settings/__tests__/account-auth-panel.test.tsx`
+  - unauthenticated account UX renders native `Вход`, `Регистрация`, and `Сброс пароля` tabs;
+  - native auth markup does not contain `rox.one/login` or browser-navigation copy;
+  - sign-in/register/reset map to `/api/auth/login`, `/api/auth/register`, and `/api/auth/password-reset/request`;
+  - external account navigation allowlist accepts DV.net checkout URLs and rejects `rox.one/account`.
+
 Planned follow-up tests:
 
-- Account UI tests for native unauthenticated forms and no visible `browserPane.create`.
 - Server account tests for login/register/account compatibility.
 - Team API tests for create/list/invite/accept-once and role matrix denial.
 - Storage tests for fake S3 health, bucket records, quotas, prefix traversal, and cross-team denial.
@@ -522,6 +531,17 @@ Missing "./workbench/tdd-task-generator" specifier in "@rox-agent/shared" packag
 
 The fix was to import the TDD task generator from the existing `@rox-agent/shared/workbench` barrel instead of a deep package path.
 
+First red run for slice D:
+
+```text
+bun test apps/electron/src/renderer/pages/settings/__tests__/account-auth-panel.test.tsx
+
+error: Cannot find module '../AccountAuthPanel'
+0 pass
+1 fail
+1 error
+```
+
 ## 15. Implementation changes
 
 Slice A:
@@ -555,6 +575,15 @@ Slice C:
 - Added replacement handoff from Prompt Lab/TDD Plan back into the composer input.
 - Marked artifact screen action buttons as `type="button"` so nested composer form submission cannot be triggered accidentally.
 - Fixed TDD generator imports to use the shared workbench barrel and respect package exports.
+
+Slice D:
+
+- Added `AccountAuthPanel.tsx` with native in-app tabs for sign-in, registration, and password reset.
+- Added a pure auth request mapper so the forms call account API endpoints directly.
+- Added a DV.net-only external URL allowlist for account checkout escapes.
+- Removed visible account browser-pane login/register/reset flows from `AccountSettingsPage.tsx`.
+- Removed the hidden browser-pane API bridge from `AccountSettingsPage.tsx`; desktop account API calls now use direct fetch to `https://rox.one`.
+- Changed billing top-up opening to use `window.electronAPI.openUrl` only after a DV.net checkout URL is returned and accepted by the allowlist.
 
 ## 16. Validation commands run
 
@@ -602,6 +631,14 @@ Slice C:
 - `bun run webui:build`
 - `git diff --check`
 
+Slice D:
+
+- `bun test apps/electron/src/renderer/pages/settings/__tests__/account-auth-panel.test.tsx`
+- `bun test apps/electron/src/renderer/pages/settings/__tests__/account-auth-panel.test.tsx apps/electron/src/renderer/pages/settings/__tests__/account-brand-summary.test.ts`
+- `rg -n "browserPane|openAccount|ACCOUNT_LOGIN|ACCOUNT_SIGNUP|ACCOUNT_RESET|visibleAuth|bridgePane|ensureDesktopBridge|isRoxAccountUrl|readBridgeError|DesktopBridgeResponse" apps/electron/src/renderer/pages/settings/AccountSettingsPage.tsx apps/electron/src/renderer/pages/settings/AccountAuthPanel.tsx`
+- `bun run typecheck:electron`
+- `bun run webui:build`
+
 ## 17. Passing test output summary
 
 - Slice A targeted tests: `17 pass`, `0 fail`, `63 expect() calls`.
@@ -616,6 +653,9 @@ Slice C:
 - Slice C broader relevant renderer tests: `28 pass`, `0 fail`, `127 expect() calls`.
 - Slice C `bun run typecheck:electron`: passed.
 - Slice C `git diff --check`: passed.
+- Slice D account tests: `5 pass`, `0 fail`, `16 expect() calls`.
+- Slice D browser-pane grep: no matches in account page/panel.
+- Slice D `bun run typecheck:electron`: passed.
 
 ## 18. Build output summary
 
@@ -623,6 +663,7 @@ Slice C:
 - Warnings only: outDir warning, deprecated Jotai Babel plugin notices, and existing large chunk warnings.
 - Slice B `bun run webui:build` passed; Vite built the renderer bundle in `22.75s`.
 - Slice C `bun run webui:build` initially failed on a deep shared package import, then passed after switching to the exported workbench barrel; Vite built the renderer bundle in `23.95s`.
+- Slice D `bun run webui:build` passed; Vite built the renderer bundle in `29.58s`.
 
 ## 19. Remaining risks
 
@@ -632,7 +673,8 @@ Slice C:
 - S3 endpoint reachability (`s3.max` vs `s3.rox`) was not live-probed in this planning pass.
 - `Разъебать` is an explicit product label requested by the user; localization and enterprise builds may need a softer alias later.
 - Prompt Lab, TDD Plan, Review Gate, and Spec Builder are now reachable from composer action buttons, but browser visual smoke is still pending.
-- Account, teams/spaces, storage, and billing implementation remains pending.
+- Desktop account fetch now goes directly to `https://rox.one`; live cookie/CORS behavior still needs packaged-app smoke testing against the real account service.
+- Teams/spaces, storage, and billing implementation remains pending beyond the DV.net checkout URL boundary.
 - Existing unrelated dirty files remain excluded from this task commit: `apps/electron/src/main/index.ts`, `events.jsonl`, and auto-update files.
 
 ## 20. Acceptance criteria matrix
@@ -649,7 +691,8 @@ Slice C:
 | Review Gate renders check and adversarial review state | Pass | Slice B artifact-screen tests |
 | Composer action buttons open in-app artifact screens | Pass | Slice C `composer-artifact-flow` and `composer-artifact-panel` tests |
 | Composer action buttons do not submit directly | Pass | Slice C resolver returns `shouldSubmit=false`; artifact buttons are `type="button"` |
-| Account auth is in-app, not browser-pane based | Planned | Account unauthenticated wireframe and implementation path |
+| Account auth is in-app, not browser-pane based | Pass | Slice D native account panel tests and no account `browserPane` grep matches |
+| External account navigation is limited to DV.net checkout | Pass | Slice D `isAllowedAccountExternalUrl` tests |
 | Teams and collaborative spaces are specified | Planned | Team spaces wireframe and API plan |
 | S3 storage boundary is backend-only | Planned | Data-flow and API plan |
 | USDT/DV.net billing boundary is specified | Planned | Sequence diagram and DV.net docs notes |
