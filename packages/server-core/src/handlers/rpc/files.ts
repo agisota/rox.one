@@ -8,7 +8,7 @@ import type { StoredAttachment } from '@craft-agent/core/types'
 import { readFileAttachment, validateImageForClaudeAPI, IMAGE_LIMITS } from '@craft-agent/shared/utils'
 import { getSessionAttachmentsPath, validateSessionId } from '@craft-agent/shared/sessions'
 import { getWorkspaceByNameOrId } from '@craft-agent/shared/config'
-import { resizeImageForAPI, inspectImageBuffer } from '@craft-agent/server-core/services'
+import { resizeImageForAPI, inspectImageBuffer, convertOfficeDocumentToMarkdown } from '@craft-agent/server-core/services'
 import {
   sanitizeFilename,
   validateFilePath,
@@ -383,23 +383,21 @@ export function registerFilesHandlers(server: RpcServer, deps: HandlerDeps): voi
       if (attachment.type === 'office') {
         const mdFileName = `${id}_${safeName}.md`
         const mdPath = join(attachmentsDir, mdFileName)
-        try {
-          const markitdown = new MarkItDown()
-          const result = await markitdown.convert(storedPath)
-          if (!result || !result.textContent) {
-            throw new Error('Conversion returned empty result')
-          }
-          await writeFile(mdPath, result.textContent, 'utf-8')
-          markdownPath = mdPath
-          filesToCleanup.push(mdPath)
-          deps.platform.logger.info(`Converted Office file to markdown: ${mdPath}`)
-        } catch (convertError) {
-          // Conversion failed - throw so user knows the file can't be processed
-          // Claude can't read raw Office binary, so a failed conversion = unusable file
-          const errorMsg = convertError instanceof Error ? convertError.message : String(convertError)
-          deps.platform.logger.error('Office to markdown conversion failed:', errorMsg)
-          throw new Error(`Failed to convert "${attachment.name}" to readable format: ${errorMsg}`)
-        }
+        const conversion = await convertOfficeDocumentToMarkdown({
+          sourcePath: storedPath,
+          outputPath: mdPath,
+          attachmentName: attachment.name,
+          converter: {
+            async convert(path) {
+              const markitdown = new MarkItDown()
+              return (await markitdown.convert(path)) ?? { textContent: null }
+            },
+          },
+          writeTextFile: (path, content, encoding) => writeFile(path, content, encoding),
+          logger: deps.platform.logger,
+        })
+        markdownPath = conversion.markdownPath
+        filesToCleanup.push(markdownPath)
       }
 
       // Return StoredAttachment metadata
