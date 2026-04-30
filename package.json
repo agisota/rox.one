@@ -39,6 +39,7 @@
     "test:shared:all": "bun run test:shared:llm-connections && bun run test:shared:models-pi && bun run test:shared:config",
     "test:doc-tools": "python3 -m unittest apps.electron.resources.scripts.tests.test_pdf_tool_smoke apps.electron.resources.scripts.tests.test_xlsx_tool_smoke apps.electron.resources.scripts.tests.test_docx_tool_smoke apps.electron.resources.scripts.tests.test_pptx_tool_smoke apps.electron.resources.scripts.tests.test_img_tool_smoke apps.electron.resources.scripts.tests.test_ical_tool_smoke apps.electron.resources.scripts.tests.test_doc_diff_smoke apps.electron.resources.scripts.tests.test_markitdown_smoke",
     "validate:dev": "bun run typecheck:all && bun run test:shared:all && bun run test:doc-tools",
+    "e2e:core": "bun run scripts/e2e-core-scenarios.ts",
     "validate:ci": "bun run validate:agent-contract && bun run validate:architecture-docs && bun run validate:ci-contract && bun run validate:dev && bun run lint:i18n:parity",
     "lint:ipc-sends": "bash scripts/check-raw-sends.sh",
     "lint:electron": "cd apps/electron && bun run lint",
@@ -102,7 +103,8 @@
     "validate:architecture-docs": "bun run scripts/validate-architecture-docs.ts",
     "validate:sync-v2-design": "bun run scripts/validate-sync-v2-design.ts",
     "validate:ci-contract": "bun run scripts/validate-ci-contract.ts",
-    "validate:mac-arm-build-workflow": "bun run scripts/validate-mac-arm-build-workflow.ts"
+    "validate:mac-arm-build-workflow": "bun run scripts/validate-mac-arm-build-workflow.ts",
+    "validate:e2e-core-scenarios": "bun run scripts/validate-e2e-core-scenarios.ts"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1038.0",

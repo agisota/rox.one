@@ -10,6 +10,8 @@
 
 import { describe, it, expect, afterEach } from 'bun:test'
 import { join } from 'node:path'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import type { Subprocess } from 'bun'
 import WebSocket from 'ws'
 
@@ -23,16 +25,33 @@ interface SpawnedServer {
   healthPort: number
   proc: Subprocess
   stop: () => Promise<void>
+  homeDir: string
 }
 
 async function spawnTestServer(extraEnv?: Record<string, string>): Promise<SpawnedServer> {
   const token = crypto.randomUUID() + crypto.randomUUID() // 72 chars, well above 16 minimum
-  const { CLAUDECODE: _, ...parentEnv } = process.env
+  const homeDir = mkdtempSync(join(tmpdir(), 'rox-server-smoke-'))
+  const {
+    CLAUDECODE: _,
+    CRAFT_DATABASE_URL: _databaseUrl,
+    CRAFT_AUTH_JWT_SECRET: _authJwtSecret,
+    CRAFT_PUBLIC_APP_URL: _publicAppUrl,
+    RESEND_API_KEY: _resendApiKey,
+    CRAFT_EMAIL_FROM: _emailFrom,
+    ...parentEnv
+  } = process.env
 
   const proc = Bun.spawn(['bun', 'run', SERVER_ENTRY], {
     env: {
       ...parentEnv,
       ...extraEnv,
+      CRAFT_DATABASE_URL: '',
+      CRAFT_AUTH_JWT_SECRET: '',
+      CRAFT_PUBLIC_APP_URL: '',
+      RESEND_API_KEY: '',
+      CRAFT_EMAIL_FROM: '',
+      HOME: homeDir,
+      CRAFT_APP_ROOT: homeDir,
       CRAFT_SERVER_TOKEN: token,
       CRAFT_RPC_PORT: '0',
       CRAFT_RPC_HOST: '127.0.0.1',
@@ -66,9 +85,14 @@ async function spawnTestServer(extraEnv?: Record<string, string>): Promise<Spawn
             healthPort: 0, // health port not printed; we skip health test if 0
             proc,
             stop: async () => {
-              proc.kill('SIGTERM')
-              await proc.exited
+              try {
+                proc.kill('SIGTERM')
+                await proc.exited
+              } finally {
+                rmSync(homeDir, { recursive: true, force: true })
+              }
             },
+            homeDir,
           })
           return
         }
@@ -150,10 +174,26 @@ describe('headless server smoke test', () => {
 
   it('rejects short token at startup', async () => {
     const token = 'short'
-    const { CLAUDECODE: _, ...parentEnv } = process.env
+    const homeDir = mkdtempSync(join(tmpdir(), 'rox-server-smoke-'))
+    const {
+      CLAUDECODE: _,
+      CRAFT_DATABASE_URL: _databaseUrl,
+      CRAFT_AUTH_JWT_SECRET: _authJwtSecret,
+      CRAFT_PUBLIC_APP_URL: _publicAppUrl,
+      RESEND_API_KEY: _resendApiKey,
+      CRAFT_EMAIL_FROM: _emailFrom,
+      ...parentEnv
+    } = process.env
     const proc = Bun.spawn(['bun', 'run', SERVER_ENTRY], {
       env: {
         ...parentEnv,
+        CRAFT_DATABASE_URL: '',
+        CRAFT_AUTH_JWT_SECRET: '',
+        CRAFT_PUBLIC_APP_URL: '',
+        RESEND_API_KEY: '',
+        CRAFT_EMAIL_FROM: '',
+        HOME: homeDir,
+        CRAFT_APP_ROOT: homeDir,
         CRAFT_SERVER_TOKEN: token,
         CRAFT_RPC_PORT: '0',
         CRAFT_RPC_HOST: '127.0.0.1',
@@ -162,8 +202,12 @@ describe('headless server smoke test', () => {
       stderr: 'pipe',
     })
 
-    const exitCode = await proc.exited
-    expect(exitCode).not.toBe(0)
+    try {
+      const exitCode = await proc.exited
+      expect(exitCode).not.toBe(0)
+    } finally {
+      rmSync(homeDir, { recursive: true, force: true })
+    }
   }, TEST_TIMEOUT)
 
   it('shuts down cleanly on SIGTERM', async () => {
