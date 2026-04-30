@@ -515,7 +515,7 @@ export default function AccountSettingsPage() {
   }
 
   const accountUser = account?.mode === 'account' ? account.user : null
-  const brandSummaryRows = getAccountBrandSummaryRows()
+  const brandSummaryRows = getAccountBrandSummaryRows(undefined, t)
 
   return (
     <div className="h-full flex flex-col">
@@ -523,7 +523,7 @@ export default function AccountSettingsPage() {
       <div className="flex-1 min-h-0 mask-fade-y">
         <ScrollArea className="h-full">
           <div className="px-5 py-7 max-w-5xl mx-auto space-y-8">
-            <SettingsSection title="Приложение" description="White-label сведения, которые используются в shell, меню, документации и поддержке.">
+            <SettingsSection title={t("workbench.brand.section")} description="White-label сведения, которые используются в shell, меню, документации и поддержке.">
               <SettingsCard divided>
                 {brandSummaryRows.map((row) => (
                   <SettingsRow key={row.label} label={row.label} description={row.description} />
