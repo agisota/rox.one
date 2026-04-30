@@ -1,0 +1,69 @@
+name: E2E Core Scenarios
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/e2e-core.yml"
+      - "apps/electron/**"
+      - "packages/**"
+      - "scripts/e2e-core-scenarios.ts"
+      - "scripts/validate-e2e-core-scenarios.ts"
+      - "package.json"
+      - "bun.lock"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/e2e-core.yml"
+      - "apps/electron/**"
+      - "packages/**"
+      - "scripts/e2e-core-scenarios.ts"
+      - "scripts/validate-e2e-core-scenarios.ts"
+      - "package.json"
+      - "bun.lock"
+
+concurrency:
+  group: e2e-core-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-core:
+    name: ROX ONE core scenario suite
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      ROX_E2E_FAKE_PROVIDERS: "1"
+      ROX_HEADLESS: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate E2E core contract
+        run: bun run validate:e2e-core-scenarios
+
+      - name: Run E2E core scenarios
+        run: bun run e2e:core
+
+      - name: Upload E2E logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-core-logs
+          path: .e2e-logs
+          if-no-files-found: ignore
