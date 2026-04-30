@@ -132,7 +132,20 @@ export interface FollowUpInputItem {
   color?: string
 }
 
+import {
+  createDeterministicPromptRewriteProvider,
+  createPromptRewriteService,
+  type PromptRewriteOutput,
+} from '@rox-agent/shared/workbench/prompt-rewrite-engine';
 import { ProductModeToolbar } from './ProductModeToolbar';
+import { PromptRewriteDialog } from './PromptRewriteDialog';
+import {
+  PROMPT_REWRITE_SPEC_BUILDER_EVENT,
+  applyPromptRewriteAcceptance,
+  createPromptRewriteRequestFromComposer,
+  createSpecBuilderIntentFromRewrite,
+  shouldOpenPromptRewriteForIntent,
+} from './prompt-rewrite-flow';
 import { PRODUCT_MODE_TOOLBAR_DEFAULT_MODE, type ProductMode, type ProductModeIntent } from './product-mode-toolbar';
 
 export interface FreeFormInputProps {
@@ -1469,10 +1482,68 @@ export function FreeFormInput({
   }, [followUpLayoutKey])
 
   const [selectedProductMode, setSelectedProductMode] = React.useState<ProductMode>(PRODUCT_MODE_TOOLBAR_DEFAULT_MODE)
+  const promptRewriteService = React.useMemo(
+    () => createPromptRewriteService({ provider: createDeterministicPromptRewriteProvider() }),
+    [],
+  )
+  const [promptRewriteState, setPromptRewriteState] = React.useState<{
+    open: boolean
+    status: 'idle' | 'loading' | 'success' | 'error'
+    output?: PromptRewriteOutput
+    error?: string
+  }>({ open: false, status: 'idle' })
+
+  const runPromptRewrite = React.useCallback(async (targetMode: ProductMode) => {
+    setPromptRewriteState({ open: true, status: 'loading' })
+
+    try {
+      const request = createPromptRewriteRequestFromComposer(input, targetMode)
+      const output = await promptRewriteService.rewrite(request)
+      setPromptRewriteState({ open: true, status: 'success', output })
+    } catch (error) {
+      setPromptRewriteState({
+        open: true,
+        status: 'error',
+        error: error instanceof Error && error.message === 'empty prompt'
+          ? t('workbench.rewrite.errors.emptyPrompt')
+          : t('workbench.rewrite.errors.providerFailed'),
+      })
+    }
+  }, [input, promptRewriteService, t])
 
   const handleProductModeIntent = React.useCallback((intent: ProductModeIntent) => {
     window.dispatchEvent(new CustomEvent<ProductModeIntent>('rox:product-mode-intent', { detail: intent }))
+    if (shouldOpenPromptRewriteForIntent(intent)) {
+      void runPromptRewrite(intent.mode)
+    }
+  }, [runPromptRewrite])
+
+  const handlePromptRewriteAccept = React.useCallback((editedPrompt?: string) => {
+    if (!promptRewriteState.output) {
+      return
+    }
+
+    const acceptedPrompt = applyPromptRewriteAcceptance(promptRewriteState.output, editedPrompt)
+    setInput(acceptedPrompt)
+    syncToParent(acceptedPrompt)
+    setPromptRewriteState((state) => ({ ...state, open: false }))
+    richInputRef.current?.focus()
+  }, [promptRewriteState.output, richInputRef, syncToParent])
+
+  const handlePromptRewriteSendToSpecBuilder = React.useCallback((output: PromptRewriteOutput) => {
+    window.dispatchEvent(new CustomEvent(PROMPT_REWRITE_SPEC_BUILDER_EVENT, {
+      detail: createSpecBuilderIntentFromRewrite(output),
+    }))
+    setPromptRewriteState((state) => ({ ...state, open: false }))
   }, [])
+
+  const handlePromptRewriteOpenChange = React.useCallback((open: boolean) => {
+    setPromptRewriteState((state) => ({ ...state, open }))
+  }, [])
+
+  const handlePromptRewriteRetry = React.useCallback(() => {
+    void runPromptRewrite(selectedProductMode)
+  }, [runPromptRewrite, selectedProductMode])
 
   const hasContent = input.trim() || attachments.length > 0 || followUpItems.length > 0
 
@@ -1654,6 +1725,17 @@ export function FreeFormInput({
             onModeChange={setSelectedProductMode}
           />
         )}
+
+        <PromptRewriteDialog
+          open={promptRewriteState.open}
+          status={promptRewriteState.status}
+          output={promptRewriteState.output}
+          error={promptRewriteState.error}
+          onOpenChange={handlePromptRewriteOpenChange}
+          onAccept={handlePromptRewriteAccept}
+          onRetry={handlePromptRewriteRetry}
+          onSendToSpecBuilder={handlePromptRewriteSendToSpecBuilder}
+        />
 
         {/* Rich Text Input with inline mention badges */}
         {/* In compact mode, hide input while processing (collapses to just bottom bar) */}
