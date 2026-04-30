@@ -84,7 +84,7 @@ import { useFocusZone } from "@/hooks/keyboard"
 import { useFocusContext } from "@/context/FocusContext"
 import { getSessionTitle } from "@/utils/session"
 import { useSetAtom } from "jotai"
-import type { Session, Workspace, FileAttachment, PermissionRequest, LoadedSource, LoadedSkill, PermissionMode, SourceFilter, AutomationFilter } from "../../../shared/types"
+import type { Session, Workspace, FileAttachment, PermissionRequest, LoadedSource, LoadedSkill, PermissionMode, SourceFilter, AutomationFilter, WorkbenchScreen } from "../../../shared/types"
 import { sessionMetaMapAtom, sendToWorkspaceAtom, type SessionMeta } from "@/atoms/sessions"
 import { sourcesAtom } from "@/atoms/sources"
 import { skillsAtom } from "@/atoms/skills"
@@ -111,6 +111,7 @@ import {
   isSettingsNavigation,
   isSkillsNavigation,
   isAutomationsNavigation,
+  isWorkbenchNavigation,
   type NavigationState,
 } from "@/contexts/NavigationContext"
 import type { SettingsSubpage } from "../../../shared/types"
@@ -625,6 +626,8 @@ function AppShellContent({
 
   // Derive automation filter from navigation state (only when in automations navigator)
   const automationFilter: AutomationFilter | null = isAutomationsNavigation(navState) ? navState.filter ?? null : null
+
+  const workbenchScreen: WorkbenchScreen | null = isWorkbenchNavigation(navState) ? navState.screen : null
 
   // Per-view filter storage: each session list view (allSessions, flagged, state:X, label:X, view:X)
   // has its own independent set of status and label filters.
@@ -1713,6 +1716,10 @@ function AppShellContent({
     navigate(routes.view.automationsAgentic())
   }, [])
 
+  const handleWorkbenchClick = useCallback((screen: WorkbenchScreen) => {
+    navigate(routes.view.workbench(screen))
+  }, [])
+
   // Handler for settings view
   const handleSettingsClick = useCallback((subpage: SettingsSubpage = 'app') => {
     navigate(routes.view.settings(subpage))
@@ -1958,11 +1965,18 @@ function AppShellContent({
     result.push({ id: 'nav:sources', type: 'nav', action: handleSourcesClick })
     result.push({ id: 'nav:skills', type: 'nav', action: handleSkillsClick })
     result.push({ id: 'nav:automations', type: 'nav', action: handleAutomationsClick })
+    result.push({ id: 'nav:workbench', type: 'nav', action: () => handleWorkbenchClick('deep-missions') })
+    result.push({ id: 'nav:workbench:deep-missions', type: 'nav', action: () => handleWorkbenchClick('deep-missions') })
+    result.push({ id: 'nav:workbench:arena-builder', type: 'nav', action: () => handleWorkbenchClick('arena-builder') })
+    result.push({ id: 'nav:workbench:mission-control', type: 'nav', action: () => handleWorkbenchClick('mission-control') })
+    result.push({ id: 'nav:workbench:progression', type: 'nav', action: () => handleWorkbenchClick('progression') })
+    result.push({ id: 'nav:workbench:quest-map', type: 'nav', action: () => handleWorkbenchClick('quest-map') })
+    result.push({ id: 'nav:workbench:agent-forge', type: 'nav', action: () => handleWorkbenchClick('agent-forge') })
     result.push({ id: 'nav:settings', type: 'nav', action: () => handleSettingsClick('app') })
     result.push({ id: 'nav:whats-new', type: 'nav', action: handleWhatsNewClick })
 
     return result
-  }, [handleAllSessionsClick, handleFlaggedClick, handleArchivedClick, handleSessionStatusClick, effectiveSessionStatuses, handleLabelClick, labelTree, handleSourcesClick, handleSkillsClick, handleAutomationsClick, handleSettingsClick, handleWhatsNewClick])
+  }, [handleAllSessionsClick, handleFlaggedClick, handleArchivedClick, handleSessionStatusClick, effectiveSessionStatuses, handleLabelClick, labelTree, handleSourcesClick, handleSkillsClick, handleAutomationsClick, handleWorkbenchClick, handleSettingsClick, handleWhatsNewClick])
 
   // Toggle folder expanded state
   const handleToggleFolder = React.useCallback((path: string) => {
@@ -2089,6 +2103,18 @@ function AppShellContent({
         case 'event': return t("sidebar.eventBased")
         case 'agentic': return t("sidebar.agentic")
         default: return t("sidebar.allAutomations")
+      }
+    }
+
+    if (isWorkbenchNavigation(navState)) {
+      switch (navState.screen) {
+        case 'arena-builder': return 'Арена агентов'
+        case 'mission-control': return 'Mission Control'
+        case 'progression': return 'Progression'
+        case 'quest-map': return 'Quest Map'
+        case 'agent-forge': return 'Agent Forge'
+        case 'deep-missions':
+        default: return 'Deep Missions'
       }
     }
 
@@ -2456,6 +2482,61 @@ function AppShellContent({
                           variant: (automationFilter?.kind === 'type' && automationFilter.automationType === 'agentic') ? "default" : "ghost",
                           onClick: handleAutomationsAgenticClick,
                           contextMenu: { type: 'automations' as const, onAddAutomation: openAddAutomation },
+                        },
+                      ],
+                    },
+                    {
+                      id: "nav:workbench",
+                      title: "Experience",
+                      label: "6",
+                      icon: Layers,
+                      variant: isWorkbenchNavigation(navState) ? "default" : "ghost",
+                      onClick: () => handleWorkbenchClick('deep-missions'),
+                      expandable: true,
+                      expanded: isExpanded('nav:workbench'),
+                      onToggle: () => toggleExpanded('nav:workbench'),
+                      items: [
+                        {
+                          id: "nav:workbench:deep-missions",
+                          title: "Долгие миссии",
+                          icon: Clock,
+                          variant: workbenchScreen === 'deep-missions' ? "default" : "ghost",
+                          onClick: () => handleWorkbenchClick('deep-missions'),
+                        },
+                        {
+                          id: "nav:workbench:arena-builder",
+                          title: "Арена агентов",
+                          icon: Bot,
+                          variant: workbenchScreen === 'arena-builder' ? "default" : "ghost",
+                          onClick: () => handleWorkbenchClick('arena-builder'),
+                        },
+                        {
+                          id: "nav:workbench:mission-control",
+                          title: "Mission Control",
+                          icon: Radio,
+                          variant: workbenchScreen === 'mission-control' ? "default" : "ghost",
+                          onClick: () => handleWorkbenchClick('mission-control'),
+                        },
+                        {
+                          id: "nav:workbench:progression",
+                          title: "Progression",
+                          icon: Cake,
+                          variant: workbenchScreen === 'progression' ? "default" : "ghost",
+                          onClick: () => handleWorkbenchClick('progression'),
+                        },
+                        {
+                          id: "nav:workbench:quest-map",
+                          title: "Quest Map",
+                          icon: ListTodo,
+                          variant: workbenchScreen === 'quest-map' ? "default" : "ghost",
+                          onClick: () => handleWorkbenchClick('quest-map'),
+                        },
+                        {
+                          id: "nav:workbench:agent-forge",
+                          title: "Agent Forge",
+                          icon: Zap,
+                          variant: workbenchScreen === 'agent-forge' ? "default" : "ghost",
+                          onClick: () => handleWorkbenchClick('agent-forge'),
                         },
                       ],
                     },

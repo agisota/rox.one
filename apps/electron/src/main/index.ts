@@ -105,6 +105,7 @@ import { initNotificationService, initBadgeIcon, initInstanceBadge, updateBadgeC
 import { checkForUpdatesOnLaunch, setAutoUpdateEventSink, isUpdating } from './auto-update'
 import type { EventSink } from '@rox-agent/server-core/transport'
 import { validateGitBashPath, checkVCRedistInstalled } from '@rox-agent/server-core/services'
+import { createAccountApiProxy } from './account-api'
 
 // Initialize electron-log for renderer process support
 log.initialize()
@@ -192,6 +193,7 @@ let browserPaneManager: BrowserPaneManager | null = null
 let oauthFlowStore: OAuthFlowStore | null = null
 let moduleSink: EventSink | null = null
 let moduleClientResolver: ((webContentsId: number) => string | undefined) | null = null
+const accountApiProxy = createAccountApiProxy()
 
 // Messaging gateway: the bootstrap handle is created once sessionManager is
 // available (inside createHandlerDeps) and populated with the WS publisher
@@ -776,6 +778,10 @@ app.whenReady().then(async () => {
         } finally {
           client.destroy()
         }
+      })
+
+      ipcMain.handle('account:request', async (_event, path: string, init?: { method?: string; headers?: Record<string, string>; body?: string | null }) => {
+        return await accountApiProxy.request(path, init)
       })
 
       // Transfer session to another workspace — orchestrated in main process

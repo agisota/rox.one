@@ -78,6 +78,7 @@ import { toolMetadataStore, getLastApiError } from '@rox-agent/shared/intercepto
 import { isParentTaskTool } from '@rox-agent/shared/utils/toolNames'
 import { restoreFiles } from '@rox-agent/shared/utils/bundle-files'
 import { getCredentialManager } from '@rox-agent/shared/credentials'
+import { createViewerShareFailureResult } from './share-errors'
 import { RoxMcpClient, McpClientPool, McpPoolServer } from '@rox-agent/shared/mcp'
 import { type Session, type SessionEvent, type FileAttachment, type SendMessageOptions, type UnreadSummary, type RemoteSessionTransferPayload, type ImportRemoteSessionTransferResult, RPC_CHANNELS, generateMessageId } from '@rox-agent/shared/protocol'
 import { messageToStored, storedToMessage, type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-agent/core/types'
@@ -3923,10 +3924,7 @@ export class SessionManager implements ISessionManager {
 
       if (!response.ok) {
         sessionLog.error(`Share failed with status ${response.status}`)
-        if (response.status === 413) {
-          return { success: false, error: 'Session file is too large to share' }
-        }
-        return { success: false, error: 'Failed to upload session' }
+        return createViewerShareFailureResult(response.status, response.statusText)
       }
 
       const data = await response.json() as { id: string; url: string }
@@ -3987,10 +3985,7 @@ export class SessionManager implements ISessionManager {
 
       if (!response.ok) {
         sessionLog.error(`Update share failed with status ${response.status}`)
-        if (response.status === 413) {
-          return { success: false, error: 'Session file is too large to share' }
-        }
-        return { success: false, error: 'Failed to update shared session' }
+        return createViewerShareFailureResult(response.status, response.statusText)
       }
 
       sessionLog.info(`Session ${sessionId} share updated at ${managed.sharedUrl}`)

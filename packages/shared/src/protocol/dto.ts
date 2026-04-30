@@ -438,6 +438,8 @@ export interface ShareResult {
   success: boolean
   url?: string
   error?: string
+  code?: 'auth_required' | 'payload_too_large' | 'viewer_unavailable'
+  status?: number
 }
 
 export interface RefreshTitleResult {

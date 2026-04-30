@@ -245,6 +245,7 @@ export interface ElectronAPI {
   relaunchApp(): Promise<void>
   removeWorkspace(workspaceId: string): Promise<boolean>
   invokeOnServer(url: string, token: string, channel: string, ...args: any[]): Promise<any>
+  accountRequest<T = unknown>(path: string, init?: { method?: string; headers?: Record<string, string>; body?: string | null }): Promise<T>
 
   // Remote session transfer (main-process orchestrated, supports chunked upload)
   transferSessionToWorkspace(sessionId: string, targetWorkspaceId: string, sessionIndex?: number, sessionCount?: number): Promise<{ sessionId: string }>
@@ -785,6 +786,31 @@ export interface AutomationsNavigationState {
   rightSidebar?: RightSidebarPanel
 }
 
+export const WORKBENCH_SCREENS = [
+  'deep-missions',
+  'arena-builder',
+  'mission-control',
+  'progression',
+  'quest-map',
+  'agent-forge',
+] as const
+
+export type WorkbenchScreen = typeof WORKBENCH_SCREENS[number]
+
+export const DEFAULT_WORKBENCH_SCREEN: WorkbenchScreen = 'deep-missions'
+
+export const isWorkbenchScreen = (value: string): value is WorkbenchScreen =>
+  (WORKBENCH_SCREENS as readonly string[]).includes(value)
+
+/**
+ * Experience Layer / gamified mission surfaces.
+ */
+export interface WorkbenchNavigationState {
+  navigator: 'workbench'
+  screen: WorkbenchScreen
+  rightSidebar?: RightSidebarPanel
+}
+
 /**
  * Unified navigation state
  */
@@ -794,6 +820,7 @@ export type NavigationState =
   | SettingsNavigationState
   | SkillsNavigationState
   | AutomationsNavigationState
+  | WorkbenchNavigationState
 
 export const isSessionsNavigation = (
   state: NavigationState
@@ -815,6 +842,10 @@ export const isAutomationsNavigation = (
   state: NavigationState
 ): state is AutomationsNavigationState => state.navigator === 'automations'
 
+export const isWorkbenchNavigation = (
+  state: NavigationState
+): state is WorkbenchNavigationState => state.navigator === 'workbench'
+
 export const DEFAULT_NAVIGATION_STATE: NavigationState = {
   navigator: 'sessions',
   filter: { kind: 'allSessions' },
@@ -822,6 +853,9 @@ export const DEFAULT_NAVIGATION_STATE: NavigationState = {
 }
 
 export const getNavigationStateKey = (state: NavigationState): string => {
+  if (state.navigator === 'workbench') {
+    return `workbench/${state.screen}`
+  }
   if (state.navigator === 'sources') {
     if (state.details) {
       return `sources/source/${state.details.sourceSlug}`
@@ -857,6 +891,15 @@ export const getNavigationStateKey = (state: NavigationState): string => {
 }
 
 export const parseNavigationStateKey = (key: string): NavigationState | null => {
+  if (key === 'workbench') return { navigator: 'workbench', screen: DEFAULT_WORKBENCH_SCREEN }
+  if (key.startsWith('workbench/')) {
+    const screen = key.slice(10)
+    if (isWorkbenchScreen(screen)) {
+      return { navigator: 'workbench', screen }
+    }
+    return { navigator: 'workbench', screen: DEFAULT_WORKBENCH_SCREEN }
+  }
+
   // Handle sources
   if (key === 'sources') return { navigator: 'sources', details: null }
   if (key.startsWith('sources/source/')) {
