@@ -9,7 +9,13 @@ import { readFileAttachment, validateImageForClaudeAPI, IMAGE_LIMITS } from '@ro
 import { getSessionAttachmentsPath, validateSessionId } from '@rox-agent/shared/sessions'
 import { getWorkspaceByNameOrId } from '@rox-agent/shared/config'
 import { resizeImageForAPI, inspectImageBuffer } from '@rox-agent/server-core/services'
-import { sanitizeFilename, validateFilePath, getWorkspaceAllowedDirs } from '@rox-agent/server-core/handlers'
+import {
+  sanitizeFilename,
+  validateFilePath,
+  getWorkspaceAllowedDirs,
+  buildFileManagerScopes,
+  validateFileManagerPathForScopes,
+} from '@rox-agent/server-core/handlers'
 import { MarkItDown } from 'markitdown-js'
 import type { RpcServer } from '@rox-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
@@ -34,6 +40,22 @@ export function registerFilesHandlers(server: RpcServer, deps: HandlerDeps): voi
     const workspaceId = ctx.workspaceId ?? deps.windowManager?.getWorkspaceForWindow(ctx.webContentsId!)
     if (workspaceId) await requireWorkspaceAccess(deps, ctx, workspaceId)
     return workspaceId ?? null
+  }
+
+  const validateFileManagerBrowsePath = async (path: string, workspaceId: string | null): Promise<string> => {
+    if (!workspaceId) {
+      return validateFilePath(path)
+    }
+
+    const [workspaceRoot, workingDirectory] = getWorkspaceAllowedDirs(workspaceId)
+    const scopes = buildFileManagerScopes({
+      workspaceId,
+      workspaceRoot,
+      workingDirectory,
+    })
+
+    const result = await validateFileManagerPathForScopes(path, scopes)
+    return result.absolutePath
   }
 
   // Read a file (with path validation to prevent traversal attacks)
@@ -414,7 +436,7 @@ export function registerFilesHandlers(server: RpcServer, deps: HandlerDeps): voi
   // Parallel BFS walk that skips ignored directories BEFORE entering them,
   // avoiding reading node_modules/etc. contents entirely. Uses withFileTypes
   // to get entry types without separate stat calls.
-  server.handle(RPC_CHANNELS.fs.SEARCH, async (_ctx, basePath: string, query: string) => {
+  server.handle(RPC_CHANNELS.fs.SEARCH, async (ctx, basePath: string, query: string) => {
     deps.platform.logger.info('[FS_SEARCH] called:', basePath, query)
     const MAX_RESULTS = 50
 
@@ -429,6 +451,9 @@ export function registerFilesHandlers(server: RpcServer, deps: HandlerDeps): voi
     const results: Array<{ name: string; path: string; type: 'file' | 'directory'; relativePath: string }> = []
 
     try {
+      const workspaceId = await resolveWorkspaceId(ctx)
+      const scopedBasePath = await validateFileManagerBrowsePath(basePath, workspaceId)
+
       // BFS queue: each entry is a relative path prefix ('' for root)
       let queue = ['']
 
@@ -438,7 +463,7 @@ export function registerFilesHandlers(server: RpcServer, deps: HandlerDeps): voi
 
         const dirResults = await Promise.all(
           queue.map(async (relDir) => {
-            const absDir = relDir ? join(basePath, relDir) : basePath
+            const absDir = relDir ? join(scopedBasePath, relDir) : scopedBasePath
             try {
               return { relDir, entries: await readdir(absDir, { withFileTypes: true }) }
             } catch {
@@ -472,7 +497,7 @@ export function registerFilesHandlers(server: RpcServer, deps: HandlerDeps): voi
             if (lowerName.includes(lowerQuery) || lowerRelative.includes(lowerQuery)) {
               results.push({
                 name,
-                path: join(basePath, relativePath),
+                path: join(scopedBasePath, relativePath),
                 type: isDir ? 'directory' : 'file',
                 relativePath,
               })
@@ -499,7 +524,7 @@ export function registerFilesHandlers(server: RpcServer, deps: HandlerDeps): voi
 
   // List directories in a given path (for remote directory browsing).
   // Returns only directories (not files) — this is a folder picker.
-  server.handle(RPC_CHANNELS.fs.LIST_DIRECTORY, async (_ctx, dirPath: string) => {
+  server.handle(RPC_CHANNELS.fs.LIST_DIRECTORY, async (ctx, dirPath: string) => {
     // Resolve ~ to server's home directory (thin clients don't know the server's home)
     if (dirPath === '~' || dirPath.startsWith('~/')) {
       dirPath = dirPath === '~' ? homedir() : join(homedir(), dirPath.slice(2))
@@ -512,7 +537,8 @@ export function registerFilesHandlers(server: RpcServer, deps: HandlerDeps): voi
     }
 
     // Normalize (collapses .. segments, trailing slashes, etc.)
-    const resolved = resolve(dirPath)
+    const workspaceId = await resolveWorkspaceId(ctx)
+    const resolved = await validateFileManagerBrowsePath(resolve(dirPath), workspaceId)
 
     // Read entries, filter to directories
     const raw = await readdir(resolved, { withFileTypes: true })
