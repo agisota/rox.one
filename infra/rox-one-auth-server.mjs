@@ -311,6 +311,35 @@ function sqliteStore() {
       updated_at TEXT NOT NULL,
       FOREIGN KEY(user_id) REFERENCES rox_users(id)
     );
+    CREATE TABLE IF NOT EXISTS rox_account_events (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      details TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES rox_users(id)
+    );
+    CREATE INDEX IF NOT EXISTS rox_account_events_user_idx ON rox_account_events(user_id, created_at);
+    CREATE TABLE IF NOT EXISTS rox_organizations (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      owner_user_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(owner_user_id) REFERENCES rox_users(id)
+    );
+    CREATE TABLE IF NOT EXISTS rox_organization_members (
+      organization_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'member',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (organization_id, user_id),
+      FOREIGN KEY(organization_id) REFERENCES rox_organizations(id),
+      FOREIGN KEY(user_id) REFERENCES rox_users(id)
+    );
   `)
   return {
     backend: 'sqlite',
@@ -368,6 +397,31 @@ async function postgresStore(connectionString) {
       balance_units INTEGER NOT NULL DEFAULT 0,
       currency TEXT NOT NULL DEFAULT 'ROX',
       updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS rox_account_events (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES rox_users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      details TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS rox_account_events_user_idx ON rox_account_events(user_id, created_at);
+    CREATE TABLE IF NOT EXISTS rox_organizations (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      owner_user_id TEXT NOT NULL REFERENCES rox_users(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS rox_organization_members (
+      organization_id TEXT NOT NULL REFERENCES rox_organizations(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES rox_users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL DEFAULT 'member',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (organization_id, user_id)
     );
   `)
   return {
@@ -502,6 +556,11 @@ async function createSession(user, req) {
     nowIso(),
     expiresAt,
   )
+  await recordAccountEvent(user.id, 'account.session_created', 'Вход в аккаунт', {
+    sessionId,
+    ipAddress: clientIp(req),
+    userAgent: req.headers['user-agent'] || '',
+  })
   return token
 }
 
@@ -582,7 +641,7 @@ async function accountBalance(userId) {
       INSERT INTO rox_account_balances (user_id, balance_units, currency, updated_at)
       VALUES (?, ?, ?, ?)
     `, userId, initialBalance, BILLING_CURRENCY, now)
-  } catch {
+  } catch (error) {
     const afterRace = await db.get('SELECT user_id, balance_units, currency, updated_at FROM rox_account_balances WHERE user_id = ?', userId)
     if (afterRace) {
       return {
@@ -612,6 +671,142 @@ function billingOverview(balance) {
       url: BILLING_TOP_UP_URL || null,
     },
   }
+}
+
+function parseDetails(value) {
+  if (!value) return null
+  if (typeof value !== 'string') return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
+function publicAccountEvent(row) {
+  return {
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    details: parseDetails(row.details),
+    createdAt: row.created_at || row.createdat,
+  }
+}
+
+async function recordAccountEvent(userId, type, title, details = null) {
+  if (!userId) return
+  try {
+    await db.run(`
+      INSERT INTO rox_account_events (id, user_id, type, title, details, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, id('evt'), userId, type, title, details ? JSON.stringify(details) : null, nowIso())
+  } catch (error) {
+    console.warn('[rox-auth] failed to record account event:', error?.message || error)
+  }
+}
+
+async function accountEvents(userId) {
+  return (await db.all(`
+    SELECT id, type, title, details, created_at
+    FROM rox_account_events
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+    LIMIT 100
+  `, userId)).map(publicAccountEvent)
+}
+
+function organizationSlug(name) {
+  const base = String(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9а-яё]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40)
+  return base || `team-${randomUUID().slice(0, 8)}`
+}
+
+function publicOrganization(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    role: row.role || 'member',
+    status: row.status || 'active',
+    createdAt: row.created_at || row.createdat,
+    updatedAt: row.updated_at || row.updatedat,
+  }
+}
+
+async function listOrganizations(userId) {
+  return (await db.all(`
+    SELECT o.id, o.name, o.slug, o.created_at, o.updated_at, m.role, m.status
+    FROM rox_organizations o
+    JOIN rox_organization_members m ON m.organization_id = o.id
+    WHERE m.user_id = ? AND m.status = 'active'
+    ORDER BY o.created_at DESC
+  `, userId)).map(publicOrganization)
+}
+
+async function createOrganization(userId, name) {
+  const cleanName = String(name || '').trim()
+  if (cleanName.length < 2) {
+    const error = new Error('Название команды должно быть не короче 2 символов.')
+    error.statusCode = 400
+    throw error
+  }
+  const createdAt = nowIso()
+  const organization = {
+    id: id('org'),
+    name: cleanName,
+    slug: `${organizationSlug(cleanName)}-${randomUUID().slice(0, 6)}`,
+    owner_user_id: userId,
+    created_at: createdAt,
+    updated_at: createdAt,
+  }
+  await db.run(`
+    INSERT INTO rox_organizations (id, name, slug, owner_user_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `, organization.id, organization.name, organization.slug, organization.owner_user_id, organization.created_at, organization.updated_at)
+  await db.run(`
+    INSERT INTO rox_organization_members (organization_id, user_id, role, status, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `, organization.id, userId, 'owner', 'active', createdAt)
+  await recordAccountEvent(userId, 'organization.created', 'Создана команда', {
+    organizationId: organization.id,
+    name: organization.name,
+    slug: organization.slug,
+  })
+  return publicOrganization({ ...organization, role: 'owner', status: 'active' })
+}
+
+async function joinOrganization(userId, code) {
+  const normalized = String(code || '').trim()
+  if (!normalized) {
+    const error = new Error('Введите код, slug или id организации.')
+    error.statusCode = 400
+    throw error
+  }
+  const organization = await db.get(`
+    SELECT id, name, slug, created_at, updated_at
+    FROM rox_organizations
+    WHERE id = ? OR slug = ?
+  `, normalized, normalized)
+  if (!organization) {
+    const error = new Error('Организация не найдена. Проверьте код приглашения.')
+    error.statusCode = 404
+    throw error
+  }
+  await db.run(`
+    INSERT INTO rox_organization_members (organization_id, user_id, role, status, created_at)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT (organization_id, user_id) DO UPDATE SET status = 'active'
+  `, organization.id, userId, 'member', 'active', nowIso())
+  await recordAccountEvent(userId, 'organization.joined', 'Пользователь присоединился к организации', {
+    organizationId: organization.id,
+    name: organization.name,
+    slug: organization.slug,
+  })
+  return publicOrganization({ ...organization, role: 'member', status: 'active' })
 }
 
 function accountDashboardHtml(session, billing, sessions) {
@@ -1117,6 +1312,7 @@ async function handle(req, res) {
     } catch {
       return json(res, 409, { error: { message: 'Пользователь с таким email уже существует.' } })
     }
+    await recordAccountEvent(user.id, 'account.registered', 'Создан аккаунт', { email: user.email })
     await sendVerificationForDesktop(user, desktopAuthResult.desktopAuth)
     return json(res, 201, {
       ok: true,
@@ -1135,6 +1331,7 @@ async function handle(req, res) {
     await db.run('UPDATE rox_users SET status = ?, verified_at = ?, updated_at = ? WHERE id = ?', 'active', nowIso(), nowIso(), user.id)
     const activeUser = { ...user, status: 'active', verified_at: nowIso() }
     const token = await createSession(activeUser, req)
+    await recordAccountEvent(activeUser.id, 'account.email_verified', 'Email подтвержден', { email: activeUser.email })
     if (desktopAuthResult.desktopAuth) {
       return redirect(res, desktopRedirectUrl(desktopAuthResult.desktopAuth, token, activeUser), {
         'set-cookie': sessionCookie(token),
@@ -1151,6 +1348,7 @@ async function handle(req, res) {
     if (!user) return json(res, 400, { error: { message: 'Ссылка недействительна или устарела.' } })
     await db.run('UPDATE rox_users SET status = ?, verified_at = ?, updated_at = ? WHERE id = ?', 'active', nowIso(), nowIso(), user.id)
     const sessionToken = await createSession(user, req)
+    await recordAccountEvent(user.id, 'account.email_verified', 'Email подтвержден', { email: user.email })
     return json(res, 200, { ok: true, user: publicUser({ ...user, status: 'active', verified_at: nowIso() }) }, { 'set-cookie': sessionCookie(sessionToken) })
   }
 
@@ -1185,6 +1383,7 @@ async function handle(req, res) {
     }
     if (user.status !== 'active') return json(res, 403, { error: { message: 'Подтвердите email перед входом.' } })
     const token = await createSession(user, req)
+    await recordAccountEvent(user.id, 'account.login', 'Выполнен вход', { email: user.email, ipAddress: clientIp(req) })
     return json(res, 200, {
       ok: true,
       user: publicUser(user),
@@ -1216,7 +1415,11 @@ async function handle(req, res) {
 
   if (req.method === 'POST' && url.pathname === '/api/auth/logout') {
     const token = getCookie(req, SESSION_COOKIE)
-    if (token) await db.run('UPDATE rox_sessions SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL', nowIso(), sha256(token))
+    if (token) {
+      const session = await sessionFromToken(token).catch(() => null)
+      if (session) await recordAccountEvent(session.id, 'account.logout', 'Выполнен выход', { sessionId: session.session_id })
+      await db.run('UPDATE rox_sessions SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL', nowIso(), sha256(token))
+    }
     return json(res, 200, { ok: true }, { 'set-cookie': logoutCookie() })
   }
 
@@ -1233,10 +1436,48 @@ async function handle(req, res) {
     return json(res, 200, billingOverview(balance))
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/account/events') {
+    const session = await requireSession(req, res)
+    if (!session) return
+    return json(res, 200, { events: await accountEvents(session.id) })
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/account/organizations') {
+    const session = await requireSession(req, res)
+    if (!session) return
+    return json(res, 200, { organizations: await listOrganizations(session.id) })
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/account/organizations') {
+    const session = await requireSession(req, res)
+    if (!session) return
+    const body = await readJson(req)
+    try {
+      const organization = await createOrganization(session.id, body.name)
+      return json(res, 201, { ok: true, organization, organizations: await listOrganizations(session.id) })
+    } catch (error) {
+      return json(res, error.statusCode || 500, { error: { message: error.message || 'Не удалось создать команду.' } })
+    }
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/account/organizations/join') {
+    const session = await requireSession(req, res)
+    if (!session) return
+    const body = await readJson(req)
+    try {
+      const organization = await joinOrganization(session.id, body.code || body.slug || body.organizationId)
+      return json(res, 200, { ok: true, organization, organizations: await listOrganizations(session.id) })
+    } catch (error) {
+      await recordAccountEvent(session.id, 'organization.join_failed', 'Не удалось присоединиться к организации', { reason: error.message })
+      return json(res, error.statusCode || 500, { error: { message: error.message || 'Не удалось присоединиться к организации.' } })
+    }
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/account/billing/top-up-intent') {
     const session = await requireSession(req, res)
     if (!session) return
     const balance = await accountBalance(session.id)
+    await recordAccountEvent(session.id, 'billing.top_up_requested', 'Запрошено пополнение баланса', { configured: Boolean(BILLING_TOP_UP_URL) })
     return json(res, 200, {
       ok: Boolean(BILLING_TOP_UP_URL),
       status: BILLING_TOP_UP_URL ? 'redirect_required' : 'not_configured',
@@ -1255,6 +1496,7 @@ async function handle(req, res) {
     const displayName = String(body.displayName || body.name || '').trim()
     await db.run('UPDATE rox_users SET display_name = ?, updated_at = ? WHERE id = ?', displayName, nowIso(), session.id)
     const user = await db.get('SELECT * FROM rox_users WHERE id = ?', session.id)
+    await recordAccountEvent(session.id, 'account.profile_updated', 'Профиль обновлен', { displayName })
     return json(res, 200, { mode: 'account', user: publicUser(user), currentSessionId: session.session_id })
   }
 
@@ -1274,6 +1516,7 @@ async function handle(req, res) {
     const session = await requireSession(req, res)
     if (!session) return
     await db.run('UPDATE rox_sessions SET revoked_at = ? WHERE user_id = ? AND id <> ? AND revoked_at IS NULL', nowIso(), session.id, session.session_id)
+    await recordAccountEvent(session.id, 'account.sessions_revoked', 'Другие сессии отозваны', { currentSessionId: session.session_id })
     return json(res, 200, { ok: true })
   }
 
@@ -1287,6 +1530,7 @@ async function handle(req, res) {
     const newPassword = String(body.newPassword || body.password || '')
     if (newPassword.length < 8) return json(res, 400, { error: { message: 'Пароль должен быть не короче 8 символов.' } })
     await db.run('UPDATE rox_users SET password_hash = ?, updated_at = ? WHERE id = ?', hashPassword(newPassword), nowIso(), session.id)
+    await recordAccountEvent(session.id, 'account.password_changed', 'Пароль изменен', { sessionId: session.session_id })
     return json(res, 200, { ok: true })
   }
 
@@ -1295,6 +1539,7 @@ async function handle(req, res) {
     const session = await requireSession(req, res)
     if (!session) return
     await db.run('UPDATE rox_sessions SET revoked_at = ? WHERE user_id = ? AND id = ?', nowIso(), session.id, sessionRevokeMatch[1])
+    await recordAccountEvent(session.id, 'account.session_revoked', 'Сессия отозвана', { sessionId: sessionRevokeMatch[1] })
     return json(res, 200, { ok: true })
   }
 
