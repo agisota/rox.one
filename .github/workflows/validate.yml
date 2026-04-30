@@ -30,5 +30,31 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Prepare validation logs
+        run: mkdir -p .ci-logs
+
+      - name: Validate agent contract
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:agent-contract 2>&1 | tee .ci-logs/agent-contract.log
+
+      - name: Validate architecture docs
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:architecture-docs 2>&1 | tee .ci-logs/architecture-docs.log
+
       - name: Run validation suite
-        run: bun run validate:ci
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:ci 2>&1 | tee .ci-logs/validate-ci.log
+
+      - name: Upload validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-logs
+          path: .ci-logs/**/*.log
+          if-no-files-found: warn
