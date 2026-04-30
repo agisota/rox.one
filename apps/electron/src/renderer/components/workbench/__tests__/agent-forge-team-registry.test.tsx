@@ -44,11 +44,11 @@ describe('Agent Forge and Team Registry', () => {
     const state = createAgentForgeState();
     const markup = renderToStaticMarkup(<AgentForgeTeamRegistry initialState={state} />);
 
-    expect(markup).toContain('Agent Forge');
-    expect(markup).toContain('Team Registry');
-    expect(markup).toContain('Contract');
-    expect(markup).toContain('Install');
-    expect(markup).toContain('Fork');
-    expect(markup).toContain('Forge Gauntlet');
+    expect(markup).toContain('Кузница агентов');
+    expect(markup).toContain('Приватные и командные пакеты');
+    expect(markup).toContain('Контракт');
+    expect(markup).toContain('Установить');
+    expect(markup).toContain('Форкнуть');
+    expect(markup).toContain('Проверочный гаунтлет');
   });
 });

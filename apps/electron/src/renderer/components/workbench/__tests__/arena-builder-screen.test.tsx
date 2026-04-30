@@ -17,13 +17,13 @@ describe('Arena Builder and Agent Collection', () => {
 
     const markup = renderToStaticMarkup(<ArenaBuilderScreen initialState={state} />);
 
-    expect(markup).toContain('Arena Builder');
-    expect(markup).toContain('Agent Collection');
+    expect(markup).toContain('Арена агентов');
+    expect(markup).toContain('Коллекция агентов');
     expect(markup).toContain('Architect Prime');
     expect(markup).toContain('Skeptic Sentinel');
-    expect(markup).toContain('Selected Agents');
-    expect(markup).toContain('2 / 4 slots');
-    expect(markup).toContain('Budget Estimate');
+    expect(markup).toContain('Выбранные агенты');
+    expect(markup).toContain('2 / 4 слота');
+    expect(markup).toContain('Оценка бюджета');
   });
 
   test('locked agents cannot be selected', () => {

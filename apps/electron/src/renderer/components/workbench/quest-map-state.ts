@@ -93,24 +93,24 @@ export function getQuestPresentation(layer: ExperienceLayer): {
 } {
   if (layer === 'game') {
     return {
-      title: 'Quest Map',
-      laneLabel: 'Skill Tree',
-      progressLabel: 'Quest progress',
+      title: 'Карта квестов',
+      laneLabel: 'Дерево навыков',
+      progressLabel: 'Прогресс квеста',
     };
   }
 
   if (layer === 'arena') {
     return {
-      title: 'Arena Campaign',
-      laneLabel: 'Arena lanes',
-      progressLabel: 'Arena progress',
+      title: 'Кампания арены',
+      laneLabel: 'Линии арены',
+      progressLabel: 'Прогресс арены',
     };
   }
 
   return {
-    title: 'Roadmap Map',
-    laneLabel: 'Milestone lanes',
-    progressLabel: 'Milestone progress',
+    title: 'Карта задач',
+    laneLabel: 'Вехи',
+    progressLabel: 'Прогресс вехи',
   };
 }
 
@@ -130,9 +130,9 @@ function createQuests(): Quest[] {
       id: 'quest-formulate',
       lane: 'formulate',
       defaultLayer: 'command',
-      title: 'Frame the raw prompt',
-      description: 'Convert an unclear idea into objective, constraints, and evidence expectations.',
-      requirements: ['Add prompt brief', 'Pass schema gate'],
+      title: 'Оформить сырой prompt',
+      description: 'Превратить неясную идею в цель, ограничения и требования к evidence.',
+      requirements: ['Добавить prompt brief', 'Пройти schema gate'],
       rewards: ['20 XP'],
       unlocks: ['skill:spec-builder'],
     },
@@ -140,9 +140,9 @@ function createQuests(): Quest[] {
       id: 'quest-specify',
       lane: 'specify',
       defaultLayer: 'game',
-      title: 'Build the executable spec',
-      description: 'Select requirements and compile a build-ready spec.',
-      requirements: ['Complete formulate lane'],
+      title: 'Собрать исполняемую спецификацию',
+      description: 'Выбрать требования и собрать spec, готовый к агентному выполнению.',
+      requirements: ['Закрыть этап формулировки'],
       rewards: ['30 XP'],
       unlocks: ['agent:architect-prime'],
     },
@@ -150,9 +150,9 @@ function createQuests(): Quest[] {
       id: 'quest-arena-swarm',
       lane: 'arena',
       defaultLayer: 'arena',
-      title: 'Launch a swarm arena',
-      description: 'Run a deduped swarm and produce a verified minority report.',
-      requirements: ['Complete verified review', 'Reach VDI 85'],
+      title: 'Запустить swarm-арену',
+      description: 'Запустить deduped swarm и получить проверенный minority report.',
+      requirements: ['Закрыть проверенное ревью', 'Достичь VDI 85'],
       rewards: ['Arena slot +1'],
       unlocks: ['swarm:expanded'],
     },

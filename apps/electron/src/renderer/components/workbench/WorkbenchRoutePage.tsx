@@ -16,7 +16,7 @@ export interface WorkbenchRoutePageProps {
 export function WorkbenchRoutePage({ screen }: WorkbenchRoutePageProps) {
   return (
     <div className="h-full min-h-0" data-workbench-screen={screen}>
-      <span className="sr-only">Experience Layer</span>
+      <span className="sr-only">Слой опыта</span>
       {renderWorkbenchScreen(screen)}
     </div>
   )

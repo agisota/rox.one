@@ -2109,12 +2109,12 @@ function AppShellContent({
     if (isWorkbenchNavigation(navState)) {
       switch (navState.screen) {
         case 'arena-builder': return 'Арена агентов'
-        case 'mission-control': return 'Mission Control'
-        case 'progression': return 'Progression'
-        case 'quest-map': return 'Quest Map'
-        case 'agent-forge': return 'Agent Forge'
+        case 'mission-control': return 'Центр миссий'
+        case 'progression': return 'Обсерватория прогресса'
+        case 'quest-map': return 'Карта квестов'
+        case 'agent-forge': return 'Кузница агентов'
         case 'deep-missions':
-        default: return 'Deep Missions'
+        default: return 'Долгие миссии'
       }
     }
 
@@ -2487,7 +2487,7 @@ function AppShellContent({
                     },
                     {
                       id: "nav:workbench",
-                      title: "Experience",
+                      title: "Опыт",
                       label: "6",
                       icon: Layers,
                       variant: isWorkbenchNavigation(navState) ? "default" : "ghost",
@@ -2512,28 +2512,28 @@ function AppShellContent({
                         },
                         {
                           id: "nav:workbench:mission-control",
-                          title: "Mission Control",
+                          title: "Центр миссий",
                           icon: Radio,
                           variant: workbenchScreen === 'mission-control' ? "default" : "ghost",
                           onClick: () => handleWorkbenchClick('mission-control'),
                         },
                         {
                           id: "nav:workbench:progression",
-                          title: "Progression",
+                          title: "Прогресс",
                           icon: Cake,
                           variant: workbenchScreen === 'progression' ? "default" : "ghost",
                           onClick: () => handleWorkbenchClick('progression'),
                         },
                         {
                           id: "nav:workbench:quest-map",
-                          title: "Quest Map",
+                          title: "Карта квестов",
                           icon: ListTodo,
                           variant: workbenchScreen === 'quest-map' ? "default" : "ghost",
                           onClick: () => handleWorkbenchClick('quest-map'),
                         },
                         {
                           id: "nav:workbench:agent-forge",
-                          title: "Agent Forge",
+                          title: "Кузница агентов",
                           icon: Zap,
                           variant: workbenchScreen === 'agent-forge' ? "default" : "ghost",
                           onClick: () => handleWorkbenchClick('agent-forge'),

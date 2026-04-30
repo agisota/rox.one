@@ -5,16 +5,16 @@ import { WorkbenchRoutePage } from '../WorkbenchRoutePage'
 
 describe('WorkbenchRoutePage', () => {
   test.each([
-    ['deep-missions', 'Deep Missions'],
-    ['arena-builder', 'Arena Builder'],
-    ['mission-control', 'Mission Control'],
-    ['progression', 'Progression Observatory'],
-    ['quest-map', 'Quest Map'],
-    ['agent-forge', 'Agent Forge'],
+    ['deep-missions', 'Долгие миссии'],
+    ['arena-builder', 'Арена агентов'],
+    ['mission-control', 'Центр миссий'],
+    ['progression', 'Обсерватория прогресса'],
+    ['quest-map', 'Карта квестов'],
+    ['agent-forge', 'Кузница агентов'],
   ] as const)('renders %s as a first-class screen', (screen, expectedTitle) => {
     const markup = renderToStaticMarkup(<WorkbenchRoutePage screen={screen} />)
 
     expect(markup).toContain(expectedTitle)
-    expect(markup).toContain('Experience Layer')
+    expect(markup).toContain('Слой опыта')
   })
 })

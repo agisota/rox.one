@@ -7,8 +7,16 @@ import {
   selectDeepMissionPreset,
   type DeepMissionEntryState,
   type DeepMissionEntryStateInput,
+  type DeepMissionPreset,
   type DeepMissionPresetId,
 } from './deep-missions-state';
+import {
+  ExperienceCard,
+  ExperienceMetricRow,
+  ExperiencePanel,
+  ExperienceShell,
+  ExperienceStatusChip,
+} from './experience-ui';
 
 export interface DeepMissionsScreenProps {
   initialState?: DeepMissionEntryState;
@@ -28,150 +36,169 @@ export function DeepMissionsScreen({
   );
 
   return (
-    <main className="flex h-full min-h-0 flex-col bg-background text-foreground" aria-label="Deep Missions">
-      <header className="border-b border-border px-6 py-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Experience Layer</p>
-            <h1 className="mt-2 text-2xl font-semibold">Deep Missions</h1>
-            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Configure a long-running mission with budget caps, checkpoint cadence, agent count, and a verified deliverable target before execution.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => onSaveDraft?.(state)}>
-              Save Draft
-            </Button>
-            <Button disabled={!state.canLaunch} onClick={() => state.canLaunch && onLaunchMission?.(state)}>
-              Launch Mission
-            </Button>
-          </div>
-        </div>
-      </header>
+    <ExperienceShell
+      screen="deep-missions"
+      tone="command"
+      eyebrow="Слой опыта"
+      title="Долгие миссии"
+      description="Настройте 6/24/72-часовой прогон с бюджетом, чекпоинтами, лимитами агентов и целевым индексом проверенного результата перед запуском."
+      actions={(
+        <>
+          <Button className="rounded-full border-white/10" variant="outline" onClick={() => onSaveDraft?.(state)}>
+            Сохранить черновик
+          </Button>
+          <Button className="rounded-full" disabled={!state.canLaunch} onClick={() => state.canLaunch && onLaunchMission?.(state)}>
+            Запустить миссию
+          </Button>
+        </>
+      )}
+      aside={(
+        <>
+          <ExperiencePanel title="Емкость и лимиты" subtitle="Платные возможности расширяют только емкость, не качество.">
+            <ExperienceMetricRow label="Бюджет" value={`${state.budgetCapCredits} credits`} />
+            <ExperienceMetricRow label="Token cap" value={state.tokenCap.toLocaleString('ru-RU')} />
+            <ExperienceMetricRow label="Storage cap" value={`${state.storageCapBytes} bytes`} />
+            <ExperienceMetricRow label="Выбранные агенты" value={`${state.selectedAgentCount}`} />
+          </ExperiencePanel>
 
-      <div className="grid min-h-0 flex-1 gap-4 overflow-hidden p-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
-        <section className="min-h-0 overflow-y-auto rounded-2xl border border-border bg-muted/10 p-4">
-          <div className="rounded-xl border border-border bg-background p-4">
-            <h2 className="text-sm font-semibold">Run presets</h2>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
-              {DEEP_MISSION_PRESETS.map((preset) => {
-                const selected = preset.id === state.presetId;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => setState((current) => selectDeepMissionPreset(current, preset.id as DeepMissionPresetId))}
-                    className={[
-                      'rounded-xl border p-4 text-left transition-colors',
-                      selected ? 'border-foreground bg-foreground text-background' : 'border-border bg-muted/20 hover:bg-muted/50',
-                    ].join(' ')}
-                  >
-                    <div className="text-sm font-semibold">{preset.label}</div>
-                    <div className={['mt-2 text-sm', selected ? 'text-background/80' : 'text-muted-foreground'].join(' ')}>
-                      {preset.description}
-                    </div>
-                    <div className={['mt-3 text-xs', selected ? 'text-background/70' : 'text-muted-foreground'].join(' ')}>
-                      {preset.durationHours}h / every {preset.checkpointCadenceHours}h / {preset.recommendedAgentCount} agents
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <section className="mt-4 rounded-xl border border-border bg-background p-4">
-            <h2 className="text-sm font-semibold">Mission brief</h2>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground" aria-label="Mission types">
-              {['Deep Run', 'Deep Reasoning Lab', 'Agenda Carnage', 'Swarm Arena', 'Proactive Watchtower'].map((modeLabel) => (
-                <span key={modeLabel} className="rounded-full border border-border bg-muted/20 px-2.5 py-1">
-                  {modeLabel}
-                </span>
-              ))}
-            </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <ReadOnlyField label="Title" value={state.title || 'Untitled mission'} />
-              <ReadOnlyField label="Mode" value={formatMode(state.mode)} />
-              <ReadOnlyField label="Layer" value={state.experienceLayer} />
-              <ReadOnlyField label="VDI target" value={`${state.vdiTarget}`} />
-            </div>
-            <div className="mt-3 rounded-lg border border-border bg-muted/20 p-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Objective</div>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
-                {state.objective || 'No objective provided.'}
-              </p>
-            </div>
-            <div className="mt-3 rounded-lg border border-border bg-muted/20 p-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Raw input</div>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
-                {state.rawInput || 'No mission input provided.'}
-              </p>
-            </div>
-          </section>
-        </section>
-
-        <aside className="min-h-0 space-y-4 overflow-y-auto">
-          <section className="rounded-2xl border border-border bg-background p-4">
-            <h2 className="text-sm font-semibold">Capacity and caps</h2>
-            <MetricRow label="Budget cap" value={`${state.budgetCapCredits} credits`} />
-            <MetricRow label="Token cap" value={`${state.tokenCap}`} />
-            <MetricRow label="Storage cap" value={`${state.storageCapBytes} bytes`} />
-            <MetricRow label="Selected agents" value={`${state.selectedAgentCount}`} />
-          </section>
-
-          <section className="rounded-2xl border border-border bg-background p-4">
-            <h2 className="text-sm font-semibold">Checkpoint preview</h2>
+          <ExperiencePanel title="Чекпоинты" subtitle="Промежуточный результат каждые несколько часов.">
             <ol className="mt-3 space-y-2">
               {state.checkpointPreview.map((checkpoint) => (
-                <li key={`${checkpoint.ordinal}-${checkpoint.hour}`} className="rounded-lg border border-border bg-muted/20 p-3">
-                  <div className="text-sm font-medium">{checkpoint.title}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">hour {checkpoint.hour}</div>
+                <li key={`${checkpoint.ordinal}-${checkpoint.hour}`} className="rounded-[16px] border border-white/[0.07] bg-white/[0.035] p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-medium">{localizeCheckpointTitle(checkpoint.title)}</div>
+                    <ExperienceStatusChip status={checkpoint.hour === 0 ? 'ready' : checkpoint.hour === state.durationHours ? 'blocking' : 'queued'} label={`${checkpoint.hour}ч`} />
+                  </div>
                 </li>
               ))}
             </ol>
-          </section>
+          </ExperiencePanel>
 
-          <section className="rounded-2xl border border-border bg-background p-4">
-            <h2 className="text-sm font-semibold">Launch readiness</h2>
+          <ExperiencePanel title="Готовность запуска">
             {state.validationErrors.length === 0 ? (
-              <p className="mt-3 text-sm text-muted-foreground">Mission draft is ready for a fake scheduler handoff.</p>
+              <div className="mt-3 flex items-center gap-2">
+                <ExperienceStatusChip status="success" label="Готово" />
+                <p className="text-sm text-muted-foreground">Черновик готов к handoff в fake scheduler.</p>
+              </div>
             ) : (
               <ul className="mt-3 space-y-2">
                 {state.validationErrors.map((error) => (
-                  <li key={error} className="rounded-lg border border-border bg-muted/20 p-3 text-sm text-muted-foreground">
-                    {error}
+                  <li key={error} className="rounded-[16px] border border-amber-400/20 bg-amber-500/10 p-3 text-sm text-amber-100">
+                    {localizeValidationError(error)}
                   </li>
                 ))}
               </ul>
             )}
-          </section>
-        </aside>
-      </div>
-    </main>
+          </ExperiencePanel>
+        </>
+      )}
+    >
+      <ExperiencePanel title="Сценарии запуска" subtitle="Выберите глубину, частоту чекпоинтов и масштаб агентного состава.">
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {DEEP_MISSION_PRESETS.map((preset) => {
+            const selected = preset.id === state.presetId;
+            return (
+              <ExperienceCard
+                key={preset.id}
+                interactive
+                selected={selected}
+                tone={presetTone(preset)}
+                title={preset.label}
+                meta={`${preset.durationHours}ч / каждые ${preset.checkpointCadenceHours}ч / ${preset.recommendedAgentCount} агентов`}
+                onClick={() => setState((current) => selectDeepMissionPreset(current, preset.id as DeepMissionPresetId))}
+              >
+                {localizePresetDescription(preset.description)}
+              </ExperienceCard>
+            );
+          })}
+        </div>
+      </ExperiencePanel>
+
+      <ExperiencePanel className="mt-4" title="Бриф миссии" subtitle="То, что увидит планировщик перед стартом длительного прогона.">
+        <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground" aria-label="Режимы миссий">
+          {['Deep Run', 'Deep Reasoning Lab', 'Agenda Carnage', 'Swarm Arena', 'Proactive Watchtower'].map((modeLabel) => (
+            <span key={modeLabel} className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1">
+              {modeLabel}
+            </span>
+          ))}
+        </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <ReadOnlyField label="Название" value={state.title || 'Без названия'} />
+          <ReadOnlyField label="Режим" value={formatMode(state.mode)} />
+          <ReadOnlyField label="Слой" value={formatLayer(state.experienceLayer)} />
+          <ReadOnlyField label="Целевой VDI" value={`${state.vdiTarget}`} />
+        </div>
+        <ReadOnlyBlock label="Цель" value={state.objective || 'Цель пока не задана.'} />
+        <ReadOnlyBlock label="Исходный запрос" value={state.rawInput || 'Исходный запрос пока не передан.'} />
+      </ExperiencePanel>
+    </ExperienceShell>
   );
 }
 
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/20 p-3">
-      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+    <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.035] p-3">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
       <div className="mt-2 text-sm font-medium">{value}</div>
     </div>
   );
 }
 
-function MetricRow({ label, value }: { label: string; value: string }) {
+function ReadOnlyBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="mt-3 flex items-center justify-between gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium">{value}</span>
+    <div className="mt-3 rounded-[16px] border border-white/[0.07] bg-white/[0.035] p-3">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
+      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{value}</p>
     </div>
   );
 }
 
+function presetTone(preset: DeepMissionPreset) {
+  if (preset.id === 'sprint_6h') return 'success' as const;
+  if (preset.id === 'watchtower_72h') return 'arena' as const;
+  return 'command' as const;
+}
+
+function localizePresetDescription(description: string): string {
+  if (description.includes('focused short run')) return 'Короткий интенсивный прогон для ранних противоречий и блокеров.';
+  if (description.includes('default deep mission')) return 'Основной 24-часовой режим с 6-часовыми чекпоинтами и финальной проверкой.';
+  if (description.includes('longer proactive loop')) return 'Длинный watchtower-цикл для drift, рисков и периодического синтеза.';
+  return description;
+}
+
+function localizeCheckpointTitle(title: string): string {
+  if (title === 'Mission brief') return 'Бриф миссии';
+  if (title === 'Final verification') return 'Финальная проверка';
+  return title.replace('Checkpoint', 'Чекпоинт');
+}
+
+function localizeValidationError(error: string): string {
+  switch (error) {
+    case 'Raw mission input is required.':
+      return 'Нужен исходный запрос миссии.';
+    case 'Mission title is required.':
+      return 'Нужно название миссии.';
+    case 'Mission objective is required.':
+      return 'Нужна цель миссии.';
+    case 'Budget cap is required before launch.':
+      return 'Перед запуском нужен бюджетный лимит.';
+    default:
+      return error;
+  }
+}
+
 function formatMode(mode: string): string {
+  if (mode === 'deep_run') return 'Глубокий прогон';
+  if (mode === 'swarm_arena') return 'Арена swarm';
   return mode
     .split('_')
     .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
     .join(' ');
+}
+
+function formatLayer(layer: string): string {
+  if (layer === 'command') return 'Командный центр';
+  if (layer === 'game') return 'Игровой слой';
+  if (layer === 'arena') return 'Арена';
+  return layer;
 }
