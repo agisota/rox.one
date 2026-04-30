@@ -853,17 +853,19 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       return Response.json(createAccountCabinetEvents())
     }
 
-    if (path === '/api/account/organizations' && req.method === 'GET') {
+    if ((path === '/api/account/organizations' || path === '/api/account/teams') && req.method === 'GET') {
       const identity = await requireAccountSession(req)
       if (identity instanceof Response) return identity
       if (options.accountTeamStore) {
         const organizations = await options.accountTeamStore.listOrganizations(identity.userId)
-        return Response.json(createAccountCabinetOrganizationsFromTeams(organizations))
+        const body = createAccountCabinetOrganizationsFromTeams(organizations)
+        return Response.json(path === '/api/account/teams' ? { teams: body.organizations } : body)
       }
-      return Response.json(createAccountCabinetOrganizations())
+      const empty = createAccountCabinetOrganizations()
+      return Response.json(path === '/api/account/teams' ? { teams: empty.organizations } : empty)
     }
 
-    if (path === '/api/account/organizations' && req.method === 'POST') {
+    if ((path === '/api/account/organizations' || path === '/api/account/teams') && req.method === 'POST') {
       const identity = await requireAccountSession(req)
       if (identity instanceof Response) return identity
       if (options.accountTeamStore) {
@@ -879,7 +881,8 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
             name: typeof body.name === 'string' ? body.name : '',
           })
           const organizations = await options.accountTeamStore.listOrganizations(identity.userId)
-          return Response.json(createAccountCabinetOrganizationsFromTeams(organizations))
+          const responseBody = createAccountCabinetOrganizationsFromTeams(organizations)
+          return Response.json(path === '/api/account/teams' ? { teams: responseBody.organizations } : responseBody)
         } catch (error) {
           return Response.json({ error: error instanceof Error ? error.message : 'Organization creation failed' }, { status: 400 })
         }
@@ -888,6 +891,100 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         { error: 'Organization creation is not available until team workspaces are enabled.' },
         { status: 501 },
       )
+    }
+
+    const teamSpacesMatch = path.match(/^\/api\/account\/teams\/([^/]+)\/spaces$/)
+    if (teamSpacesMatch && (req.method === 'GET' || req.method === 'POST')) {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      if (!options.accountTeamStore) {
+        return Response.json({ error: 'Team spaces are not available until team workspaces are enabled.' }, { status: 501 })
+      }
+      const teamId = decodeURIComponent(teamSpacesMatch[1]!)
+      try {
+        if (req.method === 'POST') {
+          let body: { name?: string }
+          try {
+            body = await req.json() as { name?: string }
+          } catch {
+            return Response.json({ error: 'Invalid request body' }, { status: 400 })
+          }
+          await options.accountTeamStore.createSpace({
+            actorUserId: identity.userId,
+            organizationId: teamId,
+            name: typeof body.name === 'string' ? body.name : '',
+          })
+          const spaces = await options.accountTeamStore.listSpaces({ actorUserId: identity.userId, organizationId: teamId })
+          return Response.json({ spaces }, { status: 201 })
+        }
+        return Response.json({
+          spaces: await options.accountTeamStore.listSpaces({ actorUserId: identity.userId, organizationId: teamId }),
+        })
+      } catch (error) {
+        if (error instanceof AccountTeamForbiddenError) {
+          return Response.json({ error: error.message }, { status: 403 })
+        }
+        if (error instanceof AccountTeamInviteError) {
+          return Response.json({ error: error.message }, { status: 404 })
+        }
+        return Response.json({ error: error instanceof Error ? error.message : 'Team space action failed' }, { status: 400 })
+      }
+    }
+
+    const teamInvitesMatch = path.match(/^\/api\/account\/teams\/([^/]+)\/invites$/)
+    if (teamInvitesMatch && req.method === 'POST') {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      if (!options.accountTeamStore) {
+        return Response.json({ error: 'Team invites are not available until team workspaces are enabled.' }, { status: 501 })
+      }
+      let body: { role?: 'admin' | 'member' | 'viewer' }
+      try {
+        body = await req.json() as { role?: 'admin' | 'member' | 'viewer' }
+      } catch {
+        return Response.json({ error: 'Invalid request body' }, { status: 400 })
+      }
+      try {
+        const invite = await options.accountTeamStore.createInvite({
+          actorUserId: identity.userId,
+          organizationId: decodeURIComponent(teamInvitesMatch[1]!),
+          role: body.role,
+        })
+        return Response.json({ invite }, { status: 201 })
+      } catch (error) {
+        if (error instanceof AccountTeamForbiddenError) {
+          return Response.json({ error: error.message }, { status: 403 })
+        }
+        if (error instanceof AccountTeamInviteError) {
+          return Response.json({ error: error.message }, { status: 404 })
+        }
+        throw error
+      }
+    }
+
+    const inviteAcceptMatch = path.match(/^\/api\/account\/invites\/([^/]+)\/accept$/)
+    if (inviteAcceptMatch && req.method === 'POST') {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      if (!options.accountTeamStore) {
+        return Response.json({ error: 'Team invites are not available until team workspaces are enabled.' }, { status: 501 })
+      }
+      try {
+        await options.accountTeamStore.joinWithInvite({
+          userId: identity.userId,
+          code: decodeURIComponent(inviteAcceptMatch[1]!),
+        })
+        const organizations = await options.accountTeamStore.listOrganizations(identity.userId)
+        return Response.json({ teams: createAccountCabinetOrganizationsFromTeams(organizations).organizations })
+      } catch (error) {
+        if (error instanceof AccountTeamForbiddenError) {
+          return Response.json({ error: error.message }, { status: 403 })
+        }
+        if (error instanceof AccountTeamInviteError) {
+          return Response.json({ error: error.message }, { status: 400 })
+        }
+        throw error
+      }
     }
 
     if (path === '/api/account/organizations/join' && req.method === 'POST') {
