@@ -137,8 +137,15 @@ import {
   createPromptRewriteService,
   type PromptRewriteOutput,
 } from '@rox-agent/shared/workbench/prompt-rewrite-engine';
+import {
+  createDeterministicThinkingPartnerProvider,
+  createThinkingPartnerService,
+  type ThinkingPartnerOutput,
+} from '@rox-agent/shared/workbench/thinking-partner';
 import { ProductModeToolbar } from './ProductModeToolbar';
 import { PromptRewriteDialog } from './PromptRewriteDialog';
+import { ThinkingPartnerRoundTableDialog } from './ThinkingPartnerRoundTableDialog';
+import type { ThinkingPartnerRoundTableSelection } from './ThinkingPartnerRoundTableDialog';
 import {
   PROMPT_REWRITE_SPEC_BUILDER_EVENT,
   applyPromptRewriteAcceptance,
@@ -147,6 +154,13 @@ import {
   shouldOpenPromptRewriteForIntent,
 } from './prompt-rewrite-flow';
 import { PRODUCT_MODE_TOOLBAR_DEFAULT_MODE, type ProductMode, type ProductModeIntent } from './product-mode-toolbar';
+import {
+  THINKING_PARTNER_SPEC_BUILDER_EVENT,
+  createAddToSpecIntentFromSelections,
+  createThinkingPartnerRequestFromComposer,
+  createThinkingPartnerSpecBuilderIntent,
+  shouldOpenThinkingPartnerForIntent,
+} from './thinking-partner-flow';
 
 export interface FreeFormInputProps {
   /** Placeholder text(s) for the textarea - can be array for rotation */
@@ -1486,10 +1500,20 @@ export function FreeFormInput({
     () => createPromptRewriteService({ provider: createDeterministicPromptRewriteProvider() }),
     [],
   )
+  const thinkingPartnerService = React.useMemo(
+    () => createThinkingPartnerService({ provider: createDeterministicThinkingPartnerProvider() }),
+    [],
+  )
   const [promptRewriteState, setPromptRewriteState] = React.useState<{
     open: boolean
     status: 'idle' | 'loading' | 'success' | 'error'
     output?: PromptRewriteOutput
+    error?: string
+  }>({ open: false, status: 'idle' })
+  const [thinkingPartnerState, setThinkingPartnerState] = React.useState<{
+    open: boolean
+    status: 'idle' | 'loading' | 'success' | 'error'
+    output?: ThinkingPartnerOutput
     error?: string
   }>({ open: false, status: 'idle' })
 
@@ -1511,12 +1535,33 @@ export function FreeFormInput({
     }
   }, [input, promptRewriteService, t])
 
+  const runThinkingPartner = React.useCallback(async () => {
+    setThinkingPartnerState({ open: true, status: 'loading' })
+
+    try {
+      const request = createThinkingPartnerRequestFromComposer(input)
+      const output = await thinkingPartnerService.think(request)
+      setThinkingPartnerState({ open: true, status: 'success', output })
+    } catch (error) {
+      setThinkingPartnerState({
+        open: true,
+        status: 'error',
+        error: error instanceof Error && error.message === 'empty task'
+          ? t('workbench.thinking.errors.emptyTask')
+          : t('workbench.thinking.errors.providerFailed'),
+      })
+    }
+  }, [input, thinkingPartnerService, t])
+
   const handleProductModeIntent = React.useCallback((intent: ProductModeIntent) => {
     window.dispatchEvent(new CustomEvent<ProductModeIntent>('rox:product-mode-intent', { detail: intent }))
     if (shouldOpenPromptRewriteForIntent(intent)) {
       void runPromptRewrite(intent.mode)
     }
-  }, [runPromptRewrite])
+    if (shouldOpenThinkingPartnerForIntent(intent)) {
+      void runThinkingPartner()
+    }
+  }, [runPromptRewrite, runThinkingPartner])
 
   const handlePromptRewriteAccept = React.useCallback((editedPrompt?: string) => {
     if (!promptRewriteState.output) {
@@ -1544,6 +1589,31 @@ export function FreeFormInput({
   const handlePromptRewriteRetry = React.useCallback(() => {
     void runPromptRewrite(selectedProductMode)
   }, [runPromptRewrite, selectedProductMode])
+
+  const handleThinkingPartnerOpenChange = React.useCallback((open: boolean) => {
+    setThinkingPartnerState((state) => ({ ...state, open }))
+  }, [])
+
+  const handleThinkingPartnerRetry = React.useCallback(() => {
+    void runThinkingPartner()
+  }, [runThinkingPartner])
+
+  const handleThinkingPartnerAddToSpec = React.useCallback((
+    output: ThinkingPartnerOutput,
+    selection: ThinkingPartnerRoundTableSelection,
+  ) => {
+    window.dispatchEvent(new CustomEvent(THINKING_PARTNER_SPEC_BUILDER_EVENT, {
+      detail: createAddToSpecIntentFromSelections(output, selection),
+    }))
+    setThinkingPartnerState((state) => ({ ...state, open: false }))
+  }, [])
+
+  const handleThinkingPartnerGenerateSpec = React.useCallback((output: ThinkingPartnerOutput) => {
+    window.dispatchEvent(new CustomEvent(THINKING_PARTNER_SPEC_BUILDER_EVENT, {
+      detail: createThinkingPartnerSpecBuilderIntent(output),
+    }))
+    setThinkingPartnerState((state) => ({ ...state, open: false }))
+  }, [])
 
   const hasContent = input.trim() || attachments.length > 0 || followUpItems.length > 0
 
@@ -1735,6 +1805,17 @@ export function FreeFormInput({
           onAccept={handlePromptRewriteAccept}
           onRetry={handlePromptRewriteRetry}
           onSendToSpecBuilder={handlePromptRewriteSendToSpecBuilder}
+        />
+
+        <ThinkingPartnerRoundTableDialog
+          open={thinkingPartnerState.open}
+          status={thinkingPartnerState.status}
+          output={thinkingPartnerState.output}
+          error={thinkingPartnerState.error}
+          onOpenChange={handleThinkingPartnerOpenChange}
+          onRetry={handleThinkingPartnerRetry}
+          onAddToSpec={handleThinkingPartnerAddToSpec}
+          onGenerateSpec={handleThinkingPartnerGenerateSpec}
         />
 
         {/* Rich Text Input with inline mention badges */}
