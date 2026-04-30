@@ -2091,7 +2091,7 @@ async function handle(req, res) {
   return text(res, 404, 'Not found')
 }
 
-createServer((req, res) => {
+function serve(req, res) {
   handle(req, res).catch((error) => {
     console.error('[rox-auth]', error)
     if (error?.statusCode === 413) {
@@ -2102,6 +2102,12 @@ createServer((req, res) => {
     }
     json(res, 500, { error: { message: 'Internal server error' } })
   })
-}).listen(PORT, HOST, () => {
-  console.log(`[rox-auth] listening on ${HOST}:${PORT}`)
-})
+}
+
+if (process.env.ROX_AUTH_NO_LISTEN !== '1') {
+  createServer(serve).listen(PORT, HOST, () => {
+    console.log(`[rox-auth] listening on ${HOST}:${PORT}`)
+  })
+}
+
+export { handle, serve }

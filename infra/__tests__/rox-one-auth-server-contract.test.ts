@@ -5,6 +5,11 @@ import { describe, expect, test } from 'bun:test';
 const source = readFileSync(join(import.meta.dir, '..', 'rox-one-auth-server.mjs'), 'utf8');
 
 describe('rox-one auth server account contract', () => {
+  test('can expose the request handler without starting a listener for tests', () => {
+    expect(source).toContain("process.env.ROX_AUTH_NO_LISTEN !== '1'");
+    expect(source).toContain('export { handle, serve }');
+  });
+
   test('declares durable team spaces and invite tables', () => {
     expect(source).toContain('CREATE TABLE IF NOT EXISTS rox_team_spaces');
     expect(source).toContain('CREATE TABLE IF NOT EXISTS rox_team_invites');
