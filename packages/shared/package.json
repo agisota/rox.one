@@ -66,7 +66,8 @@
     "./workbench/product-mode-registry": "./src/workbench/product-mode-registry.ts",
     "./workbench/prompt-rewrite-engine": "./src/workbench/prompt-rewrite-engine.ts",
     "./workbench/thinking-partner": "./src/workbench/thinking-partner.ts",
-    "./workspaces": "./src/workspaces/index.ts"
+    "./workspaces": "./src/workspaces/index.ts",
+    "./workbench/spec-compiler": "./src/workbench/spec-compiler.ts"
   },
   "dependencies": {
     "@rox-agent/core": "workspace:*",
