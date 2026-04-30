@@ -47,6 +47,7 @@ import {
   createAccountCabinetOrganizationsFromTeams,
   type AccountTeamStore,
 } from './account-teams'
+import type { ManagedCloudWorkspaceStore } from './account-cloud-workspaces'
 
 // ---------------------------------------------------------------------------
 // MIME types for static file serving
@@ -236,6 +237,8 @@ export interface WebuiHandlerOptions {
   accountEventHistory?: AccountEventHistory
   /** Optional account team store for organizations, invites, and RBAC. */
   accountTeamStore?: AccountTeamStore
+  /** Optional managed cloud workspace metadata store. */
+  accountCloudWorkspaceStore?: ManagedCloudWorkspaceStore
   /** Optional account bootstrap hook, e.g. grant first user access to existing workspaces. */
   bootstrapAccount?: (user: PublicUser) => Promise<void>
   /**
@@ -918,6 +921,46 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         { error: 'Organization join is not available until team workspaces are enabled.' },
         { status: 501 },
       )
+    }
+
+    if (path === '/api/account/workspaces' && req.method === 'GET') {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      if (!options.accountCloudWorkspaceStore) {
+        return Response.json({ workspaces: [] })
+      }
+      return Response.json({
+        workspaces: await options.accountCloudWorkspaceStore.listWorkspaces(identity.userId),
+      })
+    }
+
+    if (path === '/api/account/workspaces' && req.method === 'POST') {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      if (!options.accountCloudWorkspaceStore) {
+        return Response.json(
+          { error: 'Managed cloud workspaces are not configured.' },
+          { status: 501 },
+        )
+      }
+
+      let body: { name?: string }
+      try {
+        body = await req.json() as { name?: string }
+      } catch {
+        return Response.json({ error: 'Invalid request body' }, { status: 400 })
+      }
+
+      try {
+        const workspace = await options.accountCloudWorkspaceStore.createWorkspace({
+          ownerUserId: identity.userId,
+          name: typeof body.name === 'string' ? body.name : '',
+        })
+        await accountStore!.grantWorkspaceOwner(identity.userId, workspace.id)
+        return Response.json({ workspace }, { status: 201 })
+      } catch (error) {
+        return Response.json({ error: error instanceof Error ? error.message : 'Workspace creation failed' }, { status: 400 })
+      }
     }
 
     if (path === '/api/account/sessions/revoke-all' && req.method === 'POST') {
