@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PanelHeader } from '@/components/app-shell/PanelHeader'
 import { HeaderMenu } from '@/components/ui/HeaderMenu'
@@ -11,11 +11,14 @@ import { SettingsCard, SettingsInput, SettingsSection } from '@/components/setti
 import { SettingsRow } from '@/components/settings/SettingsRow'
 import type { DetailsPageMeta } from '@/lib/navigation-registry'
 import { getAccountBrandSummaryRows } from './account-brand-summary'
+import {
+  AccountAuthPanel,
+  isAllowedAccountExternalUrl,
+  type AccountAuthTab,
+  type NativeAccountAuthRequest,
+} from './AccountAuthPanel'
 
 const ACCOUNT_WEB_ORIGIN = 'https://rox.one'
-const ACCOUNT_LOGIN_PATH = '/login'
-const ACCOUNT_SIGNUP_PATH = '/login?tab=register'
-const ACCOUNT_RESET_PATH = '/login?tab=reset-request'
 
 type AccountApiInit = {
   method?: string
@@ -89,12 +92,6 @@ interface SessionsResponse {
   sessions: AccountSession[]
 }
 
-interface DesktopBridgeResponse {
-  ok: boolean
-  status: number
-  body: string
-}
-
 export const meta: DetailsPageMeta = {
   navigator: 'settings',
   slug: 'account',
@@ -110,20 +107,6 @@ async function readError(res: Response): Promise<string> {
   }
 }
 
-function readBridgeError(status: number, body: string): string {
-  try {
-    const parsed = JSON.parse(body) as { error?: string | { message?: string } }
-    if (typeof parsed.error === 'string') return parsed.error
-    return parsed.error?.message || `HTTP ${status}`
-  } catch {
-    return body || `HTTP ${status}`
-  }
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, ms))
-}
-
 function detailsText(value: unknown): string {
   if (!value) return ''
   if (typeof value === 'string') return value
@@ -134,20 +117,8 @@ function detailsText(value: unknown): string {
   return entries.map(([key, item]) => `${key}: ${String(item)}`).join(' / ')
 }
 
-function isRoxAccountUrl(value?: string | null): boolean {
-  if (!value) return false
-  try {
-    const url = new URL(value)
-    return url.origin === ACCOUNT_WEB_ORIGIN && url.pathname === '/account'
-  } catch {
-    return false
-  }
-}
-
 export default function AccountSettingsPage() {
   const { t } = useTranslation()
-  const bridgePaneIdRef = useRef<string | null>(null)
-  const visibleAuthPaneIdRef = useRef<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -175,74 +146,28 @@ export default function AccountSettingsPage() {
     return `${Number(value.balanceUnits || 0).toLocaleString('ru-RU')} ${value.currency || 'ROX'}`
   }
 
-  const openAccountUrl = useCallback(async (url: string) => {
+  const openExternalCheckoutUrl = useCallback(async (url: string) => {
+    if (!isAllowedAccountExternalUrl(url)) {
+      throw new Error('External account navigation is allowed only for DV.net checkout URLs')
+    }
     if (isHostedHttp) {
       window.location.href = url
       return
     }
-
-    try {
-      const instanceId = await window.electronAPI.browserPane.create({
-        show: true,
-        initialUrl: url,
-        hostMode: 'embedded',
-      })
-      visibleAuthPaneIdRef.current = instanceId
-      await window.electronAPI.browserPane.focus(instanceId)
-    } catch (err) {
-      console.error('[AccountSettings] Failed to open account browser tab:', err)
-      setError(err instanceof Error ? err.message : String(err))
-    }
+    await window.electronAPI.openUrl(url)
   }, [isHostedHttp])
 
-  const openAccountPath = useCallback(async (path: string) => {
-    await openAccountUrl(`${ACCOUNT_WEB_ORIGIN}${path}`)
-  }, [openAccountUrl])
-
-  const ensureDesktopBridge = useCallback(async (): Promise<string> => {
-    if (bridgePaneIdRef.current) return bridgePaneIdRef.current
-    const instanceId = await window.electronAPI.browserPane.create({
-      show: false,
-      initialUrl: `${ACCOUNT_WEB_ORIGIN}/account`,
-      hostMode: 'embedded',
-    })
-    bridgePaneIdRef.current = instanceId
-    await sleep(900)
-    return instanceId
-  }, [])
-
   const accountApi = useCallback(async <T,>(path: string, init: AccountApiInit = {}): Promise<T> => {
-    if (isHostedHttp) {
-      const res = await fetch(path, {
-        method: init.method || 'GET',
-        headers: init.headers,
-        body: init.body ?? undefined,
-        credentials: 'same-origin',
-      })
-      if (!res.ok) throw new Error(await readError(res))
-      return await res.json() as T
-    }
-
-    const paneId = await ensureDesktopBridge()
-    const request = {
-      url: `${ACCOUNT_WEB_ORIGIN}${path}`,
+    const requestUrl = isHostedHttp ? path : `${ACCOUNT_WEB_ORIGIN}${path}`
+    const res = await fetch(requestUrl, {
       method: init.method || 'GET',
-      headers: init.headers || {},
-      body: init.body ?? null,
-    }
-    const expression = `(() => {
-      const request = ${JSON.stringify(request)};
-      return fetch(request.url, {
-        method: request.method,
-        headers: request.headers,
-        body: request.body === null ? undefined : request.body,
-        credentials: 'include'
-      }).then(async (res) => ({ ok: res.ok, status: res.status, body: await res.text() }));
-    })()`
-    const result = await window.electronAPI.browserPane.evaluate(paneId, expression) as DesktopBridgeResponse
-    if (!result.ok) throw new Error(readBridgeError(result.status, result.body))
-    return JSON.parse(result.body || '{}') as T
-  }, [ensureDesktopBridge, isHostedHttp])
+      headers: init.headers,
+      body: init.body ?? undefined,
+      credentials: isHostedHttp ? 'same-origin' : 'include',
+    })
+    if (!res.ok) throw new Error(await readError(res))
+    return await res.json() as T
+  }, [isHostedHttp])
 
   const loadAccount = useCallback(async () => {
     setError(null)
@@ -280,52 +205,28 @@ export default function AccountSettingsPage() {
     void loadAccount()
   }, [loadAccount])
 
-  useEffect(() => {
-    if (isHostedHttp || !window.electronAPI?.browserPane?.list) return
-
-    void window.electronAPI.browserPane.list().then((instances) => {
-      for (const instance of instances) {
-        if (instance.id === bridgePaneIdRef.current) continue
-        if (!isRoxAccountUrl(instance.url)) continue
-        void window.electronAPI.browserPane.destroy(instance.id).catch((err) => {
-          console.warn('[AccountSettings] Failed to close restored account browser tab:', err)
-        })
+  async function submitNativeAuth(tab: AccountAuthTab, request: NativeAccountAuthRequest) {
+    setSaving(true)
+    setError(null)
+    setSaved(null)
+    try {
+      await accountApi(request.path, {
+        method: request.method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request.body),
+      })
+      if (tab === 'reset') {
+        setSaved(t('settings.account.passwordResetSent'))
+        return
       }
-    }).catch((err) => {
-      console.warn('[AccountSettings] Failed to inspect restored browser tabs:', err)
-    })
-  }, [isHostedHttp])
-
-  useEffect(() => {
-    if (isHostedHttp || !window.electronAPI?.browserPane?.onStateChanged) return undefined
-
-    const cleanupState = window.electronAPI.browserPane.onStateChanged((info) => {
-      if (!visibleAuthPaneIdRef.current || info.id !== visibleAuthPaneIdRef.current) return
-
-      if (!isRoxAccountUrl(info.url)) return
-
-      const paneId = visibleAuthPaneIdRef.current
-      visibleAuthPaneIdRef.current = null
-      window.setTimeout(() => {
-        void window.electronAPI.browserPane.destroy(paneId).catch((err) => {
-          console.warn('[AccountSettings] Failed to close auth browser tab after login:', err)
-        })
-        void loadAccount()
-      }, 350)
-    })
-
-    const cleanupRemoved = window.electronAPI.browserPane.onRemoved((id) => {
-      if (visibleAuthPaneIdRef.current === id) {
-        visibleAuthPaneIdRef.current = null
-        void loadAccount()
-      }
-    })
-
-    return () => {
-      cleanupState()
-      cleanupRemoved()
+      setSaved(tab === 'register' ? 'Аккаунт создан. Кабинет обновлен.' : 'Вход выполнен. Кабинет обновлен.')
+      await loadAccount()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setSaving(false)
     }
-  }, [isHostedHttp, loadAccount])
+  }
 
   async function saveProfile() {
     setSaving(true)
@@ -410,7 +311,7 @@ export default function AccountSettingsPage() {
       const data = await accountApi<{ status: string; redirectUrl: string | null; message: string; billing: BillingResponse }>('/api/account/billing/top-up-intent', { method: 'POST' })
       setBilling(data.billing)
       if (data.redirectUrl) {
-        await openAccountUrl(data.redirectUrl.startsWith('http') ? data.redirectUrl : `${ACCOUNT_WEB_ORIGIN}${data.redirectUrl}`)
+        await openExternalCheckoutUrl(data.redirectUrl)
         setSaved('Открыта платежная страница для пополнения баланса.')
       } else {
         setSaved(data.message || 'Платежный провайдер пока не настроен.')
@@ -673,22 +574,13 @@ export default function AccountSettingsPage() {
                 </SettingsSection>
               </>
             ) : (
-              <SettingsSection title={t('settings.account.desktopAuthTitle')} description="После входа данные аккаунта появятся здесь, внутри приложения. Browser используется только для формы входа и подтверждения, не как личный кабинет.">
-                <SettingsCard>
-                  <SettingsRow label={t('settings.account.status')} description={error ?? t('settings.account.desktopAuthStatus')} />
-                  <SettingsRow
-                    label={t('settings.account.authActions')}
-                    description="Войдите или зарегистрируйтесь, затем нажмите «Обновить кабинет»."
-                    action={(
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Button size="sm" onClick={() => { void openAccountPath(ACCOUNT_LOGIN_PATH) }}>{t('settings.account.signIn')}</Button>
-                        <Button size="sm" variant="outline" onClick={() => { void openAccountPath(ACCOUNT_SIGNUP_PATH) }}>{t('settings.account.createAccount')}</Button>
-                        <Button size="sm" variant="outline" onClick={() => { void openAccountPath(ACCOUNT_RESET_PATH) }}>{t('settings.account.resetPassword')}</Button>
-                        <Button size="sm" variant="outline" onClick={() => { setLoading(true); void loadAccount() }}>Обновить кабинет</Button>
-                      </div>
-                    )}
-                  />
-                </SettingsCard>
+              <SettingsSection title={t('settings.account.desktopAuthTitle')} description="Вход, регистрация и сброс пароля выполняются внутри ROX ONE. После успешного входа кабинет обновится автоматически.">
+                <AccountAuthPanel
+                  error={error}
+                  saving={saving}
+                  onSubmit={submitNativeAuth}
+                  onRefresh={() => { setLoading(true); void loadAccount() }}
+                />
               </SettingsSection>
             )}
             {saved && <p className="text-sm text-muted-foreground px-1">{saved}</p>}
