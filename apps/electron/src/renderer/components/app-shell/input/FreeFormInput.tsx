@@ -132,6 +132,9 @@ export interface FollowUpInputItem {
   color?: string
 }
 
+import { ProductModeToolbar } from './ProductModeToolbar';
+import { PRODUCT_MODE_TOOLBAR_DEFAULT_MODE, type ProductMode, type ProductModeIntent } from './product-mode-toolbar';
+
 export interface FreeFormInputProps {
   /** Placeholder text(s) for the textarea - can be array for rotation */
   placeholder?: string | string[]
@@ -1465,6 +1468,12 @@ export function FreeFormInput({
     return () => window.clearTimeout(timer)
   }, [followUpLayoutKey])
 
+  const [selectedProductMode, setSelectedProductMode] = React.useState<ProductMode>(PRODUCT_MODE_TOOLBAR_DEFAULT_MODE)
+
+  const handleProductModeIntent = React.useCallback((intent: ProductModeIntent) => {
+    window.dispatchEvent(new CustomEvent<ProductModeIntent>('craft:product-mode-intent', { detail: intent }))
+  }, [])
+
   const hasContent = input.trim() || attachments.length > 0 || followUpItems.length > 0
 
   return (
@@ -1635,6 +1644,16 @@ export function FreeFormInput({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {!(compactMode && isProcessing) && (
+          <ProductModeToolbar
+            compactMode={compactMode}
+            disabled={disabled}
+            selectedMode={selectedProductMode}
+            onIntent={handleProductModeIntent}
+            onModeChange={setSelectedProductMode}
+          />
+        )}
 
         {/* Rich Text Input with inline mention badges */}
         {/* In compact mode, hide input while processing (collapses to just bottom bar) */}
