@@ -2,6 +2,7 @@ export * from './agent-pipeline-planner';
 export * from './browser-research-integration';
 export * from './bundle-types';
 export * from './experience-layer';
+export * from './experience-layer-e2e-scenario';
 export * from './experience-layer-registry';
 export * from './markdown-entity-graph';
 export * from './mission-scheduler-adapter';
