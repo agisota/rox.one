@@ -42,9 +42,9 @@ describe('Quest Map and Skill Tree', () => {
     const commandMarkup = renderToStaticMarkup(<QuestMapSkillTree initialState={state} layer="command" />);
     const gameMarkup = renderToStaticMarkup(<QuestMapSkillTree initialState={state} layer="game" />);
 
-    expect(commandMarkup).toContain('Roadmap Map');
-    expect(commandMarkup).toContain('Milestone lanes');
-    expect(gameMarkup).toContain('Quest Map');
-    expect(gameMarkup).toContain('Skill Tree');
+    expect(commandMarkup).toContain('Карта задач');
+    expect(commandMarkup).toContain('Вехи');
+    expect(gameMarkup).toContain('Карта квестов');
+    expect(gameMarkup).toContain('Дерево навыков');
   });
 });

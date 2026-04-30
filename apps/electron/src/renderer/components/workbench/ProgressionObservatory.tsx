@@ -6,6 +6,13 @@ import {
   type ProgressionState,
   type ProgressionStateInput,
 } from './progression-observatory-state';
+import {
+  ExperienceMetricCard,
+  ExperienceMetricRow,
+  ExperiencePanel,
+  ExperienceProgressBar,
+  ExperienceShell,
+} from './experience-ui';
 
 export interface ProgressionObservatoryProps {
   initialState?: ProgressionState;
@@ -17,88 +24,64 @@ export function ProgressionObservatory({ initialState, initialInput }: Progressi
   const visibleLeaderboardRows = projectLeaderboardRows(state);
 
   return (
-    <main className="flex h-full min-h-0 flex-col bg-background text-foreground" aria-label="Progression Observatory">
-      <header className="border-b border-border px-6 py-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Experience Layer</p>
-        <h1 className="mt-2 text-2xl font-semibold">Progression Observatory</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-          Track VDI, formulation quality, execution readiness, economy evidence, and leaderboard visibility without letting paid capacity alter quality metrics.
-        </p>
-      </header>
-
-      <div className="grid min-h-0 flex-1 gap-4 overflow-hidden p-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
-        <section className="min-h-0 overflow-y-auto rounded-2xl border border-border bg-muted/10 p-4">
-          <div className="rounded-2xl border border-border bg-background p-5">
-            <div className="text-sm font-semibold">Verified Deliverable Index</div>
-            <div className="mt-2 text-4xl font-semibold">{state.latestSnapshot.verifiedDeliverableIndex}</div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Evidence: {state.latestSnapshot.evidenceRefs.join(', ')}
-            </p>
-          </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <MetricCard label="Quality Score" value={`${state.latestSnapshot.qualityScore}`} />
-            <MetricCard label="Execution Readiness" value={`${state.latestSnapshot.executionReadiness}`} />
-            <MetricCard label="Cost Efficiency" value={`${state.latestSnapshot.costEfficiency}`} />
-            <MetricCard label="Open Risk Score" value={`${state.latestSnapshot.openRiskScore}`} />
-            <MetricCard label="Noise Score" value={`${state.latestSnapshot.noiseScore}`} />
-            <MetricCard label="Swarm Capacity" value={`${state.capacity.swarmSlots} slots / ${state.capacity.maxMissionHours}h`} />
-          </div>
-        </section>
-
-        <aside className="min-h-0 space-y-4 overflow-y-auto">
-          <Panel title="Economy Ledger">
+    <ExperienceShell
+      screen="progression"
+      tone="game"
+      eyebrow="Слой опыта"
+      title="Обсерватория прогресса"
+      description="Сквозная метрика продукта: VDI как North Star, а качество постановки и готовность к выполнению остаются доказательными подметриками."
+      aside={(
+        <>
+          <ExperiencePanel title="Журнал экономики" subtitle="XP и credits записываются только от evidence-событий.">
             {state.ledger.map((entry) => (
-              <MetricRow key={entry.id} label={entry.reason} value={`${entry.amount} ${entry.currency}`} />
+              <ExperienceMetricRow key={entry.id} label={localizeLedgerReason(entry.reason)} value={`${entry.amount} ${entry.currency}`} />
             ))}
-          </Panel>
+          </ExperiencePanel>
 
-          <Panel title="Leaderboards">
+          <ExperiencePanel title="Лидеры">
             {visibleLeaderboardRows.length === 0 ? (
-              <p className="mt-3 text-sm text-muted-foreground">Leaderboards hidden by privacy policy.</p>
+              <p className="mt-3 text-sm text-muted-foreground">Лидерборды скрыты политикой приватности.</p>
             ) : (
               visibleLeaderboardRows.map((row) => (
-                <MetricRow key={row.id} label={row.displayName} value={`${row.score}`} />
+                <ExperienceMetricRow key={row.id} label={row.displayName} value={`${row.score}`} />
               ))
             )}
-          </Panel>
+          </ExperiencePanel>
 
-          <Panel title="Integrity Rules">
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              <li>XP and unlocks require artifact or validation gate evidence.</li>
-              <li>Paid capacity can increase slots and duration only.</li>
-              <li>Quality Score and VDI remain evidence-backed metrics.</li>
+          <ExperiencePanel title="Правила честности">
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
+              <li>XP и unlocks требуют артефакт или validation gate evidence.</li>
+              <li>Платная емкость может увеличить только слоты и длительность.</li>
+              <li>Очки качества и VDI остаются доказательными метриками.</li>
             </ul>
-          </Panel>
-        </aside>
+          </ExperiencePanel>
+        </>
+      )}
+    >
+      <ExperiencePanel title="Индекс проверенного результата" subtitle="Verified Deliverable Index показывает, дошла ли работа до принятого проверенного результата.">
+        <div className="mt-4 rounded-[22px] border border-emerald-400/20 bg-emerald-400/[0.06] p-5">
+          <div className="text-5xl font-semibold leading-none">{state.latestSnapshot.verifiedDeliverableIndex}</div>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            Evidence: {state.latestSnapshot.evidenceRefs.join(', ')}
+          </p>
+          <ExperienceProgressBar value={state.latestSnapshot.verifiedDeliverableIndex} label="VDI progress" />
+        </div>
+      </ExperiencePanel>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <ExperienceMetricCard label="Очки качества" value={`${state.latestSnapshot.qualityScore}`} tone="success" detail="Насколько хорошо поставлена задача." />
+        <ExperienceMetricCard label="Готовность к выполнению" value={`${state.latestSnapshot.executionReadiness}`} tone="command" detail="Можно ли запускать агентов без лишних уточнений." />
+        <ExperienceMetricCard label="Эффективность стоимости" value={`${state.latestSnapshot.costEfficiency}`} detail="Результат на единицу бюджета." />
+        <ExperienceMetricCard label="Открытый риск" value={`${state.latestSnapshot.openRiskScore}`} tone="warning" detail="Незакрытые риски перед финальным pass." />
+        <ExperienceMetricCard label="Шум" value={`${state.latestSnapshot.noiseScore}`} detail="Дубли, слабые сигналы и лишние ответы." />
+        <ExperienceMetricCard label="Емкость swarm" value={`${state.capacity.swarmSlots} слота / ${state.capacity.maxMissionHours}ч`} tone="arena" detail="Capacity, не качество." />
       </div>
-    </main>
+    </ExperienceShell>
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-border bg-background p-4">
-      <h2 className="text-sm font-semibold">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-background p-4">
-      <div className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
-      <div className="mt-2 text-xl font-semibold">{value}</div>
-    </div>
-  );
-}
-
-function MetricRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="mt-3 flex items-center justify-between gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-right text-sm font-medium">{value}</span>
-    </div>
-  );
+function localizeLedgerReason(reason: string): string {
+  if (reason === 'Accepted verified mission artifact') return 'Принят проверенный артефакт миссии';
+  if (reason === 'Initial swarm pass') return 'Первичный swarm pass';
+  return reason;
 }

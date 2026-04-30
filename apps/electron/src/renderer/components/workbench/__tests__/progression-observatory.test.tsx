@@ -13,12 +13,12 @@ describe('Progression Observatory', () => {
     const state = createProgressionState();
     const markup = renderToStaticMarkup(<ProgressionObservatory initialState={state} />);
 
-    expect(markup).toContain('Progression Observatory');
-    expect(markup).toContain('Verified Deliverable Index');
+    expect(markup).toContain('Обсерватория прогресса');
+    expect(markup).toContain('Индекс проверенного результата');
     expect(markup).toContain('86');
-    expect(markup).toContain('Quality Score');
-    expect(markup).toContain('Execution Readiness');
-    expect(markup).toContain('Cost Efficiency');
+    expect(markup).toContain('Очки качества');
+    expect(markup).toContain('Готовность к выполнению');
+    expect(markup).toContain('Эффективность стоимости');
   });
 
   test('XP ledger events require artifact or validation gate evidence', () => {

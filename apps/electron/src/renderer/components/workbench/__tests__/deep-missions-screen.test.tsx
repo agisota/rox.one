@@ -20,13 +20,13 @@ describe('Deep Missions entry screen', () => {
 
     const markup = renderToStaticMarkup(<DeepMissionsScreen initialState={state} />);
 
-    expect(markup).toContain('Deep Missions');
+    expect(markup).toContain('Долгие миссии');
     expect(markup).toContain('6h Sprint');
     expect(markup).toContain('24h Deep Run');
     expect(markup).toContain('72h Watchtower');
     expect(markup).toContain('Deep Reasoning Lab');
-    expect(markup).toContain('Checkpoint preview');
-    expect(markup).toContain('Launch Mission');
+    expect(markup).toContain('Чекпоинты');
+    expect(markup).toContain('Запустить миссию');
   });
 
   test('requires budget cap before launch even when mission text exists', () => {
@@ -41,7 +41,7 @@ describe('Deep Missions entry screen', () => {
     expect(state.validationErrors).toContain('Budget cap is required before launch.');
 
     const markup = renderToStaticMarkup(<DeepMissionsScreen initialState={state} />);
-    expect(markup).toContain('Budget cap is required before launch.');
+    expect(markup).toContain('Перед запуском нужен бюджетный лимит.');
     expect(markup).toContain('disabled=""');
   });
 

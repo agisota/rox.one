@@ -7,6 +7,15 @@ import {
   transitionMissionCheckpoint,
   type MissionControlState,
 } from './mission-control-state';
+import {
+  ExperienceCard,
+  ExperienceMetricRow,
+  ExperiencePanel,
+  ExperienceShell,
+  ExperienceStatusChip,
+  getStatusLabel,
+  getStatusTone,
+} from './experience-ui';
 
 export interface MissionControlRunDetailProps {
   initialState?: MissionControlState;
@@ -16,144 +25,182 @@ export function MissionControlRunDetail({ initialState }: MissionControlRunDetai
   const [state, setState] = React.useState<MissionControlState>(() => initialState ?? createMissionControlState());
 
   return (
-    <main className="flex h-full min-h-0 flex-col bg-background text-foreground" aria-label="Mission Control">
-      <header className="border-b border-border px-6 py-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Mission Control</p>
-            <h1 className="mt-2 text-2xl font-semibold">{state.mission.title}</h1>
-            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{state.mission.objective}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-muted/20 px-4 py-3">
-            <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Final pass</div>
-            <div className="mt-1 text-lg font-semibold">{state.canFinalize ? 'Ready' : 'Blocked'}</div>
+    <ExperienceShell
+      screen="mission-control"
+      tone="arena"
+      eyebrow="Центр миссий"
+      title="Центр миссий"
+      description={`${state.mission.title}: ${state.mission.objective}`}
+      actions={(
+        <div className="rounded-[18px] border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-right">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Финальный статус</div>
+          <div className="mt-2">
+            <ExperienceStatusChip status={state.canFinalize ? 'success' : 'blocking'} label={state.canFinalize ? 'Готово' : 'Заблокировано'} />
           </div>
         </div>
-      </header>
-
-      <div className="grid min-h-0 flex-1 gap-4 overflow-hidden p-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
-        <section className="min-h-0 overflow-y-auto rounded-2xl border border-border bg-muted/10 p-4">
-          <h2 className="text-sm font-semibold">Active Run Timeline</h2>
-          <ol className="mt-4 space-y-3">
-            {state.checkpoints.map((checkpoint) => (
-              <li key={checkpoint.id} className="rounded-xl border border-border bg-background p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-semibold">{checkpoint.title}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {checkpoint.id} / {checkpoint.status} / VDI delta {checkpoint.vdiDelta}
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => setState((current) => transitionMissionCheckpoint(current, checkpoint.id, 'completed'))}
-                  >
-                    Mark Complete
-                  </Button>
-                </div>
-                <div className="mt-3 text-sm text-muted-foreground">{checkpoint.summary}</div>
-              </li>
-            ))}
-          </ol>
-
-          <section className="mt-4 rounded-2xl border border-border bg-background p-4">
-            <h2 className="text-sm font-semibold">Swarm Feed</h2>
-            <div className="mt-3 space-y-2">
-              {state.feedItems.map((item) => (
-                <div key={item.id} className="rounded-lg border border-border bg-muted/20 p-3">
-                  <div className="text-sm font-medium">{item.source}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {item.checkpointId} / {item.severity}
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">{item.summary}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        </section>
-
-        <aside className="min-h-0 space-y-4 overflow-y-auto">
-          <Panel title="Validation Gates">
+      )}
+      aside={(
+        <>
+          <ExperiencePanel title="Валидационные гейты" subtitle="Финальный результат не проходит, пока есть blocking fail.">
             {state.gateResults.map((gate) => (
-              <MetricRow
+              <ExperienceMetricRow
                 key={gate.gateId}
                 label={gate.gateId}
-                value={`${gate.status}${gate.blocking ? ' / blocking' : ''}`}
+                value={<ExperienceStatusChip status={getStatusTone(gate.status, gate.blocking)} label={`${getStatusLabel(gate.status)}${gate.blocking ? ' / блокер' : ''}`} />}
               />
             ))}
-          </Panel>
+          </ExperiencePanel>
 
-          <Panel title="Human Approvals">
+          <ExperiencePanel title="Согласования" subtitle="Дорогие ветки требуют ручного допуска.">
             {state.approvals.map((approval) => (
-              <div key={approval.id} className="mt-3 rounded-lg border border-border bg-muted/20 p-3">
-                <div className="text-sm font-medium">{approval.title}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{approval.status}</div>
-                <p className="mt-2 text-sm text-muted-foreground">{approval.description}</p>
+              <ExperienceCard key={approval.id} title={approval.title} meta={getStatusLabel(approval.status)}>
+                <p>{localizeApprovalDescription(approval.description)}</p>
                 {approval.status === 'pending' && (
                   <Button
-                    className="mt-3"
+                    className="mt-4 rounded-full"
                     variant="outline"
                     onClick={() => setState((current) => approveMissionBranch(current, approval.id))}
                   >
-                    Approve Branch
+                    Одобрить ветку
                   </Button>
                 )}
-              </div>
+              </ExperienceCard>
             ))}
-          </Panel>
+          </ExperiencePanel>
 
-          <Panel title="Interim Artifacts">
+          <ExperiencePanel title="Промежуточные артефакты">
             {state.artifacts.map((artifact) => (
-              <MetricRow
+              <ExperienceMetricRow
                 key={artifact.id}
-                label={artifact.title}
-                value={`${artifact.checkpointId} / ${artifact.validationState}`}
+                label={localizeArtifactTitle(artifact.title)}
+                value={`${artifact.checkpointId} / ${getStatusLabel(artifact.validationState)}`}
               />
             ))}
-          </Panel>
+          </ExperiencePanel>
 
-          <Panel title="Audit and Billing Trace">
+          <ExperiencePanel title="Аудит и биллинг">
             {state.auditEvents.map((event) => (
-              <MetricRow key={event.id} label={event.summary} value={event.createdAt} />
+              <ExperienceMetricRow key={event.id} label={localizeAuditSummary(event.summary)} value={event.createdAt} />
             ))}
             {state.billingTrace.map((item) => (
-              <MetricRow key={item.id} label={item.label} value={`${item.credits} credits / ${item.source}`} />
+              <ExperienceMetricRow key={item.id} label={localizeBillingLabel(item.label)} value={`${item.credits} credits / ${item.source}`} />
             ))}
-          </Panel>
+          </ExperiencePanel>
 
-          <Panel title="Blocking Reasons">
+          <ExperiencePanel title="Причины блокировки">
             {state.blockingReasons.length === 0 ? (
-              <p className="mt-3 text-sm text-muted-foreground">No blockers.</p>
+              <p className="mt-3 text-sm text-muted-foreground">Блокеров нет.</p>
             ) : (
               <ul className="mt-3 space-y-2">
                 {state.blockingReasons.map((reason) => (
-                  <li key={reason} className="rounded-lg border border-border bg-muted/20 p-3 text-sm text-muted-foreground">
-                    {reason}
+                  <li key={reason} className="rounded-[16px] border border-rose-400/20 bg-rose-500/10 p-3 text-sm text-rose-100">
+                    {localizeBlockingReason(reason)}
                   </li>
                 ))}
               </ul>
             )}
-          </Panel>
-        </aside>
-      </div>
-    </main>
+          </ExperiencePanel>
+        </>
+      )}
+    >
+      <ExperiencePanel title="Таймлайн прогона" subtitle="Чекпоинты дают промежуточный результат и VDI delta, но не завершают миссию без evidence.">
+        <ol className="mt-4 space-y-3">
+            {state.checkpoints.map((checkpoint) => (
+              <li key={checkpoint.id}>
+                <ExperienceCard title={localizeCheckpointTitle(checkpoint.title)} meta={`${checkpoint.id} / VDI delta ${checkpoint.vdiDelta}`}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <ExperienceStatusChip status={getStatusTone(checkpoint.status)} label={getStatusLabel(checkpoint.status)} />
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={() => setState((current) => transitionMissionCheckpoint(current, checkpoint.id, 'completed'))}
+                  >
+                    Отметить готовым
+                  </Button>
+                </div>
+                <div className="mt-3 text-sm text-muted-foreground">{localizeCheckpointSummary(checkpoint.summary)}</div>
+                </ExperienceCard>
+              </li>
+            ))}
+          </ol>
+      </ExperiencePanel>
+
+      <ExperiencePanel className="mt-4" title="Лента swarm" subtitle="Дедуплицированные сигналы от агентов, привязанные к чекпоинтам.">
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          {state.feedItems.map((item) => (
+            <ExperienceCard key={item.id} title={item.source} meta={`${item.checkpointId} / ${localizeSeverity(item.severity)}`} tone={item.severity === 'high' || item.severity === 'critical' ? 'danger' : 'warning'}>
+              {localizeFeedSummary(item.summary)}
+            </ExperienceCard>
+          ))}
+        </div>
+      </ExperiencePanel>
+    </ExperienceShell>
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-border bg-background p-4">
-      <h2 className="text-sm font-semibold">{title}</h2>
-      {children}
-    </section>
-  );
+function localizeCheckpointTitle(title: string): string {
+  if (title === 'Mission brief') return 'Бриф миссии';
+  if (title === 'Final verification') return 'Финальная проверка';
+  return title.replace('Checkpoint', 'Чекпоинт');
 }
 
-function MetricRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="mt-3 flex items-center justify-between gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-right text-sm font-medium">{value}</span>
-    </div>
-  );
+function localizeCheckpointSummary(summary: string): string {
+  return localizeCheckpointTitle(summary.replace(' summary', '')) + ' summary';
+}
+
+function localizeApprovalDescription(description: string): string {
+  if (description.includes('Requires explicit approval')) {
+    return 'Требует явного согласования перед расходом дополнительного бюджета.';
+  }
+  return description;
+}
+
+function localizeArtifactTitle(title: string): string {
+  if (title === '6h contradiction map') return '6ч карта противоречий';
+  if (title === '12h evidence memo') return '12ч evidence memo';
+  return title;
+}
+
+function localizeAuditSummary(summary: string): string {
+  if (summary.includes('Mission started')) return 'Миссия запущена с 4 выбранными агентами.';
+  if (summary.includes('moved to completed')) return summary.replace('Checkpoint', 'Чекпоинт').replace('moved to completed.', 'переведен в готово.');
+  return summary;
+}
+
+function localizeBillingLabel(label: string): string {
+  if (label === 'Initial swarm pass') return 'Первичный swarm pass';
+  return label;
+}
+
+function localizeBlockingReason(reason: string): string {
+  if (reason.includes('Approval required for expensive branch')) {
+    return reason.replace('Approval required for expensive branch:', 'Нужно согласование дорогой ветки:');
+  }
+  if (reason.includes('Critical validation gate failed')) {
+    return reason.replace('Critical validation gate failed:', 'Критический validation gate провален:');
+  }
+  return reason;
+}
+
+function localizeSeverity(severity: string): string {
+  switch (severity) {
+    case 'critical':
+      return 'критично';
+    case 'high':
+      return 'высокий риск';
+    case 'medium':
+      return 'средний риск';
+    case 'low':
+      return 'низкий риск';
+    default:
+      return 'инфо';
+  }
+}
+
+function localizeFeedSummary(summary: string): string {
+  if (summary.includes('unresolved dependency')) return 'План запуска зависит от ручного ревью и пока не закрыт доказательством.';
+  if (summary.includes('source claims')) return 'Два источниковых утверждения требуют проверки свежести.';
+  return summary;
 }

@@ -7,6 +7,14 @@ import {
   type AgentForgeState,
   type AgentForgeStateInput,
 } from './agent-forge-state';
+import {
+  ExperienceCard,
+  ExperienceMetricRow,
+  ExperiencePanel,
+  ExperienceProgressBar,
+  ExperienceShell,
+  ExperienceStatusChip,
+} from './experience-ui';
 
 export interface AgentForgeTeamRegistryProps {
   initialState?: AgentForgeState;
@@ -18,76 +26,79 @@ export function AgentForgeTeamRegistry({ initialState, initialInput }: AgentForg
   const visiblePackages = listVisibleAgentPackages(state, { viewerTeamId: state.viewerTeamId });
 
   return (
-    <main className="flex h-full min-h-0 flex-col bg-background text-foreground" aria-label="Agent Forge">
-      <header className="border-b border-border px-6 py-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Agent Forge</p>
-        <h1 className="mt-2 text-2xl font-semibold">Team Registry</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-          Forge, review, install, and fork private/team packages before public marketplace distribution is allowed.
-        </p>
-      </header>
+    <ExperienceShell
+      screen="agent-forge"
+      tone="arena"
+      eyebrow="Кузница"
+      title="Кузница агентов"
+      description="Создавайте, проверяйте, устанавливайте и форкайте приватные или командные пакеты до публичного marketplace. Trust checks обязательны."
+      aside={(
+        <>
+          <ExperiencePanel title="Проверочный гаунтлет" subtitle="Публичная публикация закрыта, пока эти проверки не пройдены.">
+            <ExperienceMetricRow label="Контракт" value="обязателен" />
+            <ExperienceMetricRow label="Ревью" value="обязательно" />
+            <ExperienceMetricRow label="Тесты" value="обязательны" />
+            <ExperienceMetricRow label="Prompt injection scan" value="блокирует public publish" />
+          </ExperiencePanel>
 
-      <div className="grid min-h-0 flex-1 gap-4 overflow-hidden p-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
-        <section className="min-h-0 overflow-y-auto rounded-2xl border border-border bg-muted/10 p-4">
-          <h2 className="text-sm font-semibold">Private and Team Packages</h2>
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          <ExperiencePanel title="Защитные правила реестра">
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
+              <li>Публичный marketplace выключен до прохождения team/private registry checks.</li>
+              <li>Пакеты без контрактов нельзя установить.</li>
+              <li>Team-private пакеты скрыты между tenants.</li>
+            </ul>
+          </ExperiencePanel>
+        </>
+      )}
+    >
+      <ExperiencePanel title="Приватные и командные пакеты" subtitle="Каждый пакет должен иметь контракт, проверки и понятный trust score.">
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
             {visiblePackages.map((pkg) => {
               const contract = state.contractsByPackageId[pkg.id];
               const warnings = state.promptInjectionWarningsByPackageId[pkg.id] ?? [];
+              const trustScore = getPackageTrustScore(state, pkg.id);
               return (
-                <article key={pkg.id} className="rounded-xl border border-border bg-background p-4">
-                  <div className="text-sm font-semibold">{pkg.name}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {pkg.visibility} / trust {getPackageTrustScore(state, pkg.id)}
+                <ExperienceCard
+                  key={pkg.id}
+                  title={pkg.name}
+                  meta={`${localizeVisibility(pkg.visibility)} / trust ${trustScore}`}
+                  tone={warnings.length > 0 ? 'danger' : contract ? 'success' : 'warning'}
+                >
+                  <p>{localizePackageDescription(pkg.description)}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <ExperienceStatusChip status={contract ? 'success' : 'blocking'} label={contract ? 'Контракт есть' : 'Контракт отсутствует'} />
+                    <ExperienceStatusChip status={warnings.length === 0 ? 'success' : 'warning'} label={`Предупреждения: ${warnings.length}`} />
+                    <ExperienceStatusChip status={contract ? 'ready' : 'locked'} label={contract ? 'Установить' : 'Заблокировано'} />
+                    <ExperienceStatusChip status="draft" label="Форкнуть" />
                   </div>
-                  <p className="mt-3 text-sm text-muted-foreground">{pkg.description}</p>
-                  <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-                    <span>Contract: {contract ? 'present' : 'missing'}</span>
-                    <span>Warnings: {warnings.length}</span>
-                    <span>Install</span>
-                    <span>Fork</span>
-                  </div>
-                </article>
+                  <ExperienceProgressBar value={trustScore} label="Trust score" />
+                </ExperienceCard>
               );
             })}
           </div>
-        </section>
-
-        <aside className="min-h-0 space-y-4 overflow-y-auto">
-          <Panel title="Forge Gauntlet">
-            <MetricRow label="Contract" value="required" />
-            <MetricRow label="Reviews" value="required" />
-            <MetricRow label="Tests" value="required" />
-            <MetricRow label="Prompt injection scan" value="blocks public publish" />
-          </Panel>
-
-          <Panel title="Registry Guardrails">
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              <li>Public marketplace is disabled until team/private registry checks pass.</li>
-              <li>Packages without contracts cannot install.</li>
-              <li>Team-private packages are hidden cross-tenant.</li>
-            </ul>
-          </Panel>
-        </aside>
-      </div>
-    </main>
+      </ExperiencePanel>
+    </ExperienceShell>
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-border bg-background p-4">
-      <h2 className="text-sm font-semibold">{title}</h2>
-      {children}
-    </section>
-  );
+function localizeVisibility(visibility: string): string {
+  switch (visibility) {
+    case 'team':
+      return 'командный';
+    case 'private':
+      return 'приватный';
+    case 'public':
+      return 'публичный';
+    case 'built_in':
+      return 'встроенный';
+    default:
+      return visibility;
+  }
 }
 
-function MetricRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="mt-3 flex items-center justify-between gap-3 border-b border-border pb-2 last:border-b-0 last:pb-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-right text-sm font-medium">{value}</span>
-    </div>
-  );
+function localizePackageDescription(description: string): string {
+  if (description.includes('Private team reviewer')) return 'Приватный командный reviewer для consistency, evidence и fix plans.';
+  if (description.includes('Legacy prompt pack')) return 'Legacy prompt pack без формального контракта.';
+  if (description.includes('Persona candidate')) return 'Кандидат persona с unresolved prompt-injection warning.';
+  return description;
 }

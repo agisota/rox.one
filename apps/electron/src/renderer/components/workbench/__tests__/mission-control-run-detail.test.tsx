@@ -13,13 +13,13 @@ describe('Mission Control run detail', () => {
     const state = createMissionControlState();
     const markup = renderToStaticMarkup(<MissionControlRunDetail initialState={state} />);
 
-    expect(markup).toContain('Mission Control');
-    expect(markup).toContain('Checkpoint 6h');
-    expect(markup).toContain('Swarm Feed');
-    expect(markup).toContain('Validation Gates');
-    expect(markup).toContain('Human Approvals');
-    expect(markup).toContain('Interim Artifacts');
-    expect(markup).toContain('Audit and Billing Trace');
+    expect(markup).toContain('Центр миссий');
+    expect(markup).toContain('Чекпоинт 6h');
+    expect(markup).toContain('Лента swarm');
+    expect(markup).toContain('Валидационные гейты');
+    expect(markup).toContain('Согласования');
+    expect(markup).toContain('Промежуточные артефакты');
+    expect(markup).toContain('Аудит и биллинг');
   });
 
   test('checkpoint state transitions are deterministic', () => {
@@ -54,9 +54,9 @@ describe('Mission Control run detail', () => {
     const state = createMissionControlState();
     const markup = renderToStaticMarkup(<MissionControlRunDetail initialState={state} />);
 
-    expect(markup).toContain('6h contradiction map');
+    expect(markup).toContain('6ч карта противоречий');
     expect(markup).toContain('cp-6h');
-    expect(markup).toContain('12h evidence memo');
+    expect(markup).toContain('12ч evidence memo');
     expect(markup).toContain('cp-12h');
   });
 });
