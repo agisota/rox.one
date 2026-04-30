@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 export type ManagedCloudWorkspaceStatus = 'active' | 'archived'
-export type ManagedCloudWorkspaceVisibility = 'private'
+export type ManagedCloudWorkspaceVisibility = 'private' | 'team'
 
 export interface ManagedCloudWorkspaceStorage {
   bucket: string
@@ -13,6 +13,7 @@ export interface ManagedCloudWorkspace {
   name: string
   slug: string
   ownerUserId: string
+  teamId: string | null
   status: ManagedCloudWorkspaceStatus
   visibility: ManagedCloudWorkspaceVisibility
   storage: ManagedCloudWorkspaceStorage
@@ -27,9 +28,15 @@ export interface CreateManagedCloudWorkspaceInput {
   bucket?: string
 }
 
+export interface CreateTeamManagedCloudWorkspaceInput extends CreateManagedCloudWorkspaceInput {
+  teamId: string
+}
+
 export interface ManagedCloudWorkspaceStore {
   createWorkspace(input: CreateManagedCloudWorkspaceInput): Promise<ManagedCloudWorkspace>
+  createTeamWorkspace(input: CreateTeamManagedCloudWorkspaceInput): Promise<ManagedCloudWorkspace>
   listWorkspaces(userId: string): Promise<ManagedCloudWorkspace[]>
+  listTeamWorkspaces(teamIds: string[]): Promise<ManagedCloudWorkspace[]>
   getWorkspaceForUser(userId: string, workspaceId: string): Promise<ManagedCloudWorkspace>
 }
 
@@ -78,6 +85,7 @@ export class InMemoryManagedCloudWorkspaceStore implements ManagedCloudWorkspace
       name,
       slug: this.createUniqueSlug(slugify(name)),
       ownerUserId,
+      teamId: null,
       status: 'active',
       visibility: 'private',
       storage: {
@@ -97,6 +105,37 @@ export class InMemoryManagedCloudWorkspaceStore implements ManagedCloudWorkspace
     return copyWorkspace(workspace)
   }
 
+  async createTeamWorkspace(input: CreateTeamManagedCloudWorkspaceInput): Promise<ManagedCloudWorkspace> {
+    const ownerUserId = input.ownerUserId.trim()
+    if (!ownerUserId) throw new Error('Workspace owner is required')
+
+    const teamId = input.teamId.trim()
+    if (!teamId) throw new Error('Team is required')
+
+    const name = normalizeName(input.name)
+    const id = randomUUID()
+    const now = new Date().toISOString()
+    const workspace: ManagedCloudWorkspace = {
+      id,
+      name,
+      slug: this.createUniqueSlug(slugify(name)),
+      ownerUserId,
+      teamId,
+      status: 'active',
+      visibility: 'team',
+      storage: {
+        bucket: input.bucket?.trim() || 'agent-artifacts',
+        prefix: `teams/${teamId}/workspaces/${id}/`,
+      },
+      createdAt: now,
+      updatedAt: now,
+      archivedAt: null,
+    }
+
+    this.workspacesById.set(workspace.id, workspace)
+    return copyWorkspace(workspace)
+  }
+
   async listWorkspaces(userId: string): Promise<ManagedCloudWorkspace[]> {
     const workspaceIds = this.workspaceIdsByOwnerUserId.get(userId.trim()) ?? new Set<string>()
     return [...workspaceIds]
@@ -107,9 +146,24 @@ export class InMemoryManagedCloudWorkspaceStore implements ManagedCloudWorkspace
       .map(copyWorkspace)
   }
 
+  async listTeamWorkspaces(teamIds: string[]): Promise<ManagedCloudWorkspace[]> {
+    const normalizedTeamIds = new Set(teamIds.map(id => id.trim()).filter(Boolean))
+    if (normalizedTeamIds.size === 0) return []
+
+    return [...this.workspacesById.values()]
+      .filter(workspace =>
+        workspace.status === 'active'
+        && workspace.visibility === 'team'
+        && workspace.teamId !== null
+        && normalizedTeamIds.has(workspace.teamId)
+      )
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+      .map(copyWorkspace)
+  }
+
   async getWorkspaceForUser(userId: string, workspaceId: string): Promise<ManagedCloudWorkspace> {
     const workspace = this.workspacesById.get(workspaceId.trim())
-    if (!workspace || workspace.ownerUserId !== userId.trim() || workspace.status !== 'active') {
+    if (!workspace || workspace.visibility !== 'private' || workspace.ownerUserId !== userId.trim() || workspace.status !== 'active') {
       throw new ManagedCloudWorkspaceAccessError()
     }
     return copyWorkspace(workspace)

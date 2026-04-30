@@ -38,6 +38,33 @@ describe('managed cloud workspaces', () => {
     await expect(store.getWorkspaceForUser('user-b', first.id)).rejects.toBeInstanceOf(ManagedCloudWorkspaceAccessError)
   })
 
+  it('creates team-visible cloud workspace metadata and lists it only for that team', async () => {
+    const store = new InMemoryManagedCloudWorkspaceStore()
+    const workspace = await store.createTeamWorkspace({
+      ownerUserId: 'owner-a',
+      teamId: 'team-a',
+      name: '  Shared Research  ',
+    })
+
+    expect(workspace).toMatchObject({
+      name: 'Shared Research',
+      slug: 'shared-research',
+      ownerUserId: 'owner-a',
+      teamId: 'team-a',
+      status: 'active',
+      visibility: 'team',
+      storage: {
+        bucket: 'agent-artifacts',
+        prefix: `teams/team-a/workspaces/${workspace.id}/`,
+      },
+    })
+
+    await store.createTeamWorkspace({ ownerUserId: 'owner-b', teamId: 'team-b', name: 'Other Team' })
+
+    expect((await store.listTeamWorkspaces(['team-a'])).map(item => item.id)).toEqual([workspace.id])
+    expect(await store.listTeamWorkspaces(['team-c'])).toEqual([])
+  })
+
   it('rejects invalid names before creating workspace metadata', async () => {
     const store = new InMemoryManagedCloudWorkspaceStore()
 
@@ -55,6 +82,21 @@ describe('managed cloud workspaces', () => {
     expect(await store.getWorkspaceForUser('user-a', workspace.id)).toMatchObject({
       name: 'Mutable',
       storage: { prefix: `managed-workspaces/${workspace.id}/` },
+    })
+  })
+
+  it('returns defensive copies of team workspace metadata', async () => {
+    const store = new InMemoryManagedCloudWorkspaceStore()
+    const workspace = await store.createTeamWorkspace({ ownerUserId: 'owner-a', teamId: 'team-a', name: 'Mutable Team' })
+
+    workspace.name = 'mutated'
+    workspace.storage.prefix = 'mutated/'
+
+    const workspaces = await store.listTeamWorkspaces(['team-a'])
+    expect(workspaces).toHaveLength(1)
+    expect(workspaces[0]).toMatchObject({
+      name: 'Mutable Team',
+      storage: { prefix: `teams/team-a/workspaces/${workspace.id}/` },
     })
   })
 })
