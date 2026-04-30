@@ -5,7 +5,7 @@ import type { AccountEventRecord } from './account-events'
 export interface AccountCabinetBalance {
   userId: string
   balanceUnits: number
-  currency: 'ROX'
+  currency: 'USDT'
   updatedAt: string | null
 }
 
@@ -13,7 +13,7 @@ export interface AccountCabinetBilling {
   balance: AccountCabinetBalance
   topUp: {
     enabled: boolean
-    provider: 'manual'
+    provider: 'manual' | 'dv.net'
     url: string | null
   }
   ledger?: {
@@ -44,7 +44,7 @@ export function createAccountCabinetBilling(identity: SessionIdentity): AccountC
     balance: {
       userId: identity.userId,
       balanceUnits: 0,
-      currency: 'ROX',
+      currency: 'USDT',
       updatedAt: null,
     },
     topUp: {

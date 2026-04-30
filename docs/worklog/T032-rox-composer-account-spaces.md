@@ -491,11 +491,25 @@ Implemented in slice F:
   - `/api/account/storage` requires an account session;
   - authenticated storage status returns the current user's bucket DTO without renderer credentials.
 
+Implemented in slice G:
+
+- `packages/server-core/src/webui/__tests__/account-ledger.test.ts`
+  - account ledger currency is `USDT`.
+- `packages/server-core/src/webui/__tests__/account-cabinet.test.ts`
+  - default account cabinet billing shows `USDT`.
+- `packages/server-core/src/webui/__tests__/account-billing.test.ts`
+  - DV.net top-up intent creates a payment form URL and exposes no secrets;
+  - confirmed `PaymentReceived` webhook credits only once by `tx_hash:bc_uniq_key`;
+  - invalid signatures are rejected;
+  - unconfirmed events are acknowledged but not credited.
+- `packages/server-core/src/webui/__tests__/account-http.test.ts`
+  - configured `/api/account/billing/top-up-intent` returns a DV.net checkout URL and USDT billing;
+  - `/api/webhooks/dvnet` verifies `x-dv-signature`, credits once, handles duplicates idempotently, and rejects invalid signatures.
+
 Planned follow-up tests:
 
 - Server account tests for login/register/account compatibility.
 - Team API tests for create/list/invite/accept-once and role matrix denial.
-- Billing tests for USDT display, fake DV.net intent, invalid signature rejection, duplicate webhook rejection, and confirmed-only crediting.
 
 ## 14. Expected failing test output
 
@@ -601,6 +615,23 @@ Expected: 200
 Received: 404
 ```
 
+First red runs for slice G:
+
+```text
+bun test packages/server-core/src/webui/__tests__/account-ledger.test.ts packages/server-core/src/webui/__tests__/account-cabinet.test.ts packages/server-core/src/webui/__tests__/account-billing.test.ts
+
+Cannot find module '../account-billing'
+Expected: "USDT"
+Received: "ROX"
+```
+
+```text
+bun test packages/server-core/src/webui/__tests__/account-http.test.ts --test-name-pattern "DV.net"
+
+Expected: "ready"
+Received: "disabled"
+```
+
 ## 15. Implementation changes
 
 Slice A:
@@ -660,6 +691,15 @@ Slice F:
 - Added team-space storage prefixes under `teams/<teamId>/spaces/<spaceId>/` using the same tenant ID validation boundary.
 - Added secret-free storage status DTOs; renderer-facing responses expose endpoint health, bucket, prefix, usage, and quota only.
 - Added `GET /api/account/storage`, protected by account sessions, returning the user bucket and current team buckets when a team store is present.
+
+Slice G:
+
+- Changed server-core account ledger and account cabinet billing currency from `ROX` to `USDT`.
+- Added `account-billing.ts` with DV.net payment-form intent generation, HMAC webhook signature verification, micro-USDT amount parsing, and `PaymentReceived` processing.
+- Added configured `/api/account/billing/top-up-intent` behavior that returns a DV.net checkout URL only when server-side DV.net config and usage ledger are present.
+- Added public `/api/webhooks/dvnet` handler that verifies `x-dv-signature`, credits only confirmed payments, and remains idempotent by `tx_hash:bc_uniq_key`.
+- Updated account settings balance fallback to `USDT`.
+- Updated persistent auth server defaults for new billing rows from `ROX` to `USDT`; existing rows are not mutated in this slice.
 
 ## 16. Validation commands run
 
@@ -735,6 +775,18 @@ Slice F:
 - `bun run webui:build`
 - `git diff --check`
 
+Slice G:
+
+- `bun test packages/server-core/src/webui/__tests__/account-ledger.test.ts packages/server-core/src/webui/__tests__/account-cabinet.test.ts packages/server-core/src/webui/__tests__/account-billing.test.ts`
+- `bun test packages/server-core/src/webui/__tests__/account-http.test.ts --test-name-pattern "DV.net"`
+- `bun test packages/server-core/src/webui/__tests__/account-billing.test.ts packages/server-core/src/webui/__tests__/account-ledger.test.ts packages/server-core/src/webui/__tests__/account-cabinet.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts apps/electron/src/renderer/pages/settings/__tests__/account-auth-panel.test.tsx`
+- `cd packages/server-core && bun run tsc --noEmit`
+- `bun run typecheck:electron`
+- `bun run typecheck:all`
+- `bun run webui:build`
+- `node --check infra/rox-one-auth-server.mjs`
+- `git diff --check`
+
 ## 17. Passing test output summary
 
 - Slice A targeted tests: `17 pass`, `0 fail`, `63 expect() calls`.
@@ -760,6 +812,11 @@ Slice F:
 - Slice F broader server/storage/team tests: `28 pass`, `0 fail`, `156 expect() calls`.
 - Slice F server-core `tsc --noEmit`: passed.
 - Slice F `bun run typecheck:all`: passed.
+- Slice G account billing/ledger/cabinet/http/UI targeted tests: `31 pass`, `0 fail`, `158 expect() calls`.
+- Slice G server-core `tsc --noEmit`: passed.
+- Slice G `bun run typecheck:electron`: passed.
+- Slice G `bun run typecheck:all`: passed.
+- Slice G `node --check infra/rox-one-auth-server.mjs`: passed.
 
 ## 18. Build output summary
 
@@ -770,6 +827,7 @@ Slice F:
 - Slice D `bun run webui:build` passed; Vite built the renderer bundle in `29.58s`.
 - Slice E `bun run webui:build` passed; Vite built the renderer bundle in `26.61s`.
 - Slice F `bun run webui:build` passed; Vite built the renderer bundle in `26.62s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
+- Slice G `bun run webui:build` passed; Vite built the renderer bundle in `26.26s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
 
 ## 19. Remaining risks
 
@@ -782,7 +840,9 @@ Slice F:
 - Desktop account fetch now goes directly to `https://rox.one`; live cookie/CORS behavior still needs packaged-app smoke testing against the real account service.
 - Teams/spaces are implemented in the in-memory server-core store and HTTP handler; persistent SQL backing in `infra/rox-one-auth-server.mjs` remains pending.
 - Storage bucket/status implementation is present for backend/account DTOs; real S3 SDK provisioning and persistent bucket records remain pending.
-- Billing implementation remains pending beyond the DV.net checkout URL boundary.
+- Billing implementation now covers USDT ledger/cabinet defaults, DV.net checkout intent, signature verification, confirmed-only crediting, and duplicate webhook idempotency.
+- Real DV.net deployment secrets and live webhook delivery remain untested and must stay server-side.
+- Existing hosted auth DB rows that already contain `ROX` are not migrated automatically by this slice.
 - Existing unrelated dirty files remain excluded from this task commit: `apps/electron/src/main/index.ts`, `events.jsonl`, and auto-update files.
 
 ## 20. Acceptance criteria matrix
@@ -803,5 +863,5 @@ Slice F:
 | External account navigation is limited to DV.net checkout | Pass | Slice D `isAllowedAccountExternalUrl` tests |
 | Teams and collaborative spaces are specified | Pass | Slice E team/spaces/invites API and RBAC tests |
 | S3 storage boundary is backend-only | Pass | Slice F backend-only endpoint preference, bucket records, `/api/account/storage`, and secret-free DTO tests |
-| USDT/DV.net billing boundary is specified | Planned | Sequence diagram and DV.net docs notes |
+| USDT/DV.net billing boundary is implemented with fake-provider tests | Pass | Slice G account-billing and account-http tests cover USDT, top-up intent, signature rejection, confirmed-only credit, and duplicate idempotency |
 | TDD-first implementation plan exists | Planned | Phase A-D test-first path |

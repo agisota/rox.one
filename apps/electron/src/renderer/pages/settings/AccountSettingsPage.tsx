@@ -142,8 +142,8 @@ export default function AccountSettingsPage() {
   }
 
   const formatBalance = (value?: AccountBalance | null): string => {
-    if (!value) return '0 ROX'
-    return `${Number(value.balanceUnits || 0).toLocaleString('ru-RU')} ${value.currency || 'ROX'}`
+    if (!value) return '0 USDT'
+    return `${Number(value.balanceUnits || 0).toLocaleString('ru-RU')} ${value.currency || 'USDT'}`
   }
 
   const openExternalCheckoutUrl = useCallback(async (url: string) => {

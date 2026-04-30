@@ -8,6 +8,7 @@ import { InMemoryAccountUsageLedger } from '../account-ledger'
 import { InMemoryAccountEventHistory } from '../account-events'
 import { InMemoryAccountTeamStore } from '../account-teams'
 import { InMemoryManagedCloudWorkspaceStore } from '../account-cloud-workspaces'
+import { createDvnetWebhookSignature } from '../account-billing'
 
 class MemoryAccountStore implements AccountStore {
   users = new Map<string, PublicUser & { passwordHash: string }>()
@@ -218,6 +219,7 @@ describe('account webui auth', () => {
     eventHistory?: InMemoryAccountEventHistory,
     teamStore?: InMemoryAccountTeamStore,
     cloudWorkspaceStore?: InMemoryManagedCloudWorkspaceStore,
+    dvnetBilling?: { storeUuid: string; paymentBaseUrl: string; webhookSecret: string },
   ) {
     const handler = createWebuiHandler({
       webuiDir: '/tmp/does-not-need-static-assets',
@@ -233,6 +235,7 @@ describe('account webui auth', () => {
       accountEventHistory: eventHistory,
       accountTeamStore: teamStore,
       accountCloudWorkspaceStore: cloudWorkspaceStore,
+      accountDvnetBilling: dvnetBilling,
     })
     handlers.push(handler)
     return handler
@@ -484,7 +487,7 @@ describe('account webui auth', () => {
       balance: {
         userId: created.id,
         balanceUnits: 0,
-        currency: 'ROX',
+        currency: 'USDT',
         updatedAt: null,
       },
       topUp: {
@@ -585,7 +588,7 @@ describe('account webui auth', () => {
         balance: {
           userId: created.id,
           balanceUnits: 0,
-          currency: 'ROX',
+          currency: 'USDT',
           updatedAt: null,
         },
         topUp: {
@@ -899,6 +902,77 @@ describe('account webui auth', () => {
     })
     expect(body.ledger.entries.map(entry => entry.userId)).toEqual([firstUser.id, firstUser.id])
     expect(body.ledger.entries.map(entry => entry.amountUnits)).toEqual([1000, 125])
+  })
+
+  it('creates DV.net top-up intents and credits confirmed webhooks once', async () => {
+    const store = new MemoryAccountStore()
+    const usageLedger = new InMemoryAccountUsageLedger()
+    const created = await store.createUser({ email: 'user@example.com', password: 'password123' })
+    await store.markEmailVerified(created.id)
+    const handler = createHandler(store, undefined, usageLedger, undefined, undefined, undefined, {
+      storeUuid: '0cbffe2b-d2a5-433d-94f5-77ce93a7c0eb',
+      paymentBaseUrl: 'https://checkout.dv.net',
+      webhookSecret: 'webhook-secret',
+    })
+
+    const login = await handler.fetch(new Request('http://craft.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'user@example.com', password: 'password123' }),
+    }))
+    const cookie = login.headers.get('set-cookie') ?? ''
+    expect(login.status).toBe(200)
+
+    const topUp = await handler.fetch(new Request('http://craft.test/api/account/billing/top-up-intent', {
+      method: 'POST',
+      headers: { cookie },
+    }))
+    expect(topUp.status).toBe(200)
+    const topUpBody = await topUp.json() as { status: string; provider: string; redirectUrl: string; billing: { balance: { currency: string } } }
+    expect(topUpBody.status).toBe('ready')
+    expect(topUpBody.provider).toBe('dv.net')
+    expect(topUpBody.redirectUrl).toContain('https://checkout.dv.net/pay/store/0cbffe2b-d2a5-433d-94f5-77ce93a7c0eb/')
+    expect(topUpBody.billing.balance.currency).toBe('USDT')
+    expect(JSON.stringify(topUpBody)).not.toContain('webhook-secret')
+
+    const rawBody = JSON.stringify({
+      amount: '12.50',
+      status: 'completed',
+      type: 'PaymentReceived',
+      transactions: {
+        amount_usd: '12.50',
+        bc_uniq_key: '1',
+        tx_hash: 'tx-hash-http-1',
+      },
+      wallet: {
+        store_external_id: created.id,
+      },
+    })
+    const signature = createDvnetWebhookSignature(rawBody, 'webhook-secret')
+
+    const webhook = await handler.fetch(new Request('http://craft.test/api/webhooks/dvnet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-dv-signature': signature },
+      body: rawBody,
+    }))
+    expect(webhook.status).toBe(200)
+    expect(await webhook.json()).toEqual({ success: true })
+
+    const duplicate = await handler.fetch(new Request('http://craft.test/api/webhooks/dvnet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-dv-signature': signature },
+      body: rawBody,
+    }))
+    expect(duplicate.status).toBe(200)
+    expect((await usageLedger.getBalance(created.id)).balanceUnits).toBe(12_500_000)
+    expect((await usageLedger.getBalance(created.id)).entries).toHaveLength(1)
+
+    const invalid = await handler.fetch(new Request('http://craft.test/api/webhooks/dvnet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-dv-signature': 'bad' },
+      body: rawBody,
+    }))
+    expect(invalid.status).toBe(400)
   })
 
   it('returns account events from injected history without leaking other users or raw user ids', async () => {

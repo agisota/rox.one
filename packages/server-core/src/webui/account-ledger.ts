@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
 export type AccountLedgerEntryType = 'credit' | 'debit'
-export type AccountLedgerCurrency = 'ROX'
+export type AccountLedgerCurrency = 'USDT'
 
 export interface AccountLedgerEntry {
   id: string
@@ -60,10 +60,10 @@ function copyEntry(entry: AccountLedgerEntry): AccountLedgerEntry {
 
 function copyBalance(userId: string, entries: AccountLedgerEntry[]): AccountLedgerBalance {
   const last = entries.at(-1)
-  return {
+    return {
     userId,
     balanceUnits: last?.balanceAfterUnits ?? 0,
-    currency: 'ROX',
+    currency: 'USDT',
     updatedAt: last?.createdAt ?? null,
     entries: entries.map(copyEntry),
   }
@@ -106,7 +106,7 @@ export class InMemoryAccountUsageLedger implements AccountUsageLedger {
       userId: input.userId,
       type,
       amountUnits: input.amountUnits,
-      currency: 'ROX',
+      currency: 'USDT',
       reason: input.reason,
       idempotencyKey: input.idempotencyKey,
       balanceAfterUnits,
