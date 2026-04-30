@@ -62,6 +62,7 @@
     "./views": "./src/views/index.ts",
     "./views/storage": "./src/views/storage.ts",
     "./workbench": "./src/workbench/index.ts",
+    "./workbench/option-graph": "./src/workbench/option-graph.ts",
     "./workbench/product-mode-registry": "./src/workbench/product-mode-registry.ts",
     "./workbench/prompt-rewrite-engine": "./src/workbench/prompt-rewrite-engine.ts",
     "./workbench/thinking-partner": "./src/workbench/thinking-partner.ts",
