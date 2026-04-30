@@ -38,6 +38,11 @@ import {
 import type { AccountUsageLedger } from './account-ledger'
 import type { AccountEventHistory } from './account-events'
 import {
+  createDvnetTopUpIntent,
+  DvnetWebhookSignatureError,
+  processDvnetWebhook,
+} from './account-billing'
+import {
   createCloudSessionBoundary,
   createLocalSessionBoundary,
 } from './account-session-boundary'
@@ -244,6 +249,12 @@ export interface WebuiHandlerOptions {
   accountTeamStore?: AccountTeamStore
   /** Optional managed cloud workspace metadata store. */
   accountCloudWorkspaceStore?: ManagedCloudWorkspaceStore
+  /** Optional DV.net billing configuration. Secrets stay server-side. */
+  accountDvnetBilling?: {
+    storeUuid: string
+    paymentBaseUrl: string
+    webhookSecret: string
+  }
   /** Optional account bootstrap hook, e.g. grant first user access to existing workspaces. */
   bootstrapAccount?: (user: PublicUser) => Promise<void>
   /**
@@ -845,7 +856,49 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
     if (path === '/api/account/billing/top-up-intent' && req.method === 'POST') {
       const identity = await requireAccountSession(req)
       if (identity instanceof Response) return identity
+      if (options.accountDvnetBilling && options.accountUsageLedger) {
+        const balance = await options.accountUsageLedger.getBalance(identity.userId)
+        const billing = createAccountCabinetBillingFromLedger(balance)
+        const intent = createDvnetTopUpIntent({
+          userId: identity.userId,
+          storeUuid: options.accountDvnetBilling.storeUuid,
+          paymentBaseUrl: options.accountDvnetBilling.paymentBaseUrl,
+          clientId: identity.sessionId,
+        })
+        return Response.json({
+          ...intent,
+          billing: {
+            ...billing,
+            topUp: {
+              enabled: true,
+              provider: 'dv.net',
+              url: intent.redirectUrl,
+            },
+          },
+        })
+      }
       return Response.json(createDisabledTopUpIntent(identity))
+    }
+
+    if (path === '/api/webhooks/dvnet' && req.method === 'POST') {
+      if (!options.accountDvnetBilling || !options.accountUsageLedger) {
+        return Response.json({ error: 'DV.net billing is not configured' }, { status: 503 })
+      }
+
+      try {
+        await processDvnetWebhook({
+          rawBody: await req.text(),
+          signature: req.headers.get('x-dv-signature'),
+          webhookSecret: options.accountDvnetBilling.webhookSecret,
+          ledger: options.accountUsageLedger,
+        })
+        return Response.json({ success: true })
+      } catch (error) {
+        if (error instanceof DvnetWebhookSignatureError) {
+          return Response.json({ error: 'Invalid DV.net webhook signature' }, { status: 400 })
+        }
+        return Response.json({ error: error instanceof Error ? error.message : 'Invalid DV.net webhook payload' }, { status: 400 })
+      }
     }
 
     if (path === '/api/account/events' && req.method === 'GET') {

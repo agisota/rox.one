@@ -24,7 +24,7 @@ if (!CONFIGURED_JWT_SECRET && process.env.ROX_AUTH_ALLOW_EPHEMERAL_JWT_SECRET !=
 }
 const JWT_SECRET = CONFIGURED_JWT_SECRET || randomBytes(32).toString('hex')
 const WS_URL = process.env.ROX_AUTH_WS_URL || process.env.ROX_WEBUI_WS_URL || 'wss://rox.one/ws'
-const BILLING_CURRENCY = process.env.ROX_BILLING_CURRENCY || 'ROX'
+const BILLING_CURRENCY = process.env.ROX_BILLING_CURRENCY || 'USDT'
 const BILLING_INITIAL_BALANCE_UNITS = Number(process.env.ROX_BILLING_INITIAL_BALANCE_UNITS || 0)
 const BILLING_TOP_UP_URL = (process.env.ROX_BILLING_TOP_UP_URL || '').trim()
 const TRUST_FORWARDED_HEADERS = process.env.ROX_AUTH_TRUST_FORWARDED_HEADERS === '1' || process.env.ROX_TRUST_FORWARDED_HEADERS === '1'
@@ -307,7 +307,7 @@ function sqliteStore() {
     CREATE TABLE IF NOT EXISTS rox_account_balances (
       user_id TEXT PRIMARY KEY,
       balance_units INTEGER NOT NULL DEFAULT 0,
-      currency TEXT NOT NULL DEFAULT 'ROX',
+      currency TEXT NOT NULL DEFAULT 'USDT',
       updated_at TEXT NOT NULL,
       FOREIGN KEY(user_id) REFERENCES rox_users(id)
     );
@@ -395,7 +395,7 @@ async function postgresStore(connectionString) {
     CREATE TABLE IF NOT EXISTS rox_account_balances (
       user_id TEXT PRIMARY KEY REFERENCES rox_users(id) ON DELETE CASCADE,
       balance_units INTEGER NOT NULL DEFAULT 0,
-      currency TEXT NOT NULL DEFAULT 'ROX',
+      currency TEXT NOT NULL DEFAULT 'USDT',
       updated_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS rox_account_events (

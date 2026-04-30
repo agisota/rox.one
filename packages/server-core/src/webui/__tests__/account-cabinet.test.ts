@@ -21,7 +21,7 @@ describe('account cabinet defaults', () => {
       balance: {
         userId: 'user-1',
         balanceUnits: 0,
-        currency: 'ROX',
+        currency: 'USDT',
         updatedAt: null,
       },
       topUp: {

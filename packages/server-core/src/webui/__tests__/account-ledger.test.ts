@@ -24,7 +24,7 @@ describe('account usage balance ledger', () => {
 
     const snapshot = await ledger.getBalance('user-a')
     expect(snapshot.balanceUnits).toBe(875)
-    expect(snapshot.currency).toBe('ROX')
+    expect(snapshot.currency).toBe('USDT')
     expect(snapshot.entries.map(entry => entry.balanceAfterUnits)).toEqual([1000, 875])
     expect(snapshot.entries[1]).toMatchObject({
       type: 'debit',
