@@ -797,6 +797,15 @@ Slice H:
 - `bun run webui:build`
 - `git diff --check`
 
+Slice I:
+
+- `bun test apps/electron/src/renderer/pages/settings/__tests__/account-teams-summary.test.ts`
+- `bun test apps/electron/src/renderer/pages/settings/__tests__/account-teams-summary.test.ts apps/electron/src/renderer/pages/settings/__tests__/account-storage-summary.test.ts apps/electron/src/renderer/pages/settings/__tests__/account-auth-panel.test.tsx`
+- `bun test packages/server-core/src/webui/__tests__/account-teams.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts --test-name-pattern "teams, spaces|account organizations|joins account organizations|protected cabinet defaults"`
+- `bun run typecheck:electron`
+- `bun run webui:build`
+- `git diff --check`
+
 ## 17. Passing test output summary
 
 - Slice A targeted tests: `17 pass`, `0 fail`, `63 expect() calls`.
@@ -833,6 +842,12 @@ Slice H:
 - Slice H `bun run typecheck:electron`: passed.
 - Slice H `bun run typecheck:all`: passed.
 - Slice H `git diff --check`: passed.
+- Slice I expected failure: `Cannot find module '../account-teams-summary'` before implementation.
+- Slice I account teams summary tests: `3 pass`, `0 fail`, `8 expect() calls`.
+- Slice I account UI focused tests: `9 pass`, `0 fail`, `31 expect() calls`.
+- Slice I backend team/http regression tests: `4 pass`, `0 fail`, `35 expect() calls`.
+- Slice I `bun run typecheck:electron`: passed.
+- Slice I `git diff --check`: passed.
 
 ## 18. Build output summary
 
@@ -845,6 +860,7 @@ Slice H:
 - Slice F `bun run webui:build` passed; Vite built the renderer bundle in `26.62s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
 - Slice G `bun run webui:build` passed; Vite built the renderer bundle in `26.26s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
 - Slice H `bun run webui:build` passed; Vite built the renderer bundle in `26.64s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
+- Slice I `bun run webui:build` passed; Vite built the renderer bundle in `24.11s`; warnings only: existing outDir, deprecated Jotai Babel plugin, and large chunk warnings.
 
 ## 19. Remaining risks
 
@@ -861,6 +877,7 @@ Slice H:
 - Real DV.net deployment secrets and live webhook delivery remain untested and must stay server-side.
 - The account storage panel exposes authenticated bucket/prefix topology for operator visibility, but no S3 credentials or secret material.
 - DV.net webhook hardening currently covers signature, idempotency, intent resolution, status checks, and body size; network/IP rate limiting remains outside this slice.
+- Teams/Spaces UI now uses team-first endpoints, but the first UI implementation uses explicit team IDs in compact settings inputs rather than a richer team picker.
 - Existing hosted auth DB rows that already contain `ROX` are not migrated automatically by this slice.
 - Existing unrelated dirty files remain excluded from this task commit: `apps/electron/src/main/index.ts`, `events.jsonl`, and auto-update files.
 
@@ -885,4 +902,5 @@ Slice H:
 | USDT/DV.net billing boundary is implemented with fake-provider tests | Pass | Slice G account-billing and account-http tests cover USDT, top-up intent, signature rejection, confirmed-only credit, and duplicate idempotency |
 | DV.net webhook follows official signature and opaque intent boundary | Pass | Slice H uses `X-SIGN`, `sha256(rawJson + secret)`, server-side billing intents, and oversize webhook rejection tests |
 | Account storage UX remains in-app and secret-free | Pass | Slice H account storage summary tests and account page storage section |
+| Teams/Spaces UI uses team-first endpoints | Pass | Slice I tests assert `/api/account/teams`, `/spaces`, `/invites`, and `/invites/:code/accept` path mapping plus account page integration |
 | TDD-first implementation plan exists | Planned | Phase A-D test-first path |
