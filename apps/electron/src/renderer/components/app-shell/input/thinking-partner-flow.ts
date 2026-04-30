@@ -27,7 +27,7 @@ export interface ThinkingPartnerSpecBuilderIntent {
   selectedOptions: ThinkingPartnerOptionCard[];
 }
 
-export function shouldOpenThinkingPartnerForIntent(intent: ProductModeIntent): boolean {
+export function shouldOpenThinkingPartnerForIntent(intent: ProductModeIntent | { actionId: string }): boolean {
   return intent.actionId === 'think-with-me';
 }
 

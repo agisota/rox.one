@@ -2,7 +2,7 @@ import type { ProductMode } from '@rox-agent/shared/workbench/product-mode-regis
 
 export type { ProductMode };
 
-export const PRODUCT_MODE_TOOLBAR_DEFAULT_MODE = 'rewrite' satisfies ProductMode;
+export const PRODUCT_MODE_TOOLBAR_DEFAULT_MODE = 'research' satisfies ProductMode;
 
 const COMPOSER_PRODUCT_MODE_IDS = [
   'rewrite',
@@ -18,13 +18,12 @@ const COMPOSER_PRODUCT_MODE_IDS = [
 ] as const satisfies readonly ProductMode[];
 
 export const COMPOSER_PRODUCT_MODE_ACTION_IDS = [
-  'rewrite-prompt',
-  'think-with-me',
+  'improve-prompt',
+  'run-tdd-plan',
+  'verify',
+  'tear-down',
   'build-spec',
   'review',
-  'verify',
-  'run-tdd-plan',
-  'save-preset',
 ] as const;
 
 export type ComposerProductModeActionId = typeof COMPOSER_PRODUCT_MODE_ACTION_IDS[number];
@@ -54,16 +53,28 @@ export type ComposerProductModeOption = {
 
 const COMPOSER_PRODUCT_MODE_ACTIONS: readonly ComposerProductModeAction[] = [
   {
-    id: 'rewrite-prompt',
-    labelKey: 'workbench.actions.rewritePrompt',
-    ariaLabelKey: 'workbench.actions.rewritePrompt',
+    id: 'improve-prompt',
+    labelKey: 'workbench.actions.improvePrompt',
+    ariaLabelKey: 'workbench.actions.improvePrompt',
     mode: 'rewrite',
   },
   {
-    id: 'think-with-me',
-    labelKey: 'workbench.actions.thinkWithMe',
-    ariaLabelKey: 'workbench.actions.thinkWithMe',
-    mode: 'think',
+    id: 'run-tdd-plan',
+    labelKey: 'workbench.actions.runTddPlan',
+    ariaLabelKey: 'workbench.actions.runTddPlan',
+    mode: 'tdd',
+  },
+  {
+    id: 'verify',
+    labelKey: 'workbench.actions.verify',
+    ariaLabelKey: 'workbench.actions.verify',
+    mode: 'verify',
+  },
+  {
+    id: 'tear-down',
+    labelKey: 'workbench.actions.tearDown',
+    ariaLabelKey: 'workbench.actions.tearDown',
+    mode: 'review',
   },
   {
     id: 'build-spec',
@@ -76,24 +87,6 @@ const COMPOSER_PRODUCT_MODE_ACTIONS: readonly ComposerProductModeAction[] = [
     labelKey: 'workbench.actions.review',
     ariaLabelKey: 'workbench.actions.review',
     mode: 'review',
-  },
-  {
-    id: 'verify',
-    labelKey: 'workbench.actions.verify',
-    ariaLabelKey: 'workbench.actions.verify',
-    mode: 'verify',
-  },
-  {
-    id: 'run-tdd-plan',
-    labelKey: 'workbench.actions.runTddPlan',
-    ariaLabelKey: 'workbench.actions.runTddPlan',
-    mode: 'tdd',
-  },
-  {
-    id: 'save-preset',
-    labelKey: 'workbench.actions.savePreset',
-    ariaLabelKey: 'workbench.actions.savePreset',
-    mode: 'selected',
   },
 ] as const;
 

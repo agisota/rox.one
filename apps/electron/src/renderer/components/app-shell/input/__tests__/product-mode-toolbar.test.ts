@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'bun:test';
+import * as React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 import {
   COMPOSER_PRODUCT_MODE_ACTION_IDS,
@@ -10,20 +12,20 @@ import {
   type ComposerProductModeActionId,
   type ProductMode,
 } from '../product-mode-toolbar';
+import { ProductModeToolbar } from '../ProductModeToolbar';
 
 const REQUIRED_ACTIONS: Array<[ComposerProductModeActionId, ProductMode]> = [
-  ['rewrite-prompt', 'rewrite'],
-  ['think-with-me', 'think'],
+  ['improve-prompt', 'rewrite'],
+  ['run-tdd-plan', 'tdd'],
+  ['verify', 'verify'],
+  ['tear-down', 'review'],
   ['build-spec', 'spec'],
   ['review', 'review'],
-  ['verify', 'verify'],
-  ['run-tdd-plan', 'tdd'],
-  ['save-preset', 'review'],
 ];
 
 describe('product mode toolbar contract', () => {
   test('declares the default product mode for the composer', () => {
-    expect(PRODUCT_MODE_TOOLBAR_DEFAULT_MODE).toBe('rewrite');
+    expect(PRODUCT_MODE_TOOLBAR_DEFAULT_MODE).toBe('research');
   });
 
   test('renders the required composer action order', () => {
@@ -37,23 +39,23 @@ describe('product mode toolbar contract', () => {
     }
   });
 
-  test('keeps save-preset scoped to the currently selected mode', () => {
-    expect(resolveComposerProductModeFromAction('save-preset', 'research')).toBe('research');
-    expect(createProductModeIntent('save-preset', 'board')).toMatchObject({
-      actionId: 'save-preset',
-      mode: 'board',
+  test('keeps tear-down scoped to review gate without changing submit mode', () => {
+    expect(resolveComposerProductModeFromAction('tear-down', 'research')).toBe('review');
+    expect(createProductModeIntent('tear-down', 'board')).toMatchObject({
+      actionId: 'tear-down',
+      mode: 'review',
       source: 'composer-toolbar',
       type: 'product-mode-intent',
     });
   });
 
   test('creates typed product-mode intent payloads for action buttons', () => {
-    expect(createProductModeIntent('rewrite-prompt', 'review')).toEqual({
+    expect(createProductModeIntent('improve-prompt', 'review')).toEqual({
       type: 'product-mode-intent',
       source: 'composer-toolbar',
-      actionId: 'rewrite-prompt',
+      actionId: 'improve-prompt',
       mode: 'rewrite',
-      labelKey: 'workbench.actions.rewritePrompt',
+      labelKey: 'workbench.actions.improvePrompt',
     });
   });
 
@@ -77,5 +79,21 @@ describe('product mode toolbar contract', () => {
       expect(option.labelKey).toBe(`workbench.modes.${option.id}.label`);
       expect(option.descriptionKey).toBe(`workbench.modes.${option.id}.description`);
     }
+  });
+
+  test('renders a custom mode picker and does not depend on a native select', () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(ProductModeToolbar, {
+        selectedMode: 'research',
+        onModeChange: () => undefined,
+        onIntent: () => undefined,
+      }),
+    );
+
+    expect(markup).toContain('data-testid="product-mode-toolbar"');
+    expect(markup).toContain('data-testid="product-mode-picker"');
+    expect(markup).toContain('aria-haspopup="listbox"');
+    expect(markup).not.toContain('data-testid="product-mode-select"');
+    expect(markup).not.toContain('<select');
   });
 });
