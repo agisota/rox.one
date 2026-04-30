@@ -1,5 +1,6 @@
 import type { SessionIdentity } from '../accounts'
 import type { AccountLedgerBalance } from './account-ledger'
+import type { AccountEventRecord } from './account-events'
 
 export interface AccountCabinetBalance {
   userId: string
@@ -75,6 +76,18 @@ export function createAccountCabinetBillingFromLedger(balance: AccountLedgerBala
 
 export function createAccountCabinetEvents(): { events: AccountCabinetEvent[] } {
   return { events: [] }
+}
+
+export function createAccountCabinetEventsFromHistory(records: AccountEventRecord[]): { events: AccountCabinetEvent[] } {
+  return {
+    events: records.map(record => ({
+      id: record.id,
+      type: record.type,
+      title: record.title,
+      details: { ...record.details },
+      createdAt: record.createdAt,
+    })),
+  }
 }
 
 export function createAccountCabinetOrganizations(): { organizations: AccountCabinetOrganization[] } {

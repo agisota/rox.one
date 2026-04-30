@@ -31,10 +31,12 @@ import {
   createAccountCabinetBilling,
   createAccountCabinetBillingFromLedger,
   createAccountCabinetEvents,
+  createAccountCabinetEventsFromHistory,
   createAccountCabinetOrganizations,
   createDisabledTopUpIntent,
 } from './account-cabinet'
 import type { AccountUsageLedger } from './account-ledger'
+import type { AccountEventHistory } from './account-events'
 
 // ---------------------------------------------------------------------------
 // MIME types for static file serving
@@ -220,6 +222,8 @@ export interface WebuiHandlerOptions {
   accountEmailService?: AccountEmailService
   /** Optional account usage ledger for balance and billing history. */
   accountUsageLedger?: AccountUsageLedger
+  /** Optional account event history for the account cabinet events panel. */
+  accountEventHistory?: AccountEventHistory
   /** Optional account bootstrap hook, e.g. grant first user access to existing workspaces. */
   bootstrapAccount?: (user: PublicUser) => Promise<void>
   /**
@@ -817,6 +821,10 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
     if (path === '/api/account/events' && req.method === 'GET') {
       const identity = await requireAccountSession(req)
       if (identity instanceof Response) return identity
+      if (options.accountEventHistory) {
+        const events = await options.accountEventHistory.listForUser(identity.userId, { limit: 50 })
+        return Response.json(createAccountCabinetEventsFromHistory(events))
+      }
       return Response.json(createAccountCabinetEvents())
     }
 
