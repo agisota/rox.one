@@ -56,7 +56,7 @@ describe('Mission Control run detail', () => {
 
     expect(markup).toContain('6ч карта противоречий');
     expect(markup).toContain('cp-6h');
-    expect(markup).toContain('12ч evidence memo');
+    expect(markup).toContain('12ч мемо доказательств');
     expect(markup).toContain('cp-12h');
   });
 });

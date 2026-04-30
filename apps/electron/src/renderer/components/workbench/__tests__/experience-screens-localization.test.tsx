@@ -48,4 +48,48 @@ describe('Experience screens localization and polish contract', () => {
       expect(markup).not.toContain(staleEnglish);
     }
   });
+
+  test('experience microcopy does not leak English scaffolding in visible cards', () => {
+    const markup = [
+      renderToStaticMarkup(<ArenaBuilderScreen />),
+      renderToStaticMarkup(<MissionControlRunDetail />),
+      renderToStaticMarkup(<ProgressionObservatory />),
+      renderToStaticMarkup(<AgentForgeTeamRegistry />),
+    ].join('\n');
+
+    for (const label of [
+      'дельта VDI',
+      'Сводка чекпоинта',
+      'Кредиты',
+      'Минимум доверия',
+      'Обязательные гейты',
+      'уровень',
+      'Емкость, не качество.',
+      'доверие 80',
+      'Оценка доверия',
+      'Проверка prompt-injection',
+      'блокирует публичную публикацию',
+    ]) {
+      expect(markup).toContain(label);
+    }
+
+    for (const staleEnglish of [
+      'VDI delta',
+      ' summary',
+      'Capacity, не качество.',
+      'Credits',
+      'Trust floor',
+      'Required gates',
+      'level ',
+      'trust 80',
+      'Trust score',
+      'Prompt injection scan',
+      'public publish',
+      'team/private registry checks',
+      'Team-private',
+      'tenants',
+    ]) {
+      expect(markup).not.toContain(staleEnglish);
+    }
+  });
 });

@@ -37,7 +37,7 @@ export function ArenaBuilderScreen({ initialState, initialInput, onCreateDraftRu
       tone="arena"
       eyebrow="Режим арены"
       title="Арена агентов"
-      description="Соберите swarm из проверенных пакетов агентов. Игровая подача может быть жестче, но trust checks, validation gates и бюджет остаются общими правилами."
+      description="Соберите swarm из проверенных пакетов агентов. Игровая подача может быть жестче, но проверки доверия, валидационные гейты и бюджет остаются общими правилами."
       actions={(
         <Button
           className="rounded-full"
@@ -49,7 +49,7 @@ export function ArenaBuilderScreen({ initialState, initialInput, onCreateDraftRu
       )}
       aside={(
         <>
-          <ExperiencePanel title="Выбранные агенты" subtitle="Активная команда для текущего swarm draft.">
+          <ExperiencePanel title="Выбранные агенты" subtitle="Активная команда для текущего черновика swarm.">
             {selectedAgents.length === 0 ? (
               <p className="mt-3 text-sm text-muted-foreground">Агенты пока не выбраны.</p>
             ) : (
@@ -60,10 +60,10 @@ export function ArenaBuilderScreen({ initialState, initialInput, onCreateDraftRu
                       <div>
                         <div className="text-sm font-medium">{agent.package.name}</div>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          {agent.roleTag} / trust {agent.package.trustScore} / {agent.baseCostCredits} кредитов
+                          {localizeRole(agent.roleTag)} / доверие {agent.package.trustScore} / {agent.baseCostCredits} кредитов
                         </div>
                       </div>
-                      <ExperienceStatusChip status="running" label={`lvl ${agent.level}`} />
+                      <ExperienceStatusChip status="running" label={`уровень ${agent.level}`} />
                     </div>
                   </li>
                 ))}
@@ -71,11 +71,11 @@ export function ArenaBuilderScreen({ initialState, initialInput, onCreateDraftRu
             )}
           </ExperiencePanel>
 
-          <ExperiencePanel title="Оценка бюджета" subtitle="Capacity влияет на слоты, не на VDI.">
-            <ExperienceMetricRow label="Credits" value={`${state.runEstimate.budgetEstimateCredits}`} />
+          <ExperiencePanel title="Оценка бюджета" subtitle="Емкость влияет на слоты, не на VDI.">
+            <ExperienceMetricRow label="Кредиты" value={`${state.runEstimate.budgetEstimateCredits}`} />
             <ExperienceMetricRow label="Ожидаемые вклады" value={`${state.runEstimate.estimatedContributionCount}`} />
-            <ExperienceMetricRow label="Trust floor" value={`${state.runEstimate.trustFloor}`} />
-            <ExperienceMetricRow label="Required gates" value={state.runEstimate.validationGateIds.join(', ')} />
+            <ExperienceMetricRow label="Минимум доверия" value={`${state.runEstimate.trustFloor}`} />
+            <ExperienceMetricRow label="Обязательные гейты" value={state.runEstimate.validationGateIds.join(', ')} />
           </ExperiencePanel>
 
           <ExperiencePanel title="Предупреждения выбора">
@@ -100,7 +100,7 @@ export function ArenaBuilderScreen({ initialState, initialInput, onCreateDraftRu
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-[15px] font-semibold">Коллекция агентов</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Выбирайте разблокированных агентов для текущего swarm draft.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Выбирайте разблокированных агентов для текущего черновика swarm.</p>
         </div>
           <ExperienceStatusChip status={state.runEstimate.swarmSlotsUsed > 0 ? 'running' : 'queued'} label={`${state.runEstimate.swarmSlotsUsed} / ${state.runEstimate.swarmSlotLimit} слота`} />
       </div>
@@ -116,22 +116,22 @@ export function ArenaBuilderScreen({ initialState, initialInput, onCreateDraftRu
               disabled={!agent.unlocked}
               tone={agent.package.rarity === 'legendary' ? 'danger' : agent.package.rarity === 'epic' ? 'game' : 'neutral'}
               title={agent.package.name}
-              meta={`${localizeRole(agent.roleTag)} / ${localizeRarity(agent.package.rarity)} / level ${agent.level}`}
+              meta={`${localizeRole(agent.roleTag)} / ${localizeRarity(agent.package.rarity)} / уровень ${agent.level}`}
               onClick={() => setState((current) => toggleArenaAgentSelection(current, agent.package.id))}
             >
               <div className="flex items-center justify-between gap-2">
-                <span>{agent.package.description}</span>
+                <span>{localizeAgentDescription(agent.package.description)}</span>
                 <ExperienceStatusChip status={agent.unlocked ? 'success' : 'locked'} label={agent.unlocked ? 'Разблокировано' : 'Заблокировано'} />
               </div>
               <div className="mt-4 grid gap-3 text-xs text-muted-foreground sm:grid-cols-3">
-                <span>Trust {agent.package.trustScore}</span>
-                <span>Mastery {agent.masteryPercent}%</span>
+                <span>Доверие {agent.package.trustScore}</span>
+                <span>Мастерство {agent.masteryPercent}%</span>
                 <span>{agent.baseCostCredits} кредитов</span>
               </div>
               <ExperienceProgressBar value={agent.masteryPercent} label="Прокачка навыка" />
               {!agent.unlocked && (
                 <div className="mt-3 text-xs text-muted-foreground">
-                  Разблокировка: {agent.unlockCriteria.join(' + ')}
+                  Разблокировка: {localizeUnlockCriteria(agent.unlockCriteria)}
                 </div>
               )}
             </ExperienceCard>
@@ -174,6 +174,23 @@ function localizeRarity(rarity: string): string {
 
 function localizeArenaWarning(warning: string): string {
   if (warning.includes('locked and cannot be selected')) return warning.replace(' is locked and cannot be selected.', ' заблокирован и не может быть выбран.');
-  if (warning.includes('Swarm selection is capped')) return warning.replace('Swarm selection is capped at', 'Выбор swarm ограничен').replace('slots by current entitlement.', 'slots текущим entitlement.');
+  if (warning.includes('Swarm selection is capped')) return warning.replace('Swarm selection is capped at', 'Выбор swarm ограничен').replace('slots by current entitlement.', 'слотами текущего доступа.');
   return warning;
+}
+
+function localizeAgentDescription(description: string): string {
+  if (description.includes('Maps system boundaries')) return 'Находит границы системы, зависимости и риски реализации.';
+  if (description.includes('Attacks assumptions')) return 'Атакует допущения, противоречия и недостающие доказательства.';
+  if (description.includes('Finds evidence')) return 'Ищет доказательства, свежесть источников и альтернативные позиции.';
+  if (description.includes('Turns findings')) return 'Превращает находки в блокирующие гейты и регрессионные проверки.';
+  if (description.includes('Runs high-risk')) return 'Запускает жесткую adversarial-критику и поиск exploit-path.';
+  return description;
+}
+
+function localizeUnlockCriteria(criteria: string[]): string {
+  return criteria
+    .map((criterion) => criterion
+      .replace('Reach VDI 85 on 3 missions', 'Достигнуть VDI 85 в 3 миссиях')
+      .replace('Enable private team registry trust checks', 'Включить проверки доверия приватного командного реестра'))
+    .join(' + ');
 }

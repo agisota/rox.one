@@ -103,11 +103,11 @@ export function MissionControlRunDetail({ initialState }: MissionControlRunDetai
         </>
       )}
     >
-      <ExperiencePanel title="Таймлайн прогона" subtitle="Чекпоинты дают промежуточный результат и VDI delta, но не завершают миссию без evidence.">
+      <ExperiencePanel title="Таймлайн прогона" subtitle="Чекпоинты дают промежуточный результат и дельту VDI, но не завершают миссию без доказательств.">
         <ol className="mt-4 space-y-3">
             {state.checkpoints.map((checkpoint) => (
               <li key={checkpoint.id}>
-                <ExperienceCard title={localizeCheckpointTitle(checkpoint.title)} meta={`${checkpoint.id} / VDI delta ${checkpoint.vdiDelta}`}>
+                <ExperienceCard title={localizeCheckpointTitle(checkpoint.title)} meta={`${checkpoint.id} / дельта VDI ${checkpoint.vdiDelta}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <ExperienceStatusChip status={getStatusTone(checkpoint.status)} label={getStatusLabel(checkpoint.status)} />
@@ -147,7 +147,7 @@ function localizeCheckpointTitle(title: string): string {
 }
 
 function localizeCheckpointSummary(summary: string): string {
-  return localizeCheckpointTitle(summary.replace(' summary', '')) + ' summary';
+  return `Сводка чекпоинта: ${localizeCheckpointTitle(summary.replace(' summary', ''))}`;
 }
 
 function localizeApprovalDescription(description: string): string {
@@ -159,18 +159,21 @@ function localizeApprovalDescription(description: string): string {
 
 function localizeArtifactTitle(title: string): string {
   if (title === '6h contradiction map') return '6ч карта противоречий';
-  if (title === '12h evidence memo') return '12ч evidence memo';
+  if (title === '12h evidence memo') return '12ч мемо доказательств';
   return title;
 }
 
 function localizeAuditSummary(summary: string): string {
   if (summary.includes('Mission started')) return 'Миссия запущена с 4 выбранными агентами.';
-  if (summary.includes('moved to completed')) return summary.replace('Checkpoint', 'Чекпоинт').replace('moved to completed.', 'переведен в готово.');
+  if (summary.includes('moved to completed')) {
+    const checkpointTitle = summary.replace(/^Checkpoint /, '').replace(' moved to completed.', '');
+    return `Чекпоинт ${localizeCheckpointTitle(checkpointTitle)} переведен в готово.`;
+  }
   return summary;
 }
 
 function localizeBillingLabel(label: string): string {
-  if (label === 'Initial swarm pass') return 'Первичный swarm pass';
+  if (label === 'Initial swarm pass') return 'Первичный проход swarm';
   return label;
 }
 
@@ -179,7 +182,7 @@ function localizeBlockingReason(reason: string): string {
     return reason.replace('Approval required for expensive branch:', 'Нужно согласование дорогой ветки:');
   }
   if (reason.includes('Critical validation gate failed')) {
-    return reason.replace('Critical validation gate failed:', 'Критический validation gate провален:');
+    return reason.replace('Critical validation gate failed:', 'Критический валидационный гейт провален:');
   }
   return reason;
 }
