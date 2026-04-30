@@ -1,15 +1,18 @@
+import { AGENT_WORKBENCH_BRAND_CONFIG, type BrandConfig } from "@rox-agent/shared/branding"
 import pzdrkIcon from "@/assets/pzdrk.png"
+import { getBrandIconAltText } from "./brand-icon-copy"
 
 interface RoxAppIconProps {
   className?: string
   size?: number
+  brand?: BrandConfig
 }
 
-export function RoxAppIcon({ className, size = 64 }: RoxAppIconProps) {
+export function RoxAppIcon({ className, size = 64, brand = AGENT_WORKBENCH_BRAND_CONFIG }: RoxAppIconProps) {
   return (
     <img
       src={pzdrkIcon}
-      alt="ROX ONE"
+      alt={getBrandIconAltText(brand)}
       width={size}
       height={size}
       className={className}

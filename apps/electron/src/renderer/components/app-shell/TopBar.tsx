@@ -42,6 +42,7 @@ import { BrowserTabStrip } from "../browser/BrowserTabStrip"
 import type { Workspace } from "../../../shared/types"
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher"
 import { getDocUrl } from "@rox-agent/shared/docs/doc-links"
+import { AGENT_WORKBENCH_BRAND_CONFIG, getBrandDocsUrl } from "@rox-agent/shared/branding"
 
 // --- Menu rendering (moved from AppMenu) ---
 
@@ -267,7 +268,7 @@ export function TopBar({
         </Tooltip>
         )}
 
-        {/* ROX ONE Menu */}
+        {/* Configured app menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <TopBarButton aria-label={t("menu.roxMenu")}>
@@ -329,7 +330,7 @@ export function TopBar({
                 {t("menu.help")}
               </StyledDropdownMenuSubTrigger>
               <StyledDropdownMenuSubContent>
-                <StyledDropdownMenuItem onClick={() => window.electronAPI.openUrl('https://rox.one/docs')}>
+                <StyledDropdownMenuItem onClick={() => window.electronAPI.openUrl(getBrandDocsUrl(undefined, AGENT_WORKBENCH_BRAND_CONFIG))}>
                   <Icons.HelpCircle className="h-3.5 w-3.5" />
                   {t("menu.helpAndDocs")}
                   <Icons.ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
@@ -486,7 +487,7 @@ export function TopBar({
               <Icons.ExternalLink className="h-3 w-3 text-muted-foreground" />
             </StyledDropdownMenuItem>
             <StyledDropdownMenuSeparator />
-            <StyledDropdownMenuItem onClick={() => window.electronAPI.openUrl('https://rox.one/docs')}>
+            <StyledDropdownMenuItem onClick={() => window.electronAPI.openUrl(getBrandDocsUrl(undefined, AGENT_WORKBENCH_BRAND_CONFIG))}>
               <Icons.ExternalLink className="h-3.5 w-3.5" />
               <span className="flex-1">{t("menu.allDocumentation")}</span>
             </StyledDropdownMenuItem>

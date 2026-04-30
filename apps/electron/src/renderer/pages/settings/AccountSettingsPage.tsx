@@ -10,6 +10,7 @@ import { Spinner } from '@rox-agent/ui'
 import { SettingsCard, SettingsInput, SettingsSection } from '@/components/settings'
 import { SettingsRow } from '@/components/settings/SettingsRow'
 import type { DetailsPageMeta } from '@/lib/navigation-registry'
+import { getAccountBrandSummaryRows } from './account-brand-summary'
 
 const ACCOUNT_WEB_ORIGIN = 'https://rox.one'
 const ACCOUNT_LOGIN_PATH = '/login'
@@ -514,6 +515,7 @@ export default function AccountSettingsPage() {
   }
 
   const accountUser = account?.mode === 'account' ? account.user : null
+  const brandSummaryRows = getAccountBrandSummaryRows()
 
   return (
     <div className="h-full flex flex-col">
@@ -521,6 +523,13 @@ export default function AccountSettingsPage() {
       <div className="flex-1 min-h-0 mask-fade-y">
         <ScrollArea className="h-full">
           <div className="px-5 py-7 max-w-5xl mx-auto space-y-8">
+            <SettingsSection title="Приложение" description="White-label сведения, которые используются в shell, меню, документации и поддержке.">
+              <SettingsCard divided>
+                {brandSummaryRows.map((row) => (
+                  <SettingsRow key={row.label} label={row.label} description={row.description} />
+                ))}
+              </SettingsCard>
+            </SettingsSection>
             {accountUser ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
