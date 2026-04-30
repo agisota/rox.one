@@ -83,4 +83,41 @@ describe('account team model and RBAC', () => {
       code: 'missing-code',
     })).rejects.toBeInstanceOf(AccountTeamInviteError)
   })
+
+  it('creates team spaces only for owners and admins', async () => {
+    const teams = new InMemoryAccountTeamStore()
+    const organization = await teams.createOrganization({
+      actorUserId: 'user-owner',
+      name: 'ROX Ops',
+    })
+    const invite = await teams.createInvite({
+      actorUserId: 'user-owner',
+      organizationId: organization.id,
+      role: 'viewer',
+    })
+    await teams.joinWithInvite({ userId: 'user-viewer', code: invite.code })
+
+    const space = await teams.createSpace({
+      actorUserId: 'user-owner',
+      organizationId: organization.id,
+      name: 'Research',
+    })
+
+    expect(space).toMatchObject({
+      organizationId: organization.id,
+      name: 'Research',
+      storagePrefix: `teams/${organization.id}/spaces/${space.id}/`,
+    })
+    expect(await teams.listSpaces({ actorUserId: 'user-owner', organizationId: organization.id })).toEqual([space])
+    expect(await teams.listSpaces({ actorUserId: 'user-viewer', organizationId: organization.id })).toEqual([space])
+    await expect(teams.createSpace({
+      actorUserId: 'user-viewer',
+      organizationId: organization.id,
+      name: 'Viewer Space',
+    })).rejects.toBeInstanceOf(AccountTeamForbiddenError)
+    await expect(teams.listSpaces({
+      actorUserId: 'user-outsider',
+      organizationId: organization.id,
+    })).rejects.toBeInstanceOf(AccountTeamForbiddenError)
+  })
 })

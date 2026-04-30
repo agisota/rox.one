@@ -661,6 +661,99 @@ describe('account webui auth', () => {
     expect(reused.status).toBe(400)
   })
 
+  it('exposes teams, spaces, and invite aliases with deny-by-default RBAC', async () => {
+    const store = new MemoryAccountStore()
+    const teams = new InMemoryAccountTeamStore()
+    const owner = await store.createUser({ email: 'owner@example.com', password: 'password123' })
+    await store.markEmailVerified(owner.id)
+    const viewer = await store.createUser({ email: 'viewer@example.com', password: 'password123' })
+    await store.markEmailVerified(viewer.id)
+    const outsider = await store.createUser({ email: 'outsider@example.com', password: 'password123' })
+    await store.markEmailVerified(outsider.id)
+    const handler = createHandler(store, undefined, undefined, undefined, teams)
+
+    const ownerLogin = await handler.fetch(new Request('http://craft.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'owner@example.com', password: 'password123' }),
+    }))
+    const ownerCookie = ownerLogin.headers.get('set-cookie') ?? ''
+    expect(ownerLogin.status).toBe(200)
+
+    const createTeam = await handler.fetch(new Request('http://craft.test/api/account/teams', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ name: 'ROX Ops' }),
+    }))
+    expect(createTeam.status).toBe(200)
+    const createTeamBody = await createTeam.json() as { teams: Array<{ id: string; name: string; role: string }> }
+    const teamId = createTeamBody.teams[0]!.id
+    expect(createTeamBody.teams[0]).toMatchObject({ name: 'ROX Ops', role: 'owner' })
+
+    const createSpace = await handler.fetch(new Request(`http://craft.test/api/account/teams/${teamId}/spaces`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ name: 'Research' }),
+    }))
+    expect(createSpace.status).toBe(201)
+    const createSpaceBody = await createSpace.json() as { spaces: Array<{ name: string; storagePrefix: string }> }
+    expect(createSpaceBody.spaces).toEqual([
+      expect.objectContaining({ name: 'Research', storagePrefix: expect.stringContaining(`/spaces/`) }),
+    ])
+
+    const invite = await handler.fetch(new Request(`http://craft.test/api/account/teams/${teamId}/invites`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ role: 'viewer' }),
+    }))
+    expect(invite.status).toBe(201)
+    const inviteBody = await invite.json() as { invite: { code: string; role: string } }
+    expect(inviteBody.invite.role).toBe('viewer')
+
+    const viewerLogin = await handler.fetch(new Request('http://craft.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'viewer@example.com', password: 'password123' }),
+    }))
+    const viewerCookie = viewerLogin.headers.get('set-cookie') ?? ''
+    const accept = await handler.fetch(new Request(`http://craft.test/api/account/invites/${inviteBody.invite.code}/accept`, {
+      method: 'POST',
+      headers: { cookie: viewerCookie },
+    }))
+    expect(accept.status).toBe(200)
+    const acceptBody = await accept.json() as { teams: Array<{ name: string; role: string }> }
+    expect(acceptBody.teams).toEqual([expect.objectContaining({ name: 'ROX Ops', role: 'viewer' })])
+
+    const viewerSpaces = await handler.fetch(new Request(`http://craft.test/api/account/teams/${teamId}/spaces`, {
+      headers: { cookie: viewerCookie },
+    }))
+    expect(viewerSpaces.status).toBe(200)
+
+    const viewerCreateSpace = await handler.fetch(new Request(`http://craft.test/api/account/teams/${teamId}/spaces`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: viewerCookie },
+      body: JSON.stringify({ name: 'Viewer Draft' }),
+    }))
+    expect(viewerCreateSpace.status).toBe(403)
+
+    const outsiderLogin = await handler.fetch(new Request('http://craft.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'outsider@example.com', password: 'password123' }),
+    }))
+    const outsiderCookie = outsiderLogin.headers.get('set-cookie') ?? ''
+    const outsiderSpaces = await handler.fetch(new Request(`http://craft.test/api/account/teams/${teamId}/spaces`, {
+      headers: { cookie: outsiderCookie },
+    }))
+    expect(outsiderSpaces.status).toBe(403)
+
+    const reused = await handler.fetch(new Request(`http://craft.test/api/account/invites/${inviteBody.invite.code}/accept`, {
+      method: 'POST',
+      headers: { cookie: outsiderCookie },
+    }))
+    expect(reused.status).toBe(400)
+  })
+
   it('creates managed cloud workspaces through account sessions and grants explicit ownership', async () => {
     const store = new MemoryAccountStore()
     const cloudWorkspaces = new InMemoryManagedCloudWorkspaceStore()

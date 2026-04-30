@@ -76,6 +76,9 @@ The account surface should become a first-class native app section:
 - `apps/electron/src/renderer/pages/settings/AccountAuthPanel.tsx`
 - `apps/electron/src/renderer/pages/settings/__tests__/account-auth-panel.test.tsx`
 - `packages/server-core/src/webui/account-teams.ts`
+- `packages/server-core/src/webui/__tests__/account-teams.test.ts`
+- `packages/server-core/src/webui/__tests__/account-http.test.ts`
+- `packages/server-core/src/webui/http-server.ts`
 - `packages/server-core/src/webui/account-ledger.ts`
 - `packages/server-core/src/storage/object-storage.ts`
 - `infra/rox-one-auth-server.mjs`
@@ -464,6 +467,19 @@ Implemented in slice D:
   - sign-in/register/reset map to `/api/auth/login`, `/api/auth/register`, and `/api/auth/password-reset/request`;
   - external account navigation allowlist accepts DV.net checkout URLs and rejects `rox.one/account`.
 
+Implemented in slice E:
+
+- `packages/server-core/src/webui/__tests__/account-teams.test.ts`
+  - team spaces can be created only by owners/admins;
+  - members/viewers can list their team's spaces;
+  - outsiders are denied by default.
+- `packages/server-core/src/webui/__tests__/account-http.test.ts`
+  - `/api/account/teams` aliases organization create/list;
+  - `/api/account/teams/:teamId/spaces` creates/lists spaces with RBAC;
+  - `/api/account/teams/:teamId/invites` creates role-scoped invites;
+  - `/api/account/invites/:code/accept` accepts invites once;
+  - viewer create and outsider read paths return `403`.
+
 Planned follow-up tests:
 
 - Server account tests for login/register/account compatibility.
@@ -542,6 +558,21 @@ error: Cannot find module '../AccountAuthPanel'
 1 error
 ```
 
+First red runs for slice E:
+
+```text
+bun test packages/server-core/src/webui/__tests__/account-teams.test.ts
+
+TypeError: teams.createSpace is not a function
+```
+
+```text
+bun test packages/server-core/src/webui/__tests__/account-http.test.ts --test-name-pattern "teams, spaces"
+
+Expected: 200
+Received: 404
+```
+
 ## 15. Implementation changes
 
 Slice A:
@@ -584,6 +615,15 @@ Slice D:
 - Removed visible account browser-pane login/register/reset flows from `AccountSettingsPage.tsx`.
 - Removed the hidden browser-pane API bridge from `AccountSettingsPage.tsx`; desktop account API calls now use direct fetch to `https://rox.one`.
 - Changed billing top-up opening to use `window.electronAPI.openUrl` only after a DV.net checkout URL is returned and accepted by the allowlist.
+
+Slice E:
+
+- Extended `AccountTeamStore` with `AccountTeamSpace`, `createSpace`, and `listSpaces`.
+- Implemented in-memory team spaces with storage prefixes under `teams/<teamId>/spaces/<spaceId>/`.
+- Added owner/admin-only space creation and membership-required space listing.
+- Added `/api/account/teams` aliases over the existing organization compatibility layer.
+- Added `/api/account/teams/:teamId/spaces`, `/api/account/teams/:teamId/invites`, and `/api/account/invites/:code/accept`.
+- Preserved existing `/api/account/organizations` and `/api/account/organizations/join` compatibility endpoints.
 
 ## 16. Validation commands run
 
@@ -639,6 +679,15 @@ Slice D:
 - `bun run typecheck:electron`
 - `bun run webui:build`
 
+Slice E:
+
+- `bun test packages/server-core/src/webui/__tests__/account-teams.test.ts`
+- `bun test packages/server-core/src/webui/__tests__/account-http.test.ts --test-name-pattern "teams, spaces"`
+- `bun test packages/server-core/src/webui/__tests__/account-teams.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts`
+- `cd packages/server-core && bun run tsc --noEmit`
+- `bun run typecheck:all`
+- `bun run webui:build`
+
 ## 17. Passing test output summary
 
 - Slice A targeted tests: `17 pass`, `0 fail`, `63 expect() calls`.
@@ -656,6 +705,9 @@ Slice D:
 - Slice D account tests: `5 pass`, `0 fail`, `16 expect() calls`.
 - Slice D browser-pane grep: no matches in account page/panel.
 - Slice D `bun run typecheck:electron`: passed.
+- Slice E team/http tests: `20 pass`, `0 fail`, `115 expect() calls`.
+- Slice E server-core `tsc --noEmit`: passed.
+- Slice E `bun run typecheck:all`: passed.
 
 ## 18. Build output summary
 
@@ -664,6 +716,7 @@ Slice D:
 - Slice B `bun run webui:build` passed; Vite built the renderer bundle in `22.75s`.
 - Slice C `bun run webui:build` initially failed on a deep shared package import, then passed after switching to the exported workbench barrel; Vite built the renderer bundle in `23.95s`.
 - Slice D `bun run webui:build` passed; Vite built the renderer bundle in `29.58s`.
+- Slice E `bun run webui:build` passed; Vite built the renderer bundle in `26.61s`.
 
 ## 19. Remaining risks
 
@@ -674,7 +727,8 @@ Slice D:
 - `Разъебать` is an explicit product label requested by the user; localization and enterprise builds may need a softer alias later.
 - Prompt Lab, TDD Plan, Review Gate, and Spec Builder are now reachable from composer action buttons, but browser visual smoke is still pending.
 - Desktop account fetch now goes directly to `https://rox.one`; live cookie/CORS behavior still needs packaged-app smoke testing against the real account service.
-- Teams/spaces, storage, and billing implementation remains pending beyond the DV.net checkout URL boundary.
+- Teams/spaces are implemented in the in-memory server-core store and HTTP handler; persistent SQL backing in `infra/rox-one-auth-server.mjs` remains pending.
+- Storage and billing implementation remains pending beyond the DV.net checkout URL boundary.
 - Existing unrelated dirty files remain excluded from this task commit: `apps/electron/src/main/index.ts`, `events.jsonl`, and auto-update files.
 
 ## 20. Acceptance criteria matrix
@@ -693,7 +747,7 @@ Slice D:
 | Composer action buttons do not submit directly | Pass | Slice C resolver returns `shouldSubmit=false`; artifact buttons are `type="button"` |
 | Account auth is in-app, not browser-pane based | Pass | Slice D native account panel tests and no account `browserPane` grep matches |
 | External account navigation is limited to DV.net checkout | Pass | Slice D `isAllowedAccountExternalUrl` tests |
-| Teams and collaborative spaces are specified | Planned | Team spaces wireframe and API plan |
+| Teams and collaborative spaces are specified | Pass | Slice E team/spaces/invites API and RBAC tests |
 | S3 storage boundary is backend-only | Planned | Data-flow and API plan |
 | USDT/DV.net billing boundary is specified | Planned | Sequence diagram and DV.net docs notes |
 | TDD-first implementation plan exists | Planned | Phase A-D test-first path |

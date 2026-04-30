@@ -25,6 +25,17 @@ export interface AccountTeamInvite {
   consumedByUserId: string | null
 }
 
+export interface AccountTeamSpace {
+  id: string
+  organizationId: string
+  name: string
+  slug: string
+  storagePrefix: string
+  createdByUserId: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface AccountTeamStore {
   createOrganization(input: { actorUserId: string; name: string }): Promise<AccountTeamOrganization>
   listOrganizations(userId: string): Promise<AccountTeamOrganization[]>
@@ -34,6 +45,8 @@ export interface AccountTeamStore {
     role?: Exclude<AccountTeamRole, 'owner'>
   }): Promise<AccountTeamInvite>
   joinWithInvite(input: { userId: string; code: string }): Promise<AccountTeamOrganization>
+  createSpace(input: { actorUserId: string; organizationId: string; name: string }): Promise<AccountTeamSpace>
+  listSpaces(input: { actorUserId: string; organizationId: string }): Promise<AccountTeamSpace[]>
 }
 
 export class AccountTeamForbiddenError extends Error {
@@ -71,6 +84,10 @@ function canCreateInvite(role: AccountTeamRole | null): boolean {
   return role === 'owner' || role === 'admin'
 }
 
+function canCreateSpace(role: AccountTeamRole | null): boolean {
+  return role === 'owner' || role === 'admin'
+}
+
 function copyOrganization(organization: AccountTeamOrganization): AccountTeamOrganization {
   return { ...organization }
 }
@@ -79,10 +96,15 @@ function copyInvite(invite: AccountTeamInvite): AccountTeamInvite {
   return { ...invite }
 }
 
+function copySpace(space: AccountTeamSpace): AccountTeamSpace {
+  return { ...space }
+}
+
 export class InMemoryAccountTeamStore implements AccountTeamStore {
   private readonly organizations = new Map<string, Omit<AccountTeamOrganization, 'role'>>()
   private readonly memberships = new Map<string, Map<string, AccountTeamRole>>()
   private readonly invitesByCode = new Map<string, AccountTeamInvite>()
+  private readonly spacesByOrganization = new Map<string, AccountTeamSpace[]>()
 
   async createOrganization(input: { actorUserId: string; name: string }): Promise<AccountTeamOrganization> {
     const name = normalizeName(input.name)
@@ -154,6 +176,41 @@ export class InMemoryAccountTeamStore implements AccountTeamStore {
     }
     this.invitesByCode.set(invite.code, consumed)
     return copyOrganization({ ...organization, role: invite.role })
+  }
+
+  async createSpace(input: { actorUserId: string; organizationId: string; name: string }): Promise<AccountTeamSpace> {
+    const organization = this.organizations.get(input.organizationId)
+    const members = this.memberships.get(input.organizationId)
+    if (!organization || !members) throw new AccountTeamInviteError('Team not found')
+    const role = members.get(input.actorUserId) ?? null
+    if (!canCreateSpace(role)) throw new AccountTeamForbiddenError('Only owners and admins can create team spaces')
+
+    const name = normalizeName(input.name)
+    const id = randomUUID()
+    const now = new Date().toISOString()
+    const space: AccountTeamSpace = {
+      id,
+      organizationId: input.organizationId,
+      name,
+      slug: slugifyName(name, id),
+      storagePrefix: `teams/${input.organizationId}/spaces/${id}/`,
+      createdByUserId: input.actorUserId,
+      createdAt: now,
+      updatedAt: now,
+    }
+    const spaces = this.spacesByOrganization.get(input.organizationId) ?? []
+    spaces.push(space)
+    this.spacesByOrganization.set(input.organizationId, spaces)
+    return copySpace(space)
+  }
+
+  async listSpaces(input: { actorUserId: string; organizationId: string }): Promise<AccountTeamSpace[]> {
+    const members = this.memberships.get(input.organizationId)
+    const role = members?.get(input.actorUserId) ?? null
+    if (!role) throw new AccountTeamForbiddenError('Team membership is required')
+    return [...(this.spacesByOrganization.get(input.organizationId) ?? [])]
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+      .map(copySpace)
   }
 }
 
