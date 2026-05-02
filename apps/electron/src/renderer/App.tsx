@@ -500,7 +500,8 @@ export default function App() {
     }
   }, [initializeSessions, initialSessionId, reconcilePermissionModeState, windowWorkspaceId])
 
-  const refreshSessionListMetadataFromServer = useCallback(async (): Promise<Map<string, SessionMeta> | null> => {
+  const refreshSessionListMetadataFromServer = useCallback(async (options: { removeMissing?: boolean } = {}): Promise<Map<string, SessionMeta> | null> => {
+    const { removeMissing = true } = options
     try {
       const sessions = await window.electronAPI.getSessions()
       console.info(`[App] getSessions returned ${sessions.length} session(s) for reconnect refresh`)
@@ -509,7 +510,7 @@ export default function App() {
       // Single transactional atom write — all cross-atom mutations happen
       // inside one Jotai write function so React subscribers see one
       // consistent update instead of intermediate states.
-      const nextMetaMap = store.set(refreshSessionsMetadataAtom, { sessions, loadedSessionIds })
+      const nextMetaMap = store.set(refreshSessionsMetadataAtom, { sessions, loadedSessionIds, removeMissing })
 
       // Sync app-level state (React hooks / non-atom concerns) after the atom transaction
       for (const session of sessions) {
@@ -982,7 +983,7 @@ export default function App() {
 
       console.warn('[App] Stale reconnect — refreshing session metadata and active/processing sessions')
 
-      const refreshedMetaMap = await refreshSessionListMetadataFromServer()
+      const refreshedMetaMap = await refreshSessionListMetadataFromServer({ removeMissing: false })
       const metaMap = refreshedMetaMap ?? store.get(sessionMetaMapAtom)
       const refreshIds = getSessionsToRefreshAfterStaleReconnect(metaMap, sessionSelection.selected)
 
