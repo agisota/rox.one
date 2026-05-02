@@ -1,16 +1,14 @@
 # T010-option-graph-schema
 
-Status: TODO
+Status: DONE
 
-Use the detailed task prompt from the master Agent Workbench implementation plan.
+Completed: 2026-04-30
+Commit: `008987f` — `Define option graph before Spec Builder UI`
+Worklog: [`docs/worklog/T010-option-graph-schema.md`](../worklog/T010-option-graph-schema.md)
+Closeout: [`docs/worklog/T003-T012-closing.md`](../worklog/T003-T012-closing.md)
 
-Required loop:
+## Closeout evidence
 
-1. Inspect repo context.
-2. Write tests or validation checks first.
-3. Confirm expected failure.
-4. Implement minimal change.
-5. Run targeted checks.
-6. Run full relevant validation.
-7. Update matching worklog.
-8. Commit.
+- Feature branch head is contained in `main`.
+- Worklog acceptance criteria matrix is PASS.
+- Ticket is included in the T003-T012 closeout matrix.
