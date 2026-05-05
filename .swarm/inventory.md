@@ -1,6 +1,6 @@
 # Swarm Inventory
 
-Collected at: `2026-05-05T17:02:01Z`
+Collected at: `2026-05-05T18:36:44Z`
 
 ## Repository
 
@@ -8,12 +8,12 @@ Collected at: `2026-05-05T17:02:01Z`
 |---|---|
 | Path | `/Users/marklindgreen/Projects/craft/craft` |
 | Branch | `main` |
-| Head | `582a500 Preserve sessions during stale reconnect refresh` |
-| Working tree | clean before T059 edits |
+| Head | `3030bb2d1247 Make audit evidence queryable before worker expansion` |
+| Working tree | clean after T039 commit; dirty only when updating swarm control docs |
 | Origin | `https://github.com/agisota/rox-one-terminal.git` |
 | Origin visibility | private (`agisota/rox-one-terminal`) |
 | Upstream reference | `craft-origin -> https://github.com/agisota/craft.git` |
-| Divergence | `main` ahead of `origin/main` by 21 commits |
+| Divergence | `main` ahead of `origin/main` by 27 commits before fresh fetch |
 
 ## Validation Surface
 
@@ -36,8 +36,9 @@ Important scripts:
 
 Live counts:
 
-- Ticket files: `48`
-- Worklog files: `57`
+- Real ticket files: `48` plus `TEMPLATE.md`
+- Ticket status: `22 DONE`, `26 TODO`
+- Worklog files: `64`
 
 Notable drift fixed in T059:
 
@@ -50,20 +51,48 @@ T059 readiness additions:
 - `docs/worklog/T032-github-worktree-integration.md`
 - `.swarm/dispatch/T032-github-worktree-integration.md`
 
-Likely next unstarted tickets from audit:
+Current remaining TODO tickets from audit:
+
+- `T000-bootstrap-agent-os`
+- `T001-repo-cartography`
+- `T002-baseline-ci`
+- `T013-review-board`
+- `T014-validation-gates-engine`
+- `T015-multi-agent-pipeline-planner`
+- `T016-automation-presets`
+- `T017-user-account-cabinet`
+- `T018-usage-balance-ledger`
+- `T019-structured-logs-history`
+- `T020-auth-boundary-cloud-session`
+- `T021-team-invites-rbac`
+- `T022-s3-storage-quotas`
+- `T023-managed-cloud-workspace`
+- `T024-local-cloud-sync-mvp`
+- `T025-sync-v2-design`
+- `T026-file-manager-scopes`
+- `T027-pdf-viewer`
+- `T028-markdown-entity-graph`
+- `T029-office-document-adapter`
+- `T030-browser-research-integration`
+- `T031-tdd-mode-task-generation`
+- `T033-mac-arm-build`
+- `T034-e2e-core-scenario-suite`
+- `T035-team-workspace-sharing`
+- `T040-final-release-candidate`
+
+Recently closed after the original T059 snapshot:
 
 - `T032-github-worktree-integration`
 - `T036-team-chat-collaboration`
 - `T037-mobile-responsive-web-shell`
 - `T038-security-hardening`
 - `T039-observability-audit-trail`
-- `T040-final-release-candidate`
 
 ## Worktrees
 
 | Path | Branch | Head | State | Recommendation |
 |---|---|---|---|---|
-| `/Users/marklindgreen/Projects/craft/craft` | `main` | `582a5001c1c4` | clean, ahead 21 | keep, push after gate |
+| `/Users/marklindgreen/Projects/craft/craft` | `main` | `3030bb2d1247` | clean after T039, ahead 27 before fetch | keep, push after gate |
 | `/Users/marklindgreen/Projects/craft-worktrees/telegram-ru-polish` | `codex/telegram-ru-polish` | `0b5808319503` | prunable | prune after confirmation/gate |
 | `/Users/marklindgreen/Projects/craft/worktrees/T003-white-label-brand-config` | `feature/T003-white-label-brand-config` | `ff82ab1ccd5c` | clean, merged | keep until archive/prune pass |
 | `/Users/marklindgreen/Projects/craft/worktrees/T004-localization-ru-en` | `feature/T004-localization-ru-en` | `bc8a3fd22a0f` | clean, merged | keep until archive/prune pass |

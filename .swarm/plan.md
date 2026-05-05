@@ -21,7 +21,7 @@ Every phase has a gate. Do not move to the next phase without evidence.
 | Worktree audit | DONE | T003-T012 clean and merged; one prunable stale entry |
 | Swarm control docs | DONE | T059 creates `.swarm/*` |
 | Critic gate | DONE | Re-check passed after concrete T032 packet and safe git rules |
-| Private push | PENDING | only after validation, critic re-check, scoped Lore commit, fresh fetch |
+| Private push | PENDING | `main` is ahead 27 before fresh fetch; push only after private remote and behind=0 proof |
 
 ## 3. Execution Waves
 
@@ -85,6 +85,10 @@ Tickets:
 - `T038-security-hardening`
 - `T039-observability-audit-trail`
 
+Status:
+
+- DONE on `main` through `3030bb2 Make audit evidence queryable before worker expansion`.
+
 Parallel lanes:
 
 - UI lane write scope: team chat components, responsive shell components, component tests.
@@ -103,7 +107,62 @@ Gate:
 - mobile core flow has no horizontal overflow
 - audit redaction tests pass
 
-### Wave 3 - Release Candidate
+### Wave 3 - Remaining Product System
+
+Tickets:
+
+- `T013-review-board`
+- `T014-validation-gates-engine`
+- `T015-multi-agent-pipeline-planner`
+- `T016-automation-presets`
+- `T017-user-account-cabinet`
+- `T018-usage-balance-ledger`
+- `T019-structured-logs-history`
+- `T020-auth-boundary-cloud-session`
+- `T021-team-invites-rbac`
+- `T022-s3-storage-quotas`
+- `T023-managed-cloud-workspace`
+- `T024-local-cloud-sync-mvp`
+- `T025-sync-v2-design`
+- `T026-file-manager-scopes`
+- `T027-pdf-viewer`
+- `T028-markdown-entity-graph`
+- `T029-office-document-adapter`
+- `T030-browser-research-integration`
+- `T031-tdd-mode-task-generation`
+- `T033-mac-arm-build`
+- `T034-e2e-core-scenario-suite`
+- `T035-team-workspace-sharing`
+
+Parallel lanes:
+
+- Product workflow lane: T013-T016.
+- Account/cloud/storage lane: T017-T025.
+- Files/knowledge/research lane: T026-T030.
+- Engineering/release infrastructure lane: T031/T033/T034/T035.
+
+Gate:
+
+- each lane starts with ticket/worklog red tests and bounded write scopes
+- shared schemas and app shell remain single-owner per wave
+- no real external providers in tests
+- no feature ticket can claim DONE without targeted validation and Lore commit
+
+### Wave 4 - Bootstrap Metadata Reconciliation
+
+Tickets:
+
+- `T000-bootstrap-agent-os`
+- `T001-repo-cartography`
+- `T002-baseline-ci`
+
+Gate:
+
+- inspect existing commits/worklogs before changing status
+- if implementation already exists, normalize metadata only with evidence
+- if gaps remain, create scoped dispatch packets instead of silently marking DONE
+
+### Wave 5 - Release Candidate
 
 Tickets:
 
@@ -116,7 +175,7 @@ Gate:
 - Electron smoke/build proof
 - release notes, user guide, known limitations
 
-### Wave 4 - Product Gap Fixes From Screenshots
+### Wave 6 - Product Gap Fixes From Screenshots
 
 Create explicit tickets before implementation for any remaining UX/product gaps:
 
@@ -158,12 +217,11 @@ Evidence required in final worker report:
 
 ## 6. Immediate Next Actions
 
-1. Finish T059 validation and commit.
-2. Run critic/verifier review on `.swarm/spec.md`, `.swarm/plan.md`, and `.swarm/dispatch/T032-github-worktree-integration.md`.
-3. Commit T059 with Lore protocol.
-4. Run fresh `git fetch origin main`, verify no behind divergence, then push `main` to private `origin`.
-5. Launch Wave 1 worker packet for `T032-github-worktree-integration`.
-6. Keep T036-T040 queued until Wave 1 organizes Git/worktree workflow.
+1. Commit this swarm inventory refresh after `git diff --check` and agent-contract validation.
+2. Run fresh `git fetch origin main`, verify private origin and behind=0, then push `main` to private `origin`.
+3. Reconcile T000-T002 metadata against existing bootstrap/worklog evidence.
+4. Dispatch Wave 3 as bounded parallel worker lanes with non-overlapping write scopes.
+5. Run Wave 5 `T040-final-release-candidate` only after remaining product/system tickets are either DONE or explicitly deferred with risk notes.
 
 ## 7. Safe Git and Push Rules
 
