@@ -1,6 +1,6 @@
 # Backlog Status After Read-Only Audit
 
-Collected at: `2026-05-05T20:28:48Z`
+Collected at: `2026-05-05T21:40:51Z`
 
 ## Summary
 
@@ -10,6 +10,7 @@ The remaining roadmap is not 26 blank tickets. The audit found four categories:
 2. **Partial core implemented**: tickets have modules and tests, but lack the integration surface, runtime wiring, UI flow, or final acceptance proof required for `DONE`.
 3. **Release-candidate closed**: T040 now has a matching worklog, release notes, known limitations, and fresh CI/E2E evidence.
 4. **Canonical-accounting drift**: T042-T053 had completed worklogs but no `docs/tickets` files; T060 normalized them.
+5. **Protected upstream merge planning**: T061 records the upstream `v0.9.1` source, protected ROX-owned paths, risk matrix, and required T062 validation before any merge is attempted.
 
 ## Ticket State Matrix
 
@@ -26,6 +27,7 @@ The remaining roadmap is not 26 blank tickets. The audit found four categories:
 | Engineering/status drift | `T031`, `T033`, `T034`, `T035` | Metadata closed to `DONE` | Preserve PASS evidence in worklogs; do not reopen unless gates regress. |
 | Release candidate | `T040` | `DONE` | Release-candidate worklog, release notes, known limitations, CI, E2E, and Electron smoke evidence recorded. |
 | Backlog normalization | `T060` | `DONE` | `validate-agent-contract` now fails on orphan worklog ids and missing DONE worklog ids. |
+| Upstream merge planning | `T061` | `DONE` | Protected path map and T062 validation matrix recorded; no final merge performed. |
 
 ## Worktree State
 
@@ -49,3 +51,5 @@ No ticket may be marked `DONE` by status edit alone. It needs a fresh targeted t
 `T040` was closed only after `bun run validate:ci`, `bun run e2e:core`, and `bun run validate:e2e-core-scenarios` passed; Electron smoke reached `App initialized successfully`.
 
 `T060` was closed only after the agent-contract validator first failed on orphan T042-T053 worklog ids, then passed after canonical ticket files were added.
+
+`T061` was closed only after the upstream `v0.9.1` tag source was verified, the merge-tree dry-run exposed conflict-heavy areas, the protected map was written, and `validate:agent-contract`, `validate:docs`, and `git diff --check` passed.
