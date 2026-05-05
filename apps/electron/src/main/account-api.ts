@@ -1,5 +1,7 @@
 const ACCOUNT_WEB_ORIGIN = 'https://rox.one'
 
+import type { AccountSessionSource, AccountSessionStore } from './account-session-store'
+
 type AccountApiInit = {
   method?: string
   headers?: Record<string, string>
@@ -11,6 +13,7 @@ type FetchLike = (url: string, init?: RequestInit) => Promise<Response>
 export interface AccountApiProxyOptions {
   origin?: string
   fetch?: FetchLike
+  sessionStore?: AccountSessionStore
 }
 
 function assertAccountApiPath(path: string): void {
@@ -60,10 +63,27 @@ export function createAccountApiProxy(options: AccountApiProxyOptions = {}) {
   const origin = options.origin ?? ACCOUNT_WEB_ORIGIN
   const fetchImpl = options.fetch ?? fetch
   let cookieHeader: string | null = null
+  let sessionLoaded = false
+
+  async function hydrateSession(): Promise<void> {
+    if (sessionLoaded || cookieHeader || !options.sessionStore) return
+    sessionLoaded = true
+    const session = await options.sessionStore.load()
+    if (session?.cookie) {
+      cookieHeader = session.cookie
+    }
+  }
+
+  function getSessionSource(path: string): AccountSessionSource {
+    if (path === '/api/auth/login') return 'login'
+    if (path === '/api/auth/register') return 'register'
+    return 'restore'
+  }
 
   return {
     async request<T = unknown>(path: string, init: AccountApiInit = {}): Promise<T> {
       assertAccountApiPath(path)
+      await hydrateSession()
 
       const headers: Record<string, string> = { ...(init.headers ?? {}) }
       if (cookieHeader) headers.Cookie = cookieHeader
@@ -75,12 +95,20 @@ export function createAccountApiProxy(options: AccountApiProxyOptions = {}) {
       })
 
       const nextCookie = extractCookiePair(response.headers.get('set-cookie'))
-      if (nextCookie) cookieHeader = nextCookie
+      if (nextCookie) {
+        cookieHeader = nextCookie
+        await options.sessionStore?.save({
+          cookie: nextCookie,
+          savedAt: new Date().toISOString(),
+          source: getSessionSource(path),
+        })
+      }
 
       const body = await parseResponseBody(response)
 
       if (path === '/api/auth/logout' && response.ok) {
         cookieHeader = null
+        await options.sessionStore?.clear()
       }
 
       if (!response.ok) {
