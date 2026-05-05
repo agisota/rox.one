@@ -45,6 +45,7 @@ import {
   type DvnetBillingIntentStore,
 } from './account-billing'
 import {
+  canAccessCloudWorkspace,
   createCloudSessionBoundary,
   createLocalSessionBoundary,
 } from './account-session-boundary'
@@ -61,12 +62,22 @@ import {
   type TeamChatStore,
   type TeamMessageRef,
 } from './team-chat'
-import type { ManagedCloudWorkspaceStore } from './account-cloud-workspaces'
+import {
+  ManagedCloudWorkspaceAccessError,
+  type ManagedCloudWorkspace,
+  type ManagedCloudWorkspaceStore,
+} from './account-cloud-workspaces'
 import {
   createStorageBucketRecord,
   resolveS3EndpointPreference,
   toStorageStatusDto,
 } from '../storage/object-storage'
+import {
+  WorkspaceSyncConflictError,
+  WorkspaceSyncValidationError,
+  type WorkspaceSyncFilePayload,
+  type WorkspaceSyncService,
+} from '../sync/workspace-sync-service'
 
 const ACCOUNT_TEAM_INVITE_ROLES = new Set<Exclude<AccountTeamRole, 'owner'>>(['admin', 'member', 'viewer'])
 
@@ -263,6 +274,8 @@ export interface WebuiHandlerOptions {
   accountTeamChatStore?: TeamChatStore
   /** Optional managed cloud workspace metadata store. */
   accountCloudWorkspaceStore?: ManagedCloudWorkspaceStore
+  /** Optional local-cloud workspace sync service. */
+  accountWorkspaceSyncService?: WorkspaceSyncService
   /** Optional DV.net billing configuration. Secrets stay server-side. */
   accountDvnetBilling?: {
     storeUuid: string
@@ -479,6 +492,77 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
 
   function canManageTeamWorkspace(role: string): boolean {
     return role === 'owner' || role === 'admin'
+  }
+
+  function canWriteWorkspaceSync(role: AccountTeamRole | 'owner'): boolean {
+    return role === 'owner' || role === 'admin' || role === 'member'
+  }
+
+  async function resolveManagedWorkspaceAccess(identity: SessionIdentity, workspaceId: string): Promise<{
+    workspace: ManagedCloudWorkspace
+    role: AccountTeamRole | 'owner'
+  } | Response> {
+    if (!options.accountCloudWorkspaceStore) {
+      return Response.json({ error: 'Managed cloud workspaces are not configured.' }, { status: 501 })
+    }
+
+    const normalizedWorkspaceId = workspaceId.trim()
+    if (!normalizedWorkspaceId) {
+      return Response.json({ error: 'Workspace is required' }, { status: 400 })
+    }
+
+    const boundary = createCloudSessionBoundary(identity, await listAccessibleWorkspaceIds(identity.userId))
+    if (!canAccessCloudWorkspace(boundary, normalizedWorkspaceId)) {
+      return Response.json({ error: 'Workspace access is required' }, { status: 403 })
+    }
+
+    try {
+      const workspace = await options.accountCloudWorkspaceStore.getWorkspaceForUser(identity.userId, normalizedWorkspaceId)
+      return { workspace, role: 'owner' }
+    } catch (error) {
+      if (!(error instanceof ManagedCloudWorkspaceAccessError)) throw error
+    }
+
+    if (!options.accountTeamStore) {
+      return Response.json({ error: 'Workspace access is required' }, { status: 403 })
+    }
+
+    const teams = await options.accountTeamStore.listOrganizations(identity.userId)
+    const teamWorkspaces = await options.accountCloudWorkspaceStore.listTeamWorkspaces(teams.map(team => team.id))
+    const workspace = teamWorkspaces.find(candidate => candidate.id === normalizedWorkspaceId)
+    if (!workspace || !workspace.teamId) {
+      return Response.json({ error: 'Workspace access is required' }, { status: 403 })
+    }
+    const team = teams.find(candidate => candidate.id === workspace.teamId)
+    if (!team) {
+      return Response.json({ error: 'Team membership is required' }, { status: 403 })
+    }
+
+    return { workspace, role: team.role }
+  }
+
+  async function parseWorkspaceSyncBody(req: Request): Promise<{
+    operationId?: string | null
+    baseSnapshot?: unknown
+    files: WorkspaceSyncFilePayload[]
+  } | Response> {
+    let body: { operationId?: unknown; baseSnapshot?: unknown; files?: unknown }
+    try {
+      body = await req.json() as { operationId?: unknown; baseSnapshot?: unknown; files?: unknown }
+    } catch {
+      return Response.json({ error: 'Invalid request body' }, { status: 400 })
+    }
+
+    const files = body.files ?? []
+    if (!Array.isArray(files)) {
+      return Response.json({ error: 'Sync files must be an array' }, { status: 400 })
+    }
+
+    return {
+      operationId: typeof body.operationId === 'string' ? body.operationId : null,
+      baseSnapshot: body.baseSnapshot,
+      files: files.map(file => file as WorkspaceSyncFilePayload),
+    }
   }
 
   async function createAccountCookie(user: PublicUser, req: Request, useSecureCookies: boolean, authMethod: 'password' | 'email_verification' | 'password_reset' = 'password'): Promise<string | Response> {
@@ -1337,6 +1421,63 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       } catch (error) {
         return Response.json({ error: error instanceof Error ? error.message : 'Workspace creation failed' }, { status: 400 })
       }
+    }
+
+    const workspaceSyncMatch = path.match(/^\/api\/account\/workspaces\/([^/]+)\/sync\/(status|push|pull|operations)$/)
+    if (workspaceSyncMatch) {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      if (!options.accountWorkspaceSyncService) {
+        return Response.json({ error: 'Workspace sync is not configured.' }, { status: 501 })
+      }
+
+      const access = await resolveManagedWorkspaceAccess(identity, decodeURIComponent(workspaceSyncMatch[1]!))
+      if (access instanceof Response) return access
+      const action = workspaceSyncMatch[2]!
+
+      try {
+        if (action === 'status' && req.method === 'GET') {
+          return Response.json(await options.accountWorkspaceSyncService.getStatus({
+            actorUserId: identity.userId,
+            workspace: access.workspace,
+          }))
+        }
+
+        if (action === 'operations' && req.method === 'GET') {
+          return Response.json(await options.accountWorkspaceSyncService.listOperations({
+            actorUserId: identity.userId,
+            workspace: access.workspace,
+          }))
+        }
+
+        if ((action === 'push' || action === 'pull') && req.method === 'POST') {
+          if (!canWriteWorkspaceSync(access.role)) {
+            return Response.json({ error: 'Workspace write access is required for sync.' }, { status: 403 })
+          }
+          const body = await parseWorkspaceSyncBody(req)
+          if (body instanceof Response) return body
+          const runInput = {
+            actorUserId: identity.userId,
+            workspace: access.workspace,
+            operationId: body.operationId,
+            baseSnapshot: body.baseSnapshot as any,
+            files: body.files,
+          }
+          return Response.json(action === 'push'
+            ? await options.accountWorkspaceSyncService.push(runInput)
+            : await options.accountWorkspaceSyncService.pull(runInput))
+        }
+      } catch (error) {
+        if (error instanceof WorkspaceSyncConflictError) {
+          return Response.json({ error: error.message, conflicts: error.conflicts }, { status: 409 })
+        }
+        if (error instanceof WorkspaceSyncValidationError) {
+          return Response.json({ error: error.message }, { status: 400 })
+        }
+        throw error
+      }
+
+      return Response.json({ error: 'Unsupported workspace sync operation' }, { status: 405 })
     }
 
     const teamWorkspacesMatch = path.match(/^\/api\/account\/teams\/([^/]+)\/workspaces$/)

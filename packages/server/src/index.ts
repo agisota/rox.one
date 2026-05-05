@@ -50,6 +50,7 @@ import {
 } from '@craft-agent/server-core/webui'
 import type { WebuiHandler } from '@craft-agent/server-core/webui'
 import { createPostgresAccountStore } from '@craft-agent/server-core/accounts'
+import { InMemoryWorkspaceSyncService } from '@craft-agent/server-core/sync'
 import { getCredentialManager } from '@craft-agent/shared/credentials'
 import { getWorkspaces } from '@craft-agent/shared/config'
 import { createMessagingBootstrap, type MessagingBootstrapHandle } from '@craft-agent/messaging-gateway'
@@ -156,6 +157,7 @@ const accountEmailService = accountStore
 const accountTeamStore = accountStore ? new InMemoryAccountTeamStore() : undefined
 const accountCloudWorkspaceStore = accountStore ? new InMemoryManagedCloudWorkspaceStore() : undefined
 const accountEventHistory = accountStore ? new InMemoryAccountEventHistory() : undefined
+const accountWorkspaceSyncService = accountStore ? new InMemoryWorkspaceSyncService() : undefined
 
 if (accountStore) {
   await accountStore.migrate()
@@ -197,6 +199,7 @@ if (webuiEnabled && serverToken) {
     accountEventHistory,
     accountTeamStore,
     accountCloudWorkspaceStore,
+    accountWorkspaceSyncService,
     bootstrapAccount: accountStore
       ? async (user) => {
           if (await accountStore.getUserCount() !== 1) return
