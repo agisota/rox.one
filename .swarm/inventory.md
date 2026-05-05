@@ -34,17 +34,23 @@ Important scripts:
 
 ## Tickets and Worklogs
 
-Live counts:
+Live counts after T060 backlog normalization:
 
-- Real ticket files: `48` plus `TEMPLATE.md`
-- Ticket status after current integration wave: `48 DONE`, `0 TODO`
-- Worklog files: `66`
+- Real ticket files: `61` plus `TEMPLATE.md`
+- Ticket status after current integration wave: `61 DONE`, `0 TODO`
+- Worklog files: `67` total, including `README.md`; `66` canonical `T###-*.md` worklogs.
 
 Notable drift fixed in T059:
 
 - `T041-experience-layer-system.md` lacked `Status:`.
 - `T058-upstream-session-refresh-recovery.md` had detailed evidence under a non-matching worklog slug.
 - `T032-github-worktree-integration.md` was too thin for dispatch and had no exact matching worklog.
+
+Notable drift fixed in T060:
+
+- `T042` through `T053` had implementation worklogs but no canonical ticket files.
+- `scripts/validate-agent-contract.ts` counted tickets but did not fail on orphan worklog ids.
+- Backlog accounting now requires each worklog id to have a canonical ticket id and each DONE ticket id to have a matching worklog id.
 
 T059 readiness additions:
 

@@ -70,4 +70,39 @@ for (const skill of requiredSkills) {
 const ticketFiles = readdirSync(resolvePath('docs/tickets')).filter((name) => /^T\d{3}-.+\.md$/.test(name))
 if (ticketFiles.length < 41) fail(`expected at least 41 ticket files, found ${ticketFiles.length}`)
 
+const worklogFiles = readdirSync(resolvePath('docs/worklog')).filter((name) => /^T\d{3}-.+\.md$/.test(name))
+
+function ticketId(name: string): string {
+  const match = name.match(/^(T\d{3})-/)
+  if (!match) fail(`invalid ticket/worklog filename: ${name}`)
+  return match[1]
+}
+
+const ticketIds = new Set(ticketFiles.map(ticketId))
+const worklogIds = new Set(worklogFiles.map(ticketId))
+
+const missingTicketsForWorklogs = [...worklogIds].filter((id) => !ticketIds.has(id)).sort()
+if (missingTicketsForWorklogs.length > 0) {
+  fail(`worklog ids without canonical ticket files: ${missingTicketsForWorklogs.join(', ')}`)
+}
+
+const ticketStatusById = new Map<string, string>()
+for (const name of ticketFiles) {
+  const id = ticketId(name)
+  const body = assertFile(join('docs/tickets', name))
+  const statusMatch = body.match(/^Status:\s*(\S+)/m)
+  if (!statusMatch) fail(`${name} missing Status line`)
+  ticketStatusById.set(id, statusMatch[1])
+}
+
+const doneTicketsWithoutWorklog = [...ticketStatusById.entries()]
+  .filter(([, status]) => status === 'DONE')
+  .map(([id]) => id)
+  .filter((id) => !worklogIds.has(id))
+  .sort()
+
+if (doneTicketsWithoutWorklog.length > 0) {
+  fail(`DONE ticket ids without matching worklogs: ${doneTicketsWithoutWorklog.join(', ')}`)
+}
+
 console.log(`[agent-contract] ok: ${requiredSkills.length} skills, ${ticketFiles.length} tickets, ${requiredDocs.length} required docs`)
