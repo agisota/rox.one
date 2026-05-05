@@ -6,6 +6,8 @@
  */
 
 import { spawn } from 'bun'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 const ROOT_DIR = join(import.meta.dir, '..')
@@ -17,6 +19,13 @@ const ELECTRON_BIN = process.platform === 'win32'
 const STARTUP_TIMEOUT_MS = 30_000
 const FORCE_KILL_GRACE_MS = 5_000
 const REQUIRED_MARKERS = ['CRAFT_SERVER_URL=', 'App initialized successfully'] as const
+const smokeUserDataDir = mkdtempSync(join(tmpdir(), 'craft-electron-smoke-user-data-'))
+const smokeConfigDir = mkdtempSync(join(tmpdir(), 'craft-electron-smoke-config-'))
+
+function cleanupSmokeDirs(): void {
+  rmSync(smokeUserDataDir, { recursive: true, force: true })
+  rmSync(smokeConfigDir, { recursive: true, force: true })
+}
 
 async function pipeOutput(
   stream: ReadableStream<Uint8Array> | null,
@@ -77,6 +86,7 @@ const buildProc = spawn({
 
 const buildExitCode = await buildProc.exited
 if (buildExitCode !== 0) {
+  cleanupSmokeDirs()
   process.exit(buildExitCode)
 }
 
@@ -94,6 +104,8 @@ const electronProc = spawn({
     ...process.env,
     CRAFT_HEADLESS: '1',
     CRAFT_SMOKE_EXIT_ON_READY: '1',
+    CRAFT_SMOKE_USER_DATA_DIR: smokeUserDataDir,
+    CRAFT_CONFIG_DIR: smokeConfigDir,
   },
 })
 
@@ -125,6 +137,7 @@ if (forceKillTimer) {
   clearTimeout(forceKillTimer)
 }
 await Promise.allSettled([stdoutTask, stderrTask])
+cleanupSmokeDirs()
 
 if (timedOut) {
   const pendingMarkers = REQUIRED_MARKERS.filter((marker) => !seen[marker])

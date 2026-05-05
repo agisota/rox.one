@@ -3,7 +3,7 @@
 import { loadShellEnv } from './shell-env'
 loadShellEnv()
 
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, safeStorage, shell } from 'electron'
 import { createHash, randomUUID } from 'crypto'
 import { hostname, homedir } from 'os'
 import * as Sentry from '@sentry/electron/main'
@@ -106,6 +106,7 @@ import { checkForUpdatesOnLaunch, setAutoUpdateEventSink, isUpdating } from './a
 import type { EventSink } from '@craft-agent/server-core/transport'
 import { validateGitBashPath, checkVCRedistInstalled } from '@craft-agent/server-core/services'
 import { createAccountApiProxy } from './account-api'
+import { createFileAccountSessionStore } from './account-session-store'
 
 // Initialize electron-log for renderer process support
 log.initialize()
@@ -187,13 +188,22 @@ registerPiModelResolver((piAuthProvider) =>
 // Supports multi-instance dev: CRAFT_DEEPLINK_SCHEME env var (craftagents1, craftagents2, etc.)
 const DEEPLINK_SCHEME = process.env.CRAFT_DEEPLINK_SCHEME || 'rox'
 
+if (process.env.CRAFT_HEADLESS === '1' && process.env.CRAFT_SMOKE_USER_DATA_DIR) {
+  app.setPath('userData', process.env.CRAFT_SMOKE_USER_DATA_DIR)
+}
+
 let windowManager: WindowManager | null = null
 let sessionManager: SessionManager | null = null
 let browserPaneManager: BrowserPaneManager | null = null
 let oauthFlowStore: OAuthFlowStore | null = null
 let moduleSink: EventSink | null = null
 let moduleClientResolver: ((webContentsId: number) => string | undefined) | null = null
-const accountApiProxy = createAccountApiProxy()
+const accountApiProxy = createAccountApiProxy({
+  sessionStore: createFileAccountSessionStore({
+    filePath: join(app.getPath('userData'), 'account-session.enc'),
+    safeStorage,
+  }),
+})
 
 // Messaging gateway: the bootstrap handle is created once sessionManager is
 // available (inside createHandlerDeps) and populated with the WS publisher
