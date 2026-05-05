@@ -1,6 +1,6 @@
 # Swarm Inventory
 
-Collected at: `2026-05-05T20:17:55Z`
+Collected at: `2026-05-05T20:28:48Z`
 
 ## Repository
 
@@ -8,12 +8,12 @@ Collected at: `2026-05-05T20:17:55Z`
 |---|---|
 | Path | `/Users/marklindgreen/Projects/rox/rox` |
 | Branch | `main` |
-| Head | `d812c5fa8c21 Close explicit workspace sync before durable cloud work` |
-| Working tree | dirty during T018-T023 status reconciliation |
+| Head before T040 | `094810f559ec Close account cloud roadmap drift with fresh gates` |
+| Working tree | documentation/status updates for T040 release-candidate closure |
 | Origin | `https://github.com/agisota/rox-one-terminal.git` |
 | Origin visibility | private (`agisota/rox-one-terminal`) |
 | Upstream reference | `rox-origin -> https://github.com/agisota/rox.git` |
-| Divergence | `main` ahead of `origin/main` by 33 commits before this reconciliation commit; latest confirmed behind=0 |
+| Divergence | `main` ahead of `origin/main` by 34 commits before the T040 release-candidate commit; latest confirmed behind=0 |
 
 ## Validation Surface
 
@@ -37,8 +37,8 @@ Important scripts:
 Live counts:
 
 - Real ticket files: `48` plus `TEMPLATE.md`
-- Ticket status after current integration wave: `47 DONE`, `1 TODO`
-- Worklog files: `65`
+- Ticket status after current integration wave: `48 DONE`, `0 TODO`
+- Worklog files: `66`
 
 Notable drift fixed in T059:
 
@@ -53,7 +53,7 @@ T059 readiness additions:
 
 Current remaining TODO tickets:
 
-- `T040-final-release-candidate`
+- none
 
 Status drift closed after read-only audit:
 
@@ -95,7 +95,7 @@ Recently closed after the original T059 snapshot:
 
 | Path | Branch | Head | State | Recommendation |
 |---|---|---|---|---|
-| `/Users/marklindgreen/Projects/rox/rox` | `main` | `d812c5fa8c21` | dirty during T018-T023 status reconciliation, ahead 33 before the next commit | keep; push blocked by runtime approval policy |
+| `/Users/marklindgreen/Projects/rox/rox` | `main` | `094810f559ec` before T040 commit | documentation/status updates for T040, ahead 34 before the next commit | keep; push blocked by runtime approval policy |
 | `/Users/marklindgreen/Projects/rox-worktrees/telegram-ru-polish` | `codex/telegram-ru-polish` | `0b5808319503` | pruned from git worktree metadata | no tracked worktree metadata remains; branch archive/deletion is separate |
 | `/Users/marklindgreen/Projects/rox/worktrees/T003-white-label-brand-config` | `feature/T003-white-label-brand-config` | `ff82ab1ccd5c` | clean, merged | keep until archive/prune pass |
 | `/Users/marklindgreen/Projects/rox/worktrees/T004-localization-ru-en` | `feature/T004-localization-ru-en` | `bc8a3fd22a0f` | clean, merged | keep until archive/prune pass |

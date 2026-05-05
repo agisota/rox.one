@@ -20,9 +20,9 @@ These tickets had PASS worklogs and were synchronized from `TODO` to `DONE`:
 - `T034-e2e-core-scenario-suite`
 - `T035-team-workspace-sharing`
 
-## Remaining Release Work
+## Release Work Closed
 
-`T040-final-release-candidate` remains `TODO` because it has no matching worklog and no release-candidate validation evidence.
+`T040-final-release-candidate` is `DONE` after adding the matching worklog, release notes, known limitations, and release-candidate validation evidence.
 
 ## Worktree Hygiene
 
@@ -38,9 +38,9 @@ Do not prune as part of feature tickets. Prune only after:
 3. `git status --short` is clean in the main worktree
 4. stale entry is recorded in `.swarm/inventory.md`
 
-## T040 Required Worklog
+## T040 Worklog
 
-Create `docs/worklog/T040-final-release-candidate.md` before release work with:
+`docs/worklog/T040-final-release-candidate.md` records:
 
 - repo status and commit range
 - ticket state summary
@@ -66,7 +66,7 @@ Build commands are required only when runtime/build surfaces changed during the 
 
 ## Acceptance
 
-- `T040` stays `TODO` until all release gates are current and recorded.
-- Release notes and known limitations exist.
-- The app has a fresh run/smoke proof.
+- `T040` is `DONE` because all release gates are current and recorded.
+- Release notes and known limitations exist in `docs/release/agent-workbench-rc-2026-05-05.md`.
+- The app has a fresh run/smoke proof from `bun run e2e:core`.
 - Private origin remains verified before any push.

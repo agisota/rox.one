@@ -17,11 +17,12 @@ Every phase has a gate. Do not move to the next phase without evidence.
 | Gate | Status | Evidence |
 |---|---:|---|
 | Repo inventory | DONE | `main`, clean baseline, private origin, scripts discovered |
-| Ticket/worklog audit | DONE | 48 tickets, 57 worklogs, drift identified |
+| Ticket/worklog audit | DONE | 48 real tickets, 66 worklogs, drift closed |
 | Worktree audit | DONE | T003-T012 clean and merged; stale `telegram-ru-polish` git worktree metadata pruned |
 | Swarm control docs | DONE | T059 creates `.swarm/*` |
 | Critic gate | DONE | Re-check passed after concrete T032 packet and safe git rules |
 | Private push | BLOCKED | Private origin and behind=0 were verified; `git push origin main` was blocked by runtime approval policy (`AskForApproval=Never`) before execution |
+| Release-candidate gate | DONE | `bun run validate:ci`, `bun run e2e:core`, and `bun run validate:e2e-core-scenarios` passed; Electron smoke reached `App initialized successfully` |
 
 ## 3. Execution Waves
 
@@ -161,7 +162,7 @@ Current audit state:
 - `T015`, `T016`, `T026`, `T028`, `T029`, and `T030` were closed in the current integration wave with targeted red/green evidence.
 - `T018`-`T025` are now closed as MVP contracts with fake-provider-safe seams and documented durability risks.
 - `T000`, `T001`, `T002`, `T031`, `T033`, `T034`, and `T035` have PASS worklogs and were synchronized to `DONE`.
-- `T040` remains the only true release-candidate `TODO` with no matching worklog.
+- `T040` is closed with release-candidate validation evidence and a matching worklog.
 
 ### Wave 4 - Bootstrap Metadata Reconciliation
 
@@ -182,6 +183,10 @@ Gate:
 Tickets:
 
 - `T040-final-release-candidate`
+
+Status:
+
+- DONE after release-candidate worklog, release notes, known limitations, CI, E2E, and Electron smoke evidence were recorded.
 
 Gate:
 
@@ -234,7 +239,7 @@ Evidence required in final worker report:
 
 1. Validate and commit the backlog-status + dispatch refresh after `git diff --check` and agent-contract validation.
 2. Push remains blocked in this runtime by approval policy even though private origin and behind=0 were verified.
-3. Run Wave 5 `T040-final-release-candidate` with a fresh worklog, release gates, and known-limitations matrix.
+3. Keep Wave 5 `T040-final-release-candidate` evidence current before any production release upload.
 4. Prune stale worktree metadata only as a separate ORGANIZE gate.
 5. Convert any remaining UX/product screenshot gaps into new explicit tickets before implementation.
 
