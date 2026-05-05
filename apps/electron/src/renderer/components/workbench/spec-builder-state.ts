@@ -6,6 +6,11 @@ import {
   type OptionGraphCategory,
   type OptionGraphOption,
 } from '@craft-agent/shared/workbench/option-graph';
+import {
+  applyProductWorkflowAutomationPresets,
+  type ProductWorkflowAutomationPresetResult,
+} from '@craft-agent/shared/automations/presets';
+import { planAgentPipeline, type AgentPipelinePlan } from '@craft-agent/shared/workbench/agent-pipeline-planner';
 import type { ProductMode } from '@craft-agent/shared/workbench/product-mode-registry';
 
 export type SpecBuilderSource = 'manual' | 'prompt-rewrite' | 'thinking-partner';
@@ -32,8 +37,11 @@ export interface SpecBuilderState {
   availableOptionIds: string[];
   categoryGroups: SpecBuilderCategoryGroup[];
   derivedConfig?: ReturnType<typeof resolveOptionGraphExecutionConfig>;
+  agentPlan?: AgentPipelinePlan;
+  automationPresetPlan?: ProductWorkflowAutomationPresetResult;
   preview: string;
   canExport: boolean;
+  canStartAgentPlan: boolean;
 }
 
 const CATEGORY_LABELS: Record<OptionGraphCategory, string> = {
@@ -132,6 +140,26 @@ export function createSpecBuilderState(input: SpecBuilderStateInput): SpecBuilde
         selectedOptionIds,
       })
     : undefined;
+  const agentPlan = derivedConfig
+    ? planAgentPipeline({
+        planId: createAgentPlanId(input.modeId, selectedOptionIds),
+        rawInput: input.rawInput,
+        modeId: input.modeId,
+        permissionMode: input.modeId === 'build' ? 'ask' : 'safe',
+        selectedOptionIds,
+      })
+    : undefined;
+  const automationPresetPlan = derivedConfig
+    ? applyProductWorkflowAutomationPresets(
+        { automations: {} },
+        {
+          modeId: input.modeId,
+          selectedOptionIds,
+          validationGates: derivedConfig.validationGates,
+          timezone: 'UTC',
+        },
+      )
+    : undefined;
 
   const state: SpecBuilderState = {
     source: input.source,
@@ -142,14 +170,24 @@ export function createSpecBuilderState(input: SpecBuilderStateInput): SpecBuilde
     availableOptionIds: available.availableOptionIds,
     categoryGroups: buildCategoryGroups(available.availableOptionIds),
     derivedConfig,
+    agentPlan,
+    automationPresetPlan,
     preview: '',
     canExport,
+    canStartAgentPlan: Boolean(agentPlan),
   };
 
   return {
     ...state,
     preview: createSpecBuilderPreview(state),
   };
+}
+
+function createAgentPlanId(modeId: ProductMode, selectedOptionIds: readonly string[]): string {
+  const optionSlug = selectedOptionIds.length > 0
+    ? selectedOptionIds.map((optionId) => optionId.replace(/[^a-z0-9]+/gi, '-')).join('--')
+    : 'no-options';
+  return `spec-builder-${modeId}-${optionSlug}`;
 }
 
 export function toggleSpecBuilderOption(state: SpecBuilderState, optionId: string): SpecBuilderState {
@@ -174,7 +212,9 @@ export function clearSpecBuilderOptions(state: SpecBuilderState): SpecBuilderSta
   });
 }
 
-export function createSpecBuilderPreview(state: Pick<SpecBuilderState, 'rawInput' | 'selectedOptions' | 'derivedConfig'>): string {
+export function createSpecBuilderPreview(
+  state: Pick<SpecBuilderState, 'rawInput' | 'selectedOptions' | 'derivedConfig' | 'agentPlan'>,
+): string {
   const lines = ['# Spec Builder Preview', '', `## Input`, state.rawInput.trim() || '_No input provided._', ''];
 
   lines.push('## Selected requirements');
@@ -210,6 +250,13 @@ export function createSpecBuilderPreview(state: Pick<SpecBuilderState, 'rawInput
   } else {
     for (const gate of state.derivedConfig.validationGates) {
       lines.push(`- ${gate}`);
+    }
+  }
+
+  if (state.agentPlan) {
+    lines.push('', '## Agent pipeline');
+    for (const stage of state.agentPlan.stages) {
+      lines.push(`- ${stage.stageId}: ${stage.roleId}`);
     }
   }
 

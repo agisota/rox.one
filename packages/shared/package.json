@@ -21,6 +21,7 @@
     "./auth/callback-page": "./src/auth/callback-page.ts",
     "./auth/types": "./src/auth/types.ts",
     "./automations": "./src/automations/index.ts",
+    "./automations/presets": "./src/automations/presets.ts",
     "./automations/resolve-config-path": "./src/automations/resolve-config-path.ts",
     "./branding": "./src/branding.ts",
     "./colors": "./src/colors/index.ts",

@@ -133,3 +133,92 @@ Existing Vite chunk-size and Jotai deprecation warnings remain present and are n
 | Shared package export exists | PASS | Workbench barrel and package subpath export added |
 | Targeted tests pass | PASS | `agent-pipeline-planner.test.ts`: 4 pass |
 | Relevant typecheck/build validation passes | PASS | Shared/electron typecheck, docs validation, diff check, and Electron build passed |
+
+## 12. Worker D integration closure - 2026-05-05
+
+### Task summary
+Closed the remaining T015 integration gap: the planner is now consumed by the user-visible Spec Builder launcher path, not only by shared model tests.
+
+### Repo context discovered
+- `planAgentPipeline()` already produced deterministic stages and handoff contracts.
+- `SpecBuilderScreen` exposed a `Start Agent Plan` action, but the state passed to that callback did not include a launcher-ready plan.
+- `SpecBuilderScreen` displayed derived agents, skills, gates, and artifacts, but did not show a pipeline preview that could prove execution order.
+- No `mise.toml` / `.mise.toml` exists; existing `bun` scripts are the project interface.
+
+### Files inspected
+- `packages/shared/src/workbench/agent-pipeline-planner.ts`
+- `packages/shared/src/workbench/__tests__/agent-pipeline-planner.test.ts`
+- `packages/shared/src/workbench/option-graph.ts`
+- `packages/shared/src/workbench/product-mode-registry.ts`
+- `apps/electron/src/renderer/components/workbench/spec-builder-state.ts`
+- `apps/electron/src/renderer/components/workbench/SpecBuilderScreen.tsx`
+- `apps/electron/src/renderer/components/workbench/__tests__/spec-builder-screen.test.tsx`
+- `docs/tickets/T015-multi-agent-pipeline-planner.md`
+- `docs/worklog/T015-multi-agent-pipeline-planner.md`
+
+### Tests added first
+Extended `apps/electron/src/renderer/components/workbench/__tests__/spec-builder-screen.test.tsx` with a red integration test:
+- selects build/TDD/security/strict-gate workflow options;
+- expects `createSpecBuilderState()` to expose `canStartAgentPlan`;
+- expects `state.agentPlan` to contain planner, test, builder, critic, verifier stages;
+- expects test-to-builder handoff contract;
+- expects the rendered screen to show `Pipeline preview`, `test-agent`, and `builder-agent`.
+
+### Expected failing test output
+Initial targeted red run failed for the expected consumer-gap reason:
+
+```text
+Expected: true
+Received: undefined
+at spec-builder-screen.test.tsx:117
+5 pass
+1 fail
+```
+
+### Implementation changes
+- Added `agentPlan` and `canStartAgentPlan` to `SpecBuilderState`.
+- Wired `createSpecBuilderState()` to call `planAgentPipeline()` with the same mode, input, permission mode, and selected option IDs already used by derived config.
+- Added a deterministic Spec Builder plan ID derived from mode + selected options.
+- Added a `Pipeline preview` section to `SpecBuilderScreen`, rendering ordered stages and dependencies.
+- Extended preview markdown with an `Agent pipeline` section when a plan exists.
+
+### Validation commands run
+```text
+bun test apps/electron/src/renderer/components/workbench/__tests__/spec-builder-screen.test.tsx
+bun test packages/shared/src/workbench/__tests__/agent-pipeline-planner.test.ts packages/shared/src/automations/automation-presets.test.ts apps/electron/src/renderer/components/workbench/__tests__/spec-builder-screen.test.tsx
+bun run typecheck:shared
+bun run typecheck:electron
+bun run lint:shared
+bun run lint:electron
+bun run validate:agent-contract
+git diff --check
+bun run electron:build
+bun run electron:smoke
+```
+
+### Passing test output summary
+```text
+spec-builder-screen.test.tsx: 6 pass, 0 fail, 37 expect() calls
+combined targeted pack: 15 pass, 0 fail, 70 expect() calls
+```
+
+`typecheck:shared`, `typecheck:electron`, `lint:shared`, `lint:electron`, `validate:agent-contract`, `git diff --check`, `electron:build`, and `electron:smoke` passed.
+
+### Build output summary
+Supervisor integration initially caught a renderer build failure after this worker slice because Spec Builder imported the broad `@craft-agent/shared/automations` barrel, which pulled `resolve-config-path.ts` and `node:crypto` into the browser bundle.
+
+The fix added the browser-safe `@craft-agent/shared/automations/presets` package export and changed the renderer to import only that preset surface. `bun run electron:build` then completed successfully, and `bun run electron:smoke` reached `[smoke] Electron headless startup passed`.
+
+### Remaining risks
+- This is still a launch payload and preview, not a runtime multi-agent process executor.
+- The parent orchestrator still needs to decide how to persist or dispatch `state.agentPlan` after `onStartAgentPlan`.
+
+### Acceptance criteria matrix
+| Criterion | Status | Evidence |
+| --- | --- | --- |
+| Planner is consumed outside model tests | PASS | `createSpecBuilderState()` now creates `agentPlan` |
+| User-visible launcher path can inspect plan | PASS | `SpecBuilderScreen` renders `Pipeline preview` |
+| TDD ordering is visible to launcher | PASS | Test asserts `test-agent` before `builder-agent` |
+| Handoff contract is preserved | PASS | Test asserts `stage-002-test-agent` to `stage-003-builder-agent` handoff |
+| Relevant targeted tests pass | PASS | Combined targeted pack: 15 pass |
+| Relevant typecheck/lint passes | PASS | Shared/electron typecheck and lint passed |

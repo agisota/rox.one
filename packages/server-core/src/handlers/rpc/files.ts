@@ -387,7 +387,7 @@ export function registerFilesHandlers(server: RpcServer, deps: HandlerDeps): voi
           sourcePath: storedPath,
           outputPath: mdPath,
           attachmentName: attachment.name,
-          converter: {
+          converter: deps.officeDocumentConverter ?? {
             async convert(path) {
               const markitdown = new MarkItDown()
               return (await markitdown.convert(path)) ?? { textContent: null }
@@ -515,7 +515,15 @@ export function registerFilesHandlers(server: RpcServer, deps: HandlerDeps): voi
       deps.platform.logger.info('[FS_SEARCH] returning', results.length, 'results')
       return results
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
       deps.platform.logger.error('[FS_SEARCH] error:', err)
+      if (
+        message.startsWith('Access denied:') ||
+        message === 'Only absolute file paths are allowed' ||
+        message === 'No file manager scopes configured'
+      ) {
+        throw new Error(message)
+      }
       return []
     }
   })

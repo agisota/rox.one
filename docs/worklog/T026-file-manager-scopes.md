@@ -76,7 +76,50 @@ error: Cannot find module '../file-manager-scopes' from '/Users/marklindgreen/Pr
 
 - `file:*` read/attachment handlers retain their existing broader `validateFilePath` behavior so attachment workflows are not broken in this ticket.
 - File-manager scopes are server-side only; no dedicated scope browser UI was added yet.
-- `fs:search` preserves its existing empty-array behavior on search errors, so access denial does not yet surface as a structured UI error.
+- `fs:search` now surfaces file-manager access denial as an RPC error. The renderer still needs a dedicated UI treatment if product wants a custom localized denial state instead of the existing RPC error path.
+
+## Worker F runtime/API closeout — 2026-05-05
+
+### Дополнительный repo context
+
+- `packages/server-core/src/handlers/rpc/files.ts` already routed `fs:search` and `fs:listDirectory` through `validateFileManagerBrowsePath`, but `fs:search` caught top-level validation errors and returned `[]`.
+- That made denied scopes indistinguishable from a legitimate empty search result at the RPC boundary.
+
+### Tests added first
+
+- Added `packages/server-core/src/handlers/rpc/files.test.ts` handler integration coverage:
+  - search inside the workspace scope must return a deterministic file result with canonicalized path;
+  - denied search outside a workspace scope must reject with `Access denied: file path is outside file manager scopes`;
+  - office handler coverage in the same file is recorded under T029.
+
+### Expected failing output
+
+`bun test packages/server-core/src/handlers/rpc/files.test.ts` failed before implementation for the expected reason:
+
+```text
+Expected promise that rejects
+Received promise that resolved: Promise { <resolved> }
+0 pass
+2 fail
+```
+
+### Implementation changes
+
+- Changed `fs:search` error handling so file-manager validation denials are rethrown instead of being collapsed to an empty search result.
+- Preserved the previous empty-array fallback for non-access traversal/search errors.
+
+### Validation commands run
+
+- `bun test packages/server-core/src/handlers/rpc/files.test.ts`
+- `bun test packages/server-core/src/handlers/rpc/files.test.ts packages/server-core/src/handlers/__tests__/file-manager-scopes.test.ts packages/server-core/src/services/office-document-adapter.test.ts`
+- `bun run --filter @craft-agent/server-core typecheck`
+- `bun run validate:agent-contract`
+
+### Passing output summary
+
+- Handler/runtime + existing scope/adapter tests: `10 pass, 0 fail, 25 expect() calls`.
+- Server-core typecheck: pass.
+- Agent contract validation: pass, `11 skills, 48 tickets, 7 required docs`.
 
 ## Acceptance criteria matrix
 
@@ -86,3 +129,5 @@ error: Cannot find module '../file-manager-scopes' from '/Users/marklindgreen/Pr
 | Broad home/tmp access is not implicitly added to scoped file manager browsing | Pass | Scope construction test expects only declared roots |
 | Cross-scope, sensitive, and symlink-escape paths are denied | Pass | `file-manager-scopes.test.ts` covers sibling, `.env`, and symlink escape denial |
 | RPC file browsing/searching uses scopes when workspace context exists | Pass | `packages/server-core/src/handlers/rpc/files.ts` routes `fs:search` and `fs:listDirectory` through `validateFileManagerBrowsePath` |
+| Allowed workspace search returns scoped results | Pass | `packages/server-core/src/handlers/rpc/files.test.ts` expects a file under the workspace root to be returned with canonicalized path |
+| Scope denial is visible at the RPC boundary | Pass | `packages/server-core/src/handlers/rpc/files.test.ts` expects `fs:search` to reject outside the declared workspace scope |

@@ -104,4 +104,43 @@ describe('Spec Builder screen', () => {
     expect(preview).toContain('- security_model');
     expect(preview).toContain('- security-compliance-pack');
   });
+
+  test('builds a launcher-ready agent pipeline and automation preset preview from selected workflow options', () => {
+    const state = createSpecBuilderState({
+      source: 'manual',
+      rawInput: 'Build a tenant-safe workflow launcher with test-first validation',
+      modeId: 'build',
+      selectedOptionIds: ['output:task-pack', 'tdd:test-first', 'security:tenant-isolation', 'validation:strict-gates'],
+    });
+    const markup = renderToStaticMarkup(<SpecBuilderScreen initialState={state} />);
+
+    expect(state.canStartAgentPlan).toBe(true);
+    expect(state.agentPlan?.stages.map((stage) => stage.roleId)).toEqual([
+      'planner-agent',
+      'test-agent',
+      'builder-agent',
+      'critic-agent',
+      'verifier-agent',
+    ]);
+    expect(state.agentPlan?.handoffContracts).toContainEqual(
+      expect.objectContaining({
+        fromStageId: 'stage-002-test-agent',
+        toStageId: 'stage-003-builder-agent',
+      }),
+    );
+    expect(state.automationPresetPlan?.presetIds).toEqual([
+      'daily-workbench-review',
+      'blocked-session-triage',
+      'tdd-failure-followup',
+    ]);
+    expect(state.automationPresetPlan?.config.automations.LabelAdd?.map((matcher) => matcher.id)).toEqual([
+      'preset-blocked-session-triage',
+      'preset-tdd-failure-followup',
+    ]);
+    expect(markup).toContain('Pipeline preview');
+    expect(markup).toContain('test-agent');
+    expect(markup).toContain('builder-agent');
+    expect(markup).toContain('Automation presets');
+    expect(markup).toContain('tdd-failure-followup');
+  });
 });

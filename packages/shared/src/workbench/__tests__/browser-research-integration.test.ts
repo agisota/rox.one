@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   BROWSER_RESEARCH_TOOL_IDS,
+  createBrowserResearchToolPlan,
   resolveBrowserResearchIntegration,
 } from '../browser-research-integration';
 
@@ -77,5 +78,59 @@ describe('Browser Research Integration', () => {
     expect(resolved.enabledTools).toEqual(['web_search', 'browser_tool']);
     expect(resolved.disabledTools).toEqual([]);
     expect(resolved.policySummary).toBe('browser research enabled for review with fact_check gate');
+  });
+
+  it('constructs runtime tools only through enabled fake factories', () => {
+    const calls: string[] = [];
+    const resolved = resolveBrowserResearchIntegration({
+      modeId: 'research',
+      permissionMode: 'safe',
+      validationGates: ['fact_check'],
+    });
+
+    const plan = createBrowserResearchToolPlan(resolved, {
+      web_search: () => {
+        calls.push('web_search');
+        return { name: 'fake-web-search' };
+      },
+      web_fetch: () => {
+        calls.push('web_fetch');
+        return { name: 'fake-web-fetch' };
+      },
+      browser_tool: () => {
+        calls.push('browser_tool');
+        return { name: 'fake-browser-tool' };
+      },
+    });
+
+    expect(calls).toEqual(['web_search', 'web_fetch']);
+    expect(plan.tools).toEqual([
+      { toolId: 'web_search', tool: { name: 'fake-web-search' } },
+      { toolId: 'web_fetch', tool: { name: 'fake-web-fetch' } },
+    ]);
+    expect(plan.disabledTools).toEqual([
+      {
+        toolId: 'browser_tool',
+        reason: 'browser_tool requires ask permission mode for interactive browser research',
+      },
+    ]);
+  });
+
+  it('keeps enabled runtime tools blocked when a factory is missing', () => {
+    const resolved = resolveBrowserResearchIntegration({
+      modeId: 'research',
+      permissionMode: 'ask',
+      validationGates: ['fact_check'],
+      requestedTools: ['web_search', 'browser_tool'],
+    });
+
+    const plan = createBrowserResearchToolPlan(resolved, {
+      web_search: () => ({ name: 'fake-web-search' }),
+    });
+
+    expect(plan.tools).toEqual([{ toolId: 'web_search', tool: { name: 'fake-web-search' } }]);
+    expect(plan.disabledTools).toEqual([
+      { toolId: 'browser_tool', reason: 'missing runtime factory for browser_tool' },
+    ]);
   });
 });

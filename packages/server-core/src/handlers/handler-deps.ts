@@ -5,6 +5,7 @@ import type { IBrowserPaneManager } from './browser-pane-manager-interface'
 import type { IWindowManager } from './window-manager-interface'
 import type { IMessagingGatewayRegistry } from './messaging-registry-interface'
 import type { AccountStore } from '../accounts'
+import type { OfficeDocumentConverter } from '../services/office-document-adapter'
 
 /**
  * Generic handler dependency bag.
@@ -29,4 +30,5 @@ export interface HandlerDeps<
   oauthFlowStore: TOAuthFlowStore
   messagingRegistry?: IMessagingGatewayRegistry
   accountStore?: AccountStore
+  officeDocumentConverter?: OfficeDocumentConverter
 }

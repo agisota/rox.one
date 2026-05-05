@@ -1,6 +1,6 @@
 # Swarm Inventory
 
-Collected at: `2026-05-05T18:57:00Z`
+Collected at: `2026-05-05T19:32:56Z`
 
 ## Repository
 
@@ -8,12 +8,12 @@ Collected at: `2026-05-05T18:57:00Z`
 |---|---|
 | Path | `/Users/marklindgreen/Projects/craft/craft` |
 | Branch | `main` |
-| Head | `59e31ca0ba0 Make remaining roadmap executable before worker dispatch` |
-| Working tree | clean before worktree-prune metadata refresh; dirty only while updating swarm control docs |
+| Head | `72cf3e595feb Close the first worker wave with evidence-backed UI gates` |
+| Working tree | dirty during current integration wave; feature changes are evidence-backed and awaiting supervisor commit |
 | Origin | `https://github.com/agisota/rox-one-terminal.git` |
 | Origin visibility | private (`agisota/rox-one-terminal`) |
 | Upstream reference | `craft-origin -> https://github.com/agisota/craft.git` |
-| Divergence | `main` ahead of `origin/main` by 29 commits; latest confirmed behind=0 before the newest local commit |
+| Divergence | `main` ahead of `origin/main` by 30 commits; latest confirmed behind=0 |
 
 ## Validation Surface
 
@@ -37,8 +37,8 @@ Important scripts:
 Live counts:
 
 - Real ticket files: `48` plus `TEMPLATE.md`
-- Ticket status after status-drift sync: `29 DONE`, `19 TODO`
-- Worklog files: `64`
+- Ticket status after current integration wave: `39 DONE`, `9 TODO`
+- Worklog files: `65`
 
 Notable drift fixed in T059:
 
@@ -51,13 +51,10 @@ T059 readiness additions:
 - `docs/worklog/T032-github-worktree-integration.md`
 - `.swarm/dispatch/T032-github-worktree-integration.md`
 
-Current remaining TODO tickets from audit:
+Current remaining TODO tickets:
 
-- `T013-review-board`
-- `T014-validation-gates-engine`
 - `T015-multi-agent-pipeline-planner`
 - `T016-automation-presets`
-- `T017-user-account-cabinet`
 - `T018-usage-balance-ledger`
 - `T019-structured-logs-history`
 - `T020-auth-boundary-cloud-session`
@@ -66,11 +63,6 @@ Current remaining TODO tickets from audit:
 - `T023-managed-cloud-workspace`
 - `T024-local-cloud-sync-mvp`
 - `T025-sync-v2-design`
-- `T026-file-manager-scopes`
-- `T027-pdf-viewer`
-- `T028-markdown-entity-graph`
-- `T029-office-document-adapter`
-- `T030-browser-research-integration`
 - `T040-final-release-candidate`
 
 Status drift closed after read-only audit:
@@ -85,6 +77,16 @@ Status drift closed after read-only audit:
 
 Recently closed after the original T059 snapshot:
 
+- `T013-review-board`
+- `T014-validation-gates-engine`
+- `T015-multi-agent-pipeline-planner`
+- `T016-automation-presets`
+- `T017-user-account-cabinet`
+- `T026-file-manager-scopes`
+- `T027-pdf-viewer`
+- `T028-markdown-entity-graph`
+- `T029-office-document-adapter`
+- `T030-browser-research-integration`
 - `T032-github-worktree-integration`
 - `T036-team-chat-collaboration`
 - `T037-mobile-responsive-web-shell`
@@ -95,7 +97,7 @@ Recently closed after the original T059 snapshot:
 
 | Path | Branch | Head | State | Recommendation |
 |---|---|---|---|---|
-| `/Users/marklindgreen/Projects/craft/craft` | `main` | `59e31ca0ba0` | clean before worktree-prune metadata refresh, ahead 29 after latest commit | keep; push blocked by runtime approval policy |
+| `/Users/marklindgreen/Projects/craft/craft` | `main` | `72cf3e595feb` | dirty during current integration wave, ahead 30 before the next commit | keep; push blocked by runtime approval policy |
 | `/Users/marklindgreen/Projects/craft-worktrees/telegram-ru-polish` | `codex/telegram-ru-polish` | `0b5808319503` | pruned from git worktree metadata | no tracked worktree metadata remains; branch archive/deletion is separate |
 | `/Users/marklindgreen/Projects/craft/worktrees/T003-white-label-brand-config` | `feature/T003-white-label-brand-config` | `ff82ab1ccd5c` | clean, merged | keep until archive/prune pass |
 | `/Users/marklindgreen/Projects/craft/worktrees/T004-localization-ru-en` | `feature/T004-localization-ru-en` | `bc8a3fd22a0f` | clean, merged | keep until archive/prune pass |

@@ -87,9 +87,53 @@ error: Cannot find module './office-document-adapter'
 
 ## 10. Remaining risks
 
-- Adapter unit tests cover the boundary with fake converter/writer; they do not assert the full `STORE_ATTACHMENT` RPC flow.
+- Adapter unit tests cover the service boundary and Worker F added handler-level `STORE_ATTACHMENT` coverage with an injected fake converter.
 - Runtime conversion still depends on `markitdown-js` behavior and local native dependencies.
 - Error messages still include converter error text for user diagnosability; callers must avoid embedding secrets in converter exceptions.
+
+## 12. Worker F handler integration closeout — 2026-05-05
+
+### Дополнительный repo context
+
+- `convertOfficeDocumentToMarkdown` already supported fake converter injection, but `packages/server-core/src/handlers/rpc/files.ts` still constructed `new MarkItDown()` directly inside the `STORE_ATTACHMENT` path.
+- That meant handler acceptance could only be proven through the real runtime converter, not by a deterministic fake-provider contract.
+
+### Tests added first
+
+- Added `packages/server-core/src/handlers/rpc/files.test.ts` handler integration coverage:
+  - `file:storeAttachment` stores an Office attachment;
+  - the handler calls an injected fake `OfficeDocumentConverter`;
+  - the returned attachment includes `markdownPath`;
+  - the generated markdown file contains deterministic read-only fallback content from the fake provider.
+
+### Expected failing output
+
+`bun test packages/server-core/src/handlers/rpc/files.test.ts` failed before implementation for the expected reason:
+
+```text
+Failed to store attachment: Failed to convert "deck.docx" to readable format: Cannot convert ...
+0 pass
+2 fail
+```
+
+### Implementation changes
+
+- Added optional `officeDocumentConverter` to `HandlerDeps`.
+- Updated `STORE_ATTACHMENT` to use `deps.officeDocumentConverter` when provided and keep the existing `MarkItDown` converter as the runtime default.
+- This keeps tests fake-provider-only while preserving existing production behavior.
+
+### Validation commands run
+
+- `bun test packages/server-core/src/handlers/rpc/files.test.ts`
+- `bun test packages/server-core/src/handlers/rpc/files.test.ts packages/server-core/src/handlers/__tests__/file-manager-scopes.test.ts packages/server-core/src/services/office-document-adapter.test.ts`
+- `bun run --filter @craft-agent/server-core typecheck`
+- `bun run validate:agent-contract`
+
+### Passing output summary
+
+- Handler/runtime + existing scope/adapter tests: `10 pass, 0 fail, 25 expect() calls`.
+- Server-core typecheck: pass.
+- Agent contract validation: pass, `11 skills, 48 tickets, 7 required docs`.
 
 ## 11. Acceptance criteria matrix
 
@@ -100,5 +144,6 @@ error: Cannot find module './office-document-adapter'
 | Empty conversion output is rejected | Pass | empty output test |
 | Conversion failures are wrapped with attachment context | Pass | failure wrapping test |
 | Existing attachment handler uses the adapter | Pass | `packages/server-core/src/handlers/rpc/files.ts` |
+| `STORE_ATTACHMENT` RPC path is covered with a fake Office converter | Pass | `packages/server-core/src/handlers/rpc/files.test.ts` verifies injected converter usage and markdown fallback |
 | Server-core typecheck passes | Pass | `cd packages/server-core && bun run tsc --noEmit` |
 | Relevant build passes | Pass | `bun run electron:build` |
