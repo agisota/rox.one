@@ -1,6 +1,6 @@
 # Swarm Inventory
 
-Collected at: `2026-05-05T18:45:09Z`
+Collected at: `2026-05-05T18:57:00Z`
 
 ## Repository
 
@@ -8,12 +8,12 @@ Collected at: `2026-05-05T18:45:09Z`
 |---|---|
 | Path | `/Users/marklindgreen/Projects/rox/rox` |
 | Branch | `main` |
-| Head | `acd0c3d28a13 Refresh swarm truth after audit gate closure` |
-| Working tree | clean before backlog-status refresh; dirty only while updating swarm control docs |
+| Head | `59e31ca0ba0 Make remaining roadmap executable before worker dispatch` |
+| Working tree | clean before worktree-prune metadata refresh; dirty only while updating swarm control docs |
 | Origin | `https://github.com/agisota/rox-one-terminal.git` |
 | Origin visibility | private (`agisota/rox-one-terminal`) |
 | Upstream reference | `rox-origin -> https://github.com/agisota/rox.git` |
-| Divergence | `main` ahead of `origin/main` by 28 commits; fresh fetch showed behind=0 |
+| Divergence | `main` ahead of `origin/main` by 29 commits; latest confirmed behind=0 before the newest local commit |
 
 ## Validation Surface
 
@@ -95,8 +95,8 @@ Recently closed after the original T059 snapshot:
 
 | Path | Branch | Head | State | Recommendation |
 |---|---|---|---|---|
-| `/Users/marklindgreen/Projects/rox/rox` | `main` | `acd0c3d28a13` | clean before backlog-status refresh, ahead 28 after fetch | keep; push blocked by runtime approval policy |
-| `/Users/marklindgreen/Projects/rox-worktrees/telegram-ru-polish` | `codex/telegram-ru-polish` | `0b5808319503` | prunable | prune after confirmation/gate |
+| `/Users/marklindgreen/Projects/rox/rox` | `main` | `59e31ca0ba0` | clean before worktree-prune metadata refresh, ahead 29 after latest commit | keep; push blocked by runtime approval policy |
+| `/Users/marklindgreen/Projects/rox-worktrees/telegram-ru-polish` | `codex/telegram-ru-polish` | `0b5808319503` | pruned from git worktree metadata | no tracked worktree metadata remains; branch archive/deletion is separate |
 | `/Users/marklindgreen/Projects/rox/worktrees/T003-white-label-brand-config` | `feature/T003-white-label-brand-config` | `ff82ab1ccd5c` | clean, merged | keep until archive/prune pass |
 | `/Users/marklindgreen/Projects/rox/worktrees/T004-localization-ru-en` | `feature/T004-localization-ru-en` | `bc8a3fd22a0f` | clean, merged | keep until archive/prune pass |
 | `/Users/marklindgreen/Projects/rox/worktrees/T005-skill-bundle-installer` | `feature/T005-skill-bundle-installer` | `a129407508ce` | clean, merged | keep until archive/prune pass |

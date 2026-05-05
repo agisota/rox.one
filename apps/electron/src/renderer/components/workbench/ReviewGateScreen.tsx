@@ -46,10 +46,29 @@ export function ReviewGateScreen({ state, onApplyNotes, onRunCheck }: ReviewGate
           ) : (
             state.result.findings.map(finding => (
               <article key={finding.id} className="rounded-lg border border-border bg-background p-4">
-                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{finding.severity}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-md border border-border px-2 py-1 text-xs font-semibold uppercase text-muted-foreground">
+                    Severity
+                  </span>
+                  <span className="rounded-md border border-border px-2 py-1 text-xs font-semibold uppercase text-foreground">
+                    {finding.severity}
+                  </span>
+                </div>
                 <h3 className="mt-2 text-sm font-semibold">{finding.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{finding.evidence}</p>
-                <p className="mt-2 text-sm text-muted-foreground">{finding.recommendation}</p>
+                <dl className="mt-3 space-y-3 text-sm">
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-muted-foreground">Gates</dt>
+                    <dd className="mt-1 text-foreground">{finding.gateIds.join(', ')}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-muted-foreground">Evidence</dt>
+                    <dd className="mt-1 text-muted-foreground">{finding.evidence}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-semibold uppercase text-muted-foreground">Fix plan</dt>
+                    <dd className="mt-1 text-muted-foreground">{finding.fixPlan}</dd>
+                  </div>
+                </dl>
               </article>
             ))
           )}

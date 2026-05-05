@@ -1,5 +1,9 @@
 import type { PromptRewriteOutput } from '@rox-agent/shared/workbench';
-import { runReviewBoard, type ReviewBoardResult } from '@rox-agent/shared/workbench/review-board';
+import {
+  runReviewBoard,
+  type ReviewBoardEvidence,
+  type ReviewBoardResult,
+} from '@rox-agent/shared/workbench/review-board';
 import {
   generateTddTaskPack,
   type TddTaskPack,
@@ -44,6 +48,7 @@ export interface ReviewGateStateInput {
   rawInput: string;
   variant?: ReviewGateVariant;
   requiredGates?: ValidationGate[];
+  evidence?: ReviewBoardEvidence[];
 }
 
 export interface ReviewGateState {
@@ -108,7 +113,7 @@ export function createReviewGateState(input: ReviewGateStateInput): ReviewGateSt
         protected: false,
       },
     ],
-    evidence: [],
+    evidence: input.evidence ?? [],
   });
 
   return {

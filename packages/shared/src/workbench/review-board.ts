@@ -8,7 +8,12 @@ import {
   CompiledWorkbenchSpecSchema,
   type CompiledWorkbenchSpec,
 } from './spec-compiler';
-import { runValidationGates } from './validation-gates';
+import {
+  ValidationGateEvidenceSchema,
+  type ParsedValidationGateEvidence,
+  type ValidationGateEvidence,
+  runValidationGates,
+} from './validation-gates';
 
 export const ReviewBoardVerdictSchema = z.enum(['pass', 'warn', 'fail'] as const);
 export type ReviewBoardVerdict = z.infer<typeof ReviewBoardVerdictSchema>;
@@ -37,12 +42,8 @@ export const ReviewBoardArtifactSchema = z.object({
 export type ReviewBoardArtifact = z.input<typeof ReviewBoardArtifactSchema>;
 type ParsedReviewBoardArtifact = z.output<typeof ReviewBoardArtifactSchema>;
 
-export const ReviewBoardEvidenceSchema = z.object({
-  gateId: ValidationGateSchema,
-  command: z.string().trim().min(1),
-  summary: z.string().trim().min(1),
-});
-export type ReviewBoardEvidence = z.infer<typeof ReviewBoardEvidenceSchema>;
+export const ReviewBoardEvidenceSchema = ValidationGateEvidenceSchema;
+export type ReviewBoardEvidence = ValidationGateEvidence;
 
 export const ReviewFindingSchema = z.object({
   id: z.string().trim().min(1),
@@ -52,6 +53,7 @@ export const ReviewFindingSchema = z.object({
   artifactId: z.string().trim().min(1).optional(),
   title: z.string().trim().min(1),
   evidence: z.string().trim().min(1),
+  fixPlan: z.string().trim().min(1),
   recommendation: z.string().trim().min(1),
 });
 export type ReviewFinding = z.infer<typeof ReviewFindingSchema>;
@@ -155,10 +157,15 @@ function findingId(index: number): string {
   return `finding-${String(index + 1).padStart(3, '0')}`;
 }
 
-function makeFinding(input: Omit<ReviewFinding, 'id'>, index: number): ReviewFinding {
+type ReviewFindingDraft = Omit<ReviewFinding, 'id' | 'recommendation'> & {
+  recommendation?: string;
+};
+
+function makeFinding(input: ReviewFindingDraft, index: number): ReviewFinding {
   return ReviewFindingSchema.parse({
     id: findingId(index),
     ...input,
+    recommendation: input.recommendation ?? input.fixPlan,
   });
 }
 
@@ -183,7 +190,7 @@ function findSecurityIssues(input: ParsedReviewBoardInput): ReviewFinding[] {
           artifactId: artifact.artifactId,
           title: 'Secret-like content appears in review artifact',
           evidence: `${artifact.title} contains a secret-like key assignment.`,
-          recommendation: 'Remove secret material from artifacts and replace it with a redacted fixture.',
+          fixPlan: 'Remove secret material from artifacts and replace it with a redacted fixture.',
         },
         findings.length,
       ),
@@ -214,7 +221,7 @@ function findFactIssues(input: ParsedReviewBoardInput, offset: number): ReviewFi
           artifactId: artifact.artifactId,
           title: 'Fact-check gate lacks source evidence',
           evidence: `${artifact.title} has factual or comparative claims without attached sources.`,
-          recommendation: 'Attach source artifacts or mark the claim as an assumption before approval.',
+          fixPlan: 'Attach source artifacts or mark the claim as an assumption before approval.',
         },
         offset + findings.length,
       ),
@@ -224,7 +231,17 @@ function findFactIssues(input: ParsedReviewBoardInput, offset: number): ReviewFi
   return findings;
 }
 
-function findMissingEvidenceIssues(input: ParsedReviewBoardInput, offset: number): ReviewFinding[] {
+function evidenceRecordSummary(record: ParsedValidationGateEvidence): string {
+  return [
+    record.summary,
+    record.command ? `Command: ${record.command}.` : '',
+    record.artifactRefs.length > 0 ? `Artifacts: ${record.artifactRefs.join(', ')}.` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function findValidationEvidenceIssues(input: ParsedReviewBoardInput, offset: number): ReviewFinding[] {
   const findings: ReviewFinding[] = [];
   const validationResult = runValidationGates({
     runId: `${input.boardId}-validation`,
@@ -233,6 +250,30 @@ function findMissingEvidenceIssues(input: ParsedReviewBoardInput, offset: number
   });
 
   for (const check of validationResult.checks) {
+    const failedEvidenceRecords = check.evidenceRecords.filter((record) => !record.passed);
+
+    if (failedEvidenceRecords.length > 0) {
+      for (const evidenceRecord of failedEvidenceRecords) {
+        findings.push(
+          makeFinding(
+            {
+              reviewerId: reviewerIdForGate(input, check.gateId, 'completion-verifier'),
+              severity: evidenceRecord.severity ?? check.severity,
+              gateIds: [check.gateId],
+              title: evidenceRecord.findingTitle ?? 'Validation evidence reports a failing gate',
+              evidence: evidenceRecordSummary(evidenceRecord),
+              fixPlan:
+                evidenceRecord.fixPlan ??
+                'Fix the failing validation evidence and rerun the gate before approval.',
+            },
+            offset + findings.length,
+          ),
+        );
+      }
+
+      continue;
+    }
+
     if (!check.missingEvidence) {
       continue;
     }
@@ -245,7 +286,7 @@ function findMissingEvidenceIssues(input: ParsedReviewBoardInput, offset: number
           gateIds: [check.gateId],
           title: 'Required validation evidence is missing',
           evidence: check.evidence,
-          recommendation: 'Attach command or review evidence for this gate before marking the board complete.',
+          fixPlan: 'Attach command or review evidence for this gate before marking the board complete.',
         },
         offset + findings.length,
       ),
@@ -301,7 +342,7 @@ export function runReviewBoard(input: ReviewBoardInput): ReviewBoardResult {
   const parsed = ReviewBoardInputSchema.parse(input);
   const securityFindings = findSecurityIssues(parsed);
   const findings = [...securityFindings, ...findFactIssues(parsed, securityFindings.length)];
-  findings.push(...findMissingEvidenceIssues(parsed, findings.length));
+  findings.push(...findValidationEvidenceIssues(parsed, findings.length));
   const checks = buildChecks(parsed, findings).sort((left, right) => {
     const rankDiff = statusRank(right.status) - statusRank(left.status);
     return rankDiff === 0 ? left.gateId.localeCompare(right.gateId) : rankDiff;

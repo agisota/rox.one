@@ -11,14 +11,17 @@ import { Spinner } from '@rox-agent/ui'
 import { SettingsCard, SettingsInput, SettingsSection } from '@/components/settings'
 import { SettingsRow } from '@/components/settings/SettingsRow'
 import type { DetailsPageMeta } from '@/lib/navigation-registry'
-import { getAccountBrandSummaryRows } from './account-brand-summary'
 import {
   AccountAuthPanel,
   isAllowedAccountExternalUrl,
   type AccountAuthTab,
   type NativeAccountAuthRequest,
 } from './AccountAuthPanel'
-import { getAccountAuthSuccessMessage } from './account-auth-feedback'
+import {
+  getAccountAuthRefreshFailureMessage,
+  getAccountAuthSuccessMessage,
+  getConfirmedAccountCabinetError,
+} from './account-auth-feedback'
 import {
   summarizeAccountStorage,
   type AccountStorageResponse,
@@ -219,7 +222,8 @@ export default function AccountSettingsPage() {
         } else {
           setTeams([])
           setTeamSpaces({})
-          setTeamsError(teamsResult.reason instanceof Error ? teamsResult.reason.message : String(teamsResult.reason))
+          const teamError = teamsResult.reason instanceof Error ? teamsResult.reason.message : String(teamsResult.reason)
+          setTeamsError(getConfirmedAccountCabinetError(teamError, true))
         }
       }
       return accountData
@@ -266,7 +270,7 @@ export default function AccountSettingsPage() {
         setSaved(successMessage)
       } else {
         setSaved(null)
-        setError((current) => current || 'Вход принят, но кабинет не вернул активную сессию. Обновите кабинет или войдите заново.')
+        setError((current) => getAccountAuthRefreshFailureMessage(current))
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -510,7 +514,6 @@ export default function AccountSettingsPage() {
   }
 
   const accountUser = account?.mode === 'account' ? account.user : null
-  const brandSummaryRows = getAccountBrandSummaryRows(undefined, t)
   const storageSummary = summarizeAccountStorage(storage)
   const teamsSummary = summarizeAccountTeams({ teams, spacesByTeamId: teamSpaces, error: teamsError })
   const manageableTeamOptions = getManageableTeamOptions(teamsSummary.rows)
@@ -774,13 +777,6 @@ export default function AccountSettingsPage() {
             )}
             {saved && <p className="text-sm text-muted-foreground px-1">{saved}</p>}
             {error && accountUser && <p className="text-sm text-destructive px-1">{error}</p>}
-            <footer className="border-t border-border pt-4 text-xs text-muted-foreground">
-              <div className="flex flex-wrap gap-x-4 gap-y-1">
-                {brandSummaryRows.map((row) => (
-                  <span key={row.label}>{row.label}: {row.description}</span>
-                ))}
-              </div>
-            </footer>
           </div>
         </ScrollArea>
       </div>

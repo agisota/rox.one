@@ -1,6 +1,6 @@
 # Backlog Status After Read-Only Audit
 
-Collected at: `2026-05-05T18:45:09Z`
+Collected at: `2026-05-05T18:57:00Z`
 
 ## Summary
 
@@ -25,9 +25,9 @@ The remaining roadmap is not 26 blank tickets. The audit found three categories:
 
 | Worktree area | State | Action |
 |---|---|---|
-| `/Users/marklindgreen/Projects/rox/worktrees/T003-*` through `T012-*` | clean, merged to `main` / `origin/main` | Keep until archive/prune pass. |
-| `/Users/marklindgreen/Projects/rox-worktrees/telegram-ru-polish` | dangling/prunable metadata; path missing | Prune only as a separate ORGANIZE action. |
-| `/Users/marklindgreen/Projects/rox/rox` | `main`, clean, ahead of private origin | Push remains blocked by runtime approval policy, not by repo divergence. |
+| `/Users/marklindgreen/Projects/rox/worktrees/T003-*` through `T012-*` | clean, merged to `main` / `origin/main` | Keep until explicit archive/removal pass. |
+| `/Users/marklindgreen/Projects/rox-worktrees/telegram-ru-polish` | pruned from git worktree metadata | No further action unless the branch itself needs archive/deletion. |
+| `/Users/marklindgreen/Projects/rox/rox` | `main`, clean, ahead of private origin by 29 commits | Push remains blocked by runtime approval policy, not by repo divergence. |
 
 ## Execution Order
 

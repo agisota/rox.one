@@ -39,14 +39,18 @@ export const ValidationGateDefinitionSchema = z.object({
 export type ValidationGateDefinition = z.infer<typeof ValidationGateDefinitionSchema>;
 
 export const ValidationGateEvidenceSchema = z.object({
+  evidenceId: z.string().trim().min(1).optional(),
   gateId: ValidationGateSchema,
   command: z.string().trim().min(1).optional(),
   summary: z.string().trim().min(1),
   artifactRefs: z.array(z.string().trim().min(1)).default([]),
   passed: z.boolean().default(true),
+  severity: ValidationGateSeveritySchema.optional(),
+  findingTitle: z.string().trim().min(1).optional(),
+  fixPlan: z.string().trim().min(1).optional(),
 });
 export type ValidationGateEvidence = z.input<typeof ValidationGateEvidenceSchema>;
-type ParsedValidationGateEvidence = z.output<typeof ValidationGateEvidenceSchema>;
+export type ParsedValidationGateEvidence = z.output<typeof ValidationGateEvidenceSchema>;
 
 export const ValidationGateCheckSchema = z.object({
   gateId: ValidationGateSchema,
@@ -57,6 +61,7 @@ export const ValidationGateCheckSchema = z.object({
   blocking: z.boolean(),
   missingEvidence: z.boolean(),
   evidence: z.string().trim().min(1),
+  evidenceRecords: z.array(ValidationGateEvidenceSchema).default([]),
 });
 export type ValidationGateCheck = z.infer<typeof ValidationGateCheckSchema>;
 
@@ -210,6 +215,7 @@ function checkForGate(input: ParsedValidationGateRunInput, gateId: ValidationGat
   const failedEvidence = evidence.find((item) => !item.passed);
   const missingEvidence = definition.requiresEvidence && !hasEvidence;
   const status: ValidationGateStatus = missingEvidence || failedEvidence ? 'fail' : 'pass';
+  const severity = failedEvidence?.severity ?? definition.severity;
   const suppliedEvidenceSummary = failedEvidence?.summary ?? evidence.map((item) => item.summary).join('; ');
   const evidenceSummary = missingEvidence
     ? `Missing evidence for required gate ${gateId}.`
@@ -220,10 +226,11 @@ function checkForGate(input: ParsedValidationGateRunInput, gateId: ValidationGat
     label: definition.label,
     category: definition.category,
     status,
-    severity: definition.severity,
+    severity,
     blocking: definition.blocking,
     missingEvidence,
     evidence: evidenceSummary,
+    evidenceRecords: evidence,
   });
 }
 
