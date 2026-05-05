@@ -63,6 +63,7 @@
     "./views/storage": "./src/views/storage.ts",
     "./workbench": "./src/workbench/index.ts",
     "./workbench/agent-pipeline-planner": "./src/workbench/agent-pipeline-planner.ts",
+    "./workbench/experience-layer-security": "./src/workbench/experience-layer-security.ts",
     "./workbench/option-graph": "./src/workbench/option-graph.ts",
     "./workbench/product-mode-registry": "./src/workbench/product-mode-registry.ts",
     "./workbench/prompt-rewrite-engine": "./src/workbench/prompt-rewrite-engine.ts",

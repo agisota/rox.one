@@ -100,7 +100,29 @@ export function assertPackagePermissionProfile(input: {
 
 export function assertPublicPackagePublishable(input: {
   promptInjectionWarnings: string[];
+  hasContract: boolean;
+  reviewCount: number;
+  passingTestCount: number;
+  trustScore: number;
+  minimumTrustScore?: number;
 }): true {
+  if (!input.hasContract) {
+    throw new Error('Public package publish requires a skill contract.');
+  }
+
+  if (input.reviewCount <= 0) {
+    throw new Error('Public package publish requires reviewer evidence.');
+  }
+
+  if (input.passingTestCount <= 0) {
+    throw new Error('Public package publish requires passing test evidence.');
+  }
+
+  const minimumTrustScore = input.minimumTrustScore ?? 50;
+  if (input.trustScore < minimumTrustScore) {
+    throw new Error(`Public package publish requires trust score >= ${minimumTrustScore}.`);
+  }
+
   if (input.promptInjectionWarnings.length > 0) {
     throw new Error('Prompt injection warnings block public package publish.');
   }
