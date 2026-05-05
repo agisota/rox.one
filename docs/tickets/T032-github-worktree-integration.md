@@ -1,6 +1,6 @@
 # T032-github-worktree-integration
 
-Status: TODO
+Status: DONE
 
 ## Context
 
