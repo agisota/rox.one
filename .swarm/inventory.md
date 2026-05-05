@@ -1,19 +1,19 @@
 # Swarm Inventory
 
-Collected at: `2026-05-05T20:28:48Z`
+Collected at: `2026-05-05T21:40:51Z`
 
 ## Repository
 
 | Field | Value |
 |---|---|
 | Path | `/Users/marklindgreen/Projects/craft/craft` |
-| Branch | `main` |
-| Head before T040 | `094810f559ec Close account cloud roadmap drift with fresh gates` |
-| Working tree | documentation/status updates for T040 release-candidate closure |
+| Branch | `mac/upstream-v0.9.1-rox-merge` |
+| Head before T061 | `6a6bc32 Make backlog accounting enforceable before integration` |
+| Working tree | T061 protected upstream merge planning docs |
 | Origin | `https://github.com/agisota/rox-one-terminal.git` |
 | Origin visibility | private (`agisota/rox-one-terminal`) |
-| Upstream reference | `craft-origin -> https://github.com/agisota/craft.git` |
-| Divergence | `main` ahead of `origin/main` by 34 commits before the T040 release-candidate commit; latest confirmed behind=0 |
+| Upstream reference | `upstream -> https://github.com/lukilabs/craft-agents-oss.git` |
+| Divergence | Current branch ahead of `origin/main` by 1 commit before the T061 commit; latest confirmed behind=0 |
 
 ## Validation Surface
 
@@ -34,11 +34,11 @@ Important scripts:
 
 ## Tickets and Worklogs
 
-Live counts after T060 backlog normalization:
+Live counts after T061 merge-plan normalization:
 
-- Real ticket files: `61` plus `TEMPLATE.md`
-- Ticket status after current integration wave: `61 DONE`, `0 TODO`
-- Worklog files: `67` total, including `README.md`; `66` canonical `T###-*.md` worklogs.
+- Real ticket files: `62` plus `TEMPLATE.md`
+- Ticket status after current integration wave: `62 DONE`, `0 TODO`
+- Worklog files: `68` total, including `README.md`; `67` canonical `T###-*.md` worklogs.
 
 Notable drift fixed in T059:
 
@@ -51,6 +51,12 @@ Notable drift fixed in T060:
 - `T042` through `T053` had implementation worklogs but no canonical ticket files.
 - `scripts/validate-agent-contract.ts` counted tickets but did not fail on orphan worklog ids.
 - Backlog accounting now requires each worklog id to have a canonical ticket id and each DONE ticket id to have a matching worklog id.
+
+T061 readiness additions:
+
+- `docs/tickets/T061-upstream-v0.9.1-merge-plan.md`
+- `docs/worklog/T061-upstream-v0.9.1-merge-plan.md`
+- `docs/release/upstream-v0.9.1-rox-protected-map.md`
 
 T059 readiness additions:
 
@@ -102,6 +108,7 @@ Recently closed after the original T059 snapshot:
 | Path | Branch | Head | State | Recommendation |
 |---|---|---|---|---|
 | `/Users/marklindgreen/Projects/craft/craft` | `main` | `094810f559ec` before T040 commit | documentation/status updates for T040, ahead 34 before the next commit | keep; push blocked by runtime approval policy |
+| `/Users/marklindgreen/Projects/craft/craft` | `mac/upstream-v0.9.1-rox-merge` | `6a6bc32` before T061 commit | T061 merge-plan documentation, protected map, no upstream merge | keep; continue with T062 on this branch |
 | `/Users/marklindgreen/Projects/craft-worktrees/telegram-ru-polish` | `codex/telegram-ru-polish` | `0b5808319503` | pruned from git worktree metadata | no tracked worktree metadata remains; branch archive/deletion is separate |
 | `/Users/marklindgreen/Projects/craft/worktrees/T003-white-label-brand-config` | `feature/T003-white-label-brand-config` | `ff82ab1ccd5c` | clean, merged | keep until archive/prune pass |
 | `/Users/marklindgreen/Projects/craft/worktrees/T004-localization-ru-en` | `feature/T004-localization-ru-en` | `bc8a3fd22a0f` | clean, merged | keep until archive/prune pass |
