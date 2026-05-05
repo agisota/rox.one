@@ -44,6 +44,7 @@ import {
   createWebuiHandler,
   nodeHttpAdapter,
   createAccountEmailService,
+  InMemoryAccountEventHistory,
   InMemoryAccountTeamStore,
   InMemoryManagedCloudWorkspaceStore,
 } from '@rox-agent/server-core/webui'
@@ -154,6 +155,7 @@ const accountEmailService = accountStore
   : undefined
 const accountTeamStore = accountStore ? new InMemoryAccountTeamStore() : undefined
 const accountCloudWorkspaceStore = accountStore ? new InMemoryManagedCloudWorkspaceStore() : undefined
+const accountEventHistory = accountStore ? new InMemoryAccountEventHistory() : undefined
 
 if (accountStore) {
   await accountStore.migrate()
@@ -192,6 +194,7 @@ if (webuiEnabled && serverToken) {
     signupEnabled,
     publicAppUrl,
     accountEmailService,
+    accountEventHistory,
     accountTeamStore,
     accountCloudWorkspaceStore,
     bootstrapAccount: accountStore

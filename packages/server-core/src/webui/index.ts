@@ -2,6 +2,7 @@ export { startWebuiHttpServer, createWebuiHandler, type WebuiHttpServerOptions, 
 export { nodeHttpAdapter } from './node-adapter'
 export { validateSession, validateAccountSession, extractSessionCookie } from './auth'
 export { createAccountEmailService, type AccountEmailService } from './email'
+export { InMemoryAccountEventHistory } from './account-events'
 export { InMemoryAccountTeamStore } from './account-teams'
 export { InMemoryManagedCloudWorkspaceStore } from './account-cloud-workspaces'
 export { InMemoryTeamChatStore } from './team-chat'

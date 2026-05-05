@@ -74,6 +74,92 @@ describe('account event history', () => {
     })
   })
 
+  it('adds actor, action, and target fields to every audit event', async () => {
+    const history = new InMemoryAccountEventHistory()
+
+    await history.append({
+      userId: 'user-a',
+      type: 'account.login',
+      title: 'Signed in',
+      details: { method: 'password' },
+    })
+
+    const [event] = await history.listForUser('user-a')
+
+    expect(event).toMatchObject({
+      userId: 'user-a',
+      type: 'account.login',
+      action: 'account.login',
+      actor: { type: 'user', userId: 'user-a' },
+      target: { type: 'account', id: 'user-a' },
+    })
+  })
+
+  it('lists team audit events newest first without cross-team leakage', async () => {
+    const history = new InMemoryAccountEventHistory()
+
+    await history.append({
+      userId: 'owner-a',
+      type: 'mission.started',
+      title: 'Mission started',
+      details: { missionId: 'mission-1' },
+      teamId: 'team-a',
+      action: 'mission.started',
+      actor: { type: 'user', userId: 'owner-a', teamId: 'team-a' },
+      target: { type: 'mission', id: 'mission-1', teamId: 'team-a' },
+    } as any)
+    await history.append({
+      userId: 'owner-b',
+      type: 'mission.started',
+      title: 'Other mission started',
+      details: { missionId: 'mission-2' },
+      teamId: 'team-b',
+      action: 'mission.started',
+      actor: { type: 'user', userId: 'owner-b', teamId: 'team-b' },
+      target: { type: 'mission', id: 'mission-2', teamId: 'team-b' },
+    } as any)
+    await history.append({
+      userId: 'owner-a',
+      type: 'mission.checkpoint',
+      title: 'Checkpoint passed',
+      details: { checkpointId: 'cp-6h' },
+      teamId: 'team-a',
+      action: 'mission.checkpoint',
+      actor: { type: 'system', teamId: 'team-a' },
+      target: { type: 'checkpoint', id: 'cp-6h', teamId: 'team-a' },
+    } as any)
+
+    const events = await (history as any).listForTeam('team-a')
+
+    expect(events).toHaveLength(2)
+    expect(events.map((event: any) => event.type)).toEqual(['mission.checkpoint', 'mission.started'])
+    expect(events.every((event: any) => event.teamId === 'team-a')).toBe(true)
+    expect(events.some((event: any) => event.title === 'Other mission started')).toBe(false)
+  })
+
+  it('redacts secrets embedded in freeform strings', async () => {
+    const history = new InMemoryAccountEventHistory()
+
+    await history.append({
+      userId: 'user-a',
+      type: 'security.scan',
+      title: 'Security scan',
+      details: {
+        command: 'curl -H "Authorization: Bearer raw-token" https://api.test',
+        callback: 'https://api.test/hook?token=raw-token&ok=1',
+        providerKey: 'sk-live-secret0000',
+      },
+    })
+
+    const [event] = await history.listForUser('user-a')
+    const serialized = JSON.stringify(event!.details)
+
+    expect(serialized).not.toContain('raw-token')
+    expect(serialized).not.toContain('sk-live-secret0000')
+    expect(event!.details.command).toContain('Bearer [redacted]')
+    expect(event!.details.callback).toContain('token=[redacted]')
+  })
+
   it('returns defensive copies and limits account cabinet output', async () => {
     const history = new InMemoryAccountEventHistory()
     await history.append({
@@ -94,6 +180,9 @@ describe('account event history', () => {
     expect(cabinet.events[0]).toEqual({
       id: secondRead[0]!.id,
       type: 'account.profile_updated',
+      action: 'account.profile_updated',
+      actor: { type: 'user', userId: 'user-a' },
+      target: { type: 'account', id: 'user-a' },
       title: 'Profile updated',
       details: { displayName: 'ROX User' },
       createdAt: secondRead[0]!.createdAt,
