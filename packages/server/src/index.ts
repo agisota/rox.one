@@ -50,6 +50,7 @@ import {
 } from '@rox-agent/server-core/webui'
 import type { WebuiHandler } from '@rox-agent/server-core/webui'
 import { createPostgresAccountStore } from '@rox-agent/server-core/accounts'
+import { InMemoryWorkspaceSyncService } from '@rox-agent/server-core/sync'
 import { getCredentialManager } from '@rox-agent/shared/credentials'
 import { getWorkspaces } from '@rox-agent/shared/config'
 import { createMessagingBootstrap, type MessagingBootstrapHandle } from '@rox-agent/messaging-gateway'
@@ -156,6 +157,7 @@ const accountEmailService = accountStore
 const accountTeamStore = accountStore ? new InMemoryAccountTeamStore() : undefined
 const accountCloudWorkspaceStore = accountStore ? new InMemoryManagedCloudWorkspaceStore() : undefined
 const accountEventHistory = accountStore ? new InMemoryAccountEventHistory() : undefined
+const accountWorkspaceSyncService = accountStore ? new InMemoryWorkspaceSyncService() : undefined
 
 if (accountStore) {
   await accountStore.migrate()
@@ -197,6 +199,7 @@ if (webuiEnabled && serverToken) {
     accountEventHistory,
     accountTeamStore,
     accountCloudWorkspaceStore,
+    accountWorkspaceSyncService,
     bootstrapAccount: accountStore
       ? async (user) => {
           if (await accountStore.getUserCount() !== 1) return

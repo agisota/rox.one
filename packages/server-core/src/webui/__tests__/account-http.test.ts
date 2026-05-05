@@ -9,6 +9,7 @@ import { InMemoryAccountEventHistory } from '../account-events'
 import { InMemoryAccountTeamStore } from '../account-teams'
 import { InMemoryManagedCloudWorkspaceStore } from '../account-cloud-workspaces'
 import { createDvnetWebhookSignature } from '../account-billing'
+import type { WorkspaceSyncService } from '../../sync/workspace-sync-service'
 
 class MemoryAccountStore implements AccountStore {
   users = new Map<string, PublicUser & { passwordHash: string }>()
@@ -220,6 +221,7 @@ describe('account webui auth', () => {
     teamStore?: InMemoryAccountTeamStore,
     cloudWorkspaceStore?: InMemoryManagedCloudWorkspaceStore,
     dvnetBilling?: { storeUuid: string; paymentBaseUrl: string; webhookSecret: string },
+    workspaceSyncService?: WorkspaceSyncService,
   ) {
     const handler = createWebuiHandler({
       webuiDir: '/tmp/does-not-need-static-assets',
@@ -236,6 +238,7 @@ describe('account webui auth', () => {
       accountTeamStore: teamStore,
       accountCloudWorkspaceStore: cloudWorkspaceStore,
       accountDvnetBilling: dvnetBilling,
+      accountWorkspaceSyncService: workspaceSyncService,
     })
     handlers.push(handler)
     return handler
@@ -1065,6 +1068,153 @@ describe('account webui auth', () => {
     }))
     const outsiderWorkspacesBody = await outsiderWorkspaces.json() as { workspaces: unknown[] }
     expect(outsiderWorkspacesBody.workspaces).toEqual([])
+  })
+
+  it('routes managed workspace sync endpoints through an injected service after account access checks', async () => {
+    const store = new MemoryAccountStore()
+    const cloudWorkspaces = new InMemoryManagedCloudWorkspaceStore()
+    const created = await store.createUser({ email: 'sync@example.com', password: 'password123' })
+    await store.markEmailVerified(created.id)
+    const workspace = await cloudWorkspaces.createWorkspace({ ownerUserId: created.id, name: 'Sync Room' })
+    await store.grantWorkspaceOwner(created.id, workspace.id)
+    const calls: string[] = []
+    const syncService: WorkspaceSyncService = {
+      async getStatus(input) {
+        calls.push(`status:${input.actorUserId}:${input.workspace.storage.prefix}`)
+        return {
+          workspaceId: input.workspace.id,
+          baseSnapshot: { version: 1, files: [] },
+          cloudSnapshot: { version: 1, files: [] },
+          operationCount: 0,
+          lastOperationId: null,
+        }
+      },
+      async push(input) {
+        const files = input.files ?? []
+        calls.push(`push:${input.operationId}:${files[0]?.path}`)
+        return {
+          workspaceId: input.workspace.id,
+          direction: 'push',
+          operationId: input.operationId ?? null,
+          idempotentReplay: false,
+          operations: [{ type: 'write', path: 'notes/a.md' }],
+          conflicts: [],
+          nextBaseSnapshot: { version: 1, files: [] },
+          files,
+        }
+      },
+      async pull(input) {
+        const files = input.files ?? []
+        calls.push(`pull:${input.operationId}:${files.length}`)
+        return {
+          workspaceId: input.workspace.id,
+          direction: 'pull',
+          operationId: input.operationId ?? null,
+          idempotentReplay: false,
+          operations: [],
+          conflicts: [],
+          nextBaseSnapshot: { version: 1, files: [] },
+          files,
+        }
+      },
+      async listOperations(input) {
+        calls.push(`operations:${input.workspace.id}`)
+        return { operations: [] }
+      },
+    }
+    const handler = createHandler(store, undefined, undefined, undefined, undefined, cloudWorkspaces, undefined, syncService)
+
+    const anonymous = await handler.fetch(new Request(`http://rox.test/api/account/workspaces/${workspace.id}/sync/status`))
+    expect(anonymous.status).toBe(401)
+
+    const login = await handler.fetch(new Request('http://rox.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'sync@example.com', password: 'password123' }),
+    }))
+    const cookie = login.headers.get('set-cookie') ?? ''
+
+    const status = await handler.fetch(new Request(`http://rox.test/api/account/workspaces/${workspace.id}/sync/status`, {
+      headers: { cookie },
+    }))
+    expect(status.status).toBe(200)
+    expect(await status.json()).toMatchObject({ workspaceId: workspace.id, operationCount: 0 })
+
+    const push = await handler.fetch(new Request(`http://rox.test/api/account/workspaces/${workspace.id}/sync/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie },
+      body: JSON.stringify({
+        operationId: 'op-http-1',
+        files: [{ path: 'notes/a.md', contentBase64: new TextEncoder().encode('alpha').toBase64() }],
+      }),
+    }))
+    expect(push.status).toBe(200)
+    expect(await push.json()).toMatchObject({ workspaceId: workspace.id, direction: 'push' })
+
+    const operations = await handler.fetch(new Request(`http://rox.test/api/account/workspaces/${workspace.id}/sync/operations`, {
+      headers: { cookie },
+    }))
+    expect(operations.status).toBe(200)
+
+    expect(calls).toEqual([
+      `status:${created.id}:managed-workspaces/${workspace.id}/`,
+      'push:op-http-1:notes/a.md',
+      `operations:${workspace.id}`,
+    ])
+  })
+
+  it('keeps team workspace sync readable for viewers but denies write sync actions', async () => {
+    const store = new MemoryAccountStore()
+    const teamStore = new InMemoryAccountTeamStore()
+    const cloudWorkspaces = new InMemoryManagedCloudWorkspaceStore()
+    const owner = await store.createUser({ email: 'sync-owner@example.com', password: 'password123' })
+    await store.markEmailVerified(owner.id)
+    const viewer = await store.createUser({ email: 'sync-viewer@example.com', password: 'password123' })
+    await store.markEmailVerified(viewer.id)
+    const team = await teamStore.createOrganization({ actorUserId: owner.id, name: 'Sync Team' })
+    const invite = await teamStore.createInvite({ actorUserId: owner.id, organizationId: team.id, role: 'viewer' })
+    await teamStore.joinWithInvite({ userId: viewer.id, code: invite.code })
+    const workspace = await cloudWorkspaces.createTeamWorkspace({ ownerUserId: owner.id, teamId: team.id, name: 'Viewer Sync' })
+    const syncService: WorkspaceSyncService = {
+      async getStatus(input) {
+        return {
+          workspaceId: input.workspace.id,
+          baseSnapshot: { version: 1, files: [] },
+          cloudSnapshot: { version: 1, files: [] },
+          operationCount: 0,
+          lastOperationId: null,
+        }
+      },
+      async push() {
+        throw new Error('viewer push should be blocked before service invocation')
+      },
+      async pull() {
+        throw new Error('viewer pull should be blocked before service invocation')
+      },
+      async listOperations() {
+        return { operations: [] }
+      },
+    }
+    const handler = createHandler(store, undefined, undefined, undefined, teamStore, cloudWorkspaces, undefined, syncService)
+
+    const login = await handler.fetch(new Request('http://rox.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'sync-viewer@example.com', password: 'password123' }),
+    }))
+    const cookie = login.headers.get('set-cookie') ?? ''
+
+    const status = await handler.fetch(new Request(`http://rox.test/api/account/workspaces/${workspace.id}/sync/status`, {
+      headers: { cookie },
+    }))
+    expect(status.status).toBe(200)
+
+    const push = await handler.fetch(new Request(`http://rox.test/api/account/workspaces/${workspace.id}/sync/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie },
+      body: JSON.stringify({ files: [] }),
+    }))
+    expect(push.status).toBe(403)
   })
 
   it('returns account billing from the injected usage ledger without leaking other users balances', async () => {
