@@ -445,7 +445,7 @@ export interface ShareResult {
   success: boolean
   url?: string
   error?: string
-  code?: 'auth_required' | 'payload_too_large' | 'viewer_unavailable'
+  code?: 'auth_required' | 'payload_too_large' | 'viewer_unavailable' | 'expired' | 'invalid_public_url' | 'secret_leak_detected'
   status?: number
 }
 
