@@ -153,7 +153,7 @@ function createMockWindow(opts?: { width?: number; height?: number; minWidth?: n
 
 mock.module('electron', () => ({
   app: {
-    getPath: mock(() => '/tmp'),
+    getPath: mock((name: string) => name === 'downloads' ? '/tmp/mock-downloads' : `/tmp/mock-${name}`),
   },
   BrowserWindow: class MockBrowserWindow {
     webContents: any

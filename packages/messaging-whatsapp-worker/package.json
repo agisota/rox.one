@@ -1,6 +1,6 @@
 {
   "name": "@craft-agent/messaging-whatsapp-worker",
-  "version": "0.8.12",
+  "version": "0.9.1",
   "license": "Apache-2.0",
   "description": "WhatsApp worker subprocess for ROX (Baileys-based, unofficial API)",
   "type": "module",
@@ -16,7 +16,7 @@
     "@whiskeysockets/baileys": "^6.7.0"
   },
   "devDependencies": {
-    "typescript": "^5.8.2",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.2"
   }
 }

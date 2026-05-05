@@ -152,6 +152,7 @@ interface BrowserInstance {
   ownerType: 'session' | 'manual'
   ownerSessionId: string | null
   isVisible: boolean
+  isHiding: boolean
   keepAliveOnWindowClose: boolean
   toolbarReady: boolean
   toolbarMenuOpen: boolean
@@ -457,6 +458,7 @@ export class BrowserPaneManager implements IBrowserPaneManager {
       ownerType,
       ownerSessionId,
       isVisible: false,
+      isHiding: false,
       keepAliveOnWindowClose: true,
       toolbarReady: false,
       toolbarMenuOpen: false,
@@ -808,8 +810,15 @@ export class BrowserPaneManager implements IBrowserPaneManager {
     const instance = this.instances.get(id)
     if (!instance) return
 
+    // Re-entrancy guard: bail if a hide is already in progress. Prevents the
+    // 'close' listener from re-entering hide() during teardown, which can crash
+    // Chromium's compositor when the BrowserView is mid-load.
+    if (instance.isHiding) return
+
     const win = instance.window
     if (win.isDestroyed()) return
+
+    instance.isHiding = true
 
     // Cancel any deferred show request queued before toolbar was ready.
     if (instance.pendingShowOnReady) {
@@ -819,6 +828,18 @@ export class BrowserPaneManager implements IBrowserPaneManager {
 
     this.forceCloseToolbarMenu(instance, 'window-hide')
 
+    // Cancel an in-flight page load before hiding. Hiding the window while the
+    // BrowserView is still loading can trigger a Chromium compositor assertion
+    // and kill the main process.
+    if (instance.isLoading) {
+      try {
+        const pageWc = instance.pageView.webContents
+        if (!pageWc.isDestroyed()) pageWc.stop()
+      } catch (error) {
+        mainLog.warn(`[browser-pane] failed to stop page load before hide id=${id}: ${(error as Error)?.message ?? error}`)
+      }
+    }
+
     if (instance.hostMode === 'embedded') {
       this.detachBrowserViews(instance)
     } else {
@@ -826,7 +847,13 @@ export class BrowserPaneManager implements IBrowserPaneManager {
     }
 
     instance.isVisible = false
-    this.emitStateChange(instance)
+
+    // Defer the state-change callback so native window teardown completes before
+    // listeners (which may touch BrowserView/Chromium internals) run.
+    queueMicrotask(() => {
+      instance.isHiding = false
+      this.emitStateChange(instance)
+    })
   }
 
   async getAccessibilitySnapshot(id: string): Promise<AccessibilitySnapshot> {
@@ -2945,7 +2972,12 @@ export class BrowserPaneManager implements IBrowserPaneManager {
 
         if (interceptToHide) {
           event.preventDefault()
-          this.hide(instance.id)
+          // Skip if a hide is already in flight — hide() guards against re-entry
+          // itself, but bailing here also avoids redundant log noise during the
+          // teardown race that triggered issue #695.
+          if (!instance.isHiding) {
+            this.hide(instance.id)
+          }
         }
       })
     }

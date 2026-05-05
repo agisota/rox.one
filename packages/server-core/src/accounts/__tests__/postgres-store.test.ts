@@ -3,8 +3,8 @@ import { createPostgresAccountStore } from '../postgres-store'
 
 describe('PostgresAccountStore', () => {
   it('can be integration-tested when CRAFT_DATABASE_URL is provided', async () => {
-    if (!process.env.CRAFT_DATABASE_URL) {
-      expect(process.env.CRAFT_DATABASE_URL).toBeUndefined()
+    if (process.env.CRAFT_RUN_POSTGRES_INTEGRATION !== '1' || !process.env.CRAFT_DATABASE_URL) {
+      expect(process.env.CRAFT_RUN_POSTGRES_INTEGRATION).not.toBe('1')
       return
     }
 

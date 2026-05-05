@@ -173,6 +173,14 @@ function normalizeForComparison(path: string): string {
   return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
 }
 
+function looksLikeWindowsPath(path: string): boolean {
+  return /^[a-zA-Z]:[\\/]/.test(path) || /^\\\\/.test(path);
+}
+
+function normalizeWindowsPathForContainment(path: string): string {
+  return path.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+}
+
 function isWithin(base: string, target: string): boolean {
   const normalizedBase = normalizeForComparison(base);
   const normalizedTarget = normalizeForComparison(target);
@@ -189,6 +197,12 @@ function isWithin(base: string, target: string): boolean {
 function isPathWithinDirectory(targetPath: string, baseDir: string): boolean {
   const expandedTarget = expandHome(targetPath);
   const expandedBase = expandHome(baseDir);
+
+  if (looksLikeWindowsPath(expandedTarget) && looksLikeWindowsPath(expandedBase)) {
+    const normalizedTarget = normalizeWindowsPathForContainment(expandedTarget);
+    const normalizedBase = normalizeWindowsPathForContainment(expandedBase);
+    return normalizedTarget === normalizedBase || normalizedTarget.startsWith(`${normalizedBase}/`);
+  }
 
   const resolvedTarget = resolve(expandedTarget);
   const resolvedBase = resolve(expandedBase);

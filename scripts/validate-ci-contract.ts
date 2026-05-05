@@ -91,7 +91,7 @@ function createFixture(corruptSkill: boolean): string {
 
   for (let index = 0; index < 41; index += 1) {
     const ticketPath = path.join(fixtureRoot, "docs/tickets", `T${String(index).padStart(3, "0")}-fixture.md`);
-    writeFileSync(ticketPath, `# T${String(index).padStart(3, "0")} fixture\n`);
+    writeFileSync(ticketPath, `# T${String(index).padStart(3, "0")} fixture\n\nStatus: TODO\n`);
   }
 
   for (const skill of requiredSkills) {

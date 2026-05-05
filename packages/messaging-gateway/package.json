@@ -1,6 +1,6 @@
 {
   "name": "@craft-agent/messaging-gateway",
-  "version": "0.8.12",
+  "version": "0.9.1",
   "license": "Apache-2.0",
   "description": "Messaging gateway for ROX — Telegram & WhatsApp",
   "type": "module",
@@ -14,13 +14,14 @@
   },
   "dependencies": {
     "@craft-agent/core": "workspace:*",
-    "@craft-agent/shared": "workspace:*",
-    "@craft-agent/server-core": "workspace:*",
     "@craft-agent/messaging-whatsapp-worker": "workspace:*",
+    "@craft-agent/server-core": "workspace:*",
+    "@craft-agent/shared": "workspace:*",
+    "@larksuiteoapi/node-sdk": "^1.62.1",
     "grammy": "^1.35.0"
   },
   "devDependencies": {
-    "typescript": "^5.8.2",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.2"
   }
 }

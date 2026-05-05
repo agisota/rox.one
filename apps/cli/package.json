@@ -1,6 +1,6 @@
 {
   "name": "@craft-agent/cli",
-  "version": "0.8.12",
+  "version": "0.9.1",
   "license": "Apache-2.0",
   "description": "Terminal client for ROX server",
   "type": "module",
@@ -14,12 +14,12 @@
     "test": "bun test src/"
   },
   "dependencies": {
-    "@craft-agent/shared": "workspace:*",
-    "@craft-agent/server-core": "workspace:*"
+    "@craft-agent/server-core": "workspace:*",
+    "@craft-agent/shared": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.8.2",
+    "@types/bun": "latest",
     "@types/node": "^22.0.0",
-    "@types/bun": "latest"
+    "typescript": "^5.8.2"
   }
 }
