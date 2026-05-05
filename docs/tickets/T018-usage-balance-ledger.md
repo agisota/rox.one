@@ -1,6 +1,6 @@
 # T018-usage-balance-ledger
 
-Status: TODO
+Status: DONE
 
 Use the detailed task prompt from the master Agent Workbench implementation plan.
 

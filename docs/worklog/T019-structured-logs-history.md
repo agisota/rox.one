@@ -95,3 +95,11 @@ error: Cannot find module '../account-events'
 | `/api/account/events` is authenticated | PASS | Existing cabinet auth test still asserts unauthenticated 401. |
 | `/api/account/events` returns only current-user events | PASS | HTTP test injects two users and verifies no cross-user event/title exposure. |
 | No runtime log files or unrelated local state are committed | PASS | Staging limited to T019 server/worklog/test files; pre-existing `events.jsonl` remains unstaged. |
+
+## 12. 2026-05-05 status reconciliation
+
+Fresh gate: `bun test packages/server-core/src/webui/__tests__/account-ledger.test.ts packages/server-core/src/webui/__tests__/account-events.test.ts packages/server-core/src/webui/__tests__/account-session-boundary.test.ts packages/server-core/src/webui/__tests__/account-teams.test.ts packages/server-core/src/webui/__tests__/account-cloud-workspaces.test.ts packages/server-core/src/storage/__tests__/object-storage.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts --timeout 20000`
+
+Result: `52 pass`, `0 fail`, `253 expect() calls`.
+
+Decision: close T019 as the structured account event-history contract. Durable audit retention and automatic fan-out from every subsystem remain covered by the later observability/audit lane, not by this ticket.

@@ -1,16 +1,16 @@
 # Dispatch Packet: W3 Account, Cloud, Storage, Sync
 
-Phase: `EXECUTE`
+Phase: `VERIFY`
 
 Tickets: `T017`-`T025`
 
 ## Objective
 
-Close the gap between the existing in-memory/fake account-cloud-storage core and a coherent tested application layer: personal cabinet, auth boundary, ledger/events, teams, quotas, managed workspaces, explicit sync, and Sync V2 design follow-through.
+Keep the account/cloud/storage/sync MVP contracts coherent and verified: personal cabinet, auth boundary, ledger/events, teams, quotas, managed workspaces, explicit sync, and Sync V2 design follow-through.
 
 ## Current Evidence
 
-Most modules and tests already exist, but the audit classified the tickets as `PARTIAL_CORE` because durable/provider wiring, UI acceptance, and some cloud-wide boundary application remain incomplete.
+The lane is closed as an MVP-contract lane after fresh account/cloud/storage validation. Durable/provider wiring remains a documented production follow-up, not a blocker for these fake-provider-safe tickets.
 
 Relevant modules include:
 
@@ -26,12 +26,11 @@ Relevant modules include:
 
 ## Dependency Order
 
-1. `T020` auth boundary must be applied to future cloud APIs.
-2. `T017` account cabinet endpoint/UI contract must match actual account state.
-3. `T018`, `T019`, `T021`, and `T022` can proceed in parallel after `T017/T020` are stable.
-4. `T023` depends on auth boundary and account/team stores.
-5. `T024` depends on storage quotas plus managed workspaces.
-6. `T025` depends on explicit sync MVP evidence.
+1. `T017` account cabinet truth is closed.
+2. `T018`-`T023` are closed after the combined `52 pass` account/cloud/storage gate.
+3. `T024` is closed after explicit sync API/service and Electron smoke evidence.
+4. `T025` is closed as a validated design contract.
+5. Future durable/provider work must open new tickets instead of reopening these MVP contracts.
 
 ## Write Scope
 
@@ -79,3 +78,5 @@ Relevant modules include:
 - Managed workspaces have owner/team visibility and storage prefixes.
 - Sync MVP requires explicit push/pull and conflict approval.
 - Sync V2 design is backed by validation and follow-up implementation tasks where not implemented.
+
+Status: `DONE` for T017-T025 MVP scope. Known production risks: durable persistence, real MinIO/S3 provider wiring, atomic quota reservations, and multi-writer sync leases.

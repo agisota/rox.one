@@ -108,3 +108,11 @@ Vite emitted existing large chunk/deprecated Jotai plugin warnings only.
 | Owner grant is explicit | Pass | HTTP test asserts `store.isWorkspaceOwner(userId, workspace.id)` after creation |
 | Cross-user reads are denied by default | Pass | Unit test rejects `getWorkspaceForUser` for another user and HTTP list returns only current user |
 | No real cloud provisioning or paid API calls | Pass | In-memory store only; no external provider imports or calls |
+
+## 12. 2026-05-05 status reconciliation
+
+Fresh gate: `bun test packages/server-core/src/webui/__tests__/account-ledger.test.ts packages/server-core/src/webui/__tests__/account-events.test.ts packages/server-core/src/webui/__tests__/account-session-boundary.test.ts packages/server-core/src/webui/__tests__/account-teams.test.ts packages/server-core/src/webui/__tests__/account-cloud-workspaces.test.ts packages/server-core/src/storage/__tests__/object-storage.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts --timeout 20000`
+
+Result: `52 pass`, `0 fail`, `253 expect() calls`.
+
+Decision: close T023 as the managed cloud workspace metadata/API MVP. Durable metadata, transactional create+grant, actual provisioning, and signed object URLs remain production follow-up risks.

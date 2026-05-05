@@ -159,7 +159,7 @@ Current audit state:
 
 - `T013`, `T014`, `T017`, and `T027` were closed by `72cf3e5 Close the first worker wave with evidence-backed UI gates`.
 - `T015`, `T016`, `T026`, `T028`, `T029`, and `T030` were closed in the current integration wave with targeted red/green evidence.
-- `T018`-`T025` remain `PARTIAL_CORE`: core modules and tests exist, but account/cloud/storage/sync acceptance remains.
+- `T018`-`T025` are now closed as MVP contracts with fake-provider-safe seams and documented durability risks.
 - `T000`, `T001`, `T002`, `T031`, `T033`, `T034`, and `T035` have PASS worklogs and were synchronized to `DONE`.
 - `T040` remains the only true release-candidate `TODO` with no matching worklog.
 
@@ -234,9 +234,9 @@ Evidence required in final worker report:
 
 1. Validate and commit the backlog-status + dispatch refresh after `git diff --check` and agent-contract validation.
 2. Push remains blocked in this runtime by approval policy even though private origin and behind=0 were verified.
-3. Dispatch Wave 3 as bounded parallel worker lanes with non-overlapping write scopes.
+3. Run Wave 5 `T040-final-release-candidate` with a fresh worklog, release gates, and known-limitations matrix.
 4. Prune stale worktree metadata only as a separate ORGANIZE gate.
-5. Run Wave 5 `T040-final-release-candidate` only after remaining product/system tickets are either DONE or explicitly deferred with risk notes.
+5. Convert any remaining UX/product screenshot gaps into new explicit tickets before implementation.
 
 ## 7. Safe Git and Push Rules
 

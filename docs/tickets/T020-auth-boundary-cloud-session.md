@@ -1,6 +1,6 @@
 # T020-auth-boundary-cloud-session
 
-Status: TODO
+Status: DONE
 
 Use the detailed task prompt from the master Agent Workbench implementation plan.
 

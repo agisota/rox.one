@@ -102,3 +102,11 @@ Vite emitted existing large chunk/deprecated Jotai plugin warnings only.
 | Path traversal rejected | Pass | Unit test covers `..`, absolute, backslash, empty, and dot paths |
 | User/team tenant isolation enforced | Pass | Unit test writes same logical path across two users and one team, then deletes one user object without affecting others |
 | No real S3/API calls in tests | Pass | Tests use `InMemoryObjectStorageAdapter` only |
+
+## 12. 2026-05-05 status reconciliation
+
+Fresh gate: `bun test packages/server-core/src/webui/__tests__/account-ledger.test.ts packages/server-core/src/webui/__tests__/account-events.test.ts packages/server-core/src/webui/__tests__/account-session-boundary.test.ts packages/server-core/src/webui/__tests__/account-teams.test.ts packages/server-core/src/webui/__tests__/account-cloud-workspaces.test.ts packages/server-core/src/storage/__tests__/object-storage.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts --timeout 20000`
+
+Result: `52 pass`, `0 fail`, `253 expect() calls`.
+
+Decision: close T022 as the S3-compatible quota seam and fake-provider contract. Real MinIO/S3 client wiring and atomic multi-writer quota reservations remain production follow-up risks.

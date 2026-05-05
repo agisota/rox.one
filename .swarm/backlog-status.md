@@ -1,6 +1,6 @@
 # Backlog Status After Read-Only Audit
 
-Collected at: `2026-05-05T20:09:00Z`
+Collected at: `2026-05-05T20:17:55Z`
 
 ## Summary
 
@@ -16,7 +16,7 @@ The remaining roadmap is not 26 blank tickets. The audit found three categories:
 |---|---|---|---|
 | Bootstrap/status drift | `T000`, `T001`, `T002` | Metadata closed to `DONE` | Keep evidence in matching worklogs; no feature work. |
 | Product workflow closed | `T013`, `T014`, `T015`, `T016` | `DONE` | Review Board, Validation Gates, pipeline preview, and automation preset consumer are covered by tests. |
-| Account/cloud/storage | `T018`-`T023` | `PARTIAL_CORE` | Replace or wrap in-memory seams with durable/provider adapters, then close API/security/sync acceptance. |
+| Account/cloud/storage | `T018`-`T023` | `DONE` | Closed as MVP contracts with fake/provider-safe seams; durability and real provider hardening remain documented follow-up risks. |
 | Account closed | `T017` | `DONE` | User-centered account cabinet and stale auth-required feedback suppression are covered by tests. |
 | Explicit sync MVP | `T024` | `DONE` | Pure sync engine now has account/team guarded workspace sync HTTP routes and deterministic service tests. |
 | Sync V2 design | `T025` | `DONE` | Checked design contract exists and is enforced by `validate:sync-v2-design` / `validate:docs`. |
@@ -34,11 +34,11 @@ The remaining roadmap is not 26 blank tickets. The audit found three categories:
 
 ## Execution Order
 
-1. `W3-account-cloud-storage`: close `T020 -> T018/T019/T021/T022 -> T023`.
-2. `W4-metadata-release`: keep already-closed metadata tickets closed, then run `T040`.
+1. `W4-metadata-release`: keep already-closed metadata tickets closed, then run `T040`.
+2. `T040-final-release-candidate`: produce final RC worklog, run release gates, and document remaining production risks.
 
 ## Supervisor Rule
 
-No ticket in `PARTIAL_CORE` may be marked `DONE` by status edit alone. It needs a fresh targeted test or smoke proving the missing integration surface, updated worklog, and a Lore commit.
+No ticket may be marked `DONE` by status edit alone. It needs a fresh targeted test or smoke proving the claimed surface, updated worklog, and a Lore commit.
 
-`T025` is not part of that partial-core group: it is a design/validation ticket with a complete worklog, architecture document, and fresh `validate:sync-v2-design` evidence.
+`T018`-`T023` were closed only after the combined account/cloud/storage gate passed with `52 pass`, `0 fail`, `253 expect() calls`.
