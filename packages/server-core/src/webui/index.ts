@@ -4,3 +4,4 @@ export { validateSession, validateAccountSession, extractSessionCookie } from '.
 export { createAccountEmailService, type AccountEmailService } from './email'
 export { InMemoryAccountTeamStore } from './account-teams'
 export { InMemoryManagedCloudWorkspaceStore } from './account-cloud-workspaces'
+export { InMemoryTeamChatStore } from './team-chat'

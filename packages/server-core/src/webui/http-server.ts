@@ -52,8 +52,15 @@ import {
   AccountTeamForbiddenError,
   AccountTeamInviteError,
   createAccountCabinetOrganizationsFromTeams,
+  type AccountTeamRole,
   type AccountTeamStore,
 } from './account-teams'
+import {
+  TeamChatForbiddenError,
+  TeamChatValidationError,
+  type TeamChatStore,
+  type TeamMessageRef,
+} from './team-chat'
 import type { ManagedCloudWorkspaceStore } from './account-cloud-workspaces'
 import {
   createStorageBucketRecord,
@@ -250,6 +257,8 @@ export interface WebuiHandlerOptions {
   accountEventHistory?: AccountEventHistory
   /** Optional account team store for organizations, invites, and RBAC. */
   accountTeamStore?: AccountTeamStore
+  /** Optional account team chat collaboration store. */
+  accountTeamChatStore?: TeamChatStore
   /** Optional managed cloud workspace metadata store. */
   accountCloudWorkspaceStore?: ManagedCloudWorkspaceStore
   /** Optional DV.net billing configuration. Secrets stay server-side. */
@@ -423,7 +432,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
     return [...workspaceIds].sort()
   }
 
-  async function requireTeamMembership(userId: string, teamId: string): Promise<{ id: string; role: string } | Response> {
+  async function requireTeamMembership(userId: string, teamId: string): Promise<{ id: string; role: AccountTeamRole } | Response> {
     if (!options.accountTeamStore) {
       return Response.json({ error: 'Team workspaces are not available until team workspaces are enabled.' }, { status: 501 })
     }
@@ -1065,6 +1074,71 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
           return Response.json({ error: error.message }, { status: 404 })
         }
         return Response.json({ error: error instanceof Error ? error.message : 'Team space action failed' }, { status: 400 })
+      }
+    }
+
+    const teamMessagesMatch = path.match(/^\/api\/account\/teams\/([^/]+)\/messages$/)
+    if (teamMessagesMatch && (req.method === 'GET' || req.method === 'POST')) {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+      if (!options.accountTeamChatStore) {
+        return Response.json({ error: 'Team chat is not available until team collaboration is enabled.' }, { status: 501 })
+      }
+
+      const teamId = decodeURIComponent(teamMessagesMatch[1]!)
+      const membership = await requireTeamMembership(identity.userId, teamId)
+      if (membership instanceof Response) return membership
+
+      try {
+        if (req.method === 'GET') {
+          const workspaceId = url.searchParams.get('workspaceId') ?? undefined
+          const limitParam = url.searchParams.get('limit')
+          const limit = limitParam ? Number(limitParam) : undefined
+          return Response.json({
+            messages: await options.accountTeamChatStore.listMessages({
+              actorRole: membership.role,
+              teamId,
+              workspaceId,
+              limit,
+            }),
+          })
+        }
+
+        let body: {
+          body?: unknown
+          workspaceId?: unknown
+          refs?: unknown
+          labels?: unknown
+        }
+        try {
+          body = await req.json() as {
+            body?: unknown
+            workspaceId?: unknown
+            refs?: unknown
+            labels?: unknown
+          }
+        } catch {
+          return Response.json({ error: 'Invalid request body' }, { status: 400 })
+        }
+
+        const message = await options.accountTeamChatStore.appendMessage({
+          actorUserId: identity.userId,
+          actorRole: membership.role,
+          teamId,
+          workspaceId: typeof body.workspaceId === 'string' ? body.workspaceId : undefined,
+          body: typeof body.body === 'string' ? body.body : '',
+          refs: Array.isArray(body.refs) ? body.refs as TeamMessageRef[] : undefined,
+          labels: Array.isArray(body.labels) ? body.labels as string[] : undefined,
+        })
+        return Response.json({ message }, { status: 201 })
+      } catch (error) {
+        if (error instanceof TeamChatForbiddenError) {
+          return Response.json({ error: error.message }, { status: 403 })
+        }
+        if (error instanceof TeamChatValidationError) {
+          return Response.json({ error: error.message }, { status: 400 })
+        }
+        throw error
       }
     }
 
