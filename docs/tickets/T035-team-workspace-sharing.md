@@ -1,6 +1,6 @@
 # T035-team-workspace-sharing
 
-Status: TODO
+Status: DONE
 
 Use the detailed task prompt from the master Agent Workbench implementation plan.
 
