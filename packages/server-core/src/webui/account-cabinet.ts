@@ -1,6 +1,6 @@
 import type { SessionIdentity } from '../accounts'
 import type { AccountLedgerBalance } from './account-ledger'
-import type { AccountEventRecord } from './account-events'
+import type { AccountAuditActor, AccountAuditSeverity, AccountAuditTarget, AccountEventRecord } from './account-events'
 
 export interface AccountCabinetBalance {
   userId: string
@@ -24,8 +24,15 @@ export interface AccountCabinetBilling {
 export interface AccountCabinetEvent {
   id: string
   type: string
+  action?: string
+  actor?: AccountAuditActor
+  target?: AccountAuditTarget
+  teamId?: string
+  severity?: AccountAuditSeverity
+  source?: string
   title: string
   details: Record<string, unknown>
+  metadata?: Record<string, unknown>
   createdAt: string
 }
 
@@ -83,8 +90,15 @@ export function createAccountCabinetEventsFromHistory(records: AccountEventRecor
     events: records.map(record => ({
       id: record.id,
       type: record.type,
+      action: record.action,
+      actor: { ...record.actor },
+      target: { ...record.target },
+      ...(record.teamId ? { teamId: record.teamId } : {}),
+      ...(record.severity ? { severity: record.severity } : {}),
+      ...(record.source ? { source: record.source } : {}),
       title: record.title,
       details: { ...record.details },
+      ...(record.metadata ? { metadata: { ...record.metadata } } : {}),
       createdAt: record.createdAt,
     })),
   }

@@ -794,6 +794,107 @@ describe('account webui auth', () => {
     expect(reused.status).toBe(400)
   })
 
+  it('exposes team audit events only to owner/admin memberships', async () => {
+    const store = new MemoryAccountStore()
+    const teams = new InMemoryAccountTeamStore()
+    const eventHistory = new InMemoryAccountEventHistory()
+    const owner = await store.createUser({ email: 'audit-owner@example.com', password: 'password123' })
+    await store.markEmailVerified(owner.id)
+    const viewer = await store.createUser({ email: 'audit-viewer@example.com', password: 'password123' })
+    await store.markEmailVerified(viewer.id)
+    const outsider = await store.createUser({ email: 'audit-outsider@example.com', password: 'password123' })
+    await store.markEmailVerified(outsider.id)
+    const handler = createHandler(store, undefined, undefined, eventHistory, teams)
+
+    const ownerLogin = await handler.fetch(new Request('http://craft.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'audit-owner@example.com', password: 'password123' }),
+    }))
+    const ownerCookie = ownerLogin.headers.get('set-cookie') ?? ''
+    expect(ownerLogin.status).toBe(200)
+
+    const createTeam = await handler.fetch(new Request('http://craft.test/api/account/teams', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ name: 'Audit Ops' }),
+    }))
+    expect(createTeam.status).toBe(200)
+    const createTeamBody = await createTeam.json() as { teams: Array<{ id: string }> }
+    const teamId = createTeamBody.teams[0]!.id
+
+    await eventHistory.append({
+      userId: owner.id,
+      type: 'mission.started',
+      title: 'Mission started',
+      details: {
+        missionId: 'mission-audit',
+        authorizationHeader: 'Authorization: Bearer raw-token',
+      },
+      teamId,
+      action: 'mission.started',
+      actor: { type: 'user', userId: owner.id, teamId, role: 'owner' },
+      target: { type: 'mission', id: 'mission-audit', teamId },
+      severity: 'info',
+    } as any)
+
+    const invite = await handler.fetch(new Request(`http://craft.test/api/account/teams/${teamId}/invites`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ role: 'viewer' }),
+    }))
+    const inviteBody = await invite.json() as { invite: { code: string } }
+
+    const viewerLogin = await handler.fetch(new Request('http://craft.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'audit-viewer@example.com', password: 'password123' }),
+    }))
+    const viewerCookie = viewerLogin.headers.get('set-cookie') ?? ''
+    expect(viewerLogin.status).toBe(200)
+    await handler.fetch(new Request(`http://craft.test/api/account/invites/${inviteBody.invite.code}/accept`, {
+      method: 'POST',
+      headers: { cookie: viewerCookie },
+    }))
+
+    const ownerAudit = await handler.fetch(new Request(`http://craft.test/api/account/teams/${teamId}/audit`, {
+      headers: { cookie: ownerCookie },
+    }))
+    expect(ownerAudit.status).toBe(200)
+    const ownerAuditBody = await ownerAudit.json() as { events: Array<Record<string, unknown>> }
+    expect(ownerAuditBody.events).toHaveLength(1)
+    expect(ownerAuditBody.events[0]).toMatchObject({
+      type: 'mission.started',
+      action: 'mission.started',
+      actor: { type: 'user', teamId, role: 'owner' },
+      target: { type: 'mission', id: 'mission-audit', teamId },
+      teamId,
+      severity: 'info',
+    })
+    expect(JSON.stringify(ownerAuditBody)).not.toContain('raw-token')
+    expect(ownerAuditBody.events.some(event => 'userId' in event)).toBe(false)
+
+    const viewerAudit = await handler.fetch(new Request(`http://craft.test/api/account/teams/${teamId}/audit`, {
+      headers: { cookie: viewerCookie },
+    }))
+    expect(viewerAudit.status).toBe(403)
+
+    const outsiderLogin = await handler.fetch(new Request('http://craft.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'audit-outsider@example.com', password: 'password123' }),
+    }))
+    const outsiderCookie = outsiderLogin.headers.get('set-cookie') ?? ''
+    expect(outsiderLogin.status).toBe(200)
+    const outsiderAudit = await handler.fetch(new Request(`http://craft.test/api/account/teams/${teamId}/audit`, {
+      headers: { cookie: outsiderCookie },
+    }))
+    expect(outsiderAudit.status).toBe(403)
+
+    const anonymousAudit = await handler.fetch(new Request(`http://craft.test/api/account/teams/${teamId}/audit`))
+    expect(anonymousAudit.status).toBe(401)
+  })
+
   it('creates managed cloud workspaces through account sessions and grants explicit ownership', async () => {
     const store = new MemoryAccountStore()
     const cloudWorkspaces = new InMemoryManagedCloudWorkspaceStore()

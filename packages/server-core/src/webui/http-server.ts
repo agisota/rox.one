@@ -997,6 +997,23 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       return Response.json(createAccountCabinetEvents())
     }
 
+    const teamAuditMatch = path.match(/^\/api\/account\/teams\/([^/]+)\/audit$/)
+    if (teamAuditMatch && req.method === 'GET') {
+      const identity = await requireAccountSession(req)
+      if (identity instanceof Response) return identity
+
+      const teamId = decodeURIComponent(teamAuditMatch[1]!)
+      const membership = await requireTeamMembership(identity.userId, teamId)
+      if (membership instanceof Response) return membership
+      if (membership.role !== 'owner' && membership.role !== 'admin') {
+        return Response.json({ error: 'Team audit access requires owner or admin role' }, { status: 403 })
+      }
+
+      if (!options.accountEventHistory) return Response.json(createAccountCabinetEvents())
+      const events = await options.accountEventHistory.listForTeam(teamId, { limit: 100 })
+      return Response.json(createAccountCabinetEventsFromHistory(events))
+    }
+
     if (path === '/api/account/storage' && req.method === 'GET') {
       const identity = await requireAccountSession(req)
       if (identity instanceof Response) return identity
