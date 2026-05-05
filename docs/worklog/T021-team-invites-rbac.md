@@ -103,3 +103,11 @@ error: Cannot find module '../account-teams'
 | Invite join is single-use and tenant-safe | PASS | Unit and HTTP tests verify one successful join and reused-code `400`. |
 | HTTP organization create/join works only with backing store | PASS | HTTP tests inject `InMemoryAccountTeamStore` for create/join success. |
 | Existing no-store behavior remains explicit | PASS | Existing account HTTP test still asserts `501` for no backing team store. |
+
+## 12. 2026-05-05 status reconciliation
+
+Fresh gate: `bun test packages/server-core/src/webui/__tests__/account-ledger.test.ts packages/server-core/src/webui/__tests__/account-events.test.ts packages/server-core/src/webui/__tests__/account-session-boundary.test.ts packages/server-core/src/webui/__tests__/account-teams.test.ts packages/server-core/src/webui/__tests__/account-cloud-workspaces.test.ts packages/server-core/src/storage/__tests__/object-storage.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts --timeout 20000`
+
+Result: `52 pass`, `0 fail`, `253 expect() calls`.
+
+Decision: close T021 as the team invite/RBAC MVP contract. Durable team persistence and richer team UI are documented follow-up risks.

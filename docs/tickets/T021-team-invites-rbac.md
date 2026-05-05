@@ -1,6 +1,6 @@
 # T021-team-invites-rbac
 
-Status: TODO
+Status: DONE
 
 Use the detailed task prompt from the master Agent Workbench implementation plan.
 

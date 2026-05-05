@@ -107,3 +107,11 @@ Received: undefined
 | Workspace access is deny-by-default | PASS | Unit test denies local sessions, missing workspace IDs, and role-only admin access. |
 | `/api/account/me` exposes the boundary without leaking other users | PASS | HTTP test verifies `workspace-other` is absent. |
 | Existing account/session auth behavior remains compatible | PASS | Existing account HTTP suite remains green with `14 pass`. |
+
+## 12. 2026-05-05 status reconciliation
+
+Fresh gate: `bun test packages/server-core/src/webui/__tests__/account-ledger.test.ts packages/server-core/src/webui/__tests__/account-events.test.ts packages/server-core/src/webui/__tests__/account-session-boundary.test.ts packages/server-core/src/webui/__tests__/account-teams.test.ts packages/server-core/src/webui/__tests__/account-cloud-workspaces.test.ts packages/server-core/src/storage/__tests__/object-storage.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts --timeout 20000`
+
+Result: `52 pass`, `0 fail`, `253 expect() calls`.
+
+Decision: close T020 because the boundary is now applied by account, managed workspace, team workspace, and sync HTTP surfaces. Session TTL and token-signing policy remain unchanged existing behavior.

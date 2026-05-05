@@ -99,4 +99,12 @@ The failure was expected: the account usage ledger contract did not exist yet.
 | Ledger prevents negative balances | PASS | `AccountLedgerInsufficientBalanceError` test |
 | Account billing endpoint uses injected ledger without cross-user reads | PASS | HTTP test with two users and isolated first-user entries |
 | Top-up remains explicit/fake-provider safe | PASS | No payment provider or top-up mutation was added |
-| Worklog, validation, commit, and push completed | Pending | Commit/push pending |
+| Worklog, validation, and scoped commit completed | PASS | Closed in the 2026-05-05 account/cloud status reconciliation commit |
+
+## 12. 2026-05-05 status reconciliation
+
+Fresh gate: `bun test packages/server-core/src/webui/__tests__/account-ledger.test.ts packages/server-core/src/webui/__tests__/account-events.test.ts packages/server-core/src/webui/__tests__/account-session-boundary.test.ts packages/server-core/src/webui/__tests__/account-teams.test.ts packages/server-core/src/webui/__tests__/account-cloud-workspaces.test.ts packages/server-core/src/storage/__tests__/object-storage.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts --timeout 20000`
+
+Result: `52 pass`, `0 fail`, `253 expect() calls`.
+
+Decision: close T018 as the account-level MVP ledger contract. Persistent billing tables, provider reconciliation, and automatic session-usage debit remain explicit follow-up risks, not blockers for this ticket's fake-provider-safe contract.

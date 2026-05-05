@@ -1,6 +1,6 @@
 # Swarm Inventory
 
-Collected at: `2026-05-05T20:09:00Z`
+Collected at: `2026-05-05T20:17:55Z`
 
 ## Repository
 
@@ -8,12 +8,12 @@ Collected at: `2026-05-05T20:09:00Z`
 |---|---|
 | Path | `/Users/marklindgreen/Projects/rox/rox` |
 | Branch | `main` |
-| Head | `8225d03331ef Close completed sync-v2 design drift before cloud execution` |
-| Working tree | dirty during T024 sync-API integration |
+| Head | `d812c5fa8c21 Close explicit workspace sync before durable cloud work` |
+| Working tree | dirty during T018-T023 status reconciliation |
 | Origin | `https://github.com/agisota/rox-one-terminal.git` |
 | Origin visibility | private (`agisota/rox-one-terminal`) |
 | Upstream reference | `rox-origin -> https://github.com/agisota/rox.git` |
-| Divergence | `main` ahead of `origin/main` by 32 commits; latest confirmed behind=0 |
+| Divergence | `main` ahead of `origin/main` by 33 commits before this reconciliation commit; latest confirmed behind=0 |
 
 ## Validation Surface
 
@@ -37,7 +37,7 @@ Important scripts:
 Live counts:
 
 - Real ticket files: `48` plus `TEMPLATE.md`
-- Ticket status after current integration wave: `41 DONE`, `7 TODO`
+- Ticket status after current integration wave: `47 DONE`, `1 TODO`
 - Worklog files: `65`
 
 Notable drift fixed in T059:
@@ -53,12 +53,6 @@ T059 readiness additions:
 
 Current remaining TODO tickets:
 
-- `T018-usage-balance-ledger`
-- `T019-structured-logs-history`
-- `T020-auth-boundary-cloud-session`
-- `T021-team-invites-rbac`
-- `T022-s3-storage-quotas`
-- `T023-managed-cloud-workspace`
 - `T040-final-release-candidate`
 
 Status drift closed after read-only audit:
@@ -85,6 +79,12 @@ Recently closed after the original T059 snapshot:
 - `T030-browser-research-integration`
 - `T025-sync-v2-design`
 - `T024-local-cloud-sync-mvp`
+- `T018-usage-balance-ledger`
+- `T019-structured-logs-history`
+- `T020-auth-boundary-cloud-session`
+- `T021-team-invites-rbac`
+- `T022-s3-storage-quotas`
+- `T023-managed-cloud-workspace`
 - `T032-github-worktree-integration`
 - `T036-team-chat-collaboration`
 - `T037-mobile-responsive-web-shell`
@@ -95,7 +95,7 @@ Recently closed after the original T059 snapshot:
 
 | Path | Branch | Head | State | Recommendation |
 |---|---|---|---|---|
-| `/Users/marklindgreen/Projects/rox/rox` | `main` | `8225d03331ef` | dirty during T024 sync-API integration, ahead 32 before the next commit | keep; push blocked by runtime approval policy |
+| `/Users/marklindgreen/Projects/rox/rox` | `main` | `d812c5fa8c21` | dirty during T018-T023 status reconciliation, ahead 33 before the next commit | keep; push blocked by runtime approval policy |
 | `/Users/marklindgreen/Projects/rox-worktrees/telegram-ru-polish` | `codex/telegram-ru-polish` | `0b5808319503` | pruned from git worktree metadata | no tracked worktree metadata remains; branch archive/deletion is separate |
 | `/Users/marklindgreen/Projects/rox/worktrees/T003-white-label-brand-config` | `feature/T003-white-label-brand-config` | `ff82ab1ccd5c` | clean, merged | keep until archive/prune pass |
 | `/Users/marklindgreen/Projects/rox/worktrees/T004-localization-ru-en` | `feature/T004-localization-ru-en` | `bc8a3fd22a0f` | clean, merged | keep until archive/prune pass |
