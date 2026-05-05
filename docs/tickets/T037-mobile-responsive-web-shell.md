@@ -1,8 +1,33 @@
 # T037-mobile-responsive-web-shell
 
-Status: TODO
+Status: DONE
 
-Use the detailed task prompt from the master Agent Workbench implementation plan.
+## Goal
+
+Make the core Experience/Workbench screens usable on narrow mobile/web shell
+viewports by enforcing a shared mobile-first shell contract:
+
+- no horizontal overflow from the Experience surface;
+- primary content and right-side context stack into one column on mobile;
+- action rows can compress to full-width mobile controls;
+- desktop split-panel layout remains available at `xl`;
+- all first-class Experience screens keep rendering through the shared shell.
+
+## Required UI
+
+- `Deep Missions`
+- `Arena Builder`
+- `Mission Control`
+- `Progression Observatory`
+- `Quest Map`
+- `Agent Forge`
+
+## Required Tests
+
+- Static renderer contract test for the shared mobile shell attributes/classes.
+- Static route smoke test confirming all Experience screens inherit the mobile
+  shell contract.
+- Existing workbench localization/polish tests must continue passing.
 
 Required loop:
 
