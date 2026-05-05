@@ -70,5 +70,6 @@ export interface OAuthSessionContext {
  */
 export function buildOAuthDeeplinkUrl(ctx?: OAuthSessionContext): string | undefined {
   if (!ctx?.sessionId || !ctx?.deeplinkScheme) return undefined;
-  return `${ctx.deeplinkScheme}://allSessions/session/${ctx.sessionId}`;
+  const scheme = ctx.deeplinkScheme === 'roxagents' ? 'rox' : ctx.deeplinkScheme;
+  return `${scheme}://allSessions/session/${ctx.sessionId}`;
 }

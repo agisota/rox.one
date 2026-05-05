@@ -39,7 +39,7 @@ class ProtocolProxyDispatcher extends Dispatcher {
     this.rules = parseNoProxyRules(opts.noProxy);
   }
 
-  dispatch(opts: Dispatcher.DispatchOptions, handler: Dispatcher.DispatchHandlers): boolean {
+  dispatch(opts: Dispatcher.DispatchOptions, handler: Dispatcher.DispatchHandler): boolean {
     const url = typeof opts.origin === 'string' ? opts.origin : opts.origin?.toString();
 
     // If URL matches bypass rules, go direct

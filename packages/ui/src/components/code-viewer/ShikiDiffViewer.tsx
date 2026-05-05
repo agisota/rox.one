@@ -18,7 +18,7 @@ import { registerRoxShikiThemes } from './registerShikiThemes'
 
 // Register the diffs-container custom element if not already registered
 // This is necessary because the React component renders a custom element
-if (typeof HTMLElement !== 'undefined' && !customElements.get(DIFFS_TAG_NAME)) {
+if (typeof HTMLElement !== 'undefined' && typeof customElements !== 'undefined' && !customElements.get(DIFFS_TAG_NAME)) {
   class FileDiffContainer extends HTMLElement {
     constructor() {
       super()

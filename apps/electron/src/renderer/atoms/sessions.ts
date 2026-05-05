@@ -203,6 +203,33 @@ export const updateSessionMetaAtom = atom(
 )
 
 /**
+ * Action atom: replace a session with an authoritative full session payload.
+ *
+ * Use this for data returned by getSessionMessages() or createSession(), where
+ * the `messages` array is known to represent the loaded transcript. Keeping the
+ * full session atom and loadedSessionsAtom in one write prevents the chat panel
+ * from hiding real messages behind a stale lazy-loading spinner.
+ */
+export const replaceLoadedSessionAtom = atom(
+  null,
+  (get, set, session: Session) => {
+    set(sessionAtomFamily(session.id), session)
+
+    const metaMap = get(sessionMetaMapAtom)
+    const newMetaMap = new Map(metaMap)
+    newMetaMap.set(session.id, extractSessionMeta(session))
+    set(sessionMetaMapAtom, newMetaMap)
+
+    const loadedSessions = get(loadedSessionsAtom)
+    if (!loadedSessions.has(session.id)) {
+      const newLoadedSessions = new Set(loadedSessions)
+      newLoadedSessions.add(session.id)
+      set(loadedSessionsAtom, newLoadedSessions)
+    }
+  }
+)
+
+/**
  * Action atom: append message to session (for streaming)
  * Optimized to only update the specific session
  * Note: Does NOT update lastMessageAt - caller must handle timestamp updates
@@ -315,8 +342,9 @@ export const refreshSessionsMetadataAtom = atom(
 
     // Remove stale sessions only for authoritative refreshes. Stale reconnect
     // recovery can receive a transient partial list immediately after sleep/wake;
-    // treating that as authoritative makes the sidebar collapse to whichever
-    // sessions happened to be returned first.
+    // treating that as authoritative is what makes the sidebar collapse to the
+    // single active session. In non-destructive mode we upsert returned sessions
+    // and preserve missing metadata until a confirmed delete/workspace reload.
     const currentIds = get(sessionIdsAtom)
     const latestIds = new Set(sessions.map(s => s.id))
     if (removeMissing) {

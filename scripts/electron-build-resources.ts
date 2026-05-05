@@ -2,27 +2,41 @@
  * Cross-platform resources copy script
  */
 
-import { cpSync, existsSync, lstatSync, mkdirSync, rmSync } from "fs";
-import { dirname, join } from "path";
+import { cpSync, existsSync } from "fs";
+import { join } from "path";
+import {
+  copySDK,
+  verifySDKCopy,
+  type Arch,
+  type BuildConfig,
+  type Platform,
+} from "./build/common";
 
 const ROOT_DIR = join(import.meta.dir, "..");
 const ELECTRON_DIR = join(ROOT_DIR, "apps/electron");
 
 const srcDir = join(ELECTRON_DIR, "resources");
 const destDir = join(ELECTRON_DIR, "dist/resources");
-const sdkSourceDir = join(
-  ROOT_DIR,
-  "node_modules",
-  "@anthropic-ai",
-  "claude-agent-sdk",
-);
-const sdkDestDir = join(
-  ELECTRON_DIR,
-  "node_modules",
-  "@anthropic-ai",
-  "claude-agent-sdk",
-);
-const sdkCliPath = join(sdkDestDir, "cli.js");
+function resolvePlatform(): Platform {
+  switch (process.platform) {
+    case "darwin":
+    case "linux":
+    case "win32":
+      return process.platform;
+    default:
+      throw new Error(`Unsupported Electron build platform: ${process.platform}`);
+  }
+}
+
+function resolveArch(): Arch {
+  switch (process.arch) {
+    case "arm64":
+    case "x64":
+      return process.arch;
+    default:
+      throw new Error(`Unsupported Electron build architecture: ${process.arch}`);
+  }
+}
 
 if (existsSync(srcDir)) {
   cpSync(srcDir, destDir, { recursive: true, force: true });
@@ -31,37 +45,15 @@ if (existsSync(srcDir)) {
   console.log("⚠️ No resources directory found");
 }
 
-if (!existsSync(sdkSourceDir)) {
-  throw new Error(`SDK not found at ${sdkSourceDir}. Run 'bun install' first.`);
-}
+const config: BuildConfig = {
+  platform: resolvePlatform(),
+  arch: resolveArch(),
+  upload: false,
+  uploadLatest: false,
+  uploadScript: false,
+  rootDir: ROOT_DIR,
+  electronDir: ELECTRON_DIR,
+};
 
-mkdirSync(dirname(sdkDestDir), { recursive: true });
-if (existsSync(sdkDestDir)) {
-  rmSync(sdkDestDir, { recursive: true, force: true });
-}
-
-cpSync(sdkSourceDir, sdkDestDir, {
-  recursive: true,
-  dereference: true,
-  force: true,
-});
-console.log("📦 Copied claude-agent-sdk into apps/electron/node_modules");
-
-if (!existsSync(sdkCliPath)) {
-  throw new Error(`SDK verification failed: cli.js not found at ${sdkCliPath}`);
-}
-
-const cliStats = lstatSync(sdkCliPath);
-if (cliStats.isSymbolicLink()) {
-  throw new Error("SDK verification failed: cli.js is a symlink");
-}
-
-if (cliStats.size < 1_000_000) {
-  throw new Error(
-    `SDK verification failed: cli.js too small (${cliStats.size} bytes)`,
-  );
-}
-
-console.log(
-  `✅ Verified claude-agent-sdk bundle: cli.js is ${(cliStats.size / 1024 / 1024).toFixed(1)} MB`,
-);
+copySDK(config);
+verifySDKCopy(config);

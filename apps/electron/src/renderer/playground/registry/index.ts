@@ -22,11 +22,13 @@ import { containerTransitionsComponents } from './container-transitions'
 import { apiKeyInputComponents } from './api-key-input'
 import { messagingComponents } from './messaging'
 import { workspaceComponents } from './workspace'
+import { imageSupportComponents } from './image-support'
 
 export * from './types'
 
 export const componentRegistry: ComponentEntry[] = [
   ...apiKeyInputComponents,
+  ...imageSupportComponents,
   ...onboardingComponents,
   ...workspaceComponents,
   ...chatComponents,
@@ -50,6 +52,7 @@ export const componentRegistry: ComponentEntry[] = [
   ...transportBannerComponents,
   ...containerTransitionsComponents,
   ...messagingComponents,
+  ...imageSupportComponents,
 ]
 
 export function getCategories(): CategoryGroup[] {

@@ -3,8 +3,8 @@ import { createPostgresAccountStore } from '../postgres-store'
 
 describe('PostgresAccountStore', () => {
   it('can be integration-tested when ROX_DATABASE_URL is provided', async () => {
-    if (!process.env.ROX_DATABASE_URL) {
-      expect(process.env.ROX_DATABASE_URL).toBeUndefined()
+    if (process.env.ROX_RUN_POSTGRES_INTEGRATION !== '1' || !process.env.ROX_DATABASE_URL) {
+      expect(process.env.ROX_RUN_POSTGRES_INTEGRATION).not.toBe('1')
       return
     }
 

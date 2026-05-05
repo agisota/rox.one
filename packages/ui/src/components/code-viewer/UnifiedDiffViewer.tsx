@@ -17,7 +17,7 @@ import { LANGUAGE_MAP } from './language-map'
 
 // Register the diffs-container custom element if not already registered
 // (shared with ShikiDiffViewer - safe to call multiple times)
-if (typeof HTMLElement !== 'undefined' && !customElements.get(DIFFS_TAG_NAME)) {
+if (typeof HTMLElement !== 'undefined' && typeof customElements !== 'undefined' && !customElements.get(DIFFS_TAG_NAME)) {
   class FileDiffContainer extends HTMLElement {
     constructor() {
       super()

@@ -6,9 +6,10 @@
  * in the full-screen diff overlay (ShikiDiffViewer), instead of plain
  * Shiki syntax highlighting.
  *
- * Handles two common diff code block formats:
+ * Handles common diff code block formats:
  * 1. Proper unified diffs (with --- / +++ / @@ headers) — passed directly
- * 2. Bare diff content (just +/- lines) — synthetic headers are prepended
+ * 2. Numbered hunks without file headers — synthetic file headers are prepended
+ * 3. Bare diff content or bare @@ markers — synthetic headers are prepended
  *
  * Falls back to the regular CodeBlock if PatchDiff rendering fails.
  */
@@ -18,12 +19,13 @@ import { PatchDiff, type PatchDiffProps } from '@pierre/diffs/react'
 import { DIFFS_TAG_NAME } from '@pierre/diffs'
 import { cn } from '../../lib/utils'
 import { CodeBlock } from './CodeBlock'
+import { ensureUnifiedDiffFormat } from './diff-normalize'
 import { registerRoxShikiThemes } from '../code-viewer/registerShikiThemes'
 
 // ── Custom element + theme registration (same as ShikiDiffViewer) ──────────
 // Idempotent: safe to run even if ShikiDiffViewer already registered these.
 
-if (typeof HTMLElement !== 'undefined' && !customElements.get(DIFFS_TAG_NAME)) {
+if (typeof HTMLElement !== 'undefined' && typeof customElements !== 'undefined' && !customElements.get(DIFFS_TAG_NAME)) {
   class FileDiffContainer extends HTMLElement {
     constructor() {
       super()
@@ -46,43 +48,6 @@ registerRoxShikiThemes()
 function isDarkMode(): boolean {
   if (typeof document === 'undefined') return false
   return document.documentElement.classList.contains('dark')
-}
-
-/**
- * Ensure the raw diff text is a valid unified diff that PatchDiff can parse.
- *
- * Markdown diff blocks often omit the --- / +++ / @@ headers. If those are
- * missing we synthesise minimal headers so the parser can handle the content.
- */
-function ensureUnifiedDiffFormat(raw: string): string {
-  // If the content already contains a hunk header, assume it's valid
-  if (/^@@\s/m.test(raw)) return raw
-
-  const lines = raw.split('\n')
-
-  // Count original (context + deletions) and modified (context + additions)
-  // line totals so we can build a correct hunk header.
-  let origCount = 0
-  let modCount = 0
-
-  for (const line of lines) {
-    if (line.startsWith('-')) {
-      origCount++
-    } else if (line.startsWith('+')) {
-      modCount++
-    } else {
-      // Context line (including empty lines)
-      origCount++
-      modCount++
-    }
-  }
-
-  return [
-    '--- a/file',
-    '+++ b/file',
-    `@@ -1,${origCount} +1,${modCount} @@`,
-    raw,
-  ].join('\n')
 }
 
 // ── Error boundary ────────────────────────────────────────────────────────

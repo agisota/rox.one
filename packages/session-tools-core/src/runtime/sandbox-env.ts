@@ -73,6 +73,10 @@ export function createScriptRuntimeEnv(
     env.UV_CACHE_DIR = uvCacheDir;
     env.XDG_CACHE_HOME = xdgCacheHome;
     env.PYTHONPYCACHEPREFIX = pythonPyCachePrefix;
+  } else {
+    delete env.UV_CACHE_DIR;
+    delete env.XDG_CACHE_HOME;
+    delete env.PYTHONPYCACHEPREFIX;
   }
 
   return env;

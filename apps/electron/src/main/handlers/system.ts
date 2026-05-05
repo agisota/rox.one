@@ -4,6 +4,7 @@ import { homedir } from 'os'
 import { execSync } from 'child_process'
 import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
 import { getGitBashPath, setGitBashPath, clearGitBashPath } from '@rox-agent/shared/config'
+import { isSafeExternalUrl } from '@rox-agent/shared/utils/url-safety'
 import { isUsableGitBashPath, validateGitBashPath } from '@rox-agent/server-core/services'
 import { validateFilePath, getWorkspaceAllowedDirs } from '@rox-agent/server-core/handlers'
 import type { RpcServer } from '@rox-agent/server-core/transport'
@@ -218,8 +219,8 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
         return
       }
 
-      if (!['http:', 'https:', 'mailto:', 'roxdocs:'].includes(parsed.protocol)) {
-        throw new Error('Only http, https, mailto, roxdocs URLs are allowed')
+      if (!isSafeExternalUrl(url)) {
+        throw new Error(`Refused to open URL with blocked scheme: ${parsed.protocol}`)
       }
 
       const result = await requestClientOpenExternal(server, ctx.clientId, url)
