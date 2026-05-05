@@ -736,6 +736,20 @@ describe('account webui auth', () => {
     const inviteBody = await invite.json() as { invite: { code: string; role: string } }
     expect(inviteBody.invite.role).toBe('viewer')
 
+    const ownerRoleInvite = await handler.fetch(new Request(`http://rox.test/api/account/teams/${teamId}/invites`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ role: 'owner' }),
+    }))
+    expect(ownerRoleInvite.status).toBe(400)
+
+    const invalidRoleInvite = await handler.fetch(new Request(`http://rox.test/api/account/teams/${teamId}/invites`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ role: 'operator' }),
+    }))
+    expect(invalidRoleInvite.status).toBe(400)
+
     const viewerLogin = await handler.fetch(new Request('http://rox.test/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

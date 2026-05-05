@@ -3,6 +3,7 @@ import { createAccountSessionToken } from '../auth'
 import { createWebuiHandler, type WebuiHandler } from '../http-server'
 import { InMemoryAccountTeamStore } from '../account-teams'
 import { InMemoryTeamChatStore } from '../team-chat'
+import { InMemoryManagedCloudWorkspaceStore } from '../account-cloud-workspaces'
 import type { AccountStore, SessionIdentity } from '../../accounts'
 
 const SECRET = 'test-secret-with-enough-length'
@@ -31,6 +32,7 @@ describe('team chat HTTP collaboration routes', () => {
     accountStore: AccountStore
     teamStore: InMemoryAccountTeamStore
     chatStore: InMemoryTeamChatStore
+    cloudWorkspaceStore?: InMemoryManagedCloudWorkspaceStore
   }): WebuiHandler {
     const handler = createWebuiHandler({
       webuiDir: '/tmp/does-not-need-static-assets',
@@ -42,6 +44,7 @@ describe('team chat HTTP collaboration routes', () => {
       accountStore: input.accountStore,
       accountTeamStore: input.teamStore,
       accountTeamChatStore: input.chatStore,
+      accountCloudWorkspaceStore: input.cloudWorkspaceStore,
     })
     handlers.push(handler)
     return handler
@@ -127,5 +130,80 @@ describe('team chat HTTP collaboration routes', () => {
       headers: { cookie: await cookieFor(outsider) },
     }))
     expect(deniedRead.status).toBe(403)
+  })
+
+  it('denies team chat workspace spoofing across team workspace boundaries', async () => {
+    const owner: SessionIdentity = {
+      userId: 'user-owner',
+      sessionId: 'session-owner',
+      email: 'owner@example.com',
+      displayName: 'Owner',
+      role: 'user',
+    }
+    const accountStore = createAccountStore([owner])
+    const teamStore = new InMemoryAccountTeamStore()
+    const chatStore = new InMemoryTeamChatStore()
+    const cloudWorkspaceStore = new InMemoryManagedCloudWorkspaceStore()
+    const teamAlpha = await teamStore.createOrganization({ actorUserId: owner.userId, name: 'ROX Alpha' })
+    const teamBeta = await teamStore.createOrganization({ actorUserId: owner.userId, name: 'ROX Beta' })
+    const alphaWorkspace = await cloudWorkspaceStore.createTeamWorkspace({
+      ownerUserId: owner.userId,
+      teamId: teamAlpha.id,
+      name: 'Alpha Workspace',
+    })
+    const betaWorkspace = await cloudWorkspaceStore.createTeamWorkspace({
+      ownerUserId: owner.userId,
+      teamId: teamBeta.id,
+      name: 'Beta Workspace',
+    })
+    const handler = createHandler({ accountStore, teamStore, chatStore, cloudWorkspaceStore })
+    const cookie = await cookieFor(owner)
+
+    const accepted = await handler.fetch(new Request(`http://rox.test/api/account/teams/${teamAlpha.id}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie,
+      },
+      body: JSON.stringify({
+        workspaceId: alphaWorkspace.id,
+        body: 'Alpha workspace note',
+        refs: [{ type: 'workspace', id: alphaWorkspace.id }],
+      }),
+    }))
+    expect(accepted.status).toBe(201)
+
+    const foreignWorkspace = await handler.fetch(new Request(`http://rox.test/api/account/teams/${teamAlpha.id}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie,
+      },
+      body: JSON.stringify({
+        workspaceId: betaWorkspace.id,
+        body: 'Foreign workspace spoof',
+      }),
+    }))
+    expect(foreignWorkspace.status).toBe(403)
+
+    const foreignRef = await handler.fetch(new Request(`http://rox.test/api/account/teams/${teamAlpha.id}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie,
+      },
+      body: JSON.stringify({
+        workspaceId: alphaWorkspace.id,
+        body: 'Foreign workspace ref spoof',
+        refs: [{ type: 'workspace', id: betaWorkspace.id }],
+      }),
+    }))
+    expect(foreignRef.status).toBe(403)
+
+    const foreignList = await handler.fetch(new Request(
+      `http://rox.test/api/account/teams/${teamAlpha.id}/messages?workspaceId=${betaWorkspace.id}`,
+      { headers: { cookie } },
+    ))
+    expect(foreignList.status).toBe(403)
   })
 })

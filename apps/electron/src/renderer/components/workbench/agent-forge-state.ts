@@ -3,6 +3,7 @@ import type {
   AgentPackageVisibility,
   SkillContract,
 } from '@rox-agent/shared/workbench';
+import { assertPublicPackagePublishable } from '@rox-agent/shared/workbench/experience-layer-security';
 
 export type ForgeTrustInput = {
   reviewCount: number;
@@ -62,9 +63,21 @@ export function publishAgentPackage(
   packageId: string,
   targetVisibility: AgentPackageVisibility,
 ): AgentForgeState {
+  const pkg = state.packages.find((candidate) => candidate.id === packageId);
+  if (!pkg) {
+    throw new Error('Agent package not found.');
+  }
+
   const warnings = state.promptInjectionWarningsByPackageId[packageId] ?? [];
-  if (targetVisibility === 'public' && warnings.length > 0) {
-    throw new Error('Prompt injection warnings block public publish.');
+  if (targetVisibility === 'public') {
+    assertPublicPackagePublishable({
+      promptInjectionWarnings: warnings,
+      hasContract: Boolean(state.contractsByPackageId[packageId]),
+      reviewCount: state.reviewsByPackageId[packageId] ?? 0,
+      passingTestCount: state.testsByPackageId[packageId] ?? 0,
+      trustScore: pkg.trustScore,
+      minimumTrustScore: 50,
+    });
   }
 
   return {
@@ -83,11 +96,12 @@ export function calculateForgeTrustScore(input: ForgeTrustInput): number {
 
 export function listVisibleAgentPackages(
   state: AgentForgeState,
-  viewer: { viewerTeamId: string },
+  viewer: { viewerTeamId: string; viewerUserId?: string },
 ): AgentPackage[] {
   return state.packages.filter((pkg) => {
     if (pkg.visibility === 'public' || pkg.visibility === 'built_in') return true;
     if (pkg.visibility === 'team') return pkg.ownerTeamId === viewer.viewerTeamId;
+    if (pkg.visibility === 'private' && pkg.ownerUserId) return pkg.ownerUserId === viewer.viewerUserId;
     if (pkg.visibility === 'private') return pkg.ownerTeamId === viewer.viewerTeamId;
     return false;
   });

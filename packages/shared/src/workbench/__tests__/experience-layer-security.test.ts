@@ -74,8 +74,72 @@ describe('experience layer security guards', () => {
     expect(() =>
       assertPublicPackagePublishable({
         promptInjectionWarnings: ['ignore previous instructions'],
+        hasContract: true,
+        reviewCount: 2,
+        passingTestCount: 4,
+        trustScore: 80,
       }),
     ).toThrow('Prompt injection warnings block public package publish.');
+  });
+
+  it('requires contract, review, test, and trust evidence before public package publish', () => {
+    expect(() =>
+      assertPublicPackagePublishable(
+        { promptInjectionWarnings: [] } as unknown as Parameters<typeof assertPublicPackagePublishable>[0],
+      ),
+    ).toThrow('Public package publish requires a skill contract.');
+
+    expect(() =>
+      assertPublicPackagePublishable({
+        promptInjectionWarnings: [],
+        hasContract: false,
+        reviewCount: 2,
+        passingTestCount: 4,
+        trustScore: 80,
+      }),
+    ).toThrow('Public package publish requires a skill contract.');
+
+    expect(() =>
+      assertPublicPackagePublishable({
+        promptInjectionWarnings: [],
+        hasContract: true,
+        reviewCount: 0,
+        passingTestCount: 4,
+        trustScore: 80,
+      }),
+    ).toThrow('Public package publish requires reviewer evidence.');
+
+    expect(() =>
+      assertPublicPackagePublishable({
+        promptInjectionWarnings: [],
+        hasContract: true,
+        reviewCount: 2,
+        passingTestCount: 0,
+        trustScore: 80,
+      }),
+    ).toThrow('Public package publish requires passing test evidence.');
+
+    expect(() =>
+      assertPublicPackagePublishable({
+        promptInjectionWarnings: [],
+        hasContract: true,
+        reviewCount: 2,
+        passingTestCount: 4,
+        trustScore: 49,
+        minimumTrustScore: 50,
+      }),
+    ).toThrow('Public package publish requires trust score >= 50.');
+
+    expect(
+      assertPublicPackagePublishable({
+        promptInjectionWarnings: [],
+        hasContract: true,
+        reviewCount: 2,
+        passingTestCount: 4,
+        trustScore: 80,
+        minimumTrustScore: 50,
+      }),
+    ).toBe(true);
   });
 });
 

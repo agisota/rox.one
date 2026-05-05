@@ -68,6 +68,8 @@ import {
   toStorageStatusDto,
 } from '../storage/object-storage'
 
+const ACCOUNT_TEAM_INVITE_ROLES = new Set<Exclude<AccountTeamRole, 'owner'>>(['admin', 'member', 'viewer'])
+
 // ---------------------------------------------------------------------------
 // MIME types for static file serving
 // ---------------------------------------------------------------------------
@@ -441,6 +443,38 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       return Response.json({ error: 'Team membership is required' }, { status: 403 })
     }
     return { id: team.id, role: team.role }
+  }
+
+  function parseInviteRole(role: unknown): Exclude<AccountTeamRole, 'owner'> | undefined | Response {
+    if (role == null) return undefined
+    if (typeof role !== 'string' || !ACCOUNT_TEAM_INVITE_ROLES.has(role as Exclude<AccountTeamRole, 'owner'>)) {
+      return Response.json({ error: 'Invalid invite role' }, { status: 400 })
+    }
+    return role as Exclude<AccountTeamRole, 'owner'>
+  }
+
+  async function validateTeamChatWorkspaceAccess(input: {
+    teamId: string
+    workspaceId?: string
+    refs?: TeamMessageRef[]
+  }): Promise<Response | null> {
+    if (!options.accountCloudWorkspaceStore) return null
+
+    const allowedWorkspaceIds = new Set(
+      (await options.accountCloudWorkspaceStore.listTeamWorkspaces([input.teamId])).map(workspace => workspace.id),
+    )
+
+    if (input.workspaceId && !allowedWorkspaceIds.has(input.workspaceId)) {
+      return Response.json({ error: 'Workspace is not available for this team' }, { status: 403 })
+    }
+
+    for (const ref of input.refs ?? []) {
+      if (ref?.type === 'workspace' && typeof ref.id === 'string' && !allowedWorkspaceIds.has(ref.id.trim())) {
+        return Response.json({ error: 'Workspace reference is not available for this team' }, { status: 403 })
+      }
+    }
+
+    return null
   }
 
   function canManageTeamWorkspace(role: string): boolean {
@@ -1092,6 +1126,8 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       try {
         if (req.method === 'GET') {
           const workspaceId = url.searchParams.get('workspaceId') ?? undefined
+          const deniedWorkspace = await validateTeamChatWorkspaceAccess({ teamId, workspaceId })
+          if (deniedWorkspace) return deniedWorkspace
           const limitParam = url.searchParams.get('limit')
           const limit = limitParam ? Number(limitParam) : undefined
           return Response.json({
@@ -1121,13 +1157,22 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
           return Response.json({ error: 'Invalid request body' }, { status: 400 })
         }
 
+        const workspaceId = typeof body.workspaceId === 'string' ? body.workspaceId : undefined
+        const refs = Array.isArray(body.refs) ? body.refs as TeamMessageRef[] : undefined
+        const deniedWorkspace = await validateTeamChatWorkspaceAccess({
+          teamId,
+          workspaceId,
+          refs,
+        })
+        if (deniedWorkspace) return deniedWorkspace
+
         const message = await options.accountTeamChatStore.appendMessage({
           actorUserId: identity.userId,
           actorRole: membership.role,
           teamId,
-          workspaceId: typeof body.workspaceId === 'string' ? body.workspaceId : undefined,
+          workspaceId,
           body: typeof body.body === 'string' ? body.body : '',
-          refs: Array.isArray(body.refs) ? body.refs as TeamMessageRef[] : undefined,
+          refs,
           labels: Array.isArray(body.labels) ? body.labels as string[] : undefined,
         })
         return Response.json({ message }, { status: 201 })
@@ -1149,17 +1194,19 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       if (!options.accountTeamStore) {
         return Response.json({ error: 'Team invites are not available until team workspaces are enabled.' }, { status: 501 })
       }
-      let body: { role?: 'admin' | 'member' | 'viewer' }
+      let body: { role?: unknown }
       try {
-        body = await req.json() as { role?: 'admin' | 'member' | 'viewer' }
+        body = await req.json() as { role?: unknown }
       } catch {
         return Response.json({ error: 'Invalid request body' }, { status: 400 })
       }
+      const role = parseInviteRole(body.role)
+      if (role instanceof Response) return role
       try {
         const invite = await options.accountTeamStore.createInvite({
           actorUserId: identity.userId,
           organizationId: decodeURIComponent(teamInvitesMatch[1]!),
-          role: body.role,
+          role,
         })
         return Response.json({ invite }, { status: 201 })
       } catch (error) {
