@@ -14,5 +14,5 @@
     "runtime": ["bun run typecheck:electron", "cd apps/electron && bun run build:renderer"],
     "release": ["bun run validate:ci", "bun run electron:smoke"]
   },
-  "updatedAt": "2026-05-05T18:36:44Z"
+  "updatedAt": "2026-05-05T18:45:09Z"
 }

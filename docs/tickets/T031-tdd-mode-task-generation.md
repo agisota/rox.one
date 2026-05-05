@@ -1,6 +1,6 @@
 # T031-tdd-mode-task-generation
 
-Status: TODO
+Status: DONE
 
 Use the detailed task prompt from the master Agent Workbench implementation plan.
 

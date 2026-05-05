@@ -21,7 +21,7 @@ Every phase has a gate. Do not move to the next phase without evidence.
 | Worktree audit | DONE | T003-T012 clean and merged; one prunable stale entry |
 | Swarm control docs | DONE | T059 creates `.swarm/*` |
 | Critic gate | DONE | Re-check passed after concrete T032 packet and safe git rules |
-| Private push | PENDING | `main` is ahead 27 before fresh fetch; push only after private remote and behind=0 proof |
+| Private push | BLOCKED | Private origin and behind=0 were verified; `git push origin main` was blocked by runtime approval policy (`AskForApproval=Never`) before execution |
 
 ## 3. Execution Waves
 
@@ -134,6 +134,13 @@ Tickets:
 - `T034-e2e-core-scenario-suite`
 - `T035-team-workspace-sharing`
 
+Dispatch packets:
+
+- `.swarm/dispatch/W3-product-workflow.md`
+- `.swarm/dispatch/W3-account-cloud-storage.md`
+- `.swarm/dispatch/W3-files-knowledge-research.md`
+- `.swarm/dispatch/W4-metadata-release.md`
+
 Parallel lanes:
 
 - Product workflow lane: T013-T016.
@@ -147,6 +154,12 @@ Gate:
 - shared schemas and app shell remain single-owner per wave
 - no real external providers in tests
 - no feature ticket can claim DONE without targeted validation and Lore commit
+
+Current audit state:
+
+- `T013`-`T030` are `PARTIAL_CORE`: core modules and tests exist, but integration/UI/runtime acceptance remains.
+- `T000`, `T001`, `T002`, `T031`, `T033`, `T034`, and `T035` have PASS worklogs and were synchronized to `DONE`.
+- `T040` remains the only true release-candidate `TODO` with no matching worklog.
 
 ### Wave 4 - Bootstrap Metadata Reconciliation
 
@@ -217,10 +230,10 @@ Evidence required in final worker report:
 
 ## 6. Immediate Next Actions
 
-1. Commit this swarm inventory refresh after `git diff --check` and agent-contract validation.
-2. Run fresh `git fetch origin main`, verify private origin and behind=0, then push `main` to private `origin`.
-3. Reconcile T000-T002 metadata against existing bootstrap/worklog evidence.
-4. Dispatch Wave 3 as bounded parallel worker lanes with non-overlapping write scopes.
+1. Validate and commit the backlog-status + dispatch refresh after `git diff --check` and agent-contract validation.
+2. Push remains blocked in this runtime by approval policy even though private origin and behind=0 were verified.
+3. Dispatch Wave 3 as bounded parallel worker lanes with non-overlapping write scopes.
+4. Prune stale worktree metadata only as a separate ORGANIZE gate.
 5. Run Wave 5 `T040-final-release-candidate` only after remaining product/system tickets are either DONE or explicitly deferred with risk notes.
 
 ## 7. Safe Git and Push Rules

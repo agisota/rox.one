@@ -1,6 +1,6 @@
 # Swarm Inventory
 
-Collected at: `2026-05-05T18:36:44Z`
+Collected at: `2026-05-05T18:45:09Z`
 
 ## Repository
 
@@ -8,12 +8,12 @@ Collected at: `2026-05-05T18:36:44Z`
 |---|---|
 | Path | `/Users/marklindgreen/Projects/craft/craft` |
 | Branch | `main` |
-| Head | `3030bb2d1247 Make audit evidence queryable before worker expansion` |
-| Working tree | clean after T039 commit; dirty only when updating swarm control docs |
+| Head | `acd0c3d28a13 Refresh swarm truth after audit gate closure` |
+| Working tree | clean before backlog-status refresh; dirty only while updating swarm control docs |
 | Origin | `https://github.com/agisota/rox-one-terminal.git` |
 | Origin visibility | private (`agisota/rox-one-terminal`) |
 | Upstream reference | `craft-origin -> https://github.com/agisota/craft.git` |
-| Divergence | `main` ahead of `origin/main` by 27 commits before fresh fetch |
+| Divergence | `main` ahead of `origin/main` by 28 commits; fresh fetch showed behind=0 |
 
 ## Validation Surface
 
@@ -37,7 +37,7 @@ Important scripts:
 Live counts:
 
 - Real ticket files: `48` plus `TEMPLATE.md`
-- Ticket status: `22 DONE`, `26 TODO`
+- Ticket status after status-drift sync: `29 DONE`, `19 TODO`
 - Worklog files: `64`
 
 Notable drift fixed in T059:
@@ -53,9 +53,6 @@ T059 readiness additions:
 
 Current remaining TODO tickets from audit:
 
-- `T000-bootstrap-agent-os`
-- `T001-repo-cartography`
-- `T002-baseline-ci`
 - `T013-review-board`
 - `T014-validation-gates-engine`
 - `T015-multi-agent-pipeline-planner`
@@ -74,11 +71,17 @@ Current remaining TODO tickets from audit:
 - `T028-markdown-entity-graph`
 - `T029-office-document-adapter`
 - `T030-browser-research-integration`
+- `T040-final-release-candidate`
+
+Status drift closed after read-only audit:
+
+- `T000-bootstrap-agent-os`
+- `T001-repo-cartography`
+- `T002-baseline-ci`
 - `T031-tdd-mode-task-generation`
 - `T033-mac-arm-build`
 - `T034-e2e-core-scenario-suite`
 - `T035-team-workspace-sharing`
-- `T040-final-release-candidate`
 
 Recently closed after the original T059 snapshot:
 
@@ -92,7 +95,7 @@ Recently closed after the original T059 snapshot:
 
 | Path | Branch | Head | State | Recommendation |
 |---|---|---|---|---|
-| `/Users/marklindgreen/Projects/craft/craft` | `main` | `3030bb2d1247` | clean after T039, ahead 27 before fetch | keep, push after gate |
+| `/Users/marklindgreen/Projects/craft/craft` | `main` | `acd0c3d28a13` | clean before backlog-status refresh, ahead 28 after fetch | keep; push blocked by runtime approval policy |
 | `/Users/marklindgreen/Projects/craft-worktrees/telegram-ru-polish` | `codex/telegram-ru-polish` | `0b5808319503` | prunable | prune after confirmation/gate |
 | `/Users/marklindgreen/Projects/craft/worktrees/T003-white-label-brand-config` | `feature/T003-white-label-brand-config` | `ff82ab1ccd5c` | clean, merged | keep until archive/prune pass |
 | `/Users/marklindgreen/Projects/craft/worktrees/T004-localization-ru-en` | `feature/T004-localization-ru-en` | `bc8a3fd22a0f` | clean, merged | keep until archive/prune pass |
