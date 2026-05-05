@@ -68,11 +68,12 @@ export function ExperienceShell({
   return (
     <main
       data-experience-screen={screen}
+      data-mobile-shell="true"
       style={{ fontFamily: '"Geist", "SF Pro Text", ui-sans-serif, system-ui, sans-serif' }}
-      className={cn('experience-surface flex h-full min-h-0 flex-col bg-[#08090d] text-foreground', className)}
+      className={cn('experience-surface flex h-full min-h-0 min-w-0 max-w-full flex-col overflow-x-hidden bg-[#08090d] text-foreground', className)}
       aria-label={title}
     >
-      <header className="border-b border-white/[0.07] px-6 py-5">
+      <header className="border-b border-white/[0.07] px-4 py-4 sm:px-6 sm:py-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -93,17 +94,17 @@ export function ExperienceShell({
               ))}
             </div>
           </div>
-          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+          {actions && <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div>}
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 gap-4 overflow-hidden p-4 xl:grid-cols-[minmax(0,1.24fr)_minmax(340px,0.76fr)]">
-        <section className="min-h-0 overflow-y-auto rounded-[24px] border border-white/[0.07] bg-white/[0.025] p-2 shadow-thin">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-x-hidden overflow-y-auto p-3 sm:p-4 xl:grid-cols-[minmax(0,1.24fr)_minmax(340px,0.76fr)] xl:overflow-hidden">
+        <section className="min-h-0 min-w-0 max-w-full overflow-y-auto rounded-[24px] border border-white/[0.07] bg-white/[0.025] p-2 shadow-thin">
           <div className="min-h-full rounded-[18px] border border-white/[0.06] bg-[#0b0d12] p-4">
             {children}
           </div>
         </section>
-        {aside && <aside className="min-h-0 space-y-4 overflow-y-auto">{aside}</aside>}
+        {aside && <aside className="order-last min-h-0 min-w-0 max-w-full space-y-4 overflow-y-visible xl:order-none xl:overflow-y-auto">{aside}</aside>}
       </div>
     </main>
   );
