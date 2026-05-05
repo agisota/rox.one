@@ -78,7 +78,11 @@ import { toolMetadataStore, getLastApiError } from '@rox-agent/shared/intercepto
 import { isParentTaskTool } from '@rox-agent/shared/utils/toolNames'
 import { restoreFiles } from '@rox-agent/shared/utils/bundle-files'
 import { getCredentialManager } from '@rox-agent/shared/credentials'
-import { createViewerShareFailureResult } from './share-errors'
+import {
+  getSessionShareProvider,
+  mapShareProviderFailureToShareResult,
+  sanitizeShareBundleForPublicViewer,
+} from './share-provider'
 import { RoxMcpClient, McpClientPool, McpPoolServer } from '@rox-agent/shared/mcp'
 import { type Session, type SessionEvent, type FileAttachment, type SendMessageOptions, type UnreadSummary, type RemoteSessionTransferPayload, type ImportRemoteSessionTransferResult, RPC_CHANNELS, generateMessageId } from '@rox-agent/shared/protocol'
 import { messageToStored, storedToMessage, type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-agent/core/types'
@@ -4285,33 +4289,39 @@ export class SessionManager implements ISessionManager {
         return { success: false, error: 'Session file not found' }
       }
 
-      const { VIEWER_URL } = await import('@rox-agent/shared/branding')
-      const response = await fetch(`${VIEWER_URL}/s/api`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storedSession)
+      const shareProvider = getSessionShareProvider()
+      const upload = await shareProvider.uploadBundle({
+        sessionId,
+        bundle: sanitizeShareBundleForPublicViewer(storedSession),
       })
-
-      if (!response.ok) {
-        sessionLog.error(`Share failed with status ${response.status}`)
-        return createViewerShareFailureResult(response.status, response.statusText)
+      if (!upload.success) {
+        sessionLog.error(`Share upload failed: ${upload.code}`)
+        return mapShareProviderFailureToShareResult(upload)
       }
 
-      const data = await response.json() as { id: string; url: string }
+      const shortlink = await shareProvider.createShortlink({
+        sessionId,
+        uploadId: upload.uploadId,
+        proposedUrl: upload.proposedUrl,
+      })
+      if (!shortlink.success) {
+        sessionLog.error(`Share shortlink failed: ${shortlink.code}`)
+        return mapShareProviderFailureToShareResult(shortlink)
+      }
 
       // Store shared info in session
-      managed.sharedUrl = data.url
-      managed.sharedId = data.id
+      managed.sharedUrl = shortlink.url
+      managed.sharedId = shortlink.shareId
       const workspaceRootPath = managed.workspace.rootPath
       await updateSessionMetadata(workspaceRootPath, sessionId, {
-        sharedUrl: data.url,
-        sharedId: data.id,
+        sharedUrl: shortlink.url,
+        sharedId: shortlink.shareId,
       })
 
-      sessionLog.info(`Session ${sessionId} shared at ${data.url}`)
+      sessionLog.info(`Session ${sessionId} shared at ${shortlink.url}`)
       // Notify all windows for this workspace
-      this.sendEvent({ type: 'session_shared', sessionId, sharedUrl: data.url }, managed.workspace.id)
-      return { success: true, url: data.url }
+      this.sendEvent({ type: 'session_shared', sessionId, sharedUrl: shortlink.url }, managed.workspace.id)
+      return { success: true, url: shortlink.url }
     } catch (error) {
       sessionLog.error('Share error:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
@@ -4346,16 +4356,22 @@ export class SessionManager implements ISessionManager {
         return { success: false, error: 'Session file not found' }
       }
 
-      const { VIEWER_URL } = await import('@rox-agent/shared/branding')
-      const response = await fetch(`${VIEWER_URL}/s/api/${managed.sharedId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storedSession)
+      const update = await getSessionShareProvider().updateBundle({
+        sessionId,
+        shareId: managed.sharedId,
+        currentUrl: managed.sharedUrl,
+        bundle: sanitizeShareBundleForPublicViewer(storedSession),
       })
 
-      if (!response.ok) {
-        sessionLog.error(`Update share failed with status ${response.status}`)
-        return createViewerShareFailureResult(response.status, response.statusText)
+      if (!update.success) {
+        sessionLog.error(`Update share failed: ${update.code}`)
+        return mapShareProviderFailureToShareResult(update)
+      }
+
+      if (update.url && update.url !== managed.sharedUrl) {
+        managed.sharedUrl = update.url
+        await updateSessionMetadata(managed.workspace.rootPath, sessionId, { sharedUrl: update.url })
+        this.sendEvent({ type: 'session_shared', sessionId, sharedUrl: update.url }, managed.workspace.id)
       }
 
       sessionLog.info(`Session ${sessionId} share updated at ${managed.sharedUrl}`)
@@ -4388,15 +4404,11 @@ export class SessionManager implements ISessionManager {
     this.sendEvent({ type: 'async_operation', sessionId, isOngoing: true }, managed.workspace.id)
 
     try {
-      const { VIEWER_URL } = await import('@rox-agent/shared/branding')
-      const response = await fetch(
-        `${VIEWER_URL}/s/api/${managed.sharedId}`,
-        { method: 'DELETE' }
-      )
+      const revoke = await getSessionShareProvider().revokeShare({ sessionId, shareId: managed.sharedId })
 
-      if (!response.ok) {
-        sessionLog.error(`Revoke failed with status ${response.status}`)
-        return { success: false, error: 'Failed to revoke share' }
+      if (!revoke.success) {
+        sessionLog.error(`Revoke failed: ${revoke.code}`)
+        return mapShareProviderFailureToShareResult(revoke)
       }
 
       // Clear shared info
@@ -5068,13 +5080,9 @@ export class SessionManager implements ISessionManager {
     // Revoke share if session was shared (prevent orphaned viewer copies)
     if (managed.sharedId) {
       try {
-        const { VIEWER_URL } = await import('@rox-agent/shared/branding')
-        const response = await fetch(
-          `${VIEWER_URL}/s/api/${managed.sharedId}`,
-          { method: 'DELETE', signal: AbortSignal.timeout(5000) }
-        )
-        if (!response.ok) {
-          sessionLog.warn(`Failed to revoke share for ${sessionId}: HTTP ${response.status}`)
+        const revoke = await getSessionShareProvider().revokeShare({ sessionId, shareId: managed.sharedId })
+        if (!revoke.success) {
+          sessionLog.warn(`Failed to revoke share for ${sessionId}: ${revoke.error}`)
         } else {
           sessionLog.info(`Revoked share for deleted session ${sessionId}`)
         }
