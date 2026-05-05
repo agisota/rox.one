@@ -129,6 +129,7 @@ export function PDFPreviewOverlay({
           onClick={() => setCurrentPage(page => clampPdfPage(page - 1, numPages))}
           disabled={numPages <= 1 || currentPage <= 1}
           className="p-1 rounded-[6px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
+          aria-label="Previous page"
           title="Previous page"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
@@ -141,6 +142,7 @@ export function PDFPreviewOverlay({
           onClick={() => setCurrentPage(page => clampPdfPage(page + 1, numPages))}
           disabled={numPages <= 1 || currentPage >= numPages}
           className="p-1 rounded-[6px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
+          aria-label="Next page"
           title="Next page"
         >
           <ChevronRight className="w-3.5 h-3.5" />
@@ -152,6 +154,7 @@ export function PDFPreviewOverlay({
           onClick={() => setPageScale(scale => stepPdfZoom(scale, 'out'))}
           disabled={pageScale <= 0.25}
           className="p-1 rounded-[6px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
+          aria-label={t('overlay.zoomOut')}
           title={t('overlay.zoomOut')}
         >
           <ZoomOut className="w-3.5 h-3.5" />
@@ -164,6 +167,7 @@ export function PDFPreviewOverlay({
           onClick={() => setPageScale(scale => stepPdfZoom(scale, 'in'))}
           disabled={pageScale >= 4}
           className="p-1 rounded-[6px] text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
+          aria-label={t('overlay.zoomIn')}
           title={t('overlay.zoomIn')}
         >
           <ZoomIn className="w-3.5 h-3.5" />

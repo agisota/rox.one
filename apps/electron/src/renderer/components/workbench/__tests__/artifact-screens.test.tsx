@@ -76,6 +76,43 @@ describe('Workbench artifact screens', () => {
     expect(markup).toContain('Fact-check gate lacks source evidence');
     expect(markup).toContain('Apply Notes');
   });
+
+  test('Review Gate renders validation evidence findings with severity, evidence, and fix plan labels', () => {
+    const state = createReviewGateState({
+      rawInput: 'Render validation evidence in the review board',
+      variant: 'check',
+      requiredGates: ['ui_tests'],
+      evidence: [
+        {
+          evidenceId: 'ev-review-gate-ui',
+          gateId: 'ui_tests',
+          command: 'bun test apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx',
+          summary: 'Review Gate did not render the validation evidence fix plan.',
+          artifactRefs: ['apps/electron/src/renderer/components/workbench/ReviewGateScreen.tsx'],
+          passed: false,
+          severity: 'critical',
+          findingTitle: 'Review Gate hides validation evidence',
+          fixPlan: 'Render severity, evidence, and fix plan labels in the Review Gate findings list.',
+        },
+      ],
+    });
+    const markup = renderToStaticMarkup(<ReviewGateScreen state={state} />);
+
+    expect(state.result.findings).toContainEqual(
+      expect.objectContaining({
+        title: 'Review Gate hides validation evidence',
+        severity: 'critical',
+        fixPlan: 'Render severity, evidence, and fix plan labels in the Review Gate findings list.',
+      }),
+    );
+    expect(markup).toContain('Review Gate hides validation evidence');
+    expect(markup).toContain('Severity');
+    expect(markup).toContain('critical');
+    expect(markup).toContain('Evidence');
+    expect(markup).toContain('Review Gate did not render the validation evidence fix plan.');
+    expect(markup).toContain('Fix plan');
+    expect(markup).toContain('Render severity, evidence, and fix plan labels in the Review Gate findings list.');
+  });
 });
 
 function makeRewriteOutput(): PromptRewriteOutput {

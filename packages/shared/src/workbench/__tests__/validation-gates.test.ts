@@ -126,6 +126,45 @@ describe('runValidationGates', () => {
     );
   });
 
+  it('preserves failed evidence records for Review Gate consumers', () => {
+    const result = runValidationGates({
+      runId: 'validation-structured-evidence',
+      requiredGates: ['ui_tests'],
+      evidence: [
+        {
+          evidenceId: 'ev-review-gate-ui',
+          gateId: 'ui_tests',
+          command: 'bun test apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx',
+          summary: 'Review Gate did not render the validation evidence fix plan.',
+          artifactRefs: ['apps/electron/src/renderer/components/workbench/ReviewGateScreen.tsx'],
+          passed: false,
+          severity: 'critical',
+          findingTitle: 'Review Gate hides validation evidence',
+          fixPlan: 'Render severity, evidence, and fix plan labels in the Review Gate findings list.',
+        },
+      ],
+    });
+
+    expect(result.verdict).toBe('fail');
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        gateId: 'ui_tests',
+        status: 'fail',
+        severity: 'critical',
+        evidenceRecords: [
+          expect.objectContaining({
+            evidenceId: 'ev-review-gate-ui',
+            passed: false,
+            severity: 'critical',
+            findingTitle: 'Review Gate hides validation evidence',
+            fixPlan: 'Render severity, evidence, and fix plan labels in the Review Gate findings list.',
+            artifactRefs: ['apps/electron/src/renderer/components/workbench/ReviewGateScreen.tsx'],
+          }),
+        ],
+      }),
+    );
+  });
+
   it('creates a validation run from compiled specs without external providers', () => {
     const compiled = compileWorkbenchSpec({
       rawInput: 'Build a tenant-safe task workflow with tests and review evidence.',

@@ -1,8 +1,13 @@
 # T027-pdf-viewer
 
-Status: TODO
+Status: DONE
 
 Use the detailed task prompt from the master Agent Workbench implementation plan.
+
+Completion note:
+
+- Closed by adding deterministic component/DOM interaction coverage for `PDFPreviewOverlay` page navigation, zoom, loading, loader error, and document error states.
+- Worker A did not commit directly; supervisor integrates this slice in the scoped validation commit.
 
 Required loop:
 

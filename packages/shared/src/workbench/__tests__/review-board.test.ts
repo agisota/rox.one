@@ -163,6 +163,61 @@ describe('runReviewBoard', () => {
     );
   });
 
+  it('turns failed validation evidence records into structured Review Gate findings', () => {
+    const result = runReviewBoard({
+      boardId: 'board-validation-evidence',
+      title: 'Review Gate integration',
+      requiredGates: ['schema', 'ui_tests'],
+      reviewers: [
+        {
+          id: 'completion-verifier',
+          label: 'Completion verifier',
+          gateIds: ['ui_tests'],
+        },
+      ],
+      artifacts: [
+        {
+          artifactId: 'review-gate-ui',
+          artifactType: 'file',
+          title: 'Review Gate screen',
+          content: 'The Review Gate must show severity, evidence, and fix plan from validation evidence.',
+        },
+      ],
+      evidence: [
+        {
+          evidenceId: 'ev-review-gate-ui',
+          gateId: 'ui_tests',
+          command: 'bun test apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx',
+          summary: 'Review Gate did not render the validation evidence fix plan.',
+          artifactRefs: ['apps/electron/src/renderer/components/workbench/ReviewGateScreen.tsx'],
+          passed: false,
+          severity: 'critical',
+          findingTitle: 'Review Gate hides validation evidence',
+          fixPlan: 'Render severity, evidence, and fix plan labels in the Review Gate findings list.',
+        },
+      ],
+    });
+
+    expect(result.verdict).toBe('fail');
+    expect(result.findings).toContainEqual(
+      expect.objectContaining({
+        reviewerId: 'completion-verifier',
+        severity: 'critical',
+        gateIds: ['ui_tests'],
+        title: 'Review Gate hides validation evidence',
+        evidence: expect.stringContaining('Review Gate did not render the validation evidence fix plan.'),
+        fixPlan: 'Render severity, evidence, and fix plan labels in the Review Gate findings list.',
+      }),
+    );
+    expect(result.checks).toContainEqual(
+      expect.objectContaining({
+        gateId: 'ui_tests',
+        status: 'fail',
+        evidence: 'Review Gate hides validation evidence',
+      }),
+    );
+  });
+
   it('passes a sourced artifact with clean security and validation evidence', () => {
     const result = runReviewBoard({
       boardId: 'board-pass',

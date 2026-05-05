@@ -18,7 +18,7 @@ Every phase has a gate. Do not move to the next phase without evidence.
 |---|---:|---|
 | Repo inventory | DONE | `main`, clean baseline, private origin, scripts discovered |
 | Ticket/worklog audit | DONE | 48 tickets, 57 worklogs, drift identified |
-| Worktree audit | DONE | T003-T012 clean and merged; one prunable stale entry |
+| Worktree audit | DONE | T003-T012 clean and merged; stale `telegram-ru-polish` git worktree metadata pruned |
 | Swarm control docs | DONE | T059 creates `.swarm/*` |
 | Critic gate | DONE | Re-check passed after concrete T032 packet and safe git rules |
 | Private push | BLOCKED | Private origin and behind=0 were verified; `git push origin main` was blocked by runtime approval policy (`AskForApproval=Never`) before execution |

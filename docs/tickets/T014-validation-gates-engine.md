@@ -1,6 +1,16 @@
 # T014-validation-gates-engine
 
-Status: TODO
+Status: DONE
+
+Completed: 2026-05-05
+Commit: Supervisor integration commit after validation.
+Worklog: [`docs/worklog/T014-validation-gates-engine.md`](../worklog/T014-validation-gates-engine.md)
+
+## Closeout evidence
+
+- Validation gate checks now preserve structured evidence records for downstream Review Gate consumers.
+- Failed evidence can carry severity, finding title, artifact refs, and fix plan without executing real commands.
+- Targeted shared, renderer workbench, lint, typecheck, and Electron build gates passed.
 
 Use the detailed task prompt from the master Agent Workbench implementation plan.
 
