@@ -87,8 +87,8 @@ error: Cannot find module '../markdown-entity-graph'
 ## 10. Remaining risks
 
 - MVP parser is regex-based and intentionally limited; it is not a full CommonMark AST.
-- Inline code spans are not ignored yet; only fenced code blocks are skipped.
-- No UI graph visualization is included in this ticket.
+- Inline code spans are now ignored for entity/tag/reference extraction, but the parser is still not a full markdown AST.
+- No UI graph visualization is included in this ticket; the closure here is shared graph truth and edge-case parsing.
 - No persistent graph index or cross-document graph merge is included yet.
 
 ## 11. Acceptance criteria matrix
@@ -102,3 +102,37 @@ error: Cannot find module '../markdown-entity-graph'
 | Avoids IO, network, and executable markdown behavior | Pass | pure shared function; no filesystem/network/browser APIs |
 | Shared typecheck passes | Pass | `bun run typecheck:shared` |
 | Relevant build passes | Pass | `bun run electron:build` |
+| Inline code spans are ignored | Pass | 2026-05-05 test excludes hidden entity/tag/reference inside inline code |
+| Wikilink anchors and aliases normalize deterministically | Pass | 2026-05-05 test maps `[[Design System#Tokens|token map]]` to `entity:design-system` |
+
+## 12. 2026-05-05 closure pass
+
+### Tests added first
+
+- Extended `packages/shared/src/workbench/__tests__/markdown-entity-graph.test.ts` with a red test for inline code masking and wikilink anchors/aliases.
+
+### Expected failing output
+
+`bun test packages/shared/src/workbench/__tests__/markdown-entity-graph.test.ts`
+
+```text
+3 pass
+1 fail
+error: expected graph without inline-code entities, received entity:hidden-entity, reference:hidden-md, tag:hidden
+```
+
+### Implementation changes
+
+- Added inline code masking before wikilink, markdown-link, and tag extraction.
+- Extended wikilink parsing to accept `[[Page#Anchor|alias]]` and normalize it to the page entity.
+
+### Validation commands and results
+
+- `bun test packages/shared/src/workbench/__tests__/markdown-entity-graph.test.ts` -> 4 pass, 0 fail, 8 expect calls.
+- `bun test packages/shared/src/workbench/__tests__/markdown-entity-graph.test.ts packages/shared/src/workbench/__tests__/browser-research-integration.test.ts packages/shared/src/workbench/__tests__/option-graph.test.ts packages/shared/src/workbench/__tests__/product-mode-registry.test.ts packages/shared/src/agent/__tests__/browser-tools-permissions.test.ts` -> 25 pass, 0 fail, 211 expect calls.
+- `bun run typecheck:shared` -> pass.
+- `git diff --check` -> pass.
+
+### Acceptance update
+
+Status: DONE. The remaining UI graph visualization and persistent cross-document index are future scope, not blockers for the shared entity graph ticket.

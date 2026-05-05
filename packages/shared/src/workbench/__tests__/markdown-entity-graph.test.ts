@@ -120,4 +120,27 @@ describe('Markdown Entity Graph', () => {
       },
     });
   });
+
+  it('ignores inline code spans and normalizes wikilink anchors with aliases', () => {
+    const graph = buildMarkdownEntityGraph({
+      documentId: 'Design Brief',
+      markdown: [
+        '# Graph Notes',
+        'Keep `[[Hidden Entity]] #hidden [Hidden](hidden.md)` out of graph extraction.',
+        'Connect [[Design System#Tokens|token map]] and [[Design System#Tokens]] to #visible.',
+      ].join('\n'),
+    });
+
+    expect(graph.nodes.map((node) => node.id)).toEqual([
+      'document:design-brief',
+      'entity:design-system',
+      'heading:graph-notes',
+      'tag:visible',
+    ]);
+
+    expect(graph.edges.map((edge) => edge.id)).toEqual([
+      'heading:graph-notes->entity:design-system:mentions',
+      'heading:graph-notes->tag:visible:tags',
+    ]);
+  });
 });

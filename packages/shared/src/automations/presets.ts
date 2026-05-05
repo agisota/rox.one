@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { AutomationMatcherSchema } from './schemas.ts';
 import type { AutomationEvent, AutomationMatcher, AutomationsConfig } from './types.ts';
+import {
+  ProductModeSchema,
+  ValidationGateSchema,
+  type ProductMode,
+  type ValidationGate,
+} from '../workbench/product-mode-registry.ts';
 
 export const AutomationPresetIdSchema = z.enum([
   'daily-workbench-review',
@@ -30,6 +36,26 @@ export const AutomationPresetConfigSchema = z.object({
   enabled: z.boolean().optional(),
 });
 export type AutomationPresetConfig = z.input<typeof AutomationPresetConfigSchema>;
+
+export const ProductWorkflowAutomationPresetInputSchema = z.object({
+  modeId: ProductModeSchema,
+  selectedOptionIds: z.array(z.string().trim().min(1)).default([]),
+  validationGates: z.array(ValidationGateSchema).default([]),
+  timezone: z.string().trim().min(1).optional(),
+  enabled: z.boolean().optional(),
+});
+export interface ProductWorkflowAutomationPresetInput {
+  modeId: ProductMode;
+  selectedOptionIds?: string[];
+  validationGates?: ValidationGate[];
+  timezone?: string;
+  enabled?: boolean;
+}
+
+export interface ProductWorkflowAutomationPresetResult {
+  presetIds: AutomationPresetId[];
+  config: AutomationsConfig;
+}
 
 function parsePreset(input: z.input<typeof AutomationPresetSchema>): AutomationPreset {
   return AutomationPresetSchema.parse(input) as unknown as AutomationPreset;
@@ -129,6 +155,17 @@ function unique<T>(values: T[]): T[] {
   return [...new Set(values)];
 }
 
+function copyConfig(config: AutomationsConfig): AutomationsConfig {
+  return {
+    automations: Object.fromEntries(
+      Object.entries(config.automations).map(([event, matchers]) => [
+        event,
+        [...(matchers ?? [])].map(copyMatcher),
+      ]),
+    ) as AutomationsConfig['automations'],
+  };
+}
+
 export function getAutomationPresetCatalog(): AutomationPreset[] {
   return PRESETS.map(copyPreset);
 }
@@ -152,14 +189,7 @@ export function applyAutomationPresets(
   input: AutomationPresetConfig,
 ): AutomationsConfig {
   const parsed = AutomationPresetConfigSchema.parse(input);
-  const next: AutomationsConfig = {
-    automations: Object.fromEntries(
-      Object.entries(config.automations).map(([event, matchers]) => [
-        event,
-        [...(matchers ?? [])].map(copyMatcher),
-      ]),
-    ) as AutomationsConfig['automations'],
-  };
+  const next = copyConfig(config);
 
   for (const presetId of unique(parsed.presetIds)) {
     const preset = presetById(presetId);
@@ -177,4 +207,70 @@ export function applyAutomationPresets(
   }
 
   return next;
+}
+
+export function resolveProductWorkflowAutomationPresetIds(
+  input: ProductWorkflowAutomationPresetInput,
+): AutomationPresetId[] {
+  const parsed = ProductWorkflowAutomationPresetInputSchema.parse(input);
+  const selectedOptions = new Set(parsed.selectedOptionIds);
+  const validationGates = new Set(parsed.validationGates);
+  const presetIds: AutomationPresetId[] = [];
+
+  const isPlanningWorkflow =
+    ['spec', 'plan', 'build'].includes(parsed.modeId) ||
+    selectedOptions.has('output:task-pack') ||
+    selectedOptions.has('deliverable:tasks') ||
+    selectedOptions.has('depth:implementation-ready');
+  if (isPlanningWorkflow) {
+    presetIds.push('daily-workbench-review');
+  }
+
+  const needsBlockedTriage =
+    ['review', 'verify'].includes(parsed.modeId) ||
+    selectedOptions.has('validation:strict-gates') ||
+    selectedOptions.has('security:tenant-isolation') ||
+    selectedOptions.has('risk:matrix') ||
+    ['security_check', 'rbac_check', 'quota_check', 'sync_check'].some((gate) =>
+      validationGates.has(gate as ValidationGate),
+    );
+  if (needsBlockedTriage) {
+    presetIds.push('blocked-session-triage');
+  }
+
+  const needsTddFollowup =
+    ['build', 'tdd'].includes(parsed.modeId) ||
+    [...selectedOptions].some((optionId) => optionId.startsWith('tdd:') || optionId.startsWith('testing:')) ||
+    ['unit_tests', 'integration_tests', 'ui_tests', 'e2e_tests'].some((gate) =>
+      validationGates.has(gate as ValidationGate),
+    );
+  if (needsTddFollowup) {
+    presetIds.push('tdd-failure-followup');
+  }
+
+  return unique(presetIds);
+}
+
+export function applyProductWorkflowAutomationPresets(
+  config: AutomationsConfig,
+  input: ProductWorkflowAutomationPresetInput,
+): ProductWorkflowAutomationPresetResult {
+  const parsed = ProductWorkflowAutomationPresetInputSchema.parse(input);
+  const presetIds = resolveProductWorkflowAutomationPresetIds(parsed);
+
+  if (presetIds.length === 0) {
+    return {
+      presetIds,
+      config: copyConfig(config),
+    };
+  }
+
+  return {
+    presetIds,
+    config: applyAutomationPresets(config, {
+      presetIds,
+      timezone: parsed.timezone,
+      enabled: parsed.enabled,
+    }),
+  };
 }

@@ -50,7 +50,7 @@ export interface MarkdownEntityGraphSummary {
 }
 
 const HEADING_PATTERN = /^(#{1,6})\s+(.+?)\s*#*\s*$/;
-const WIKILINK_PATTERN = /\[\[([^\]\n|#]+)(?:\|[^\]\n]+)?\]\]/g;
+const WIKILINK_PATTERN = /\[\[([^\]\n|#]+)(?:#[^\]\n|]+)?(?:\|[^\]\n]+)?\]\]/g;
 const MARKDOWN_LINK_PATTERN = /!?\[([^\]\n]+)\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g;
 const TAG_PATTERN = /(^|[\s([{:])#([A-Za-z0-9][A-Za-z0-9_-]*)\b/g;
 
@@ -104,6 +104,10 @@ function createTypeCounts<T extends string>(types: readonly T[]): Record<T, numb
   return Object.fromEntries(types.map((type) => [type, 0])) as Record<T, number>;
 }
 
+function maskInlineCode(line: string): string {
+  return line.replace(/`+[^`]*`+/g, ' ');
+}
+
 export function buildMarkdownEntityGraph(input: BuildMarkdownEntityGraphInput): MarkdownEntityGraph {
   const documentId = input.documentId.trim();
   if (!documentId) {
@@ -153,7 +157,9 @@ export function buildMarkdownEntityGraph(input: BuildMarkdownEntityGraphInput): 
       return;
     }
 
-    for (const match of line.matchAll(WIKILINK_PATTERN)) {
+    const parseLine = maskInlineCode(line);
+
+    for (const match of parseLine.matchAll(WIKILINK_PATTERN)) {
       const value = match[1]?.trim();
       if (!value) continue;
 
@@ -167,7 +173,7 @@ export function buildMarkdownEntityGraph(input: BuildMarkdownEntityGraphInput): 
       addEdge(edges, currentSourceId, nodeId, 'mentions');
     }
 
-    for (const match of line.matchAll(MARKDOWN_LINK_PATTERN)) {
+    for (const match of parseLine.matchAll(MARKDOWN_LINK_PATTERN)) {
       if (match[0].startsWith('!')) continue;
 
       const label = match[1]?.trim();
@@ -184,7 +190,7 @@ export function buildMarkdownEntityGraph(input: BuildMarkdownEntityGraphInput): 
       addEdge(edges, currentSourceId, nodeId, 'references');
     }
 
-    for (const match of line.matchAll(TAG_PATTERN)) {
+    for (const match of parseLine.matchAll(TAG_PATTERN)) {
       const value = match[2]?.trim();
       if (!value) continue;
 

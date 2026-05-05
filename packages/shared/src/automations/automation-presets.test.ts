@@ -4,8 +4,10 @@ import { validateAutomationsConfig } from './validation.ts';
 import {
   AutomationPresetConfigSchema,
   applyAutomationPresets,
+  applyProductWorkflowAutomationPresets,
   getAutomationPresetCatalog,
   materializeAutomationPreset,
+  resolveProductWorkflowAutomationPresetIds,
 } from './presets.ts';
 
 describe('automation preset catalog', () => {
@@ -82,5 +84,39 @@ describe('automation preset catalog', () => {
         presetIds: ['daily-workbench-review', 'unknown-preset'],
       }),
     ).toThrow();
+  });
+
+  it('applies product workflow automation presets into a valid consumer config', () => {
+    const presetIds = resolveProductWorkflowAutomationPresetIds({
+      modeId: 'build',
+      selectedOptionIds: ['output:task-pack', 'tdd:test-first', 'security:tenant-isolation', 'validation:strict-gates'],
+      validationGates: ['unit_tests', 'integration_tests', 'security_check', 'rbac_check'],
+    });
+
+    expect(presetIds).toEqual([
+      'daily-workbench-review',
+      'blocked-session-triage',
+      'tdd-failure-followup',
+    ]);
+
+    const result = applyProductWorkflowAutomationPresets({
+      automations: {},
+    }, {
+      modeId: 'build',
+      selectedOptionIds: ['output:task-pack', 'tdd:test-first', 'security:tenant-isolation', 'validation:strict-gates'],
+      validationGates: ['unit_tests', 'integration_tests', 'security_check', 'rbac_check'],
+      timezone: 'Europe/Moscow',
+    });
+
+    expect(result.presetIds).toEqual(presetIds);
+    expect(result.config.automations.SchedulerTick?.map((matcher) => matcher.id)).toEqual([
+      'preset-daily-workbench-review',
+    ]);
+    expect(result.config.automations.LabelAdd?.map((matcher) => matcher.id)).toEqual([
+      'preset-blocked-session-triage',
+      'preset-tdd-failure-followup',
+    ]);
+    expect(result.config.automations.SchedulerTick?.[0]?.timezone).toBe('Europe/Moscow');
+    expect(validateAutomationsConfig(result.config).valid).toBe(true);
   });
 });

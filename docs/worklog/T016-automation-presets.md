@@ -128,3 +128,100 @@ Existing Vite chunk-size and Jotai deprecation warnings remain present and are n
 | Unknown presets are rejected | PASS | Schema rejection test passes |
 | Targeted tests pass | PASS | `automation-presets.test.ts`: 4 pass |
 | Relevant typecheck/build validation passes | PASS | Shared/electron typecheck, docs validation, diff check, and Electron build passed |
+
+## 12. Worker D integration closure - 2026-05-05
+
+### Task summary
+Closed the remaining T016 integration gap: automation presets can now be resolved and applied from product workflow selections into a valid automation config consumer shape.
+
+### Repo context discovered
+- The preset catalog and `applyAutomationPresets()` already covered selected preset IDs.
+- No helper mapped Spec Builder / product workflow options to automation preset IDs.
+- No consumer result linked selected workflow mode/options/gates to a config object that can be handed to existing automation consumers.
+- Existing automation validation remains the source of truth for config validity.
+
+### Files inspected
+- `packages/shared/src/automations/presets.ts`
+- `packages/shared/src/automations/automation-presets.test.ts`
+- `packages/shared/src/automations/index.ts`
+- `packages/shared/src/automations/types.ts`
+- `packages/shared/src/automations/schemas.ts`
+- `packages/shared/src/automations/validation.ts`
+- `packages/shared/src/workbench/option-graph.ts`
+- `apps/electron/src/renderer/components/workbench/spec-builder-state.ts`
+- `apps/electron/src/renderer/components/workbench/SpecBuilderScreen.tsx`
+- `docs/tickets/T016-automation-presets.md`
+- `docs/worklog/T016-automation-presets.md`
+
+### Tests added first
+Extended `packages/shared/src/automations/automation-presets.test.ts` with a red integration test:
+- passes a build workflow selection with `tdd:test-first`, `security:tenant-isolation`, and `validation:strict-gates`;
+- expects deterministic preset IDs: daily review, blocked triage, TDD follow-up;
+- applies those presets into `AutomationsConfig`;
+- validates the resulting config through `validateAutomationsConfig()`.
+
+Also extended the Spec Builder UI test to prove selected workflow options expose the derived automation preset plan.
+
+### Expected failing test output
+Initial targeted red run failed for the expected missing export:
+
+```text
+SyntaxError: Export named 'resolveProductWorkflowAutomationPresetIds' not found
+0 pass
+1 fail
+1 error
+```
+
+### Implementation changes
+- Added `ProductWorkflowAutomationPresetInputSchema`.
+- Added `resolveProductWorkflowAutomationPresetIds()` to map mode/options/gates to preset IDs.
+- Added `applyProductWorkflowAutomationPresets()` to merge resolved presets into an `AutomationsConfig` without disk writes.
+- Preserved idempotent config copying semantics.
+- Exported the product workflow preset helpers through `@rox-agent/shared/automations`.
+- Wired Spec Builder state to expose `automationPresetPlan`, and Spec Builder UI to show derived automation preset IDs.
+
+### Validation commands run
+```text
+bun test packages/shared/src/automations/automation-presets.test.ts
+bun test packages/shared/src/workbench/__tests__/agent-pipeline-planner.test.ts packages/shared/src/automations/automation-presets.test.ts apps/electron/src/renderer/components/workbench/__tests__/spec-builder-screen.test.tsx
+bun run typecheck:shared
+bun run typecheck:electron
+bun run lint:shared
+bun run lint:electron
+bun run validate:agent-contract
+git diff --check
+bun run electron:build
+bun run electron:smoke
+```
+
+### Passing test output summary
+```text
+automation-presets.test.ts: 5 pass, 0 fail, 16 expect() calls
+combined targeted pack: 15 pass, 0 fail, 70 expect() calls
+```
+
+`typecheck:shared`, `typecheck:electron`, `lint:shared`, `lint:electron`, `validate:agent-contract`, `git diff --check`, `electron:build`, and `electron:smoke` passed.
+
+### Build output summary
+Supervisor integration initially caught a renderer build failure because `SpecBuilderState` imported from the broad `@rox-agent/shared/automations` barrel, which pulled node-only automation config code into the Vite browser bundle:
+
+```text
+packages/shared/src/automations/resolve-config-path.ts (5:9): "randomBytes" is not exported by "__vite-browser-external"
+```
+
+The fix added the browser-safe `@rox-agent/shared/automations/presets` package export and changed the renderer import to use it. `bun run electron:build` then completed successfully, and `bun run electron:smoke` reached `[smoke] Electron headless startup passed`.
+
+### Remaining risks
+- The helper creates a valid config object but does not persist it to disk; parent product flow must decide where saving belongs.
+- Preset resolution is intentionally conservative and prompt-only; webhook/external actions remain out of scope.
+
+### Acceptance criteria matrix
+| Criterion | Status | Evidence |
+| --- | --- | --- |
+| Product workflow can resolve preset IDs | PASS | `resolveProductWorkflowAutomationPresetIds()` test passes |
+| Product workflow can produce config consumer shape | PASS | `applyProductWorkflowAutomationPresets()` test passes |
+| Generated config validates | PASS | `validateAutomationsConfig(result.config).valid` is true |
+| Spec Builder exposes automation preset plan | PASS | UI/state test asserts `automationPresetPlan.presetIds` |
+| Presets remain prompt-only/fake-provider safe | PASS | Existing catalog test asserts prompt-only actions |
+| Relevant targeted tests pass | PASS | Combined targeted pack: 15 pass |
+| Relevant typecheck/lint passes | PASS | Shared/electron typecheck and lint passed |

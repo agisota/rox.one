@@ -75,13 +75,18 @@ export { parsePromptReferences } from './utils.ts';
 export {
   AutomationPresetConfigSchema,
   AutomationPresetIdSchema,
+  ProductWorkflowAutomationPresetInputSchema,
   AutomationPresetSchema,
   applyAutomationPresets,
+  applyProductWorkflowAutomationPresets,
   getAutomationPresetCatalog,
   materializeAutomationPreset,
+  resolveProductWorkflowAutomationPresetIds,
   type AutomationPreset,
   type AutomationPresetConfig,
   type AutomationPresetId,
+  type ProductWorkflowAutomationPresetInput,
+  type ProductWorkflowAutomationPresetResult,
 } from './presets.ts';
 
 // ============================================================================

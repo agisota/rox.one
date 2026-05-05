@@ -143,10 +143,10 @@ Dispatch packets:
 
 Parallel lanes:
 
-- Product workflow lane: T013-T016.
-- Account/cloud/storage lane: T017-T025.
-- Files/knowledge/research lane: T026-T030.
-- Engineering/release infrastructure lane: T031/T033/T034/T035.
+- Product workflow lane: T013-T016 is closed.
+- Account/cloud/storage lane: T018-T025; T017 is closed.
+- Files/knowledge/research lane: T026-T030 is closed.
+- Engineering/release infrastructure lane: T031/T033/T034/T035 is closed; T040 remains the release-candidate gate.
 
 Gate:
 
@@ -157,7 +157,9 @@ Gate:
 
 Current audit state:
 
-- `T013`-`T030` are `PARTIAL_CORE`: core modules and tests exist, but integration/UI/runtime acceptance remains.
+- `T013`, `T014`, `T017`, and `T027` were closed by `72cf3e5 Close the first worker wave with evidence-backed UI gates`.
+- `T015`, `T016`, `T026`, `T028`, `T029`, and `T030` were closed in the current integration wave with targeted red/green evidence.
+- `T018`-`T025` remain `PARTIAL_CORE`: core modules and tests exist, but account/cloud/storage/sync acceptance remains.
 - `T000`, `T001`, `T002`, `T031`, `T033`, `T034`, and `T035` have PASS worklogs and were synchronized to `DONE`.
 - `T040` remains the only true release-candidate `TODO` with no matching worklog.
 

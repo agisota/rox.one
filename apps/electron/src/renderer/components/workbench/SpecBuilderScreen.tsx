@@ -54,7 +54,7 @@ export function SpecBuilderScreen({
             <Button variant="outline" onClick={() => onSavePreset?.(state)}>
               Save Preset
             </Button>
-            <Button disabled={!state.canExport} onClick={() => onStartAgentPlan?.(state)}>
+            <Button disabled={!state.canStartAgentPlan} onClick={() => onStartAgentPlan?.(state)}>
               Start Agent Plan
             </Button>
           </div>
@@ -138,6 +138,28 @@ export function SpecBuilderScreen({
             <DerivedList title="Agents" values={state.derivedConfig?.agents ?? []} />
             <DerivedList title="Validation gates" values={state.derivedConfig?.validationGates ?? []} />
             <DerivedList title="Artifacts" values={state.derivedConfig?.outputArtifactTypes ?? []} />
+            <DerivedList title="Automation presets" values={state.automationPresetPlan?.presetIds ?? []} />
+          </section>
+
+          <section className="rounded-2xl border border-border bg-background p-4">
+            <h2 className="text-sm font-semibold">Pipeline preview</h2>
+            {!state.agentPlan ? (
+              <p className="mt-3 text-sm text-muted-foreground">Select input and requirements to generate a launcher-ready agent plan.</p>
+            ) : (
+              <ol className="mt-3 space-y-2">
+                {state.agentPlan.stages.map((stage) => (
+                  <li key={stage.stageId} className="rounded-lg border border-border bg-muted/20 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-medium">{stage.roleId}</span>
+                      <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{stage.lane}</span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      depends on: {stage.dependsOn.length > 0 ? stage.dependsOn.join(', ') : 'none'}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
           </section>
 
           <section className="rounded-2xl border border-border bg-background p-4">

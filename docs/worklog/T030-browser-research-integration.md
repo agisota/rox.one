@@ -87,7 +87,7 @@ error: Cannot find module '../browser-research-integration'
 
 ## 10. Remaining risks
 
-- This is a shared policy/integration resolver; it does not yet wire UI controls or runtime tool creation to the resolver.
+- This now includes a runtime tool-plan builder with injected fake factories, but it does not instantiate real browser/search providers in tests.
 - Existing low-level browser tool permission tests still allow browser tools by tool name; T030 adds a workbench-level gate rather than changing global permission semantics.
 - No real web search/browser execution was performed, by design.
 
@@ -102,3 +102,38 @@ error: Cannot find module '../browser-research-integration'
 | Unsupported product modes deny tools by default | Pass | build-mode denial test |
 | Shared typecheck passes | Pass | `bun run typecheck:shared` |
 | Relevant build passes | Pass | `bun run electron:build` |
+| Runtime tool construction is factory-gated | Pass | 2026-05-05 fake-factory test only calls enabled factories |
+| Missing runtime factories block enabled tools safely | Pass | 2026-05-05 test records `missing runtime factory for browser_tool` |
+
+## 12. 2026-05-05 closure pass
+
+### Tests added first
+
+- Extended `packages/shared/src/workbench/__tests__/browser-research-integration.test.ts` with red tests for runtime tool-plan construction through fake factories and missing factory blocking.
+
+### Expected failing output
+
+`bun test packages/shared/src/workbench/__tests__/browser-research-integration.test.ts`
+
+```text
+0 pass
+1 fail
+SyntaxError: Export named 'createBrowserResearchToolPlan' not found
+```
+
+### Implementation changes
+
+- Added `createBrowserResearchToolPlan()` to convert a resolved workbench policy into runtime tools through injected factories.
+- Disabled tools are carried forward from policy resolution.
+- Enabled tools without a factory are blocked with deterministic evidence instead of being silently skipped or calling real providers.
+
+### Validation commands and results
+
+- `bun test packages/shared/src/workbench/__tests__/browser-research-integration.test.ts` -> 7 pass, 0 fail, 20 expect calls.
+- `bun test packages/shared/src/workbench/__tests__/markdown-entity-graph.test.ts packages/shared/src/workbench/__tests__/browser-research-integration.test.ts packages/shared/src/workbench/__tests__/option-graph.test.ts packages/shared/src/workbench/__tests__/product-mode-registry.test.ts packages/shared/src/agent/__tests__/browser-tools-permissions.test.ts` -> 25 pass, 0 fail, 211 expect calls.
+- `bun run typecheck:shared` -> pass.
+- `git diff --check` -> pass.
+
+### Acceptance update
+
+Status: DONE. Workbench-level research policy now has deterministic runtime factory wiring without real browser/search/network calls in tests.

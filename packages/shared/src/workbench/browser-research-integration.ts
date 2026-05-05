@@ -30,6 +30,23 @@ export interface BrowserResearchIntegrationConfig {
   policySummary: string;
 }
 
+export type BrowserResearchRuntimeFactory<TTool = unknown> = () => TTool;
+export type BrowserResearchRuntimeFactories<TTool = unknown> = Partial<
+  Record<BrowserResearchToolId, BrowserResearchRuntimeFactory<TTool>>
+>;
+
+export interface BrowserResearchRuntimeTool<TTool = unknown> {
+  toolId: BrowserResearchToolId;
+  tool: TTool;
+}
+
+export interface BrowserResearchToolPlan<TTool = unknown> {
+  tools: BrowserResearchRuntimeTool<TTool>[];
+  disabledTools: DisabledBrowserResearchTool[];
+  policySummary: string;
+  requiresUserPermission: boolean;
+}
+
 const REQUIRED_VALIDATION_GATES: ValidationGate[] = ['fact_check'];
 
 function uniqueRequestedTools(requestedTools?: BrowserResearchToolId[]): BrowserResearchToolId[] {
@@ -116,6 +133,31 @@ export function resolveBrowserResearchIntegration(
     requiresUserPermission: enabledTools.includes('browser_tool'),
     policySummary: enabledTools.length
       ? `browser research enabled for ${input.modeId} with fact_check gate`
-      : `browser research disabled for ${input.modeId}`,
+    : `browser research disabled for ${input.modeId}`,
+  };
+}
+
+export function createBrowserResearchToolPlan<TTool>(
+  config: BrowserResearchIntegrationConfig,
+  factories: BrowserResearchRuntimeFactories<TTool>,
+): BrowserResearchToolPlan<TTool> {
+  const tools: BrowserResearchRuntimeTool<TTool>[] = [];
+  const disabledTools: DisabledBrowserResearchTool[] = [...config.disabledTools];
+
+  for (const toolId of config.enabledTools) {
+    const factory = factories[toolId];
+    if (!factory) {
+      disabledTools.push({ toolId, reason: `missing runtime factory for ${toolId}` });
+      continue;
+    }
+
+    tools.push({ toolId, tool: factory() });
+  }
+
+  return {
+    tools,
+    disabledTools,
+    policySummary: config.policySummary,
+    requiresUserPermission: config.requiresUserPermission,
   };
 }
