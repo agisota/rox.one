@@ -1,4 +1,5 @@
 import {
+  EXPERIENCE_QUEST_GRAPH,
   QuestProgressSchema,
   type ExperienceLayer,
   type ExperienceTruthState,
@@ -140,38 +141,7 @@ export function groupQuestsByLane(quests: Quest[]): Array<{ lane: QuestLane; que
 }
 
 function createQuests(): Quest[] {
-  return [
-    {
-      id: 'quest-formulate',
-      lane: 'formulate',
-      defaultLayer: 'command',
-      title: 'Оформить сырой prompt',
-      description: 'Превратить неясную идею в цель, ограничения и требования к evidence.',
-      requirements: ['Добавить prompt brief', 'Пройти schema gate'],
-      rewards: ['20 XP'],
-      unlocks: ['skill:spec-builder'],
-    },
-    {
-      id: 'quest-specify',
-      lane: 'specify',
-      defaultLayer: 'game',
-      title: 'Собрать исполняемую спецификацию',
-      description: 'Выбрать требования и собрать spec, готовый к агентному выполнению.',
-      requirements: ['Закрыть этап формулировки'],
-      rewards: ['30 XP'],
-      unlocks: ['agent:architect-prime'],
-    },
-    {
-      id: 'quest-arena-swarm',
-      lane: 'arena',
-      defaultLayer: 'arena',
-      title: 'Запустить swarm-арену',
-      description: 'Запустить deduped swarm и получить проверенный minority report.',
-      requirements: ['Закрыть проверенное ревью', 'Достичь VDI 85'],
-      rewards: ['Arena slot +1'],
-      unlocks: ['swarm:expanded'],
-    },
-  ];
+  return EXPERIENCE_QUEST_GRAPH;
 }
 
 function createQuestProgress(quests: Quest[]): Record<string, QuestProgress> {
@@ -183,7 +153,7 @@ function createQuestProgress(quests: Quest[]): Record<string, QuestProgress> {
         questId: quest.id,
         userId: 'user-one',
         teamId: 'team-alpha',
-        status: quest.id === 'quest-formulate' ? 'available' : 'locked',
+        status: quest.id === 'quest-frame-raw-prompt' ? 'available' : 'locked',
         percent: 0,
         evidenceRefs: [],
       } satisfies QuestProgress,
@@ -195,14 +165,14 @@ function createUnlockRules(): QuestUnlockRule[] {
   return [
     {
       id: 'unlock-spec-builder',
-      requiredQuestIds: ['quest-formulate'],
-      unlockQuestIds: ['quest-specify'],
+      requiredQuestIds: ['quest-frame-raw-prompt'],
+      unlockQuestIds: ['quest-rewrite-prompt'],
       rewardIds: ['skill:spec-builder'],
     },
     {
       id: 'unlock-arena',
-      requiredQuestIds: ['quest-formulate', 'quest-specify'],
-      unlockQuestIds: ['quest-arena-swarm'],
+      requiredQuestIds: ['quest-final-verified-deliverable'],
+      unlockQuestIds: ['quest-launch-swarm-arena'],
       rewardIds: ['agent:architect-prime'],
     },
   ];

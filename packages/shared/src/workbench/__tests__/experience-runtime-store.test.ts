@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 
 import {
   createExperienceRuntimeStore,
+  EXPERIENCE_QUEST_GRAPH,
   createInMemoryExperiencePersistenceAdapter,
   createInitialExperienceRuntimeState,
   replayExperienceEvents,
@@ -67,6 +68,100 @@ function missionLaunchedEvent(id = 'evt-mission-launched'): ExperienceEvent {
 }
 
 describe('ExperienceRuntimeStore', () => {
+  it('ships the required ROX quest graph and advances it from runtime events deterministically', () => {
+    expect(EXPERIENCE_QUEST_GRAPH.map((quest) => quest.title)).toEqual([
+      'Frame raw prompt',
+      'Rewrite prompt',
+      'Clarify assumptions',
+      'Build executable spec',
+      'Generate TDD plan',
+      'Run Review Gate',
+      'Launch first deep mission',
+      'Complete checkpoint with evidence',
+      'Resolve blocker',
+      'Final verified deliverable',
+      'Launch swarm arena',
+      'Install trusted agent package',
+      'Fork package into team registry',
+      'Share verified session',
+    ]);
+
+    const events: ExperienceEvent[] = [
+      event('evt-prompt-submitted', 'prompt.submitted', {
+        artifactId: 'artifact:brief',
+        rawPrompt: 'Ship the RC with evidence.',
+      }),
+      event('evt-prompt-rewritten', 'prompt.rewritten', {
+        artifactId: 'artifact:rewritten-prompt',
+        sourceArtifactId: 'artifact:brief',
+        rewrittenPrompt: 'Build a release candidate with validation evidence.',
+      }),
+      event('evt-spec-compiled', 'spec.compiled', {
+        artifactId: 'artifact:spec',
+        sourceArtifactId: 'artifact:rewritten-prompt',
+        title: 'RC spec',
+      }),
+      event('evt-tdd-plan-created', 'tdd.plan.created', {
+        artifactId: 'artifact:tdd-plan',
+        sourceArtifactId: 'artifact:spec',
+      }),
+      event('evt-review-completed', 'review.completed', {
+        artifactId: 'artifact:review-report',
+        gateEvidenceRefs: ['gate:review:warned'],
+        findingCount: 1,
+      }),
+      missionLaunchedEvent(),
+      event('evt-artifact-created', 'artifact.created', {
+        artifact: {
+          id: 'artifact:checkpoint-evidence',
+          missionRunId: 'mission-runtime',
+          checkpointId: 'cp-6h',
+          artifactType: 'report',
+          title: 'Checkpoint evidence',
+          evidenceRefs: ['gate:schema:passed'],
+          createdAt: NOW,
+        },
+      }),
+      event('evt-gate-passed', 'gate.passed', {
+        missionRunId: 'mission-runtime',
+        gateId: 'schema',
+        evidenceRef: 'gate:schema:passed',
+      }),
+      event('evt-checkpoint-completed', 'mission.checkpoint.completed', {
+        missionRunId: 'mission-runtime',
+        checkpointId: 'cp-6h',
+        summary: 'Checkpoint evidence accepted.',
+        artifactIds: ['artifact:checkpoint-evidence'],
+        vdiDelta: 6,
+      }),
+      event('evt-finalized', 'mission.finalized', {
+        missionRunId: 'mission-runtime',
+        finalArtifactId: 'artifact:checkpoint-evidence',
+        gateEvidenceRefs: ['gate:schema:passed'],
+      }),
+    ];
+
+    const reduced = replayExperienceEvents(events);
+    const replayed = replayExperienceEvents(events);
+    const completedQuestIds = reduced.questProgress
+      .filter((progress) => progress.status === 'completed')
+      .map((progress) => progress.questId);
+
+    expect(replayed.questProgress).toEqual(reduced.questProgress);
+    expect(completedQuestIds).toEqual([
+      'quest-frame-raw-prompt',
+      'quest-rewrite-prompt',
+      'quest-build-executable-spec',
+      'quest-generate-tdd-plan',
+      'quest-run-review-gate',
+      'quest-launch-first-deep-mission',
+      'quest-complete-checkpoint-with-evidence',
+      'quest-final-verified-deliverable',
+    ]);
+    expect(reduced.metricSnapshots.at(-1)?.verifiedDeliverableIndex).toBeGreaterThan(0);
+    expect(reduced.metricSnapshots.at(-1)?.openRiskScore).toBe(0);
+  });
+
   it('updates truth deterministically from typed events and replays the same state', () => {
     const events: ExperienceEvent[] = [
       event('evt-prompt-submitted', 'prompt.submitted', {
