@@ -1,6 +1,7 @@
 import {
   QuestProgressSchema,
   type ExperienceLayer,
+  type ExperienceTruthState,
   type Quest,
   type QuestLane,
   type QuestProgress,
@@ -29,6 +30,20 @@ export function createQuestMapState(input: Partial<QuestMapState> = {}): QuestMa
     unlockRules: input.unlockRules ?? createUnlockRules(),
     unlockedRewardIds: input.unlockedRewardIds ?? [],
   };
+}
+
+export function createQuestMapStateFromTruth(truthState: ExperienceTruthState, input: Partial<QuestMapState> = {}): QuestMapState {
+  const baseState = createQuestMapState(input);
+  const progressByQuestId = { ...baseState.progressByQuestId };
+
+  for (const progress of truthState.questProgress) {
+    progressByQuestId[progress.questId] = progress;
+  }
+
+  return evaluateQuestUnlocks(createQuestMapState({
+    ...baseState,
+    progressByQuestId,
+  }));
 }
 
 export function completeQuest(state: QuestMapState, questId: string, evidenceRefs: string[]): QuestMapState {

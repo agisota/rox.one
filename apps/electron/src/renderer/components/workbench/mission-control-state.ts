@@ -1,8 +1,10 @@
 import type {
+  ExperienceTruthState,
   MissionCheckpoint,
   MissionCheckpointStatus,
   MissionGateResult,
   MissionRun,
+  ProgressLedger,
 } from '@craft-agent/shared/workbench';
 
 export type MissionApprovalStatus = 'pending' | 'approved' | 'rejected';
@@ -74,6 +76,44 @@ export function createMissionControlState(input: Partial<MissionControlState> = 
   return deriveMissionControlState(state);
 }
 
+export function createMissionControlStateFromTruth(truthState: ExperienceTruthState): MissionControlState {
+  const artifacts = truthState.checkpoints.flatMap((checkpoint) =>
+    checkpoint.artifactIds.map((artifactId) => ({
+      id: artifactId,
+      checkpointId: checkpoint.id,
+      title: artifactId,
+      artifactType: 'report' as const,
+      validationState: checkpoint.status === 'failed' ? 'failed' as const : checkpoint.status === 'completed' ? 'passed' as const : 'draft' as const,
+    })),
+  );
+
+  return createMissionControlState({
+    mission: truthState.mission,
+    checkpoints: truthState.checkpoints,
+    gateResults: truthState.gateResults,
+    approvals: [],
+    feedItems: truthState.checkpoints.map((checkpoint) => ({
+      id: `feed-${checkpoint.id}`,
+      checkpointId: checkpoint.id,
+      source: 'Mission truth',
+      summary: checkpoint.summary || checkpoint.title,
+      severity: checkpoint.status === 'failed' || checkpoint.status === 'blocked' ? 'high' : 'info',
+    })),
+    artifacts,
+    auditEvents: truthState.checkpoints.map((checkpoint) => ({
+      id: `audit-${checkpoint.id}-${checkpoint.status}`,
+      summary: `Checkpoint ${checkpoint.title} moved to ${checkpoint.status}.`,
+      createdAt: checkpoint.completedAt ?? truthState.mission.startedAt ?? truthState.mission.createdAt,
+    })),
+    billingTrace: truthState.ledger.filter(isCreditLedgerEntry).map((entry) => ({
+      id: entry.id,
+      label: entry.reason,
+      credits: entry.amount,
+      source: entry.sourceArtifactId ?? entry.validationGateResultId ?? 'truth-ledger',
+    })),
+  });
+}
+
 export function transitionMissionCheckpoint(
   state: MissionControlState,
   checkpointId: string,
@@ -127,6 +167,10 @@ function deriveMissionControlState(
     canRunExpensiveBranch: !pendingExpensiveApproval,
     canFinalize: blockingReasons.length === 0,
   };
+}
+
+function isCreditLedgerEntry(entry: ProgressLedger): boolean {
+  return entry.currency === 'credits';
 }
 
 function createMissionRun(): MissionRun {

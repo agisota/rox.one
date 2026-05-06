@@ -5,6 +5,7 @@ export * from './experience-layer';
 export * from './experience-layer-e2e-scenario';
 export * from './experience-layer-registry';
 export * from './experience-layer-security';
+export * from './experience-state';
 export * from './markdown-entity-graph';
 export * from './mission-scheduler-adapter';
 export * from './option-graph';

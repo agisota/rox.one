@@ -3,6 +3,7 @@ import * as React from 'react';
 import { Button } from '../ui/button';
 import {
   createArenaBuilderState,
+  createArenaBuilderStateFromTruth,
   createArenaDraftRun,
   toggleArenaAgentSelection,
   type ArenaAgentCollectionItem,
@@ -10,6 +11,7 @@ import {
   type ArenaBuilderStateInput,
   type ArenaDraftRun,
 } from './arena-builder-state';
+import type { ExperienceTruthState } from '@craft-agent/shared/workbench';
 import {
   ExperienceCard,
   ExperienceMetricRow,
@@ -22,11 +24,14 @@ import {
 export interface ArenaBuilderScreenProps {
   initialState?: ArenaBuilderState;
   initialInput?: ArenaBuilderStateInput;
+  truthState?: ExperienceTruthState;
   onCreateDraftRun?: (draftRun: ArenaDraftRun) => void;
 }
 
-export function ArenaBuilderScreen({ initialState, initialInput, onCreateDraftRun }: ArenaBuilderScreenProps) {
-  const [state, setState] = React.useState<ArenaBuilderState>(() => initialState ?? createArenaBuilderState(initialInput));
+export function ArenaBuilderScreen({ initialState, initialInput, truthState, onCreateDraftRun }: ArenaBuilderScreenProps) {
+  const [state, setState] = React.useState<ArenaBuilderState>(() =>
+    initialState ?? (truthState ? createArenaBuilderStateFromTruth(truthState, initialInput) : createArenaBuilderState(initialInput)),
+  );
   const selectedAgents = state.selectedAgentPackageIds
     .map((id) => state.roster.find((agent) => agent.package.id === id))
     .filter((agent): agent is ArenaAgentCollectionItem => Boolean(agent));
