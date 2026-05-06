@@ -5,6 +5,7 @@ import type {
   ExperienceLayer,
   ExperienceTruthState,
   MissionMode,
+  ProgressLedger,
   ValidationGate,
 } from '@craft-agent/shared/workbench';
 
@@ -83,7 +84,9 @@ export function createArenaBuilderStateFromTruth(
 ): ArenaBuilderState {
   return createArenaBuilderState({
     ...input,
-    roster: truthState.agentPackages.length > 0 ? truthState.agentPackages.map(createAgentFromPackage) : input.roster,
+    roster: truthState.agentPackages.length > 0
+      ? truthState.agentPackages.map((pkg) => createAgentFromPackage(pkg, truthState.ledger))
+      : input.roster,
     selectedAgentPackageIds: input.selectedAgentPackageIds ?? truthState.mission.selectedAgentPackageIds,
     entitlement: input.entitlement ?? {
       maxSwarmSlots: Math.max(1, truthState.mission.selectedAgentPackageIds.length),
@@ -301,11 +304,20 @@ function createAgent(input: {
   };
 }
 
-function createAgentFromPackage(pkg: AgentPackage): ArenaAgentCollectionItem {
+function createAgentFromPackage(pkg: AgentPackage, ledger: ProgressLedger[] = []): ArenaAgentCollectionItem {
+  const masteryBonus = ledger
+    .filter((entry) => entry.currency === 'mastery')
+    .filter((entry) =>
+      entry.sourceArtifactId === `artifact:${pkg.id}:usage` ||
+      entry.validationGateResultId === `gate:${pkg.id}:verified-usage`
+    )
+    .reduce((sum, entry) => sum + entry.amount, 0);
+  const masteryPercent = Math.min(100, Math.max(0, Math.round(pkg.trustScore + masteryBonus)));
+
   return {
     package: pkg,
     level: Math.max(1, Math.round(pkg.trustScore / 12)),
-    masteryPercent: pkg.trustScore,
+    masteryPercent,
     unlocked: true,
     unlockCriteria: ['Provided by shared truth state'],
     roleTag: pkg.packageType === 'skill_pack' || pkg.packageType === 'skill' ? 'Automation' : 'Research',

@@ -10,6 +10,7 @@ import {
   selectExperienceRuntimeProjection,
   type ExperienceEvent,
 } from '../experience-runtime-store';
+import type { AgentPackage } from '../experience-layer';
 
 const NOW = '2026-05-06T00:00:00.000Z';
 
@@ -65,6 +66,25 @@ function missionLaunchedEvent(id = 'evt-mission-launched'): ExperienceEvent {
       },
     ],
   });
+}
+
+function agentPackage(input: Partial<AgentPackage> = {}): AgentPackage {
+  return {
+    id: input.id ?? 'pkg-team-critic',
+    packageType: input.packageType ?? 'persona',
+    name: input.name ?? 'Team Critic',
+    description: input.description ?? 'Evidence-backed review agent.',
+    ownerTeamId: input.ownerTeamId ?? 'team-alpha',
+    visibility: input.visibility ?? 'team',
+    rarity: input.rarity ?? 'rare',
+    trustScore: input.trustScore ?? 80,
+    riskLevel: input.riskLevel ?? 'medium',
+    permissionProfileId: input.permissionProfileId ?? 'permission-pkg-team-critic',
+    latestVersion: input.latestVersion ?? '1.0.0',
+    pricingModel: input.pricingModel ?? 'team_private',
+    createdAt: input.createdAt ?? NOW,
+    updatedAt: input.updatedAt ?? NOW,
+  };
 }
 
 describe('ExperienceRuntimeStore', () => {
@@ -318,6 +338,46 @@ describe('ExperienceRuntimeStore', () => {
     expect(paidOnly.gateResults).toHaveLength(0);
     expect(paidOnly.metricSnapshots.at(-1)?.verifiedDeliverableIndex ?? 0).toBe(0);
     expect(paidOnly.capacity.swarmSlots).toBe(10);
+  });
+
+  it('requires trust evidence before installing or forking agent packages into runtime truth', () => {
+    const trustedPackage = agentPackage();
+
+    const unsupported = replayExperienceEvents([
+      missionLaunchedEvent(),
+      event('evt-install-without-evidence', 'agent.package.installed', {
+        package: trustedPackage,
+      }),
+      event('evt-fork-without-evidence', 'agent.package.forked', {
+        sourcePackageId: trustedPackage.id,
+        package: { ...trustedPackage, id: 'pkg-team-critic-fork' },
+      }),
+    ]);
+
+    expect(unsupported.installedAgentPackageIds).not.toContain(trustedPackage.id);
+    expect(unsupported.agentPackages.map((pkg) => pkg.id)).not.toContain(trustedPackage.id);
+
+    const verified = replayExperienceEvents([
+      missionLaunchedEvent(),
+      event('evt-install-with-evidence', 'agent.package.installed', {
+        package: trustedPackage,
+        evidenceRefs: ['gate:agent-contract:passed', 'artifact:agent-contract'],
+      }),
+      event('evt-fork-with-evidence', 'agent.package.forked', {
+        sourcePackageId: trustedPackage.id,
+        package: { ...trustedPackage, id: 'pkg-team-critic-fork', ownerTeamId: 'team-alpha' },
+        evidenceRefs: ['gate:team-registry:passed'],
+      }),
+    ]);
+
+    expect(verified.installedAgentPackageIds).toContain(trustedPackage.id);
+    expect(verified.agentPackages.map((pkg) => pkg.id)).toEqual(['pkg-team-critic', 'pkg-team-critic-fork']);
+    expect(
+      verified.questProgress.find((progress) => progress.questId === 'quest-install-trusted-agent-package')?.status,
+    ).toBe('completed');
+    expect(
+      verified.questProgress.find((progress) => progress.questId === 'quest-fork-package-team-registry')?.status,
+    ).toBe('completed');
   });
 
   it('persists through the adapter instead of bypassing durable seams', async () => {
