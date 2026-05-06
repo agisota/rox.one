@@ -603,12 +603,32 @@ function reduceNewExperienceEvent(state: ExperienceRuntimeState, event: Experien
     case 'mission.finalized':
       return finalizeMission(state, event);
     case 'agent.package.installed':
+      if (!hasAgentPackageTrustEvidence(event.payload.evidenceRefs) || !isTrustedAgentPackage(event.payload.package)) {
+        return appendNotification(state, {
+          id: `notification-${event.id}`,
+          eventId: event.id,
+          kind: 'warning',
+          message: 'Agent package install ignored without trust evidence',
+          createdAt: event.createdAt,
+        });
+      }
+
       return appendNotification({
         ...state,
         agentPackages: upsertById(state.agentPackages, [event.payload.package]),
         installedAgentPackageIds: uniqueSortedStrings([...state.installedAgentPackageIds, event.payload.package.id]),
       }, successNotification(event, 'Agent package installed'));
     case 'agent.package.forked':
+      if (event.payload.evidenceRefs.length === 0 || !isTrustedAgentPackage(event.payload.package)) {
+        return appendNotification(state, {
+          id: `notification-${event.id}`,
+          eventId: event.id,
+          kind: 'warning',
+          message: 'Agent package fork ignored without trust evidence',
+          createdAt: event.createdAt,
+        });
+      }
+
       return appendNotification({
         ...state,
         agentPackages: upsertById(state.agentPackages, [event.payload.package]),
@@ -1006,6 +1026,14 @@ function successNotification(event: ExperienceEvent, message: string): Experienc
     message,
     createdAt: event.createdAt,
   };
+}
+
+function hasAgentPackageTrustEvidence(evidenceRefs: string[]): boolean {
+  return evidenceRefs.some((ref) => ref.startsWith('gate:')) && evidenceRefs.some((ref) => ref.startsWith('artifact:'));
+}
+
+function isTrustedAgentPackage(pkg: AgentPackage): boolean {
+  return pkg.trustScore >= 50 && pkg.riskLevel !== 'critical';
 }
 
 function asArtifactRef(id: string): string {
