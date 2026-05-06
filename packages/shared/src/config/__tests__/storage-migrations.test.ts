@@ -5,6 +5,9 @@ import { join } from 'path'
 import { pathToFileURL } from 'url'
 import { inferModelSelectionMode, shouldMigratePiOpenAiProvider, shouldRepairPiApiKeyCodexProvider } from '../storage'
 
+import { loadConfigDefaults, ensureConfigDir } from '../storage'
+
+
 const STORAGE_MODULE_PATH = pathToFileURL(join(import.meta.dir, '..', 'storage.ts')).href
 
 function runLoadConfigDefaults(configDir: string): { exitCode: number; stdout: string; stderr: string } {
@@ -24,6 +27,32 @@ function runLoadConfigDefaults(configDir: string): { exitCode: number; stdout: s
     stderr: run.stderr.toString(),
   }
 }
+
+
+describe('ensureConfigDir', () => {
+  it('initializes a newly overridden ROX_CONFIG_DIR within the same process', () => {
+    const originalConfigDir = process.env.ROX_CONFIG_DIR
+    const firstDir = mkdtempSync(join(tmpdir(), 'config-dir-first-'))
+    const secondDir = mkdtempSync(join(tmpdir(), 'config-dir-second-'))
+
+    try {
+      process.env.ROX_CONFIG_DIR = firstDir
+      ensureConfigDir()
+      expect(existsSync(join(firstDir, 'config-defaults.json'))).toBe(true)
+
+      process.env.ROX_CONFIG_DIR = secondDir
+      ensureConfigDir()
+      expect(existsSync(join(secondDir, 'config-defaults.json'))).toBe(true)
+      const defaults = loadConfigDefaults()
+      expect(defaults.workspaceDefaults.permissionMode).toBeString()
+    } finally {
+      if (originalConfigDir === undefined) delete process.env.ROX_CONFIG_DIR
+      else process.env.ROX_CONFIG_DIR = originalConfigDir
+      rmSync(firstDir, { recursive: true, force: true })
+      rmSync(secondDir, { recursive: true, force: true })
+    }
+  })
+})
 
 describe('loadConfigDefaults', () => {
   it('bootstraps fallback config-defaults when none exist yet', () => {

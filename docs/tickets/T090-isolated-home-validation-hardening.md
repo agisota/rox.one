@@ -1,6 +1,6 @@
 # T090 - Isolated Home Validation Hardening
 
-Status: READY TO COMMIT
+Status: DONE
 
 ## Goal
 
