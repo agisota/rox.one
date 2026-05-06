@@ -214,6 +214,7 @@ export function createFakeShareProvider(options: FakeShareProviderOptions): Fake
   const uploads: Array<{ uploadId: string; sessionId: string; bundle: unknown }> = []
   const updates: Array<{ shareId: string; sessionId: string }> = []
   const revocations: Array<{ shareId: string; sessionId: string }> = []
+  const statuses = new Map<string, ShareStatusResult>()
 
   return {
     async uploadBundle(input) {
@@ -238,6 +239,7 @@ export function createFakeShareProvider(options: FakeShareProviderOptions): Fake
       const url = `${options.baseUrl}/s/${shareId}`
       const publicUrl = assertPublicShareUrl(url)
       if (!publicUrl.success) return publicUrl
+      statuses.set(shareId, { success: true, shareId, status: 'active' })
       return { success: true, shareId, url }
     },
 
@@ -248,12 +250,19 @@ export function createFakeShareProvider(options: FakeShareProviderOptions): Fake
     },
 
     async getShareStatus(input) {
-      return { success: true, shareId: input.shareId, status: 'active' }
+      return statuses.get(input.shareId) ?? {
+        success: false,
+        code: 'expired',
+        error: 'Share link is not active.',
+        retryable: false,
+        status: 404,
+      }
     },
 
     async revokeShare(input) {
       if (options.revokeFailure) return options.revokeFailure
       revocations.push({ shareId: input.shareId, sessionId: input.sessionId })
+      statuses.set(input.shareId, { success: true, shareId: input.shareId, status: 'revoked' })
       return { success: true }
     },
 

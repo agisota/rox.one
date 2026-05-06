@@ -382,6 +382,8 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
         return sessionManager.shareToViewer(sessionId)
       case 'updateShare':
         return sessionManager.updateShare(sessionId)
+      case 'getShareStatus':
+        return sessionManager.getShareStatus(sessionId)
       case 'revokeShare':
         return sessionManager.revokeShare(sessionId)
       case 'refreshTitle':

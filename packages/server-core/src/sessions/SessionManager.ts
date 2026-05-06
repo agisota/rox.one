@@ -4386,6 +4386,32 @@ export class SessionManager implements ISessionManager {
     }
   }
 
+  async getShareStatus(sessionId: string): Promise<import('@rox-agent/shared/protocol').PublicShareStatusResult> {
+    const managed = this.sessions.get(sessionId)
+    if (!managed) {
+      return { success: false, error: 'Session not found' }
+    }
+    if (!managed.sharedId) {
+      return { success: false, code: 'expired', error: 'Session is not currently shared.' }
+    }
+
+    const status = await getSessionShareProvider().getShareStatus({
+      sessionId,
+      shareId: managed.sharedId,
+    })
+
+    if (!status.success) {
+      return {
+        success: false,
+        code: status.code,
+        error: status.error,
+        status: status.status,
+      }
+    }
+
+    return status
+  }
+
   /**
    * Revoke a shared session
    * Deletes from viewer and clears local shared state

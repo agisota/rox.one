@@ -133,4 +133,23 @@ describe('SessionManager share provider integration', () => {
     expect(reloaded?.sharedUrl).toBeUndefined()
     expect(reloaded?.sharedId).toBeUndefined()
   })
+
+  it('queries share status through the provider seam without mutating metadata', async () => {
+    const provider = createFakeShareProvider({ baseUrl: 'https://viewer.test' })
+    setSessionShareProviderForTests(provider)
+    seedSession('session-share-status')
+
+    const share = await sm.shareToViewer('session-share-status')
+    expect(share.success).toBe(true)
+
+    expect(await sm.getShareStatus('session-share-status')).toEqual({
+      success: true,
+      shareId: 'share_session-share-status',
+      status: 'active',
+    })
+
+    const reloaded = loadSession(tmpRoot, 'session-share-status')
+    expect(reloaded?.sharedUrl).toBe('https://viewer.test/s/share_session-share-status')
+    expect(reloaded?.sharedId).toBe('share_session-share-status')
+  })
 })
