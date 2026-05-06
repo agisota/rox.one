@@ -114,15 +114,37 @@ function localizeQuestLane(lane: string): string {
 }
 
 function localizeQuestTitle(title: string): string {
-  if (title === 'Frame the raw prompt') return 'Оформить сырой prompt';
-  if (title === 'Build the executable spec') return 'Собрать исполняемую спецификацию';
-  if (title === 'Launch a swarm arena') return 'Запустить swarm-арену';
+  if (title === 'Frame raw prompt') return 'Оформить сырой prompt';
+  if (title === 'Rewrite prompt') return 'Переписать prompt';
+  if (title === 'Clarify assumptions') return 'Прояснить допущения';
+  if (title === 'Build executable spec') return 'Собрать исполняемую спецификацию';
+  if (title === 'Generate TDD plan') return 'Собрать TDD-план';
+  if (title === 'Run Review Gate') return 'Пройти Review Gate';
+  if (title === 'Launch first deep mission') return 'Запустить первую долгую миссию';
+  if (title === 'Complete checkpoint with evidence') return 'Закрыть checkpoint с evidence';
+  if (title === 'Resolve blocker') return 'Снять блокер';
+  if (title === 'Final verified deliverable') return 'Финальный проверенный результат';
+  if (title === 'Launch swarm arena') return 'Запустить swarm-арену';
+  if (title === 'Install trusted agent package') return 'Установить доверенный пакет агента';
+  if (title === 'Fork package into team registry') return 'Форкнуть пакет в реестр команды';
+  if (title === 'Share verified session') return 'Поделиться проверенной сессией';
   return title;
 }
 
 function localizeQuestDescription(description: string): string {
-  if (description.includes('unclear idea')) return 'Превратить неясную идею в цель, ограничения и требования к evidence.';
-  if (description.includes('build-ready spec')) return 'Выбрать требования и собрать spec, готовый к агентному выполнению.';
-  if (description.includes('deduped swarm')) return 'Запустить deduped swarm и получить проверенный minority report.';
+  if (description.includes('raw request')) return 'Превратить сырой запрос в цель, ограничения и требования к evidence.';
+  if (description.includes('Improve the prompt')) return 'Сделать prompt пригодным для спецификации и исполнения.';
+  if (description.includes('open assumptions')) return 'Зафиксировать допущения перед планированием исполнения.';
+  if (description.includes('Compile a spec')) return 'Собрать spec, готовый к агентному выполнению.';
+  if (description.includes('red-green-verify')) return 'Создать TDD-план перед реализацией.';
+  if (description.includes('review validation')) return 'Прогнать Review Gate и записать evidence.';
+  if (description.includes('durable mission')) return 'Запустить миссию через runtime store.';
+  if (description.includes('Complete a checkpoint')) return 'Закрыть checkpoint только после артефакта или gate evidence.';
+  if (description.includes('blocking gate')) return 'Снять блокировку через последующее проверенное evidence.';
+  if (description.includes('final artifact')) return 'Завершить миссию финальным артефактом и gate evidence.';
+  if (description.includes('swarm mission draft')) return 'Создать swarm-черновик с выбранными доверенными агентами.';
+  if (description.includes('contract and trust')) return 'Установить пакет только после contract и trust checks.';
+  if (description.includes('team registry')) return 'Форкнуть доверенный пакет в реестр команды.';
+  if (description.includes('redacted verified')) return 'Поделиться только redacted verified session bundle.';
   return description;
 }

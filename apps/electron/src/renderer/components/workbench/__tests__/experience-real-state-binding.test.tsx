@@ -72,8 +72,8 @@ function createRealStateFixture() {
     ],
     questProgress: [
       {
-        id: 'progress-quest-formulate',
-        questId: 'quest-formulate',
+        id: 'progress-quest-frame-raw-prompt',
+        questId: 'quest-frame-raw-prompt',
         userId: 'user-one',
         teamId: 'team-alpha',
         status: 'completed',
