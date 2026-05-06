@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 
 export type ExperienceTone = 'command' | 'game' | 'arena' | 'success' | 'warning' | 'danger' | 'neutral';
 export type ExperienceStatus = 'ready' | 'running' | 'queued' | 'completed' | 'locked' | 'warning' | 'blocking' | 'success' | 'draft';
+export type ExperienceSurfaceState = 'loading' | 'empty' | 'error';
 
 const motionClass = 'transition-[transform,box-shadow,border-color,background-color,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none';
 const interactiveSurfaceClass = cn(
@@ -40,6 +41,12 @@ const statusClasses: Record<ExperienceStatus, string> = {
   blocking: 'border-rose-400/25 bg-rose-500/12 text-rose-100',
   success: 'border-emerald-400/25 bg-emerald-500/12 text-emerald-100',
   draft: 'border-violet-400/20 bg-violet-500/10 text-violet-100',
+};
+
+const surfaceStateClasses: Record<ExperienceSurfaceState, string> = {
+  loading: 'border-sky-400/20 bg-sky-500/[0.07] text-sky-100',
+  empty: 'border-white/10 bg-white/[0.035] text-foreground',
+  error: 'border-rose-400/25 bg-rose-500/[0.09] text-rose-100',
 };
 
 export const EXPERIENCE_INTERACTION_HINTS = ['Наведение', 'Фокус', 'Активно'] as const;
@@ -261,6 +268,69 @@ export function ExperienceProgressBar({ value, label }: { value: number; label?:
           className={cn(progressFillClass, motionClass)}
           style={{ transform: `scaleX(${safeValue / 100})`, transformOrigin: 'left center' }}
         />
+      </div>
+    </div>
+  );
+}
+
+export function ExperienceStateBlock({
+  state,
+  title,
+  description,
+  action,
+  className,
+}: {
+  state: ExperienceSurfaceState;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      role="status"
+      aria-live="polite"
+      data-state={state}
+      className={cn('min-w-0 overflow-hidden rounded-[18px] border p-4 shadow-thin', motionClass, surfaceStateClasses[state], className)}
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <span
+          aria-hidden="true"
+          className={cn(
+            'mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-current opacity-80',
+            state === 'loading' && 'motion-safe:animate-pulse motion-reduce:animate-none',
+          )}
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="break-words text-[15px] font-semibold leading-5">{title}</h3>
+          <p className="mt-2 break-words text-sm leading-6 text-muted-foreground">{description}</p>
+          {action && <div className="mt-3 flex min-w-0 flex-wrap gap-2">{action}</div>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function ExperienceSkeletonCard({
+  label,
+  className,
+}: {
+  label: string;
+  className?: string;
+}) {
+  return (
+    <div
+      aria-label={label}
+      role="status"
+      className={cn('min-w-0 overflow-hidden rounded-[18px] border border-white/10 bg-white/[0.035] p-4 shadow-thin', className)}
+    >
+      <span className="sr-only">{label}</span>
+      <div className="h-3 w-28 rounded-full bg-white/10 motion-safe:animate-pulse motion-reduce:animate-none" />
+      <div className="mt-4 h-8 rounded-[12px] bg-white/[0.07] motion-safe:animate-pulse motion-reduce:animate-none" />
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        <div className="h-3 rounded-full bg-white/[0.06] motion-safe:animate-pulse motion-reduce:animate-none" />
+        <div className="h-3 rounded-full bg-white/[0.06] motion-safe:animate-pulse motion-reduce:animate-none" />
+        <div className="h-3 rounded-full bg-white/[0.06] motion-safe:animate-pulse motion-reduce:animate-none" />
       </div>
     </div>
   );

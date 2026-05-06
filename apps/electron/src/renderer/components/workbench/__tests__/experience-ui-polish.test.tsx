@@ -7,6 +7,8 @@ import {
   ExperiencePanel,
   ExperienceProgressBar,
   ExperienceShell,
+  ExperienceSkeletonCard,
+  ExperienceStateBlock,
   ExperienceStatusChip,
 } from '../experience-ui';
 
@@ -80,5 +82,43 @@ describe('Experience visual system', () => {
     expect(markup).toContain('aria-valuenow="72"');
     expect(markup).toContain('bg-gradient-to-r from-cyan-300 via-sky-200 to-violet-300');
     expect(markup).toContain('motion-reduce:after:animate-none');
+  });
+
+  test('renders loading, empty, and error states with accessible mission-control styling', () => {
+    const markup = renderToStaticMarkup(
+      <div>
+        <ExperienceStateBlock
+          state="loading"
+          title="Готовим чекпоинт"
+          description="Fake scheduler собирает доказательства без реальных provider calls."
+        />
+        <ExperienceStateBlock
+          state="empty"
+          title="Нет артефактов"
+          description="Запустите миссию, чтобы увидеть первый проверяемый результат."
+          action={<button type="button">Создать миссию</button>}
+        />
+        <ExperienceStateBlock
+          state="error"
+          title="Проверка остановлена"
+          description="Validation gate заблокировал выпуск без evidence."
+        />
+        <ExperienceSkeletonCard label="Загрузка метрик" />
+      </div>,
+    );
+
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain('aria-live="polite"');
+    expect(markup).toContain('data-state="loading"');
+    expect(markup).toContain('data-state="empty"');
+    expect(markup).toContain('data-state="error"');
+    expect(markup).toContain('Готовим чекпоинт');
+    expect(markup).toContain('Создать миссию');
+    expect(markup).toContain('Проверка остановлена');
+    expect(markup).toContain('motion-safe:animate-pulse');
+    expect(markup).toContain('motion-reduce:animate-none');
+    expect(markup).toContain('min-w-0');
+    expect(markup).toContain('break-words');
+    expect(markup).toContain('Загрузка метрик');
   });
 });

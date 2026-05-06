@@ -15,6 +15,7 @@ import {
   ExperiencePanel,
   ExperienceProgressBar,
   ExperienceShell,
+  ExperienceStateBlock,
   ExperienceStatusChip,
 } from './experience-ui';
 
@@ -57,7 +58,15 @@ export function AgentForgeTeamRegistry({ initialState, initialInput, truthState 
       )}
     >
       <ExperiencePanel title="Приватные и командные пакеты" subtitle="Каждый пакет должен иметь контракт, проверки и понятную оценку доверия.">
-        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        {visiblePackages.length === 0 ? (
+          <ExperienceStateBlock
+            state="empty"
+            title="Пакеты пока не найдены"
+            description="Подключите приватный или командный пакет после прохождения контрактов, ревью, тестов и проверки prompt-injection."
+            className="mt-4"
+          />
+        ) : (
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
             {visiblePackages.map((pkg) => {
               const contract = state.contractsByPackageId[pkg.id];
               const warnings = state.promptInjectionWarningsByPackageId[pkg.id] ?? [];
@@ -73,14 +82,15 @@ export function AgentForgeTeamRegistry({ initialState, initialInput, truthState 
                   <div className="mt-4 flex flex-wrap gap-2">
                     <ExperienceStatusChip status={contract ? 'success' : 'blocking'} label={contract ? 'Контракт есть' : 'Контракт отсутствует'} />
                     <ExperienceStatusChip status={warnings.length === 0 ? 'success' : 'warning'} label={`Предупреждения: ${warnings.length}`} />
-                    <ExperienceStatusChip status={contract ? 'ready' : 'locked'} label={contract ? 'Установить' : 'Заблокировано'} />
-                    <ExperienceStatusChip status="draft" label="Форкнуть" />
+                    <ExperienceStatusChip status={contract ? 'ready' : 'locked'} label={contract ? 'Установка разрешена' : 'Установка заблокирована'} />
+                    <ExperienceStatusChip status="draft" label="Форк доступен" />
                   </div>
                   <ExperienceProgressBar value={trustScore} label="Оценка доверия" />
                 </ExperienceCard>
               );
             })}
           </div>
+        )}
       </ExperiencePanel>
     </ExperienceShell>
   );
