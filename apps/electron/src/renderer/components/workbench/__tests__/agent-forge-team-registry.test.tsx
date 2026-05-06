@@ -105,8 +105,20 @@ describe('Agent Forge and Team Registry', () => {
     expect(markup).toContain('Кузница агентов');
     expect(markup).toContain('Приватные и командные пакеты');
     expect(markup).toContain('Контракт');
-    expect(markup).toContain('Установить');
-    expect(markup).toContain('Форкнуть');
+    expect(markup).toContain('Установка разрешена');
+    expect(markup).toContain('Форк доступен');
+    expect(markup).not.toContain('>Установить<');
+    expect(markup).not.toContain('>Форкнуть<');
     expect(markup).toContain('Проверочный гаунтлет');
+  });
+
+  test('renders a polished empty registry state without mutating package truth', () => {
+    const state = createAgentForgeState({ packages: [] });
+    const markup = renderToStaticMarkup(<AgentForgeTeamRegistry initialState={state} />);
+
+    expect(markup).toContain('data-state="empty"');
+    expect(markup).toContain('Пакеты пока не найдены');
+    expect(markup).toContain('role="status"');
+    expect(markup).toContain('aria-live="polite"');
   });
 });
