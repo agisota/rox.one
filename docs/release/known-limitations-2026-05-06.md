@@ -1,116 +1,92 @@
-# ROX ONE Agent Workbench - Known Limitations
+# ROX ONE Agent Workbench Suite - Known Limitations 2026-05-06
 
-Date: 2026-05-06
-Branch: `mac/rox-e2e-integration`
+Branch: `mac/rox-production-ready-rc`
+Scope: Private/local fake-provider-safe RC.
 
-## 1. Release Scope
+## 1. Release Boundary
 
-This build is a local/private release candidate. It is not yet a production SaaS
-launch.
-
-The current product is intentionally fake-provider-safe:
+The RC proves product contracts, local Electron build, deterministic tests, and
+private validation. It does not claim public SaaS readiness.
 
 ```text
-deterministic fake providers
-  -> tested contracts
-  -> validated UI/domain behavior
-  -> future real provider adapters
+fake provider
+  -> deterministic contract behavior
+  -> reducer/projection tests
+  -> local build/smoke proof
+  -> production adapter seam
 ```
 
 ## 2. Production Blockers
 
-| Area | Current state | Needed for production |
+| Area | RC state | Production need |
 |---|---|---|
-| LLM/provider runtime | Provider gateway and fake providers exist. | Real adapter wiring, credentials, rate limits, observability, retries, billing attribution. |
-| Public share shortlinks | `ShareProvider` seam, sanitizer, and URL validation exist. | Production viewer backend, persistent object storage, revocation, abuse controls, public uptime checks. |
-| Email verification | UI models pending verification correctly. | Production email provider, deliverability monitoring, resend/rate-limit controls. |
-| Payment settlement | Billing ledger contracts and deterministic tests exist. | Real payment provider, webhook signature checks, reconciliation, chargeback/refund handling. |
-| Object storage | Storage contracts and quota tests exist. | Production S3/R2/MinIO adapter, lifecycle policy, backup, retention, scan controls. |
-| Long-running missions | Durable scheduler contracts and fake recovery tests exist. | Production queue/worker deployment, restart recovery in deployed environment, user notifications. |
-| Agent registry | Team/private trust checks exist. | Production registry service, package signing, malware/prompt-injection review pipeline. |
-| Signed release | Electron build passes locally. | Signed and notarized macOS artifact plus private artifact retention policy. |
-| Dependency security | Application security tests cover ROX-owned logic. | Dependency audit remediation or accepted risk register before public release. |
+| LLM providers | Prompt registry and fake provider gateway pass tests. | Real adapter credentials, rate limits, telemetry, retry budgets, billing attribution. |
+| Mission scheduler | Durable contracts and fake-clock tests exist. | Hosted worker/queue deployment, restart recovery in production, notifications. |
+| Persistence | Adapter seams and in-memory deterministic tests exist. | Production DB schema, migrations, backup, tenant isolation under real storage. |
+| Public share | Provider contract, fake status lifecycle, redaction tests exist. | Public viewer, object storage, shortlink service, revocation monitoring, abuse controls. |
+| Account/email | Embedded ROX ID states are truthful. | Real auth backend, email verification delivery, resend/rate-limit policy. |
+| Billing | Ledger/capacity contracts exist. | Payment provider, webhook signature validation, reconciliation, refunds/chargebacks. |
+| Agent registry | Trust checks and private/team visibility rules exist. | Package signing, provenance, malware/prompt-injection review service. |
+| Mac release | Electron build and smoke are local. | Signed/notarized macOS artifact tested on a clean external Mac. |
+| Security | ROX-owned abuse paths have regression tests. | Dependency audit, public penetration test, hosted infra hardening. |
 
 ## 3. UX Limitations
 
-- Some Workbench and Experience screens remain MVP-dense rather than fully
-  product-complete.
-- Game/Arena presentation is intentionally restrained in the RC; the shared
-  truth model was prioritized over decorative mechanics.
-- Some empty states are polished, but every edge state has not yet gone through
-  screenshot-based visual QA.
-- The account screen models registration-pending correctly, but a real external
-  email verification roundtrip is not exercised by automated tests.
+- The visual system is coherent enough for RC, but not every route has
+  screenshot-driven regression coverage.
+- Game/Arena intensity is deliberately restrained. The priority was shared
+  truth and evidence-backed progression.
+- Global HUD wiring proves a shared runtime projection path; full persisted
+  app-wide hydration is still a later production integration task.
+- Some secondary settings/legal/support surfaces remain MVP-quality.
 
 ## 4. E2E Limitations
 
-Current automated e2e coverage is fake-provider-safe and focuses on core
-contracts:
+The current e2e story is fake-provider-safe and local:
 
 ```text
-composer artifact flow
-account/team/billing/storage contracts
-server smoke
-Electron startup smoke
+runtime event journey
+  + core scenario validators
+  + Electron smoke
+  + build/typecheck/lint/test gates
 ```
 
-Not yet covered as true live external e2e:
+Not covered as live external e2e:
 
-- real public shortlink opened from a remote browser;
+- real LLM execution;
+- real public share URL from a remote browser;
 - real email verification inbox;
 - real payment webhook settlement;
-- real S3 object lifecycle;
-- real 24h wall-clock mission on a durable production worker;
-- signed/notarized app launch on a clean external Mac.
+- real S3/R2/MinIO object lifecycle;
+- real 24-hour worker mission;
+- signed/notarized app launch on a clean external machine.
 
 ## 5. Security Limitations
 
-ROX-owned abuse paths hardened in T071:
+Current checks fail closed for:
 
-- invalid/negative mission costs cannot increase budget;
-- invalid branch expansion inputs fail closed;
-- public/share/account/provider payloads redact sensitive keys and high-risk
-  secret-like strings;
-- paid capacity cannot satisfy quality/evidence gates.
+- mission completion without stored artifact and passing gate evidence;
+- VDI spoofing through paid capacity;
+- package install/fork without trust evidence;
+- public/share payload secrets;
+- malformed provider output;
+- duplicate/replayed runtime events.
 
 Still required before public launch:
 
-- dependency audit remediation;
-- production CSP / public viewer hardening;
+- dependency audit and accepted-risk register;
+- production CSP and public viewer hardening;
 - provider credential rotation plan;
-- signed package registry and package provenance checks;
-- production tenant-isolation test suite against a real database adapter;
-- external penetration test of share/session/account flows.
+- tenant isolation tests against the production persistence adapter;
+- external security review of account/share/session flows.
 
 ## 6. Operational Limitations
 
-- Release artifacts are not uploaded by default in this RC unless the private
-  release environment provides the required credentials.
-- Push to GitHub can be blocked by local runtime/policy or missing remote auth.
-  A local commit is the source of truth until push evidence exists.
-- The repository still contains local runtime artifacts that must not be staged:
+- Push depends on remote auth and runtime policy.
+- Private artifact upload depends on configured private CI credentials.
+- Local runtime files must stay uncommitted:
 
 ```text
 events.jsonl
 .claude/
 ```
-
-## 7. Product North Star Still Open
-
-The intended final product remains:
-
-```text
-raw prompt
-  -> clarification / rewrite
-  -> contextual option graph
-  -> executable spec
-  -> mission plan
-  -> parallel agents
-  -> artifacts
-  -> review board
-  -> verified deliverable
-  -> VDI-backed progression
-```
-
-The RC proves the local contracts and the main screen surfaces. The next
-production wave must connect real providers and hosted persistence.

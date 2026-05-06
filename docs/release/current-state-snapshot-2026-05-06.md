@@ -1,708 +1,125 @@
-# ROX ONE Agent Workbench - Current State Snapshot
+# ROX ONE Agent Workbench Suite - Current State Snapshot 2026-05-06
 
-Date: 2026-05-06
-Branch: `mac/upstream-v0.9.1-rox-merge`
 Repository: `/Users/marklindgreen/Projects/craft/craft`
+Branch: `mac/rox-production-ready-rc`
+Base: Craft Agents OSS v0.9.1
+Snapshot status: T074-T087 committed and validated locally for private RC.
 
-## 1. Reformulated Task
+## 1. Current Product Shape
 
-We are no longer just polishing a fork of Craft Agents. The current work is an integration push for ROX ONE / Agent Workbench Suite:
+ROX ONE is a Russian-first white-label Agent Workbench Suite with:
 
-```text
-Craft Agents OSS v0.9.1 base
-  + ROX branding and Russian-first UX
-  + Prompt-to-Spec workbench
-  + account/team/billing/storage/sync contracts
-  + Experience Layer surfaces
-  + safe account persistence
-  + public share provider seam
-  + aggregate persistence contracts
-  + corrected embedded ROX ID registration screen
-  -> production-integrated agent workbench
-```
+- Composer product mode toolbar.
+- Prompt Lab.
+- Spec Builder.
+- TDD Plan.
+- Review Gate.
+- ROX ID account screen.
+- Team/account/billing/storage/sync contracts.
+- Experience Layer screens:
+  - `Долгие миссии`
+  - `Арена агентов`
+  - `Центр миссий`
+  - `Прогресс`
+  - `Карта квестов`
+  - `Кузница агентов`
+- Global Experience HUD.
+- Quality Score, Execution Readiness, VDI, risk/noise/cost/capacity metrics.
+- Durable scheduler contracts.
+- Provider gateway contracts.
+- Share provider contracts.
+- Private CI/release validation contracts.
 
-The immediate objective is to close the integration contour after T060-T065 and the T073 account UX repair, then prepare the next e2e phase: durable missions, real provider orchestration, Experience Layer real-state binding, visual QA, CI/CD, security gates, and final release candidate.
+## 2. Integration Truth Model
 
-## 2. Assumptions And Boundaries
-
-Assumptions:
-
-- User-facing summaries are Russian-first, but code, package names, API names, file names, and commit messages remain English.
-- Tests must not call real LLM, S3, payment, email, browser, marketplace, or public viewer providers.
-- Fake providers must be deterministic and contract-compatible with future real providers.
-- Paid entitlement can increase capacity, slots, duration, or budget only; it cannot satisfy quality gates, evidence gates, Quality Score, Execution Readiness, or Verified Deliverable Index.
-- Game/Arena/Command presentation modes must remain skins over one truth model, not separate truth systems.
-
-Boundaries:
-
-- T060-T065 do not make every feature production-hosted.
-- T063 persists local Electron account sessions, but tests do not validate a real rox.one login roundtrip.
-- T064 adds a public share provider seam and safer default viewer provider. It does not create a new production shortlink service.
-- T065 adds persistence contracts and deterministic in-memory implementations. It does not wire a production database.
-- T073 fixes the embedded registration UX around the existing email-verification contract. It does not bypass verification or auto-create an authenticated session.
-- T066+ must connect these contracts to durable scheduler/state/runtime paths.
-
-## 3. Fresh Repository Status
-
-Fresh checks show:
+The main integration rule is now enforced in shared runtime code:
 
 ```text
-git branch: mac/upstream-v0.9.1-rox-merge
-latest committed integration before this snapshot: T065
-current scoped implementation: T073 ROX ID registration screen
-ticket count: 67 canonical tickets
-ticket status after accounting cleanup and T073: 67 DONE
-known unrelated dirty items: events.jsonl, .claude/
-app process: Electron is running from this repo
+UI action
+  -> typed event
+  -> deterministic reducer
+  -> replayable runtime state
+  -> persistence seam
+  -> fake-safe provider/scheduler/share seam
+  -> artifact/gate evidence
+  -> metrics, quests, ledger, notifications
+  -> UI projection
 ```
 
-Recent commits:
+Experience screens are no longer allowed to own separate truth when runtime
+truth exists.
+
+## 3. Key Runtime Surfaces
+
+| Area | Current surface |
+|---|---|
+| Runtime truth | `packages/shared/src/workbench/experience-runtime-store.ts` |
+| Mission prompts | `packages/shared/src/workbench/mission-mode-prompt-registry.ts` |
+| Deep Missions | `apps/electron/src/renderer/components/workbench/DeepMissionsScreen.tsx` |
+| Mission Control | `apps/electron/src/renderer/components/workbench/mission-control-state.ts` |
+| Quest Map | `apps/electron/src/renderer/components/workbench/quest-map-state.ts` |
+| Arena | `apps/electron/src/renderer/components/workbench/arena-builder-state.ts` |
+| HUD | `apps/electron/src/renderer/components/workbench/ExperienceGlobalHud.tsx` |
+| Provider gateway | `packages/server-core/src/provider-gateway/` |
+| Mission scheduler | `packages/server-core/src/mission-scheduler/` |
+| Share provider | `packages/server-core/src/sessions/share-provider.ts` |
+| Account feedback | `apps/electron/src/renderer/pages/settings/account-auth-feedback.ts` |
+
+## 4. Current Commit Chain
 
 ```text
-505af71 Add persistence contracts for Agent Workbench runtime state
-4b09204 Make the integration checkpoint auditable before durable runtime work
-a8f24ff Isolate public session sharing behind a provider contract
-716d913 Keep desktop account sessions across Electron restarts
-5c1f88b Integrate upstream v0.9.1 without dropping ROX product layers
-076e1f5 Protect ROX layers before upstream v0.9.1 merge
-6a6bc32 Make backlog accounting enforceable before integration
-bc5d97b Make project state legible before upstream work
+0ec59b8 T074 Experience Runtime Store
+aa1fe47 T075 Deep Missions Launch Flow
+f912ec8 T076 Mission Control Runtime Binding
+437382c T077 Global Metrics / Quest Engine
+32f18aa T078 Agent Arena / Forge Actions
+3396acb T079 Mission Mode Prompt Registry / Provider Orchestration
+caefffc T080 Global Experience HUD
+52f2bdd T081 Visual Polish
+1a354e2 T082 E2E Experience Journey
+11c5172 T083 ROX ID Account Fix
+06a61d2 T084 Public Share Contract
+07ec92a T085 Private CI/CD Release Pipeline
+67e4695 T086 Security and Abuse Hardening
 ```
 
-Current scoped work in T073:
+## 5. Runtime Boundaries
 
-```text
-apps/electron/src/renderer/pages/settings/AccountAuthPanel.tsx             ROX ID auth screen redesign
-apps/electron/src/renderer/pages/settings/AccountSettingsPage.tsx          register pending/error handling
-apps/electron/src/renderer/pages/settings/account-auth-feedback.ts         normalized account feedback
-apps/electron/src/renderer/pages/settings/__tests__/account-auth-*.ts*     regression tests
-docs/tickets/T073-rox-id-registration-screen.md                            T073 DONE ticket
-docs/worklog/T073-rox-id-registration-screen.md                            T073 evidence
-docs/release/current-state-snapshot-2026-05-06.md                          this snapshot update
-docs/release/e2e-integration-plan-2026-05-06.md                            next integration plan update
-```
+Fake-provider-safe by design:
 
-Do not stage:
+- LLM/provider outputs.
+- Mission scheduler execution.
+- Public share upload/shortlink lifecycle.
+- Account API tests.
+- Agent registry trust checks.
+- E2E Experience journey.
+
+Production-connected by contract:
+
+- Typed DTOs and IPC boundaries.
+- Persistence adapter seams.
+- Provider adapter seams.
+- Share provider interface.
+- Scheduler repository and clock seams.
+- Security and redaction checks.
+
+Not production-hosted yet:
+
+- Real LLM provider orchestration with credentials.
+- Public shortlink/viewer backend.
+- Production object storage.
+- Payment settlement.
+- Email verification provider.
+- Hosted durable workers.
+- Signed/notarized macOS release.
+
+## 6. Local Worktree Note
+
+Do not stage unrelated runtime files:
 
 ```text
 events.jsonl
 .claude/
 ```
 
-These are unrelated runtime/local artifacts.
-
-## 4. What Has Been Added At Product Level
-
-The fork now contains these product layers on top of upstream Craft Agents:
-
-```text
-ROX ONE shell
-  -> Russian-first UI labels and white-label product copy
-  -> account settings and native sign-in panel
-  -> team/billing/storage/sync settings surfaces
-
-Workbench Layer
-  -> Prompt Lab
-  -> TDD Plan
-  -> Spec Builder
-  -> Review Gate
-  -> composer product-mode toolbar
-  -> fake-provider-safe flows
-
-Experience Layer
-  -> Command/Game/Arena layer model
-  -> Deep Missions
-  -> Arena Builder
-  -> Mission Control
-  -> Progression Observatory
-  -> Quest Map / Skill Tree
-  -> Agent Forge / Team Registry
-
-Metrics Layer
-  -> Quality Score
-  -> Execution Readiness
-  -> Verified Deliverable Index
-  -> risk/noise/cost/capacity side metrics
-
-Runtime Contracts
-  -> account/team/billing/storage/sync contracts
-  -> account session persistence
-  -> public share provider contract
-  -> aggregate persistence adapter contract
-  -> explicit registration-pending UX state over the email-verification contract
-```
-
-## 5. What T060-T065 Changed
-
-### T060 - Backlog Normalization
-
-Problem:
-
-```text
-T042-T053 existed as worklog slices but were not fully canonicalized as tickets.
-Ticket accounting was ambiguous.
-```
-
-Result:
-
-- Added canonical ticket/worklog consistency.
-- Extended docs validation to catch missing ticket/worklog pairs.
-- Normalized backlog status so DONE accounting is auditable.
-
-Effect:
-
-```text
-The project now has enforceable ticket accounting instead of narrative-only status.
-```
-
-### T061 - Upstream v0.9.1 Merge Plan
-
-Problem:
-
-```text
-Upstream Craft Agents moved to v0.9.1.
-ROX layers needed protection before any merge.
-```
-
-Result:
-
-- Added protected path map.
-- Defined merge risk matrix.
-- Defined required T062 validation commands.
-- Did not merge in T061.
-
-Protected surfaces:
-
-```text
-apps/electron/src/renderer/components/workbench/
-apps/electron/src/renderer/pages/settings/
-apps/electron/src/main/account-api.ts
-packages/shared/src/workbench/
-packages/shared/src/i18n/
-packages/server-core/src/webui/
-packages/server-core/src/sync/
-docs/tickets/
-docs/worklog/
-docs/release/
-.swarm/
-```
-
-### T062 - Upstream v0.9.1 Merge Implementation
-
-Problem:
-
-```text
-Local fork was behind upstream and needed v0.9.1 without losing ROX product layers.
-```
-
-Result:
-
-- Merged upstream `v0.9.1`.
-- Preserved ROX Workbench, account, i18n, sync, and release docs.
-- Repaired build scripts for upstream Claude SDK package layout.
-- Repaired tests for browser/PDF/fetch constraints.
-
-Validation evidence:
-
-```text
-bun test: 4625 pass, 13 skip, 0 fail
-bun run validate:ci: passed
-bun run e2e:core: all core scenarios passed
-bun run electron:build: passed
-```
-
-### T063 - Account Persistent Session Storage
-
-Problem:
-
-```text
-Login could appear successful, but rox_session lived only in main-process memory.
-App restart or proxy recreation could lose account auth context.
-```
-
-Result:
-
-- Added `AccountSessionStore`.
-- Added encrypted Electron `safeStorage` persistence.
-- Hydrates cookie before first account request.
-- Clears persisted session on logout.
-- Corrupt session file fails closed.
-- Electron smoke uses isolated userData/config paths so a running local app does not break smoke tests.
-
-Important boundary:
-
-```text
-The session cookie is never exposed to renderer state or public share payloads.
-```
-
-### T064 - Public Share Shortlink Provider
-
-Problem:
-
-```text
-Session sharing directly called viewer upload endpoints.
-Failures produced "Failed to upload session" and shortlink behavior was not isolated behind a provider contract.
-```
-
-Result:
-
-- Added `ShareProvider` contract.
-- Added default viewer-backed provider.
-- Added deterministic fake provider.
-- Added recursive public payload sanitizer.
-- Rejects local/file/non-public shortlink URLs.
-- `SessionManager.shareToViewer()`, update, revoke, and delete paths now use the provider seam.
-
-Important boundary:
-
-```text
-This makes sharing explicit and testable.
-It does not create a new production public shortlink backend.
-```
-
-Accounting note:
-
-```text
-T064 was already implemented and committed, but the ticket file still said TODO.
-This snapshot corrects that ticket status to DONE.
-```
-
-### T065 - Production Persistence Adapter Contracts
-
-Problem:
-
-```text
-Feature surfaces existed, but runtime state was split across local in-memory stores.
-There was no single contract for account/team/ledger/storage/sync/mission/quest/metric/package persistence.
-```
-
-Result:
-
-- Added `packages/server-core/src/persistence/`.
-- Exported `@craft-agent/server-core/persistence`.
-- Added `AgentWorkbenchPersistenceAdapter`.
-- Aggregated existing stores:
-  - accounts
-  - teams
-  - ledger
-  - audit
-  - cloud workspaces
-  - team chat
-  - billing intents
-  - object storage and quota service
-  - sync file store
-  - workspace sync service
-- Added new repositories:
-  - mission runs
-  - mission checkpoints
-  - scheduler events
-  - quest progress
-  - progression ledger
-  - metric snapshots
-  - agent packages
-- Added deterministic in-memory implementations.
-
-T065 contract tests cover:
-
-```text
-account CRUD/session basics
-team + ledger + audit + storage + sync access through one adapter
-mission runs/checkpoints/events
-checkpoint idempotency
-quest evidence enforcement
-XP/unlock ledger evidence enforcement
-metric snapshots
-private/team/public/built-in package visibility
-```
-
-Validation evidence:
-
-```text
-targeted T065: 4 pass, 0 fail
-neighboring account/storage/sync/experience: 55 pass, 0 fail
-full bun test: 4644 pass, 13 skip, 0 fail
-validate:docs: passed
-typecheck:all: passed
-lint: 0 errors, 3 existing warnings
-git diff --check: passed
-electron:build: passed
-```
-
-### T073 - ROX ID Registration Screen
-
-Problem:
-
-```text
-Registration looked like it succeeded and then immediately showed a raw red
-IPC/auth refresh error:
-
-Error invoking remote method 'account:request': Error: Authentication required
-```
-
-Root cause:
-
-```text
-/api/auth/register intentionally returns verificationRequired=true
-and does not issue rox_session before email verification.
-
-The renderer immediately refreshed /api/account/me.
-That refresh correctly returned Authentication required.
-The UI incorrectly treated that expected pending-auth state as a fatal red error.
-```
-
-Result:
-
-- Added normalized account auth feedback that strips raw IPC wrapper text.
-- Added register-specific pending copy:
-  `Аккаунт создан. Проверьте email и войдите после подтверждения ROX ID.`
-- Kept sign-in pending copy separate from registration pending copy.
-- Rebuilt the unauthenticated account view into a dedicated embedded ROX ID panel.
-- Added visible account benefits:
-  - profile
-  - balance
-  - teams
-  - Experience Layer progress
-- Removed misleading browser-handoff copy from the embedded account form.
-- Preserved the backend email-verification contract.
-
-Validation evidence:
-
-```text
-targeted account auth tests: 8 pass, 0 fail
-broader account settings tests: 17 pass, 0 fail
-typecheck:electron: passed
-validate:docs: passed
-lint:electron: 0 errors, 3 existing warnings
-git diff --check: passed
-electron:build: passed
-```
-
-Important boundary:
-
-```text
-Registration is not the same as authenticated account session.
-The account screen becomes authenticated only after /api/account/me returns a user.
-```
-
-## 6. Current System Architecture
-
-```text
-Electron App
-  |
-  |-- Renderer React
-  |     |-- Composer / product mode toolbar
-  |     |-- Prompt Lab / TDD Plan / Spec Builder / Review Gate
-  |     |-- Experience screens
-  |     |-- Account settings
-  |
-  |-- Preload Bridge
-  |     |-- account:request
-  |     |-- session commands
-  |     |-- workbench events
-  |
-  |-- Electron Main
-        |-- account API proxy
-        |-- encrypted account session store
-        |-- SessionManager
-        |-- ShareProvider
-        |-- server-core runtime
-
-packages/shared
-  |-- workbench schemas
-  |-- mission truth model
-  |-- validation/evidence rules
-  |-- i18n and branding contracts
-
-packages/server-core
-  |-- account/team/billing/storage/sync stores
-  |-- sessions/share provider seam
-  |-- webui account contracts
-  |-- persistence aggregate adapter
-```
-
-## 7. Core Sequence Diagrams
-
-### Account Sign-In / Restore
-
-```text
-User
-  -> AccountSettingsPage: submit email/password
-  -> preload bridge: account:request /api/auth/login
-  -> Electron main account proxy: forward to ROX account API
-  -> ROX account API: Set-Cookie rox_session
-  -> account proxy: capture rox_session
-  -> AccountSessionStore: encrypt and persist cookie
-  -> renderer: refresh /api/account/me
-  -> AccountSettingsPage: show signed-in state only if user is returned
-
-Failure points:
-  x ROX API rejects credentials -> auth error
-  x safeStorage unavailable -> sign-in can work, persistence disabled
-  x corrupt persisted file -> fail closed, delete file, require login
-```
-
-### Account Registration / Email Verification Pending
-
-```text
-User
-  -> AccountSettingsPage: submit displayName/email/password on register tab
-  -> preload bridge: account:request /api/auth/register
-  -> Electron main account proxy: forward to ROX account API
-  -> ROX account API: return verificationRequired=true, no Set-Cookie
-  -> renderer: refresh /api/account/me
-  -> ROX account API: return Authentication required
-  -> account-auth-feedback: normalize IPC/auth error
-  -> AccountSettingsPage: classify as register pending, not fatal error
-  -> AccountAuthPanel: show email verification/sign-in pending success state
-
-Invariant:
-  Registration can create an account record, but the desktop app is not signed in
-  until a later /api/account/me request confirms an authenticated user.
-```
-
-### Public Share
-
-```text
-User
-  -> SessionMenu: click share
-  -> SessionManager.shareToViewer()
-  -> ShareProvider.uploadBundle()
-  -> sanitizer: remove secret/auth/session fields
-  -> viewer backend: receive public bundle
-  -> ShareProvider.createShortlink()
-  -> public URL guard: reject local/file/non-public URL
-  -> SessionManager: persist sharedId/sharedUrl only after success
-  -> renderer: show share/copy feedback
-
-Failure points:
-  x auth required -> specific share error
-  x payload too large/invalid -> specific share error
-  x viewer upload fails -> no session metadata mutation
-  x shortlink is local/non-public -> reject as unsafe
-```
-
-### T065 Persistence Adapter
-
-```text
-Domain service / future runtime
-  -> AgentWorkbenchPersistenceAdapter
-       |-- accounts
-       |-- teams
-       |-- ledger
-       |-- audit
-       |-- cloudWorkspaces
-       |-- storage
-       |-- syncFiles
-       |-- workspaceSync
-       |-- missions
-       |-- questProgress
-       |-- metrics
-       |-- agentPackages
-  -> fake deterministic adapter in tests
-  -> future durable adapter in production
-
-Failure points:
-  x invalid mission/checkpoint schema -> reject
-  x completed quest without evidence -> reject
-  x XP/unlock ledger without evidence -> reject
-  x private package viewed by another user -> hidden
-  x team package viewed outside team -> hidden
-```
-
-### Intended E2E Mission Flow
-
-```text
-Raw prompt
-  -> Prompt Lab rewrite
-  -> Spec Builder requirements graph
-  -> TDD Plan
-  -> Deep Mission draft
-  -> durable scheduler queue
-  -> checkpoint worker
-  -> artifact + gate evidence
-  -> swarm signal processor
-  -> Review Gate
-  -> metric snapshot
-  -> Quest/Progress unlock
-  -> public share or team handoff
-```
-
-## 8. State Diagrams
-
-### Ticket State
-
-```text
-TODO
-  -> RED_CHECK_WRITTEN
-  -> EXPECTED_FAIL_CONFIRMED
-  -> IMPLEMENTED
-  -> TARGETED_TESTS_PASS
-  -> BROAD_VALIDATION_PASS
-  -> WORKLOG_COMPLETE
-  -> COMMITTED
-  -> DONE
-
-Invariants:
-  - DONE requires worklog.
-  - Runtime feature DONE requires tests or explicit blocker.
-  - No production provider in tests.
-```
-
-### Account Session State
-
-```text
-unauthenticated
-  -> login_submitted
-  -> remote_login_accepted
-  -> session_cookie_captured
-  -> persisted_encrypted
-  -> hydrated_on_restart
-  -> authenticated
-  -> logout
-  -> cleared
-
-Failure states:
-  remote_rejected
-  persistence_unavailable
-  corrupt_session_deleted
-```
-
-### Mission Run State
-
-```text
-draft
-  -> queued
-  -> running
-  -> checkpoint_due
-  -> checkpoint_completed
-  -> final_verification
-  -> completed
-
-Alternative states:
-  blocked
-  failed
-  cancelled
-
-Invariants:
-  - elapsed time alone never completes a mission.
-  - final pass requires artifact/gate evidence.
-  - paid capacity does not satisfy quality gates.
-```
-
-### Package Visibility State
-
-```text
-built_in -> visible to all
-public   -> visible to all after trust checks
-private  -> visible only to owner user
-team     -> visible only to owner team members
-
-Failure states:
-  missing contract -> cannot install
-  prompt injection warning -> blocks public publish
-  cross-tenant access -> hidden/denied
-```
-
-## 9. What Is Done
-
-Done and verified:
-
-- Upstream v0.9.1 is integrated into the ROX branch.
-- ROX Workbench, account, Experience Layer, i18n, webui, and sync layers are preserved.
-- Backlog accounting is normalized.
-- Account session persistence exists and is tested.
-- Public share provider seam exists and is tested.
-- Aggregate persistence adapter contracts exist and are tested.
-- ROX ID registration no longer shows raw red IPC auth errors after the expected verification-pending refresh.
-- The unauthenticated account screen is now a dedicated embedded ROX ID surface instead of a generic settings block.
-- Experience Layer screens exist and have deterministic component/domain tests.
-- Full `bun test`, typecheck, docs validation, lint, and Electron build passed after T065.
-- T073 targeted account tests, account settings tests, `typecheck:electron`, docs validation, lint, and Electron build passed after the registration UX repair.
-- Local Electron app is running from this repo.
-
-## 10. What Is Not Done
-
-Not production-complete:
-
-- Production DB adapter for the T065 aggregate persistence seam.
-- Durable server-side scheduler for 6h/24h/72h missions.
-- Real long-running worker recovery after app/backend restart.
-- Real Workbench provider orchestration for new Prompt Lab / Spec / Review / Mission flows.
-- New production public shortlink backend independent of the existing viewer contract.
-- Real production S3/MinIO quota enforcement through the new persistence seam.
-- Real billing settlement beyond deterministic ledger/provider contracts.
-- Production email delivery.
-- Real rox.one email verification roundtrip for the T073 registration UX.
-- Signed/notarized production release.
-- CI/CD private release pipeline for the final RC.
-- GitHub push from this environment; push was blocked by the runtime approval policy before a git process could run.
-
-## 11. Options And Tradeoffs
-
-### Option A - Keep polishing UI first
-
-Pros:
-
-- Fast visible improvement.
-- Helps user confidence.
-
-Cons:
-
-- Does not make missions durable.
-- Does not fix provider/runtime gaps.
-- Risks making beautiful demo screens over fake state.
-
-### Option B - Wire production providers directly now
-
-Pros:
-
-- Faster path to real external behavior for one flow.
-
-Cons:
-
-- High coupling.
-- Hard to test.
-- Can leak provider assumptions into UI/domain code.
-- Violates the fake-provider contract discipline.
-
-### Option C - Finish integration seams first, then polish
-
-Pros:
-
-- Preserves testability.
-- Lets UI, scheduler, providers, and storage share one truth model.
-- Makes final e2e scenarios meaningful.
-- Reduces regression risk after upstream merge.
-
-Cons:
-
-- Less immediately flashy than UI-only work.
-- Requires more contract and state work before the product feels alive.
-
-Recommendation:
-
-```text
-Use Option C.
-Close T066-T068 first, then T069 visual polish, then T070-T072 release/security/RC.
-```
-
-## 12. Recommended Next Path
-
-```text
-T073 account UX commit
-  -> T066 durable mission scheduler
-  -> T067 real provider orchestration
-  -> T068 Experience Layer real-state binding
-  -> T069 visual polish v2
-  -> T070 CI/CD private release pipeline
-  -> T071 security and abuse hardening
-  -> T072 final release candidate
-```
-
-The critical rule:
-
-```text
-No UI state should pretend a mission, quest, unlock, score, or share is real
-unless it has domain state, persistence, provider result, audit/artifact evidence,
-and validation feedback behind it.
-```
+They are local runtime artifacts and are not part of the RC commit scope.

@@ -1,263 +1,119 @@
-# ROX ONE Agent Workbench - MVP User Guide
+# ROX ONE Agent Workbench Suite - MVP User Guide 2026-05-06
 
-Date: 2026-05-06
+Audience: private RC operators and product reviewers.
+Scope: local Electron app with deterministic fake providers.
 
-## 1. What This App Is
+## 1. What You Can Validate
 
-ROX ONE Agent Workbench is a Russian-first desktop workbench for turning rough
-ideas into structured prompts, specs, tasks, reviews, and long-running
-agent-style missions.
-
-The core loop:
+You can validate the core ROX ONE product loop:
 
 ```text
-Idea
-  -> Improve prompt
-  -> Build spec
-  -> Create TDD plan
-  -> Review / verify
-  -> Run mission
-  -> inspect artifacts and metrics
+raw prompt
+  -> rewrite
+  -> spec
+  -> TDD plan
+  -> review gate
+  -> mission draft
+  -> fake-provider mission launch
+  -> checkpoint evidence
+  -> VDI/Quality/Readiness update
+  -> quest/progression update
+  -> share/account state feedback
 ```
 
-## 2. Main Areas
+## 2. Main Screens
+
+| Screen | Purpose |
+|---|---|
+| Composer | Start from raw intent and create workbench artifacts. |
+| Prompt Lab | Rewrite and structure prompts. |
+| Spec Builder | Compile intent into executable product/spec shape. |
+| TDD Plan | Convert spec into test-first implementation plan. |
+| Review Gate | Create findings, warnings, blockers, and validation gates. |
+| Долгие миссии | Draft and launch long-running missions. |
+| Центр миссий | Inspect active mission state, checkpoints, gates, artifacts, and audit feed. |
+| Арена агентов | Select trusted agents and create swarm mission drafts. |
+| Прогресс | Read app-wide Quality, Readiness, VDI, risk, XP, and progression. |
+| Карта квестов | See completed and locked quests with evidence requirements. |
+| Кузница агентов | Install/fork trusted agent packages. |
+| ROX ID | Login/register/reset, inspect profile, logout, and refresh account state. |
+
+## 3. Mission Flow
 
 ```text
-Sidebar
-  -> Sessions
-  -> Labels
-  -> Sources
-  -> Skills
-  -> Agents
-  -> Experience
-  -> Settings
+Open "Долгие миссии"
+  -> enter title, objective, raw input
+  -> choose mode, layer, preset, duration, cadence
+  -> set budget/token/storage/agent/VDI limits
+  -> fix validation messages until ready
+  -> launch
+  -> open "Центр миссий"
+  -> inspect checkpoint/gate/artifact state
 ```
 
-Workbench actions:
+Important: launch does not mean success. A mission completes only after final
+artifact evidence and passing validation gate evidence exist.
+
+## 4. Metrics
+
+| Metric | Meaning |
+|---|---|
+| Quality Score | Evidence-backed quality signal from review/gate outcomes. |
+| Execution Readiness | How ready the work is to execute based on spec/TDD/review state. |
+| Verified Deliverable Index | Verified deliverables only; never paid capacity. |
+| Open Risk Score | Unresolved warnings, blockers, failed gates, and unsafe signals. |
+| Noise Score | Deduped provider/swarm signal quality. |
+| Swarm Capacity | Capacity entitlement and selected agent coverage. |
+
+## 5. Quest Flow
 
 ```text
-Improve prompt
-TDD Plan
-Check
-Break down
-Build spec
-Review
-```
-
-Experience screens:
-
-```text
-Long Missions
-Agent Arena
-Mission Control
-Progression
-Quest Map
-Agent Forge
-```
-
-## 3. ROX ID / Account
-
-Open:
-
-```text
-Settings -> Personal Account
-```
-
-Registration flow:
-
-```text
-Enter display name, email, password
-  -> click Create account
-  -> app shows pending verification
-  -> verify email externally when provider is connected
-  -> return to Sign in
-  -> app stores the authenticated session securely
-```
-
-Important:
-
-- registration is not the same as sign-in;
-- a pending verification state is expected after registration;
-- the app must not show "authenticated" until the account session is confirmed;
-- session persistence is local and encrypted in the Electron main process.
-
-## 4. Prompt-To-Spec Flow
-
-Use this when the input is a rough idea:
-
-```text
-Paste rough prompt
-  -> Improve prompt
-  -> inspect improved result
-  -> Send to Spec
-  -> select requirements
-  -> export / start agent plan
-```
-
-The best prompt should include:
-
-- objective;
-- context;
-- constraints;
-- desired deliverables;
-- verification criteria;
-- depth/style/audience requirements.
-
-## 5. TDD Plan Flow
-
-Use this before implementation:
-
-```text
-Prompt or spec
-  -> TDD Plan
-  -> RED: write failing tests first
-  -> GREEN: minimal implementation
-  -> VERIFY: relevant broad checks
-  -> WORKLOG: evidence and acceptance matrix
-```
-
-TDD Plan is a workflow artifact, not a promise that implementation already
-happened.
-
-## 6. Review Gate Flow
-
-Use Review Gate before accepting a deliverable:
-
-```text
-Artifact / prompt / spec / implementation
-  -> Review
-  -> fact check
-  -> logic check
-  -> security check
-  -> risk/fix plan
-```
-
-Review findings should include severity, category, description, and fix action.
-
-## 7. Long Missions
-
-Open:
-
-```text
-Experience -> Long Missions
-```
-
-Presets:
-
-```text
-6h Sprint
-24h Deep Run
-72h Watchtower
-```
-
-Mission lifecycle:
-
-```text
-Draft
-  -> Launch
-  -> checkpoints
-  -> interim artifacts
-  -> final verification
-```
-
-Mission completion requires evidence. A mission does not succeed just because
-time passed.
-
-## 8. Mission Control
-
-Open:
-
-```text
-Experience -> Mission Control
-```
-
-Use this screen to inspect:
-
-- checkpoint timeline;
-- validation gates;
-- human approvals;
-- interim artifacts;
-- swarm feed;
-- audit and billing trace.
-
-Blocking states are expected when budget, approval, evidence, or validation
-requirements are missing.
-
-## 9. Progression
-
-Open:
-
-```text
-Experience -> Progression
-```
-
-Main metric:
-
-```text
-Verified Deliverable Index (VDI)
-```
-
-Supporting metrics:
-
-```text
-Quality Score
-Execution Readiness
-Cost Efficiency
-Open Risk Score
-Noise Score
-Swarm Capacity
-```
-
-Paid capacity can increase slots/duration/budget. It cannot directly increase
-VDI, Quality Score, or evidence-backed progress.
-
-## 10. Quest Map
-
-Open:
-
-```text
-Experience -> Quest Map
-```
-
-Quests unlock from evidence:
-
-```text
-artifact evidence + gate evidence
-  -> quest progress
+Complete real action
+  -> runtime event
+  -> required evidence check
+  -> quest completion
   -> reward/unlock
+  -> HUD and Progress update
 ```
 
-Clicking a quest does not complete it without evidence.
+Locked quests cannot be completed manually. Paid plans can increase capacity,
+but cannot complete evidence, VDI, quality, readiness, or leaderboard goals.
 
-## 11. Agent Forge
+## 6. ROX ID
 
-Open:
+Use ROX ID for account-state validation:
 
 ```text
-Experience -> Agent Forge
+register
+  -> pending verification
+  -> no false authenticated success
+
+login
+  -> confirmed session required
+  -> profile summary shown
+
+logout
+  -> local/session state cleared
 ```
 
-Use this screen to inspect private/team packages and trust checks before
-installing or forking an agent package.
+If an error occurs, the UI shows a classified Russian state such as
+`auth_required`, `invalid_credentials`, `email_unverified`, `network_error`,
+`server_error`, or `session_expired`.
 
-Packages without contracts or with unresolved trust warnings can be blocked.
-
-## 12. Sharing
-
-Session sharing uses a provider contract:
+## 7. Share Flow
 
 ```text
-session bundle
-  -> sanitizer
-  -> share provider
-  -> public shortlink
+Share
+  -> prepare bundle
+  -> redact sensitive payload
+  -> upload through ShareProvider
+  -> create shortlink through ShareProvider
+  -> copied / retryable failure / permanent failure / revoked
 ```
 
-If sharing fails, check:
+The RC does not pretend a local fake URL is a public production URL.
 
-- account auth state;
-- provider availability;
-- whether the provider returned a valid public URL;
-- whether the payload was rejected for safety.
+## 8. RC Caveat
 
-The app must not fabricate a local-only URL and present it as public.
+All external effects are fake-provider-safe unless a future operator explicitly
+wires real provider credentials and hosted infrastructure.

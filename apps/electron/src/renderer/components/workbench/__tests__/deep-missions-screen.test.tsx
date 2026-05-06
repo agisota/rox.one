@@ -202,6 +202,6 @@ describe('Deep Missions entry screen', () => {
 
     expect(state.missions[0]?.status).toBe('running');
     expect(state.notifications.at(-1)?.kind).toBe('error');
-    expect(state.notifications.at(-1)?.message).toContain('requires final artifact and gate evidence');
+    expect(state.notifications.at(-1)?.message).toContain('requires stored final artifact and passing gate evidence');
   });
 });
