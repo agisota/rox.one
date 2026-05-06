@@ -247,6 +247,9 @@ export class DurableMissionScheduler {
   }
 
   async evaluateBranchExpansion(input: BranchExpansionInput): Promise<BranchExpansionDecision> {
+    assertPositiveInteger(input.requestedAgentCount, 'requestedAgentCount')
+    assertPositiveFiniteNumber(input.estimatedCostCredits, 'estimatedCostCredits')
+
     const mission = await this.requireMission(input.missionRunId)
     const remainingBudgetCredits = await this.getRemainingBudgetCredits(mission)
 
@@ -381,7 +384,7 @@ function findGateEvidenceReasons(gateResults: MissionGateResult[]): string[] {
 
 function getEventCostCredits(event: MissionSchedulerEvent): number {
   const costCredits = event.payload.costCredits
-  return typeof costCredits === 'number' && Number.isFinite(costCredits) ? costCredits : 0
+  return typeof costCredits === 'number' && Number.isFinite(costCredits) && costCredits > 0 ? costCredits : 0
 }
 
 function createEventId(missionRunId: string, checkpointId: string | undefined, type: string): string {
@@ -391,4 +394,16 @@ function createEventId(missionRunId: string, checkpointId: string | undefined, t
     checkpointId?.replaceAll(':', '-') ?? 'mission',
     type,
   ].join(':')
+}
+
+function assertPositiveInteger(value: number, fieldName: keyof BranchExpansionInput): void {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`Branch expansion ${fieldName} must be a positive integer.`)
+  }
+}
+
+function assertPositiveFiniteNumber(value: number, fieldName: keyof BranchExpansionInput): void {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`Branch expansion ${fieldName} must be a positive finite number.`)
+  }
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import type { SessionIdentity } from '../../accounts'
 import {
   createAccountCabinetBilling,
+  createAccountCabinetBillingFromLedger,
   createAccountCabinetEvents,
   createAccountCabinetOrganizations,
   createDisabledTopUpIntent,
@@ -44,5 +45,47 @@ describe('account cabinet defaults', () => {
       message: 'Billing top-up is not configured for this workspace.',
       billing: createAccountCabinetBilling(identity),
     })
+  })
+
+  it('redacts secret-like ledger metadata before exposing billing payloads', () => {
+    const billing = createAccountCabinetBillingFromLedger({
+      userId: 'user-1',
+      balanceUnits: 875,
+      currency: 'USDT',
+      updatedAt: '2026-05-06T00:00:00.000Z',
+      entries: [
+        {
+          id: 'entry-1',
+          userId: 'user-1',
+          type: 'debit',
+          amountUnits: 125,
+          currency: 'USDT',
+          reason: 'agent_usage',
+          idempotencyKey: 'usage-1',
+          balanceAfterUnits: 875,
+          metadata: {
+            sessionId: 'session-1',
+            authorization: 'Bearer ledger-secret-value',
+            providerResponse: 'OPENAI_API_KEY=sk-ledgerleak123456',
+            nested: {
+              cookie: 'rox_session=session-cookie-secret',
+              note: 'safe metadata note',
+            },
+          },
+          createdAt: '2026-05-06T00:00:00.000Z',
+        },
+      ],
+    })
+
+    const payload = JSON.stringify(billing)
+
+    expect(payload).toContain('session-1')
+    expect(payload).toContain('safe metadata note')
+    expect(payload).toContain('OPENAI_API_KEY=[redacted]')
+    expect(payload).toContain('"authorization":"[redacted]"')
+    expect(payload).toContain('"cookie":"[redacted]"')
+    expect(payload).not.toContain('ledger-secret-value')
+    expect(payload).not.toContain('sk-ledgerleak123456')
+    expect(payload).not.toContain('session-cookie-secret')
   })
 })

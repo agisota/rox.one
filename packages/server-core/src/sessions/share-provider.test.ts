@@ -40,6 +40,42 @@ describe('share provider contract', () => {
     expect(payload).not.toContain('refresh-secret')
   })
 
+  test('redacts secret-looking values embedded in public content fields', () => {
+    const sanitized = sanitizeShareBundleForPublicViewer({
+      id: 'session-1',
+      messages: [
+        {
+          id: 'message-1',
+          content: [
+            'Authorization: Bearer bearer-secret-value',
+            'OPENAI_API_KEY=sk-publicleak123456',
+            'Set-Cookie: rox_session=session-cookie-secret; Path=/',
+            'Safe user note',
+          ].join('\n'),
+        },
+      ],
+      files: [
+        {
+          path: '.env.example',
+          text: 'DATABASE_PASSWORD=db-secret-value\nNORMAL_VALUE=keep-me',
+        },
+      ],
+    })
+
+    const payload = JSON.stringify(sanitized)
+
+    expect(payload).toContain('Safe user note')
+    expect(payload).toContain('NORMAL_VALUE=keep-me')
+    expect(payload).toContain('Bearer [redacted]')
+    expect(payload).toContain('OPENAI_API_KEY=[redacted]')
+    expect(payload).toContain('rox_session=[redacted]')
+    expect(payload).toContain('DATABASE_PASSWORD=[redacted]')
+    expect(payload).not.toContain('bearer-secret-value')
+    expect(payload).not.toContain('sk-publicleak123456')
+    expect(payload).not.toContain('session-cookie-secret')
+    expect(payload).not.toContain('db-secret-value')
+  })
+
   test('accepts only public https shortlink URLs', () => {
     expect(assertPublicShareUrl('https://app.rox.one/s/share_123')).toEqual({ success: true })
     expect(assertPublicShareUrl('http://127.0.0.1:3000/s/share_123')).toEqual({

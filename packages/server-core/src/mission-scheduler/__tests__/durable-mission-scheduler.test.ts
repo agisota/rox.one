@@ -182,6 +182,73 @@ describe('DurableMissionScheduler', () => {
     expect((await adapter.missions.getMissionRun(mission.id))?.status).toBe('paused')
   })
 
+  it('does not let spoofed negative scheduler event costs expand mission budget', async () => {
+    const adapter = createInMemoryAgentWorkbenchPersistenceAdapter()
+    const scheduler = createDurableMissionScheduler({
+      repository: adapter.missions,
+      clock: fakeClock(CHECKPOINT_6H),
+      checkpointExecutor: fakeCheckpointExecutor(),
+      maxSwarmAgents: 12,
+    })
+    const mission = createMission({ id: 'mission-budget-spoof', selectedAgentCount: 4, budgetCapCredits: 30 })
+    await scheduler.launchMission({ mission })
+    await adapter.missions.appendMissionSchedulerEvent({
+      id: 'event:mission-budget-spoof:spoofed-negative-cost',
+      missionRunId: mission.id,
+      type: 'checkpoint_completed',
+      createdAt: CHECKPOINT_6H,
+      payload: { costCredits: -1_000 },
+    })
+
+    const budgetDenied = await scheduler.evaluateBranchExpansion({
+      missionRunId: mission.id,
+      requestedAgentCount: 8,
+      estimatedCostCredits: 45,
+    })
+
+    expect(budgetDenied).toMatchObject({
+      allowed: false,
+      reason: 'budget_cap_exceeded',
+      remainingBudgetCredits: 30,
+    })
+    expect((await adapter.missions.getMissionRun(mission.id))?.status).toBe('paused')
+  })
+
+  it('rejects invalid branch expansion values before budget or approval checks', async () => {
+    const adapter = createInMemoryAgentWorkbenchPersistenceAdapter()
+    const scheduler = createDurableMissionScheduler({
+      repository: adapter.missions,
+      clock: fakeClock(CHECKPOINT_6H),
+      checkpointExecutor: fakeCheckpointExecutor(),
+      maxSwarmAgents: 12,
+    })
+    const mission = createMission({ id: 'mission-invalid-expansion', selectedAgentCount: 4, budgetCapCredits: 30 })
+    await scheduler.launchMission({ mission })
+
+    await expect(scheduler.evaluateBranchExpansion({
+      missionRunId: mission.id,
+      requestedAgentCount: 0,
+      estimatedCostCredits: 10,
+    })).rejects.toThrow('Branch expansion requestedAgentCount must be a positive integer.')
+    await expect(scheduler.evaluateBranchExpansion({
+      missionRunId: mission.id,
+      requestedAgentCount: 4.5,
+      estimatedCostCredits: 10,
+    })).rejects.toThrow('Branch expansion requestedAgentCount must be a positive integer.')
+    await expect(scheduler.evaluateBranchExpansion({
+      missionRunId: mission.id,
+      requestedAgentCount: 4,
+      estimatedCostCredits: 0,
+    })).rejects.toThrow('Branch expansion estimatedCostCredits must be a positive finite number.')
+    await expect(scheduler.evaluateBranchExpansion({
+      missionRunId: mission.id,
+      requestedAgentCount: 4,
+      estimatedCostCredits: Number.POSITIVE_INFINITY,
+    })).rejects.toThrow('Branch expansion estimatedCostCredits must be a positive finite number.')
+
+    expect((await adapter.missions.getMissionRun(mission.id))?.status).toBe('queued')
+  })
+
   it('blocks 100-agent swarm expansion until human approval exists', async () => {
     const adapter = createInMemoryAgentWorkbenchPersistenceAdapter()
     const scheduler = createDurableMissionScheduler({

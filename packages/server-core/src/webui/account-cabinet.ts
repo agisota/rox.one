@@ -1,4 +1,5 @@
 import type { SessionIdentity } from '../accounts'
+import { sanitizePublicPayload } from '../security/public-payload-sanitizer'
 import type { AccountLedgerBalance } from './account-ledger'
 import type { AccountAuditActor, AccountAuditSeverity, AccountAuditTarget, AccountEventRecord } from './account-events'
 
@@ -76,7 +77,10 @@ export function createAccountCabinetBillingFromLedger(balance: AccountLedgerBala
       url: null,
     },
     ledger: {
-      entries: balance.entries,
+      entries: balance.entries.map(entry => ({
+        ...entry,
+        metadata: sanitizePublicPayload(entry.metadata),
+      })),
     },
   }
 }
