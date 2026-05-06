@@ -42,9 +42,13 @@ import SkillInfoPage from '@/pages/SkillInfoPage'
 import { getSettingsPageComponent } from '@/pages/settings/settings-pages'
 import { AutomationInfoPage } from '../automations/AutomationInfoPage'
 import { WorkbenchRoutePage } from '../workbench/WorkbenchRoutePage'
+import { ExperienceGlobalHud } from '../workbench/ExperienceGlobalHud'
+import { createInitialExperienceRuntimeState, type ExperienceLayer } from '@craft-agent/shared/workbench'
 import type { ExecutionEntry } from '../automations/types'
 import { automationsAtom } from '@/atoms/automations'
 import { SendResourceToWorkspaceDialog, type SendResourceType } from './SendResourceToWorkspaceDialog'
+
+const EMPTY_EXPERIENCE_RUNTIME_STATE = createInitialExperienceRuntimeState()
 
 export interface MainContentPanelProps {
   /** Whether both sidebar and navigator are hidden (focus mode / CMD+.) */
@@ -219,7 +223,12 @@ export function MainContentPanel({
   // Also renders the Send to Workspace dialog (portal-based, so it overlays regardless of position).
   const wrapWithStoplight = (content: React.ReactNode) => (
     <StoplightProvider value={isSidebarAndNavigatorHidden}>
-      {content}
+      <div className="flex h-full min-h-0 flex-col">
+        <ExperienceGlobalHud runtimeState={EMPTY_EXPERIENCE_RUNTIME_STATE} layer={resolveExperienceHudLayer(navState)} />
+        <div className="min-h-0 flex-1">
+          {content}
+        </div>
+      </div>
       <SendResourceToWorkspaceDialog
         open={sendDialogOpen}
         onOpenChange={setSendDialogOpen}
@@ -407,4 +416,12 @@ export function MainContentPanel({
       </div>
     </Panel>
   )
+}
+
+function resolveExperienceHudLayer(navState: import('../../../shared/types').NavigationState): ExperienceLayer {
+  if (isWorkbenchNavigation(navState)) {
+    if (navState.screen === 'arena-builder' || navState.screen === 'agent-forge') return 'arena'
+    if (navState.screen === 'progression' || navState.screen === 'quest-map') return 'game'
+  }
+  return 'command'
 }

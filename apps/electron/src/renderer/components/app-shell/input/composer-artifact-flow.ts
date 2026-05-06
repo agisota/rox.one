@@ -1,4 +1,5 @@
 import { createDeterministicPromptRewriteProvider } from '@craft-agent/shared/workbench/prompt-rewrite-engine';
+import type { ExperienceEvent } from '@craft-agent/shared/workbench';
 import type { ProductModeIntent } from './product-mode-toolbar';
 import {
   createPromptLabState,
@@ -28,6 +29,11 @@ export interface ComposerArtifactState {
   tddPlan?: TddPlanState;
   reviewGate?: ReviewGateState;
   specBuilder?: SpecBuilderState;
+}
+
+export interface ComposerExperienceEventContext {
+  createdAt: string;
+  actorId?: string;
 }
 
 export function shouldOpenComposerArtifactForIntent(intent: ProductModeIntent): boolean {
@@ -96,6 +102,111 @@ export function createComposerArtifactState(input: ComposerArtifactStateInput): 
   }
 }
 
+export function createExperienceEventsForComposerArtifact(
+  state: ComposerArtifactState,
+  context: ComposerExperienceEventContext,
+): ExperienceEvent[] {
+  const createdAt = context.createdAt;
+  const actorId = context.actorId;
+  const baseId = createStableArtifactId(`${state.kind}:${state.intent.actionId}:${state.intent.mode}:${getArtifactRawInput(state)}`);
+  const sourceArtifactId = `${baseId}-source`;
+  const artifactId = `${baseId}-artifact`;
+
+  switch (state.kind) {
+    case 'prompt-lab': {
+      if (state.promptLab?.status !== 'success' || !state.promptLab.output?.rewrittenPrompt.trim()) return [];
+      return [
+        {
+          id: `${baseId}-prompt-submitted`,
+          type: 'prompt.submitted',
+          createdAt,
+          actorId,
+          payload: {
+            artifactId: sourceArtifactId,
+            rawPrompt: state.promptLab.rawInput,
+          },
+        },
+        {
+          id: `${baseId}-prompt-rewritten`,
+          type: 'prompt.rewritten',
+          createdAt,
+          actorId,
+          payload: {
+            artifactId,
+            sourceArtifactId,
+            rewrittenPrompt: state.promptLab.output.rewrittenPrompt,
+          },
+        },
+      ];
+    }
+    case 'spec-builder':
+      if (!state.specBuilder?.rawInput.trim()) return [];
+      return [
+        {
+          id: `${baseId}-spec-compiled`,
+          type: 'spec.compiled',
+          createdAt,
+          actorId,
+          payload: {
+            artifactId,
+            sourceArtifactId,
+            title: 'Composer Spec Builder',
+          },
+        },
+      ];
+    case 'tdd-plan':
+      if (!state.tddPlan?.rawInput.trim()) return [];
+      return [
+        {
+          id: `${baseId}-tdd-plan-created`,
+          type: 'tdd.plan.created',
+          createdAt,
+          actorId,
+          payload: {
+            artifactId,
+            sourceArtifactId,
+          },
+        },
+      ];
+    case 'review-gate': {
+      if (!state.reviewGate) return [];
+      const failedCheck = state.reviewGate.result.checks.find((check) => check.status === 'fail');
+      const warnedCheck = state.reviewGate.result.checks.find((check) => check.status === 'warn');
+      const selectedCheck = failedCheck ?? warnedCheck ?? state.reviewGate.result.checks[0];
+      const gateEvidenceRef = `gate:composer:${selectedCheck.gateId}:${selectedCheck.status}`;
+      const events: ExperienceEvent[] = [
+        {
+          id: `${baseId}-review-completed`,
+          type: 'review.completed',
+          createdAt,
+          actorId,
+          payload: {
+            artifactId,
+            gateEvidenceRefs: [gateEvidenceRef],
+            findingCount: state.reviewGate.result.findings.length,
+          },
+        },
+      ];
+
+      if (selectedCheck.status !== 'pass') {
+        events.push({
+          id: `${baseId}-gate-${selectedCheck.status}`,
+          type: selectedCheck.status === 'fail' ? 'gate.failed' : 'gate.warned',
+          createdAt,
+          actorId,
+          payload: {
+            gateId: selectedCheck.gateId,
+            evidenceRef: gateEvidenceRef,
+            blocking: selectedCheck.status === 'fail',
+          },
+        });
+      }
+
+      return events;
+    }
+  }
+}
+
 function createPromptLabInput(rawInput: string, targetMode: ProductModeIntent['mode']): Parameters<typeof createPromptLabState>[0] {
   if (!rawInput) {
     return {
@@ -125,4 +236,20 @@ function createPromptLabInput(rawInput: string, targetMode: ProductModeIntent['m
     status: 'success',
     output,
   };
+}
+
+function getArtifactRawInput(state: ComposerArtifactState): string {
+  return state.promptLab?.rawInput ?? state.specBuilder?.rawInput ?? state.tddPlan?.rawInput ?? state.reviewGate?.rawInput ?? '';
+}
+
+function createStableArtifactId(input: string): string {
+  let hash = 0;
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (hash * 31 + input.charCodeAt(index)) >>> 0;
+  }
+  return `composer-${stateKindPrefix(input)}-${hash.toString(36)}`;
+}
+
+function stateKindPrefix(input: string): string {
+  return input.split(':')[0]?.replace(/[^a-z0-9-]/gi, '-').toLowerCase() || 'artifact';
 }
