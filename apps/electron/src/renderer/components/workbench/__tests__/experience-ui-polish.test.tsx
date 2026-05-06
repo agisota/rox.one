@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import {
   ExperienceCard,
+  ExperienceFeedbackStrip,
   ExperienceMetricCard,
   ExperiencePanel,
   ExperienceProgressBar,
@@ -120,5 +121,33 @@ describe('Experience visual system', () => {
     expect(markup).toContain('min-w-0');
     expect(markup).toContain('break-words');
     expect(markup).toContain('Загрузка метрик');
+  });
+
+  test('renders inline feedback variants with compact-safe motion states', () => {
+    const markup = renderToStaticMarkup(
+      <ExperienceFeedbackStrip
+        tone="game"
+        items={[
+          { id: 'vdi', kind: 'vdi', label: '+VDI', detail: 'artifact:final' },
+          { id: 'xp', kind: 'xp', label: '+120 XP', detail: 'quest advanced' },
+          { id: 'gate', kind: 'gate_failed', label: 'Gate failed', detail: 'security_check blocked final pass' },
+          { id: 'blocked', kind: 'mission_blocked', label: 'Mission blocked', detail: 'approval required' },
+          { id: 'artifact', kind: 'artifact_accepted', label: 'Artifact accepted', detail: 'evidence attached' },
+        ]}
+      />,
+    );
+
+    expect(markup).toContain('data-feedback-tone="game"');
+    expect(markup).toContain('data-feedback-kind="vdi"');
+    expect(markup).toContain('data-feedback-kind="xp"');
+    expect(markup).toContain('data-feedback-kind="gate_failed"');
+    expect(markup).toContain('data-feedback-kind="mission_blocked"');
+    expect(markup).toContain('data-feedback-kind="artifact_accepted"');
+    expect(markup).toContain('flex-wrap');
+    expect(markup).toContain('min-w-0');
+    expect(markup).toContain('break-words');
+    expect(markup).toContain('motion-safe:animate-pulse');
+    expect(markup).toContain('motion-reduce:animate-none');
+    expect(markup).toContain('security_check blocked final pass');
   });
 });
