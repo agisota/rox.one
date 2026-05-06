@@ -2,11 +2,13 @@ import * as React from 'react';
 
 import {
   createAgentForgeState,
+  createAgentForgeStateFromTruth,
   getPackageTrustScore,
   listVisibleAgentPackages,
   type AgentForgeState,
   type AgentForgeStateInput,
 } from './agent-forge-state';
+import type { ExperienceTruthState } from '@rox-agent/shared/workbench';
 import {
   ExperienceCard,
   ExperienceMetricRow,
@@ -19,10 +21,13 @@ import {
 export interface AgentForgeTeamRegistryProps {
   initialState?: AgentForgeState;
   initialInput?: AgentForgeStateInput;
+  truthState?: ExperienceTruthState;
 }
 
-export function AgentForgeTeamRegistry({ initialState, initialInput }: AgentForgeTeamRegistryProps) {
-  const [state] = React.useState<AgentForgeState>(() => initialState ?? createAgentForgeState(initialInput));
+export function AgentForgeTeamRegistry({ initialState, initialInput, truthState }: AgentForgeTeamRegistryProps) {
+  const [state] = React.useState<AgentForgeState>(() =>
+    initialState ?? (truthState ? createAgentForgeStateFromTruth(truthState, initialInput) : createAgentForgeState(initialInput)),
+  );
   const visiblePackages = listVisibleAgentPackages(state, { viewerTeamId: state.viewerTeamId });
 
   return (

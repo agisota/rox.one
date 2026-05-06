@@ -1,5 +1,6 @@
 import {
   ProgressLedgerSchema,
+  type ExperienceTruthState,
   type MetricSnapshot,
   type ProgressLedger,
 } from '@rox-agent/shared/workbench';
@@ -59,6 +60,21 @@ export function createProgressionState(input: ProgressionStateInput = {}): Progr
   };
 }
 
+export function createProgressionStateFromTruth(
+  truthState: ExperienceTruthState,
+  input: ProgressionStateInput = {},
+): ProgressionState {
+  return createProgressionState({
+    ...input,
+    latestSnapshot: selectLatestMetricSnapshot(truthState.metricSnapshots) ?? input.latestSnapshot,
+    ledger: truthState.ledger,
+    leaderboardPolicy: input.leaderboardPolicy ?? {
+      showLeaderboards: true,
+      viewerTeamId: truthState.mission.teamId,
+    },
+  });
+}
+
 export function appendProgressLedgerEvent(state: ProgressionState, entry: ProgressLedger): ProgressionState {
   const parsed = ProgressLedgerSchema.parse(entry);
   return {
@@ -81,6 +97,10 @@ function sanitizeEntitlement(entitlement?: ProgressionEntitlement): ProgressionE
     swarmSlots: Math.max(0, Math.floor(entitlement?.swarmSlots ?? 4)),
     maxMissionHours: Math.max(1, entitlement?.maxMissionHours ?? 24),
   };
+}
+
+function selectLatestMetricSnapshot(snapshots: MetricSnapshot[]): MetricSnapshot | undefined {
+  return [...snapshots].sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0];
 }
 
 function createMetricSnapshot(): MetricSnapshot {

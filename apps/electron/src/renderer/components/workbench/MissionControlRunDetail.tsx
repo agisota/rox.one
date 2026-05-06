@@ -4,9 +4,11 @@ import { Button } from '../ui/button';
 import {
   approveMissionBranch,
   createMissionControlState,
+  createMissionControlStateFromTruth,
   transitionMissionCheckpoint,
   type MissionControlState,
 } from './mission-control-state';
+import type { ExperienceTruthState } from '@rox-agent/shared/workbench';
 import {
   ExperienceCard,
   ExperienceMetricRow,
@@ -19,10 +21,13 @@ import {
 
 export interface MissionControlRunDetailProps {
   initialState?: MissionControlState;
+  truthState?: ExperienceTruthState;
 }
 
-export function MissionControlRunDetail({ initialState }: MissionControlRunDetailProps) {
-  const [state, setState] = React.useState<MissionControlState>(() => initialState ?? createMissionControlState());
+export function MissionControlRunDetail({ initialState, truthState }: MissionControlRunDetailProps) {
+  const [state, setState] = React.useState<MissionControlState>(() =>
+    initialState ?? (truthState ? createMissionControlStateFromTruth(truthState) : createMissionControlState()),
+  );
 
   return (
     <ExperienceShell

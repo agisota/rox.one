@@ -3,6 +3,7 @@ import type {
   AgentPackageRarity,
   AgentRiskLevel,
   ExperienceLayer,
+  ExperienceTruthState,
   MissionMode,
   ValidationGate,
 } from '@rox-agent/shared/workbench';
@@ -74,6 +75,20 @@ export function createArenaBuilderState(input: ArenaBuilderStateInput = {}): Are
     selectionWarnings: selected.warnings,
     canCreateDraft: selected.ids.length > 0,
   };
+}
+
+export function createArenaBuilderStateFromTruth(
+  truthState: ExperienceTruthState,
+  input: ArenaBuilderStateInput = {},
+): ArenaBuilderState {
+  return createArenaBuilderState({
+    ...input,
+    roster: truthState.agentPackages.length > 0 ? truthState.agentPackages.map(createAgentFromPackage) : input.roster,
+    selectedAgentPackageIds: input.selectedAgentPackageIds ?? truthState.mission.selectedAgentPackageIds,
+    entitlement: input.entitlement ?? {
+      maxSwarmSlots: Math.max(1, truthState.mission.selectedAgentPackageIds.length),
+    },
+  });
 }
 
 export function toggleArenaAgentSelection(state: ArenaBuilderState, agentPackageId: string): ArenaBuilderState {
@@ -283,5 +298,18 @@ function createAgent(input: {
     roleTag: input.roleTag,
     baseCostCredits: input.baseCostCredits,
     estimatedContributionCount: input.estimatedContributionCount,
+  };
+}
+
+function createAgentFromPackage(pkg: AgentPackage): ArenaAgentCollectionItem {
+  return {
+    package: pkg,
+    level: Math.max(1, Math.round(pkg.trustScore / 12)),
+    masteryPercent: pkg.trustScore,
+    unlocked: true,
+    unlockCriteria: ['Provided by shared truth state'],
+    roleTag: pkg.packageType === 'skill_pack' || pkg.packageType === 'skill' ? 'Automation' : 'Research',
+    baseCostCredits: Math.max(12, Math.round((100 - pkg.trustScore) / 2) + 12),
+    estimatedContributionCount: Math.max(1, Math.round(pkg.trustScore / 10)),
   };
 }

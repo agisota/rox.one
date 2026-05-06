@@ -2,10 +2,12 @@ import * as React from 'react';
 
 import {
   createProgressionState,
+  createProgressionStateFromTruth,
   projectLeaderboardRows,
   type ProgressionState,
   type ProgressionStateInput,
 } from './progression-observatory-state';
+import type { ExperienceTruthState } from '@rox-agent/shared/workbench';
 import {
   ExperienceMetricCard,
   ExperienceMetricRow,
@@ -17,10 +19,13 @@ import {
 export interface ProgressionObservatoryProps {
   initialState?: ProgressionState;
   initialInput?: ProgressionStateInput;
+  truthState?: ExperienceTruthState;
 }
 
-export function ProgressionObservatory({ initialState, initialInput }: ProgressionObservatoryProps) {
-  const [state] = React.useState<ProgressionState>(() => initialState ?? createProgressionState(initialInput));
+export function ProgressionObservatory({ initialState, initialInput, truthState }: ProgressionObservatoryProps) {
+  const [state] = React.useState<ProgressionState>(() =>
+    initialState ?? (truthState ? createProgressionStateFromTruth(truthState, initialInput) : createProgressionState(initialInput)),
+  );
   const visibleLeaderboardRows = projectLeaderboardRows(state);
 
   return (

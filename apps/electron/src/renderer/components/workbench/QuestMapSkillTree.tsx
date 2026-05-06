@@ -1,9 +1,11 @@
 import * as React from 'react';
 
 import type { ExperienceLayer } from '@rox-agent/shared/workbench';
+import type { ExperienceTruthState } from '@rox-agent/shared/workbench';
 
 import {
   createQuestMapState,
+  createQuestMapStateFromTruth,
   getQuestPresentation,
   groupQuestsByLane,
   type QuestMapState,
@@ -22,10 +24,13 @@ import {
 export interface QuestMapSkillTreeProps {
   initialState?: QuestMapState;
   layer?: ExperienceLayer;
+  truthState?: ExperienceTruthState;
 }
 
-export function QuestMapSkillTree({ initialState, layer = 'command' }: QuestMapSkillTreeProps) {
-  const [state] = React.useState<QuestMapState>(() => initialState ?? createQuestMapState());
+export function QuestMapSkillTree({ initialState, layer = 'command', truthState }: QuestMapSkillTreeProps) {
+  const [state] = React.useState<QuestMapState>(() =>
+    initialState ?? (truthState ? createQuestMapStateFromTruth(truthState) : createQuestMapState()),
+  );
   const presentation = getQuestPresentation(layer);
   const laneGroups = groupQuestsByLane(state.quests);
 

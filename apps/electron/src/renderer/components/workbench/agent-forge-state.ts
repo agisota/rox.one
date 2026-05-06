@@ -1,6 +1,7 @@
 import type {
   AgentPackage,
   AgentPackageVisibility,
+  ExperienceTruthState,
   SkillContract,
 } from '@rox-agent/shared/workbench';
 import { assertPublicPackagePublishable } from '@rox-agent/shared/workbench/experience-layer-security';
@@ -43,6 +44,18 @@ export function createAgentForgeState(input: AgentForgeStateInput = {}): AgentFo
     installedPackageIds: input.installedPackageIds ?? [],
     viewerTeamId: input.viewerTeamId ?? 'team-alpha',
   };
+}
+
+export function createAgentForgeStateFromTruth(
+  truthState: ExperienceTruthState,
+  input: AgentForgeStateInput = {},
+): AgentForgeState {
+  return createAgentForgeState({
+    ...input,
+    packages: truthState.agentPackages.length > 0 ? truthState.agentPackages : input.packages,
+    installedPackageIds: truthState.installedAgentPackageIds,
+    viewerTeamId: input.viewerTeamId ?? truthState.agentPackages.find((pkg) => pkg.ownerTeamId)?.ownerTeamId ?? 'team-alpha',
+  });
 }
 
 export function installAgentPackage(state: AgentForgeState, packageId: string): AgentForgeState {

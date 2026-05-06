@@ -4,12 +4,14 @@ import { Button } from '../ui/button';
 import {
   DEEP_MISSION_PRESETS,
   createDeepMissionEntryState,
+  createDeepMissionEntryStateFromTruth,
   selectDeepMissionPreset,
   type DeepMissionEntryState,
   type DeepMissionEntryStateInput,
   type DeepMissionPreset,
   type DeepMissionPresetId,
 } from './deep-missions-state';
+import type { ExperienceTruthState } from '@rox-agent/shared/workbench';
 import {
   ExperienceCard,
   ExperienceMetricRow,
@@ -21,6 +23,7 @@ import {
 export interface DeepMissionsScreenProps {
   initialState?: DeepMissionEntryState;
   initialInput?: DeepMissionEntryStateInput;
+  truthState?: ExperienceTruthState;
   onLaunchMission?: (state: DeepMissionEntryState) => void;
   onSaveDraft?: (state: DeepMissionEntryState) => void;
 }
@@ -28,11 +31,12 @@ export interface DeepMissionsScreenProps {
 export function DeepMissionsScreen({
   initialState,
   initialInput,
+  truthState,
   onLaunchMission,
   onSaveDraft,
 }: DeepMissionsScreenProps) {
   const [state, setState] = React.useState<DeepMissionEntryState>(() =>
-    initialState ?? createDeepMissionEntryState(initialInput),
+    initialState ?? (truthState ? createDeepMissionEntryStateFromTruth(truthState) : createDeepMissionEntryState(initialInput)),
   );
 
   return (

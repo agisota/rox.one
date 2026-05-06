@@ -1,4 +1,4 @@
-import type { ExperienceLayer, MissionMode } from '@rox-agent/shared/workbench';
+import type { ExperienceLayer, ExperienceTruthState, MissionMode } from '@rox-agent/shared/workbench';
 
 export type DeepMissionPresetId = 'sprint_6h' | 'deep_run_24h' | 'watchtower_72h';
 
@@ -99,6 +99,23 @@ export function createDeepMissionEntryState(input: DeepMissionEntryStateInput = 
     storageCapBytes: input.storageCapBytes ?? 0,
     selectedAgentCount: input.selectedAgentCount ?? preset.recommendedAgentCount,
     vdiTarget: input.vdiTarget ?? 75,
+  });
+}
+
+export function createDeepMissionEntryStateFromTruth(truthState: ExperienceTruthState): DeepMissionEntryState {
+  return createDeepMissionEntryState({
+    rawInput: truthState.mission.sourceArtifactId ?? truthState.mission.objective,
+    title: truthState.mission.title,
+    objective: truthState.mission.objective,
+    mode: truthState.mission.mode,
+    experienceLayer: truthState.mission.experienceLayer,
+    durationHours: truthState.mission.durationHours,
+    checkpointCadenceHours: truthState.mission.checkpointCadenceHours,
+    budgetCapCredits: truthState.mission.budgetCapCredits,
+    tokenCap: truthState.mission.tokenCap,
+    storageCapBytes: truthState.mission.storageCapBytes,
+    selectedAgentCount: truthState.mission.selectedAgentPackageIds.length,
+    vdiTarget: truthState.mission.vdiTarget,
   });
 }
 
