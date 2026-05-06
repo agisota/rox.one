@@ -128,7 +128,7 @@ const FALLBACK_CONFIG_DEFAULTS: ConfigDefaults = {
 };
 
 function syncConfigDefaults(): void {
-  if (configDefaultsSynced) return;
+  if (configDefaultsSynced && existsSync(CONFIG_DEFAULTS_FILE)) return;
   configDefaultsSynced = true;
 
   // Get bundled config-defaults.json from resources folder
@@ -162,7 +162,10 @@ function syncConfigDefaults(): void {
  */
 export function loadConfigDefaults(): ConfigDefaults {
   if (!existsSync(CONFIG_DEFAULTS_FILE)) {
-    throw new Error('config-defaults.json not found at ' + CONFIG_DEFAULTS_FILE + '. Ensure ensureConfigDir() was called at startup.');
+    if (!existsSync(CONFIG_DIR)) {
+      mkdirSync(CONFIG_DIR, { recursive: true });
+    }
+    ensureConfigDefaults();
   }
 
   const defaults = readJsonFileSync<ConfigDefaults>(CONFIG_DEFAULTS_FILE);
