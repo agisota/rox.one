@@ -1,6 +1,6 @@
 # T064 - Public Share Shortlink Provider
 
-Status: TODO
+Status: DONE
 
 ## Goal
 
@@ -22,12 +22,12 @@ The current share flow calls the viewer upload endpoint directly from `SessionMa
 
 ## Acceptance Criteria
 
-- [ ] Provider contract exists and is covered by deterministic tests.
-- [ ] Share payload sanitizer removes obvious secret/session/auth fields recursively.
-- [ ] Localhost/file/local-only URLs cannot be accepted as public shortlinks.
-- [ ] `shareToViewer()` persists `sharedUrl`/`sharedId` only after upload and shortlink creation succeed.
-- [ ] `updateShare()` and `revokeShare()` go through the provider seam.
-- [ ] Auth, payload, and viewer failures remain specific/actionable.
-- [ ] Relevant targeted tests and validation commands pass.
-- [ ] Worklog complete.
-- [ ] Scoped commit created.
+- [x] Provider contract exists and is covered by deterministic tests.
+- [x] Share payload sanitizer removes obvious secret/session/auth fields recursively.
+- [x] Localhost/file/local-only URLs cannot be accepted as public shortlinks.
+- [x] `shareToViewer()` persists `sharedUrl`/`sharedId` only after upload and shortlink creation succeed.
+- [x] `updateShare()` and `revokeShare()` go through the provider seam.
+- [x] Auth, payload, and viewer failures remain specific/actionable.
+- [x] Relevant targeted tests and validation commands pass.
+- [x] Worklog complete.
+- [x] Scoped commit created.
