@@ -763,12 +763,31 @@ function finalizeMission(
   event: Extract<ExperienceEvent, { type: 'mission.finalized' }>,
 ): ExperienceRuntimeState {
   const hasGateEvidence = event.payload.gateEvidenceRefs.length > 0;
-  if (!event.payload.finalArtifactId || !hasGateEvidence) {
+  const finalArtifact = event.payload.finalArtifactId
+    ? state.artifacts.find((artifact) =>
+        artifact.id === event.payload.finalArtifactId
+        && (!artifact.missionRunId || artifact.missionRunId === event.payload.missionRunId),
+      )
+    : undefined;
+  const hasPassingGateEvidence = event.payload.gateEvidenceRefs.some((evidenceRef) =>
+    state.gateResults.some((gate) =>
+      gate.evidenceRef === evidenceRef
+      && gate.status === 'pass'
+      && (!gate.missionRunId || gate.missionRunId === event.payload.missionRunId),
+    ),
+  );
+  const hasBlockingFailedGate = state.gateResults.some((gate) =>
+    gate.missionRunId === event.payload.missionRunId
+    && gate.status === 'fail'
+    && gate.blocking,
+  );
+
+  if (!event.payload.finalArtifactId || !hasGateEvidence || !finalArtifact || !hasPassingGateEvidence || hasBlockingFailedGate) {
     return appendNotification(state, {
       id: `notification-${event.id}`,
       eventId: event.id,
       kind: 'error',
-      message: 'Mission finalization requires final artifact and gate evidence',
+      message: 'Mission finalization requires stored final artifact and passing gate evidence',
       createdAt: event.createdAt,
     });
   }
