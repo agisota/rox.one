@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'bun:test'
 
-import type { MissionGateResult, MissionRun } from '@rox-agent/shared/workbench'
+import {
+  projectMissionRunStatusFromSchedulerEvents,
+  type MissionGateResult,
+  type MissionRun,
+} from '@rox-agent/shared/workbench'
 import { createInMemoryAgentWorkbenchPersistenceAdapter } from '../../persistence'
 import {
   createDurableMissionScheduler,
@@ -55,12 +59,14 @@ describe('DurableMissionScheduler', () => {
       checkpointExecutor: executor,
     })
 
-    await restartedScheduler.tick({ missionRunId: mission.id })
+    const tick = await restartedScheduler.tick({ missionRunId: mission.id })
 
     const checkpoints = await adapter.missions.listMissionCheckpoints(mission.id)
     const events = await adapter.missions.listMissionSchedulerEvents(mission.id)
 
     expect(executor.calls).toEqual(['mission-restart:cp-6h'])
+    expect(executor.missionStatuses).toEqual(['running'])
+    expect(tick.mission.status).toBe('running')
     expect(checkpoints.find(checkpoint => checkpoint.id === 'mission-restart:cp-6h')).toMatchObject({
       status: 'completed',
       completedAt: CHECKPOINT_6H,
@@ -70,6 +76,7 @@ describe('DurableMissionScheduler', () => {
       type: 'checkpoint_completed',
       checkpointId: 'mission-restart:cp-6h',
     }))
+    expect(projectMissionRunStatusFromSchedulerEvents(mission, events)).toBe('running')
   })
 
   it('executes duplicate checkpoint ticks idempotently', async () => {
@@ -138,6 +145,22 @@ describe('DurableMissionScheduler', () => {
       requiredGateResults: [{ gateId: 'schema', status: 'pass', blocking: true }],
       criticalOpenFindings: 0,
     })
+    const payloadOnlyArtifact = await scheduler.finalizeMission({
+      missionRunId: mission.id,
+      elapsedHours: 24,
+      finalArtifactId: 'artifact:mission-evidence-final',
+      requiredGateResults: passingGateResults(),
+      criticalOpenFindings: 0,
+    })
+    const checkpoints = await adapter.missions.listMissionCheckpoints(mission.id)
+    const finalCheckpoint = checkpoints.at(-1)
+    expect(finalCheckpoint).toBeDefined()
+    await adapter.missions.saveMissionCheckpoint({
+      ...finalCheckpoint!,
+      status: 'completed',
+      completedAt: CHECKPOINT_24H,
+      artifactIds: ['artifact:mission-evidence-final'],
+    })
     const withEvidence = await scheduler.finalizeMission({
       missionRunId: mission.id,
       elapsedHours: 24,
@@ -148,6 +171,8 @@ describe('DurableMissionScheduler', () => {
 
     expect(missingGateEvidence.decision).toBe('fail')
     expect(missingGateEvidence.reasons).toContain('missing_gate_evidence')
+    expect(payloadOnlyArtifact.decision).toBe('fail')
+    expect(payloadOnlyArtifact.reasons).toContain('missing_stored_final_artifact')
     expect(withEvidence.decision).toBe('pass')
     expect(await adapter.missions.getMissionRun(mission.id)).toMatchObject({
       status: 'completed',
@@ -311,13 +336,16 @@ function fakeClock(now: string) {
   return { now: () => now }
 }
 
-function fakeCheckpointExecutor(): MissionCheckpointExecutor & { calls: string[] } {
+function fakeCheckpointExecutor(): MissionCheckpointExecutor & { calls: string[]; missionStatuses: MissionRun['status'][] } {
   const calls: string[] = []
+  const missionStatuses: MissionRun['status'][] = []
   return {
     kind: 'fake',
     calls,
+    missionStatuses,
     async execute(input) {
       calls.push(input.checkpoint.id)
+      missionStatuses.push(input.mission.status)
       return {
         summary: `Deterministic checkpoint ${input.checkpoint.title}`,
         artifactIds: [`artifact:${input.checkpoint.id}`],

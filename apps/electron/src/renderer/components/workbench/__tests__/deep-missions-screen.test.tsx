@@ -154,8 +154,10 @@ describe('Deep Missions entry screen', () => {
     expect(plan.status).toBe('launched');
     expect(draftPersistence.savedDrafts).toHaveLength(1);
     expect(scheduler.launchedMissions.map((mission) => mission.id)).toEqual([plan.mission.id]);
+    expect(plan.mission.status).toBe('queued');
+    expect(scheduler.launchedMissions[0]?.status).toBe('queued');
     expect(runtimeAdapter.events.map((event) => event.type)).toEqual(['mission.drafted', 'mission.launched']);
-    expect(runtimeStore.getState().missions[0]?.status).toBe('running');
+    expect(runtimeStore.getState().missions[0]?.status).toBe('queued');
     expect(runtimeStore.getState().checkpoints).toHaveLength(4);
   });
 
@@ -200,7 +202,7 @@ describe('Deep Missions entry screen', () => {
       },
     ] satisfies ExperienceEvent[]);
 
-    expect(state.missions[0]?.status).toBe('running');
+    expect(state.missions[0]?.status).toBe('queued');
     expect(state.notifications.at(-1)?.kind).toBe('error');
     expect(state.notifications.at(-1)?.message).toContain('requires stored final artifact and passing gate evidence');
   });

@@ -7,6 +7,7 @@ import type {
   MissionMode,
   MissionRun,
 } from '@rox-agent/shared/workbench';
+import { normalizeMissionRunForLaunch } from '@rox-agent/shared/workbench';
 
 export type DeepMissionPresetId = 'sprint_6h' | 'deep_run_24h' | 'watchtower_72h';
 export type DeepMissionFormStatus = 'empty' | 'invalid' | 'ready' | 'launching' | 'launched' | 'blocked' | 'failed';
@@ -309,9 +310,7 @@ export async function createDeepMissionLaunchPlan(
   const missionId = createStableId('mission', state.title, input.now);
   const draftMission = createMissionRunFromDraft(state, input, missionId, 'draft');
   const launchedMission = {
-    ...draftMission,
-    status: 'running',
-    startedAt: input.now,
+    ...normalizeMissionRunForLaunch(draftMission, input.now),
   } satisfies MissionRun;
   const checkpoints = createLaunchCheckpoints(state, missionId, input.now);
   const events: ExperienceEvent[] = [

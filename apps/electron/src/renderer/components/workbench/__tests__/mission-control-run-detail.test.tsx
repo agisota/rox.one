@@ -75,6 +75,7 @@ describe('Mission Control run detail', () => {
 
     expect(state.mission.id).toBe('mission-runtime-control');
     expect(state.checkpoints.map((checkpoint) => checkpoint.id)).toEqual(['cp-runtime-6h']);
+    expect(state.canFinalize).toBe(false);
     expect(markup).toContain('Runtime Control Mission');
     expect(markup).toContain('cp-runtime-6h');
   });
@@ -132,7 +133,7 @@ describe('Mission Control run detail', () => {
     ] satisfies ExperienceEvent[]);
     const state = createMissionControlStateFromRuntime(runtimeState);
 
-    expect(state.mission.status).toBe('running');
+    expect(state.mission.status).toBe('queued');
     expect(runtimeState.notifications.at(-1)?.kind).toBe('error');
   });
 });

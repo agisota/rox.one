@@ -23,6 +23,10 @@ import {
   type ExperienceTruthState,
   type ExperienceTruthView,
 } from './experience-state';
+import {
+  canFinalizeMissionRun,
+  normalizeMissionRunForLaunch,
+} from './mission-lifecycle';
 import { ValidationGateSchema, type ValidationGate } from './product-mode-registry';
 
 const IdSchema = z.string().min(1);
@@ -568,7 +572,7 @@ function reduceNewExperienceEvent(state: ExperienceRuntimeState, event: Experien
       return appendMission(state, { ...event.payload.mission, status: 'draft' }, event, 'Mission drafted');
     case 'mission.launched':
       return appendNotification({
-        ...appendMission(state, event.payload.mission, event, 'Mission launched'),
+        ...appendMission(state, normalizeMissionRunForLaunch(event.payload.mission, event.createdAt), event, 'Mission launched'),
         checkpoints: upsertById(state.checkpoints, event.payload.checkpoints),
       }, successNotification(event, 'Mission launched'));
     case 'mission.checkpoint.completed':
@@ -762,27 +766,18 @@ function finalizeMission(
   state: ExperienceRuntimeState,
   event: Extract<ExperienceEvent, { type: 'mission.finalized' }>,
 ): ExperienceRuntimeState {
-  const hasGateEvidence = event.payload.gateEvidenceRefs.length > 0;
-  const finalArtifact = event.payload.finalArtifactId
-    ? state.artifacts.find((artifact) =>
-        artifact.id === event.payload.finalArtifactId
-        && (!artifact.missionRunId || artifact.missionRunId === event.payload.missionRunId),
-      )
-    : undefined;
-  const hasPassingGateEvidence = event.payload.gateEvidenceRefs.some((evidenceRef) =>
-    state.gateResults.some((gate) =>
-      gate.evidenceRef === evidenceRef
-      && gate.status === 'pass'
-      && (!gate.missionRunId || gate.missionRunId === event.payload.missionRunId),
-    ),
-  );
-  const hasBlockingFailedGate = state.gateResults.some((gate) =>
-    gate.missionRunId === event.payload.missionRunId
-    && gate.status === 'fail'
-    && gate.blocking,
-  );
+  const mission = state.missions.find((candidate) => candidate.id === event.payload.missionRunId);
+  const finalization = mission
+    ? canFinalizeMissionRun({
+        mission,
+        finalArtifactId: event.payload.finalArtifactId,
+        gateEvidenceRefs: event.payload.gateEvidenceRefs,
+        artifacts: state.artifacts,
+        gateResults: state.gateResults,
+      })
+    : { allowed: false, reasons: ['missing_mission'] };
 
-  if (!event.payload.finalArtifactId || !hasGateEvidence || !finalArtifact || !hasPassingGateEvidence || hasBlockingFailedGate) {
+  if (!finalization.allowed) {
     return appendNotification(state, {
       id: `notification-${event.id}`,
       eventId: event.id,
