@@ -1,49 +1,19 @@
 # Shared File Lock
 
-This file records temporary ownership for the ROX ONE e2e integration wave.
-It is a coordination guard only; it does not change runtime behavior.
+This file records current ownership for the ROX production-ready RC integration
+train. It prevents independent lanes from mutating shared files without an
+explicit handoff.
 
-## Ownership Map
-
-```text
-package.json / bun.lock:
-  owner: integration lead only
-
-global CSS / design tokens:
-  owner: T069 only
-
-route registry / app navigation:
-  owner: T068 or T069, one owner at a time
-
-packages/shared schemas:
-  owner: T066 for mission contracts, T067 can request changes
-
-Electron main/preload bridge:
-  owner: integration lead or explicit ticket owner
-
-account/share/session code:
-  frozen unless T071 finds security regression
-
-Experience screen components:
-  owner: T068 for state binding, T069 for visual polish after T068 contracts
-
-CI files:
-  owner: T070
-
-security tests:
-  owner: T071
-```
-
-## Merge Train
-
-```text
-T066 -> T067 -> T068 -> T069 -> T070 -> T071 -> T072
-```
-
-## Rules
-
-- Shared files may have one owner at a time.
-- Ticket branches must not stage unrelated runtime state.
-- `events.jsonl`, `.claude/`, logs, caches, secrets, and generated local state are never part of this wave.
-- T068 implementation starts only after T066 mission-store contracts are stable.
-- T072 starts only after T066-T071 are merged and green.
+| Area | Owner | Notes |
+|---|---|---|
+| `package.json` / `bun.lock` | integration lead | No dependency/script churn without explicit ticket need. |
+| global CSS / design tokens | T081 | Do not edit during T074. |
+| route registry / app navigation | T076/T080 | One owner at a time. |
+| `packages/shared/src/workbench/` | T074/T077 | T074 owns runtime store/event bus now. |
+| mission scheduler | T076 | T074 may reference contracts only. |
+| provider gateway | T079 | T074 must stay fake-safe and not call providers. |
+| account/session/share | T083/T084 | Do not edit during T074. |
+| Experience screens | T075-T080 | T074 may add selectors, not visual polish. |
+| CI files | T085 | Do not edit during T074. |
+| security tests | T086 | T074 adds local integrity tests only. |
+| release docs | T087 | T074 updates ticket/worklog only. |
