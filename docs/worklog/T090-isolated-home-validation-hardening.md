@@ -67,6 +67,10 @@ Observed failures before implementation:
   - `loadConfigDefaults()` now self-heals a missing config defaults file by
     ensuring the config directory exists and invoking the existing
     `ensureConfigDefaults()` bootstrap path before reading.
+  - `syncConfigDefaults()` now only short-circuits when the defaults file still
+    exists, which fixes same-process isolated-home tests that delete the temp
+    config directory between cases after the module-level sync flag has already
+    been set.
 - `packages/shared/src/config/__tests__/storage-migrations.test.ts`
   - Added subprocess-backed regression coverage for a fresh `CRAFT_CONFIG_DIR`
     so the module-level config constants are initialized against the isolated
@@ -108,8 +112,10 @@ Current reproduced failures in changed scope:
   HOME.
 - `factory.test.ts`: missing `config-defaults.json` in fresh HOME.
 
-Watcher tests were not investigated yet because the three failures above are the
-more direct startup/runtime blockers.
+Watcher tests were deferred initially because the three failures above were the
+more direct startup/runtime blockers. After the fix landed, the previously
+deferred watcher slice was re-run under isolated HOME and passed, confirming
+that no adjacent regression was introduced in that area.
 
 ```bash
 env HOME=/private/tmp/craft-bun-test-home bun test \
@@ -118,7 +124,18 @@ env HOME=/private/tmp/craft-bun-test-home bun test \
   packages/shared/src/agent/backend/__tests__/factory.test.ts
 ```
 
-Result after implementation: PASS (`49 pass, 1 skip, 0 fail`).
+Result after initial implementation: PASS (`49 pass, 1 skip, 0 fail`).
+
+```bash
+env HOME=/private/tmp/craft-bun-test-home bun test \
+  packages/server-core/src/sessions/refresh-connection-runtime.test.ts \
+  packages/shared/src/workbench/__tests__/default-workspace-bundle.test.ts \
+  apps/electron/src/main/handlers/__tests__/session-watcher.test.ts \
+  apps/electron/src/main/handlers/__tests__/sessions-watchers.test.ts \
+  packages/shared/src/agent/backend/__tests__/factory.test.ts
+```
+
+Result after follow-up hardening: PASS (`54 pass, 1 skip, 0 fail`).
 
 ```bash
 bun test packages/shared/src/config/__tests__/storage-migrations.test.ts
@@ -126,9 +143,38 @@ bun test packages/shared/src/config/__tests__/storage-migrations.test.ts
 
 Result after implementation: PASS (`12 pass, 0 fail`).
 
+```bash
+env HOME=/private/tmp/craft-bun-test-home bun test \
+  apps/electron/src/main/handlers/__tests__/session-watcher.test.ts \
+  apps/electron/src/main/handlers/__tests__/sessions-watchers.test.ts
+```
+
+Result after implementation: PASS (`5 pass, 0 fail`).
+
+```bash
+env HOME=/private/tmp/craft-bun-test-home bun test \
+  packages/shared/src/config/__tests__/storage-startup-migration.test.ts \
+  packages/shared/src/config/__tests__/default-thinking-level.test.ts \
+  packages/shared/src/config/__tests__/llm-connections.test.ts
+```
+
+Result after implementation: PASS (`60 pass, 0 fail`).
+
+```bash
+env HOME=/private/tmp/craft-bun-test-home bun test \
+  packages/shared/src/workbench/__tests__/default-workspace-bundle.test.ts \
+  apps/electron/src/main/handlers/__tests__/session-watcher.test.ts \
+  apps/electron/src/main/handlers/__tests__/sessions-watchers.test.ts \
+  packages/shared/src/agent/backend/__tests__/factory.test.ts \
+  packages/server-core/src/sessions/refresh-connection-runtime.test.ts
+```
+
+Result after implementation: PASS (`54 pass, 1 skip, 0 fail`).
+
 ## 8. Passing test output summary
 
 - Isolated-home focused regression suite: PASS (`49 pass, 1 skip, 0 fail`).
+- Expanded isolated-home watcher/factory suite: PASS (`54 pass, 1 skip, 0 fail`).
 - Config storage migration/defaults suite: PASS (`12 pass, 0 fail`).
 - Touched package typechecks:
   - `cd packages/shared && bun run tsc --noEmit`: PASS, no output.
@@ -142,9 +188,10 @@ broader follow-up because prior worklogs record unrelated full-suite blockers.
 
 ## 10. Remaining risks
 
-- Session watcher failures may remain outside this T090 slice.
-- Broader isolated-home/full-suite validation may expose additional bootstrapping
-  assumptions outside this ticket's first slice.
+- Broader isolated-home/full-suite validation may still expose additional
+  bootstrapping assumptions outside this ticket's focused config/runtime slice.
+- This ticket verifies targeted shared/server/electron startup-adjacent paths,
+  not the entire monorepo validation surface.
 - Ticket/worklog/release-doc status reconciliation still remains after code/test
   hardening.
 
