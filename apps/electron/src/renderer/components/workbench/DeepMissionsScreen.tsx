@@ -6,6 +6,7 @@ import {
   createDeepMissionEntryState,
   createDeepMissionEntryStateFromTruth,
   selectDeepMissionPreset,
+  updateDeepMissionDraft,
   type DeepMissionEntryState,
   type DeepMissionEntryStateInput,
   type DeepMissionPreset,
@@ -126,34 +127,168 @@ export function DeepMissionsScreen({
             </span>
           ))}
         </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <ReadOnlyField label="Название" value={state.title || 'Без названия'} />
-          <ReadOnlyField label="Режим" value={formatMode(state.mode)} />
-          <ReadOnlyField label="Слой" value={formatLayer(state.experienceLayer)} />
-          <ReadOnlyField label="Целевой VDI" value={`${state.vdiTarget}`} />
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <ExperienceStatusChip status={state.status === 'ready' ? 'success' : state.status === 'empty' ? 'queued' : 'blocking'} label={`Состояние: ${localizeFormStatus(state.status)}`} />
+          <ExperienceStatusChip status={state.canLaunch ? 'ready' : 'blocking'} label={state.canLaunch ? 'Можно запускать' : 'Нужны правки'} />
         </div>
-        <ReadOnlyBlock label="Цель" value={state.objective || 'Цель пока не задана.'} />
-        <ReadOnlyBlock label="Исходный запрос" value={state.rawInput || 'Исходный запрос пока не передан.'} />
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <FormField
+            label="Название миссии"
+            value={state.title}
+            placeholder="Например: Проверка RC перед релизом"
+            onChange={(value) => setState((current) => updateDeepMissionDraft(current, { title: value }))}
+          />
+          <SelectField
+            label="Режим"
+            value={state.mode}
+            options={[
+              ['deep_run', 'Глубокий прогон'],
+              ['deep_reasoning_lab', 'Лаборатория рассуждения'],
+              ['agenda_carnage', 'Agenda Carnage'],
+              ['swarm_arena', 'Арена swarm'],
+              ['round_table', 'Round Table'],
+              ['autoresearch_loop', 'Autoresearch Loop'],
+              ['proactive_watchtower', 'Proactive Watchtower'],
+            ]}
+            onChange={(value) => setState((current) => updateDeepMissionDraft(current, { mode: value as DeepMissionEntryState['mode'] }))}
+          />
+          <SelectField
+            label="Слой"
+            value={state.experienceLayer}
+            options={[
+              ['command', 'Командный центр'],
+              ['game', 'Игровой слой'],
+              ['arena', 'Арена'],
+            ]}
+            onChange={(value) => setState((current) => updateDeepMissionDraft(current, { experienceLayer: value as DeepMissionEntryState['experienceLayer'] }))}
+          />
+          <NumberField label="Длительность, часы" value={state.durationHours} min={1} onChange={(value) => setState((current) => updateDeepMissionDraft(current, { durationHours: value }))} />
+          <NumberField label="Частота чекпоинтов, часы" value={state.checkpointCadenceHours} min={1} onChange={(value) => setState((current) => updateDeepMissionDraft(current, { checkpointCadenceHours: value }))} />
+          <NumberField label="Бюджетный лимит" value={state.budgetCapCredits} min={0} onChange={(value) => setState((current) => updateDeepMissionDraft(current, { budgetCapCredits: value }))} />
+          <NumberField label="Token cap" value={state.tokenCap} min={0} onChange={(value) => setState((current) => updateDeepMissionDraft(current, { tokenCap: value }))} />
+          <NumberField label="Storage cap" value={state.storageCapBytes} min={0} onChange={(value) => setState((current) => updateDeepMissionDraft(current, { storageCapBytes: value }))} />
+          <NumberField label="Количество агентов" value={state.selectedAgentCount} min={1} onChange={(value) => setState((current) => updateDeepMissionDraft(current, { selectedAgentCount: value }))} />
+          <NumberField label="Целевой VDI" value={state.vdiTarget} min={0} max={100} onChange={(value) => setState((current) => updateDeepMissionDraft(current, { vdiTarget: value }))} />
+        </div>
+        <TextAreaField
+          label="Цель миссии"
+          value={state.objective}
+          placeholder="Что должно быть доказано, собрано или исправлено"
+          onChange={(value) => setState((current) => updateDeepMissionDraft(current, { objective: value }))}
+        />
+        <TextAreaField
+          label="Исходный запрос"
+          value={state.rawInput}
+          placeholder="Вставьте исходный prompt, задачу или сырой контекст"
+          onChange={(value) => setState((current) => updateDeepMissionDraft(current, { rawInput: value }))}
+        />
       </ExperiencePanel>
     </ExperienceShell>
   );
 }
 
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
+function FormField({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (value: string) => void;
+}) {
   return (
-    <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.035] p-3">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
-      <div className="mt-2 text-sm font-medium">{value}</div>
-    </div>
+    <label className="block rounded-[16px] border border-white/[0.07] bg-white/[0.035] p-3">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
+      <input
+        className="mt-2 w-full rounded-[12px] border border-white/10 bg-black/20 px-3 py-2 text-sm font-medium outline-none transition focus:border-cyan-300/60"
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.currentTarget.value)}
+      />
+    </label>
   );
 }
 
-function ReadOnlyBlock({ label, value }: { label: string; value: string }) {
+function NumberField({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min?: number;
+  max?: number;
+  onChange: (value: number) => void;
+}) {
   return (
-    <div className="mt-3 rounded-[16px] border border-white/[0.07] bg-white/[0.035] p-3">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
-      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{value}</p>
-    </div>
+    <label className="block rounded-[16px] border border-white/[0.07] bg-white/[0.035] p-3">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
+      <input
+        className="mt-2 w-full rounded-[12px] border border-white/10 bg-black/20 px-3 py-2 text-sm font-medium outline-none transition focus:border-cyan-300/60"
+        type="number"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(event) => onChange(Number(event.currentTarget.value))}
+      />
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Array<[string, string]>;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block rounded-[16px] border border-white/[0.07] bg-white/[0.035] p-3">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
+      <select
+        className="mt-2 w-full rounded-[12px] border border-white/10 bg-black/20 px-3 py-2 text-sm font-medium outline-none transition focus:border-cyan-300/60"
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+      >
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function TextAreaField({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="mt-3 block rounded-[16px] border border-white/[0.07] bg-white/[0.035] p-3">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{label}</span>
+      <textarea
+        className="mt-2 min-h-28 w-full resize-y rounded-[12px] border border-white/10 bg-black/20 px-3 py-2 text-sm leading-6 outline-none transition focus:border-cyan-300/60"
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.currentTarget.value)}
+      />
+    </label>
   );
 }
 
@@ -186,23 +321,24 @@ function localizeValidationError(error: string): string {
       return 'Нужна цель миссии.';
     case 'Budget cap is required before launch.':
       return 'Перед запуском нужен бюджетный лимит.';
+    case 'Token cap is required before launch.':
+      return 'Перед запуском нужен token cap.';
+    case 'Storage cap is required before launch.':
+      return 'Перед запуском нужен storage cap.';
+    case 'At least one agent is required before launch.':
+      return 'Нужен хотя бы один агент.';
     default:
       return error;
   }
 }
 
-function formatMode(mode: string): string {
-  if (mode === 'deep_run') return 'Глубокий прогон';
-  if (mode === 'swarm_arena') return 'Арена swarm';
-  return mode
-    .split('_')
-    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function formatLayer(layer: string): string {
-  if (layer === 'command') return 'Командный центр';
-  if (layer === 'game') return 'Игровой слой';
-  if (layer === 'arena') return 'Арена';
-  return layer;
+function localizeFormStatus(status: string): string {
+  if (status === 'empty') return 'пусто';
+  if (status === 'invalid') return 'нужны правки';
+  if (status === 'ready') return 'готово';
+  if (status === 'launching') return 'запуск';
+  if (status === 'launched') return 'запущено';
+  if (status === 'blocked') return 'заблокировано';
+  if (status === 'failed') return 'ошибка';
+  return status;
 }
