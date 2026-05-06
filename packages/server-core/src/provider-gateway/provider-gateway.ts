@@ -1,4 +1,5 @@
 import { ArtifactTypeSchema, type ArtifactType } from '@rox-agent/shared/workbench'
+import { sanitizePublicPayload } from '../security/public-payload-sanitizer'
 
 export const PROVIDER_CAPABILITIES = [
   'llm',
@@ -122,8 +123,6 @@ export interface ProviderGatewayOptions {
 export interface FakeProviderGatewayOptions {
   now?: () => string
 }
-
-const SECRET_FIELD_PATTERN = /^(authorization|cookie|set-cookie|x-api-key|api[-_]?key|access[-_]?token|refresh[-_]?token|id[-_]?token|bearer|password|secret|rox_session|session[-_]?cookie|session[-_]?token)$/i
 
 export function mapProviderErrorToUserState(input: {
   code: ProviderGatewayErrorCode
@@ -368,21 +367,7 @@ function toProviderGatewayError(error: unknown): ProviderGatewayError {
 }
 
 export function sanitizeProviderPublicPayload<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map(item => sanitizeProviderPublicPayload(item)) as T
-  }
-
-  if (!value || typeof value !== 'object') {
-    return value
-  }
-
-  const output: Record<string, unknown> = {}
-  for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
-    if (SECRET_FIELD_PATTERN.test(key)) continue
-    output[key] = sanitizeProviderPublicPayload(nestedValue)
-  }
-
-  return output as T
+  return sanitizePublicPayload(value, { dropSensitiveKeys: true })
 }
 
 function uniqueStrings(values: string[]): string[] {

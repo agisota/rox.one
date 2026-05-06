@@ -2,6 +2,7 @@ import { VIEWER_URL } from '@rox-agent/shared/branding'
 import type { ShareResult } from '@rox-agent/shared/protocol'
 
 import { createViewerShareFailureResult } from './share-errors'
+import { sanitizePublicPayload } from '../security/public-payload-sanitizer'
 
 export type ShareProviderFailureCode = NonNullable<ShareResult['code']>
 
@@ -69,24 +70,8 @@ export interface ShareProvider {
   revokeShare(input: ShareRevokeInput): Promise<ShareRevokeResult>
 }
 
-const SECRET_FIELD_PATTERN = /^(authorization|cookie|set-cookie|x-api-key|api[-_]?key|access[-_]?token|refresh[-_]?token|id[-_]?token|bearer|password|secret|rox_session|session[-_]?cookie|session[-_]?token)$/i
-
 export function sanitizeShareBundleForPublicViewer<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map(item => sanitizeShareBundleForPublicViewer(item)) as T
-  }
-
-  if (!value || typeof value !== 'object') {
-    return value
-  }
-
-  const output: Record<string, unknown> = {}
-  for (const [key, nestedValue] of Object.entries(value as Record<string, unknown>)) {
-    if (SECRET_FIELD_PATTERN.test(key)) continue
-    output[key] = sanitizeShareBundleForPublicViewer(nestedValue)
-  }
-
-  return output as T
+  return sanitizePublicPayload(value, { dropSensitiveKeys: true })
 }
 
 function isPrivateHostname(hostname: string): boolean {
