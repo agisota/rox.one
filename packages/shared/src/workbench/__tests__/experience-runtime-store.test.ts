@@ -380,6 +380,75 @@ describe('ExperienceRuntimeStore', () => {
     ).toBe('completed');
   });
 
+  it('denies mission finalization spoofing with missing or failed evidence', () => {
+    const forgedRefs = replayExperienceEvents([
+      missionLaunchedEvent(),
+      event('evt-forged-finalized', 'mission.finalized', {
+        missionRunId: 'mission-runtime',
+        finalArtifactId: 'artifact:does-not-exist',
+        gateEvidenceRefs: ['gate:security:forged-pass'],
+      }),
+    ]);
+
+    expect(forgedRefs.missions.find((mission) => mission.id === 'mission-runtime')?.status).toBe('running');
+    expect(forgedRefs.metricSnapshots.at(-1)?.verifiedDeliverableIndex ?? 0).toBe(0);
+
+    const failedGate = replayExperienceEvents([
+      missionLaunchedEvent(),
+      event('evt-final-artifact', 'artifact.created', {
+        artifact: {
+          id: 'artifact:final-secure',
+          missionRunId: 'mission-runtime',
+          artifactType: 'final_report',
+          title: 'Final secure deliverable',
+          evidenceRefs: ['gate:security:failed'],
+          createdAt: NOW,
+        },
+      }),
+      event('evt-security-failed', 'gate.failed', {
+        missionRunId: 'mission-runtime',
+        gateId: 'security_check',
+        evidenceRef: 'gate:security:failed',
+        blocking: true,
+      }),
+      event('evt-finalized-on-failed-gate', 'mission.finalized', {
+        missionRunId: 'mission-runtime',
+        finalArtifactId: 'artifact:final-secure',
+        gateEvidenceRefs: ['gate:security:failed'],
+      }),
+    ]);
+
+    expect(failedGate.missions.find((mission) => mission.id === 'mission-runtime')?.status).toBe('running');
+    expect(failedGate.metricSnapshots.at(-1)?.verifiedDeliverableIndex ?? 0).toBe(0);
+
+    const passingGate = replayExperienceEvents([
+      missionLaunchedEvent(),
+      event('evt-final-artifact-pass', 'artifact.created', {
+        artifact: {
+          id: 'artifact:final-secure',
+          missionRunId: 'mission-runtime',
+          artifactType: 'final_report',
+          title: 'Final secure deliverable',
+          evidenceRefs: ['gate:security:passed'],
+          createdAt: NOW,
+        },
+      }),
+      event('evt-security-passed', 'gate.passed', {
+        missionRunId: 'mission-runtime',
+        gateId: 'security_check',
+        evidenceRef: 'gate:security:passed',
+      }),
+      event('evt-finalized-on-passing-gate', 'mission.finalized', {
+        missionRunId: 'mission-runtime',
+        finalArtifactId: 'artifact:final-secure',
+        gateEvidenceRefs: ['gate:security:passed'],
+      }),
+    ]);
+
+    expect(passingGate.missions.find((mission) => mission.id === 'mission-runtime')?.status).toBe('completed');
+    expect(passingGate.metricSnapshots.at(-1)?.verifiedDeliverableIndex ?? 0).toBeGreaterThan(0);
+  });
+
   it('persists through the adapter instead of bypassing durable seams', async () => {
     const adapter = createInMemoryExperiencePersistenceAdapter();
     const store = await createExperienceRuntimeStore({ adapter });
