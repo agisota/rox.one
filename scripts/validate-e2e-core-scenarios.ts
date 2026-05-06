@@ -38,6 +38,8 @@ const workflow = read('.github/workflows/e2e-core.yml');
 for (const requiredText of [
   'composer-artifact-flow.test.ts',
   'artifact-screens.test.tsx',
+  'experience-layer-e2e-scenario.test.ts',
+  'experience-runtime-journey',
   'account-auth-panel.test.tsx',
   'account-teams.test.ts',
   'account-billing.test.ts',

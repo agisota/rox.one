@@ -25,6 +25,11 @@ const scenarios: Scenario[] = [
     ],
   },
   {
+    id: 'experience-runtime-journey',
+    title: 'Experience runtime journey stays fake-provider-safe and replayable',
+    command: ['bun', 'test', 'packages/shared/src/workbench/__tests__/experience-layer-e2e-scenario.test.ts'],
+  },
+  {
     id: 'account-team-billing-storage',
     title: 'Account, teams, billing, and storage stay tenant-scoped with fake providers',
     command: [
