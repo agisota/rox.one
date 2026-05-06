@@ -1,35 +1,11 @@
-# ROX ONE Agent Workbench - Admin Guide
+# ROX ONE Agent Workbench Suite - Admin Guide 2026-05-06
 
-Date: 2026-05-06
-Repository: `/Users/marklindgreen/Projects/rox/rox`
-Integration branch: `mac/rox-e2e-integration`
+Audience: private repo operators and release validators.
+Branch: `mac/rox-production-ready-rc`
 
-## 1. Operator Model
+## 1. Local Validation
 
-This project is a white-label fork of Rox Agents OSS. The ROX-owned layers
-must be preserved during upstream updates:
-
-```text
-ROX branding / i18n
-Workbench screens
-Account cabinet
-Share/session provider seams
-Experience Layer
-Persistence contracts
-Release docs
-Security tests
-```
-
-Do not stage local runtime artifacts:
-
-```text
-events.jsonl
-.claude/
-```
-
-## 2. Development Commands
-
-Primary gates:
+Run the RC gate from repo root:
 
 ```bash
 bun run validate:docs
@@ -38,208 +14,96 @@ bun run typecheck:all
 bun test
 bun run lint
 bun run electron:build
-git diff --check
-```
-
-Release/e2e gates:
-
-```bash
 bun run validate:ci
 bun run validate:e2e-core-scenarios
 bun run e2e:core
 bun run electron:smoke
-bun run validate:release
-```
-
-Private release workflow validator:
-
-```bash
-bun run validate:private-release-pipeline
-```
-
-Mac ARM workflow contract:
-
-```bash
 bun run validate:mac-arm-build-workflow
+git diff --check
 ```
 
-## 3. Fake Provider Rule
-
-Tests must not call real external providers.
-
-Allowed in tests:
-
-```text
-Fake LLM provider
-Fake research/browser provider
-Fake object storage provider
-Fake email/outbox provider
-Fake billing/payment provider
-Fake share/shortlink provider
-Fake scheduler/clock provider
-Fake agent registry provider
-```
-
-Forbidden in tests:
-
-```text
-OpenAI/Anthropic/Google live calls
-real S3/R2/MinIO writes
-real payment settlement
-real email delivery
-real browser automation against public services
-real public viewer uploads
-real marketplace/package registry mutation
-```
-
-## 4. Release Architecture
-
-```text
-Renderer
-  -> preload bridge
-  -> Electron main
-  -> server-core domain handlers
-  -> persistence adapter
-  -> provider gateway
-  -> artifact/evidence/audit
-  -> validation gates
-  -> selector projection
-  -> Renderer feedback
-```
-
-## 5. Account Operations
-
-Session handling:
-
-```text
-login/register response
-  -> main process account proxy
-  -> rox_session captured
-  -> Electron safeStorage encryption
-  -> userData session file
-  -> bootstrap hydration
-  -> account/me confirmation
-```
-
-Admin invariants:
-
-- do not expose `rox_session` to renderer state;
-- logout clears encrypted session state;
-- corrupt session fails closed;
-- public share payloads must never include account cookies/tokens.
-
-## 6. Mission Operations
-
-Mission scheduler invariants:
-
-```text
-persist before execute
-recover after restart
-idempotent checkpoint execution
-evidence required for final completion
-budget/capacity checked before branch expansion
-human approval required for expensive swarm expansion
-```
-
-Do not mark a long mission complete from elapsed time alone.
-
-## 7. Provider Gateway Operations
-
-Provider error taxonomy should map failures to user-visible states:
-
-```text
-auth_required
-rate_limited
-timeout
-retryable
-permanent
-invalid_output
-budget_denied
-provider_unavailable
-```
-
-Provider outputs must be sanitized before public/share/audit exposure.
-
-## 8. Security Gates
-
-Before public release, these checks must stay green:
-
-```text
-tenant isolation
-workspace RBAC
-team/private package visibility
-ledger spoofing
-quota bypass
-shortlink payload leakage
-prompt-injection package scan
-mission budget bypass
-paid entitlement bypass
-secret redaction
-sync conflict overwrite
-account/session public payload leakage
-```
-
-## 9. Private CI/CD
-
-The private release workflow is expected to run:
-
-```text
-bun install --frozen-lockfile
-validate docs
-lint
-typecheck
-tests
-Electron build
-Mac ARM workflow contract
-private artifact upload
-```
-
-The CI contract is local-validated through:
+The canonical CI parity command is:
 
 ```bash
-bun run validate:private-release-pipeline
-bun run validate:ci-contract
+bun run validate:ci
 ```
 
-## 10. Upstream Merge Rule
+## 2. Private CI/Release
 
-When merging future Rox Agents upstream changes:
+The private release pipeline validates:
+
+- docs and agent contracts;
+- architecture docs;
+- CI contract;
+- private release pipeline contract;
+- shared config/model tests;
+- document tool smoke tests;
+- i18n parity, sorting, and coverage;
+- Mac ARM workflow contract.
+
+No workflow should upload public artifacts unless explicitly configured.
+
+## 3. Provider Policy
+
+Default RC policy:
 
 ```text
-1. Create a protected merge branch.
-2. Generate upstream diff map.
-3. Check ROX protected paths before resolving conflicts.
-4. Run docs/typecheck/tests/e2e/build.
-5. Never drop ROX Workbench, account, i18n, Experience, or release docs silently.
+tests and local validators
+  -> deterministic fake providers only
+
+production adapters
+  -> require explicit credentials, observability, rate limits, redaction,
+     retry taxonomy, and billing attribution
 ```
 
-Protected surfaces:
+Never enable real LLM, S3, payment, email, browser, marketplace, shortlink, or
+public viewer providers in tests.
+
+## 4. Security Model
+
+Core invariants:
+
+- mission finalization requires stored final artifact and stored passing gate;
+- failed blocking gates prevent final pass;
+- paid entitlement cannot satisfy quality/evidence/VDI/validation gates;
+- package install/fork requires trust evidence;
+- public/share payloads redact secrets, session cookies, provider keys, and
+  private local file content;
+- duplicate runtime events are idempotent where required.
+
+## 5. Release Hygiene
+
+Before committing or pushing:
+
+```bash
+git status --short --branch
+git diff --check
+```
+
+Do not stage:
 
 ```text
-apps/electron/src/renderer/components/workbench/
-apps/electron/src/renderer/pages/settings/
-apps/electron/src/main/account-api.ts
-packages/shared/src/workbench/
-packages/shared/src/i18n/
-packages/server-core/src/webui/
-packages/server-core/src/sync/
-docs/tickets/
-docs/worklog/
-docs/release/
-.swarm/
+events.jsonl
+.claude/
+runtime logs
+caches
+secrets
+build output
+generated local state
 ```
 
-## 11. Production Readiness Checklist
+Commits must use the Lore protocol trailers.
 
-Before public launch:
+## 6. Production Adapter Checklist
 
-- connect real provider adapters;
-- deploy durable scheduler workers;
-- connect production storage;
-- connect production shortlink/viewer backend;
-- connect production email verification;
-- connect payment provider and webhook reconciliation;
-- complete dependency audit remediation;
-- sign/notarize macOS release;
-- run clean-machine install and launch smoke;
-- run external security review of public share/account/session flows.
+Before public launch, add and validate:
+
+- real provider credentials and redaction;
+- hosted persistence adapter;
+- public share/viewer service;
+- email verification provider;
+- payment provider with webhook signature validation;
+- hosted durable mission workers;
+- package provenance/signing;
+- signed and notarized macOS distribution;
+- monitoring, alerting, audit retention, and incident runbook.
