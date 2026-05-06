@@ -76,6 +76,31 @@ bun run electron:build
   -> pass
 ```
 
+Known green validation after T073 ROX ID registration UX repair:
+
+```text
+targeted account auth tests
+  -> 8 pass, 0 fail
+
+broader account settings tests
+  -> 17 pass, 0 fail
+
+bun run typecheck:electron
+  -> pass
+
+bun run validate:docs
+  -> pass
+
+bun run lint:electron
+  -> 0 errors, 3 existing warnings
+
+git diff --check
+  -> pass
+
+bun run electron:build
+  -> pass
+```
+
 Current branch already includes:
 
 ```text
@@ -85,6 +110,7 @@ T062 upstream v0.9.1 merge implementation
 T063 account persistent session storage
 T064 public share provider seam
 T065 persistence adapter contracts
+T073 embedded ROX ID registration UX repair
 ```
 
 ## 4. High-Level Sequence
@@ -437,7 +463,7 @@ manual smoke screenshots
 Recommended path:
 
 ```text
-1. Commit T065 and this documentation checkpoint.
+1. Commit T073 account UX repair and documentation checkpoint.
 2. T066 durable mission scheduler.
 3. T067 provider gateway.
 4. T068 Experience real-state binding.
@@ -466,6 +492,16 @@ bun run validate:docs
 bun run typecheck:all
 bun test
 bun run electron:build
+```
+
+Immediate account regression checks before T066:
+
+```bash
+bun test apps/electron/src/renderer/pages/settings/__tests__/account-auth-feedback.test.ts \
+  apps/electron/src/renderer/pages/settings/__tests__/account-auth-panel.test.tsx \
+  apps/electron/src/renderer/pages/settings/__tests__/account-brand-summary.test.ts \
+  apps/electron/src/renderer/pages/settings/__tests__/account-storage-summary.test.ts \
+  apps/electron/src/renderer/pages/settings/__tests__/account-teams-summary.test.ts
 ```
 
 T066 targeted start:
@@ -515,6 +551,7 @@ Go to T066 only if:
 
 ```text
 T065 scoped commit exists
+T073 scoped commit exists
 validate:docs passes
 typecheck:all passes
 bun test passes
@@ -526,6 +563,7 @@ No-go if:
 
 ```text
 T065 remains uncommitted
+T073 remains uncommitted
 docs/tickets status count is ambiguous
 public share/account regressions appear
 full test suite is red

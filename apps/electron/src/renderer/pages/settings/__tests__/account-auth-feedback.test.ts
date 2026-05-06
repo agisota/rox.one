@@ -38,4 +38,14 @@ describe('account auth feedback', () => {
     )
     expect(getAccountAuthRefreshFailureMessage('Profile endpoint unavailable')).toBe('Profile endpoint unavailable')
   })
+
+  test('treats registration auth refresh as a non-fatal verification pending state', () => {
+    expect(getAccountAuthRefreshFailureMessage('Authentication required', 'register')).toBe(
+      'Аккаунт создан. Проверьте email и войдите после подтверждения ROX ID.',
+    )
+    expect(getAccountAuthRefreshFailureMessage(
+      "Error invoking remote method 'account:request': Error: Authentication required",
+      'register',
+    )).toBe('Аккаунт создан. Проверьте email и войдите после подтверждения ROX ID.')
+  })
 })

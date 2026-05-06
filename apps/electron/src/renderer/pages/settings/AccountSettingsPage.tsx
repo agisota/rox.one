@@ -21,6 +21,8 @@ import {
   getAccountAuthRefreshFailureMessage,
   getAccountAuthSuccessMessage,
   getConfirmedAccountCabinetError,
+  isPendingAccountAuthRefresh,
+  normalizeAccountAuthError,
 } from './account-auth-feedback'
 import {
   summarizeAccountStorage,
@@ -147,6 +149,7 @@ export default function AccountSettingsPage() {
   const [newSpaceName, setNewSpaceName] = useState('')
   const [inviteTeamId, setInviteTeamId] = useState('')
   const [joinCode, setJoinCode] = useState('')
+  const lastAccountLoadErrorRef = React.useRef<string | null>(null)
 
   const isHostedHttp = window.location.protocol === 'http:' || window.location.protocol === 'https:'
 
@@ -191,6 +194,7 @@ export default function AccountSettingsPage() {
     setError(null)
     try {
       const accountData = await accountApi<AccountResponse>('/api/account/me')
+      lastAccountLoadErrorRef.current = null
       setAccount(accountData)
       setDisplayName(accountData.user?.displayName ?? '')
 
@@ -236,7 +240,9 @@ export default function AccountSettingsPage() {
       setTeams([])
       setTeamSpaces({})
       setTeamsError(null)
-      setError(err instanceof Error ? err.message : String(err))
+      const message = normalizeAccountAuthError(err instanceof Error ? err.message : String(err))
+      lastAccountLoadErrorRef.current = message
+      setError(isPendingAccountAuthRefresh(message) ? null : message)
       return null
     } finally {
       setLoading(false)
@@ -269,11 +275,18 @@ export default function AccountSettingsPage() {
       if (successMessage) {
         setSaved(successMessage)
       } else {
-        setSaved(null)
-        setError((current) => getAccountAuthRefreshFailureMessage(current))
+        const refreshError = lastAccountLoadErrorRef.current
+        const refreshMessage = getAccountAuthRefreshFailureMessage(refreshError, tab)
+        if (isPendingAccountAuthRefresh(refreshError)) {
+          setSaved(refreshMessage)
+          setError(null)
+        } else {
+          setSaved(null)
+          setError(refreshMessage)
+        }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(normalizeAccountAuthError(err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -293,7 +306,7 @@ export default function AccountSettingsPage() {
       setSaved(t('settings.account.profileSaved'))
       await loadAccount()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(normalizeAccountAuthError(err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -314,7 +327,7 @@ export default function AccountSettingsPage() {
       setSaved(t('settings.account.passwordChanged'))
       await loadAccount()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(normalizeAccountAuthError(err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -333,7 +346,7 @@ export default function AccountSettingsPage() {
       })
       setSaved(t('settings.account.passwordResetSent'))
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(normalizeAccountAuthError(err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -348,7 +361,7 @@ export default function AccountSettingsPage() {
       setSaved(t('settings.account.verificationEmailSent'))
       await loadAccount()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(normalizeAccountAuthError(err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -369,7 +382,7 @@ export default function AccountSettingsPage() {
       }
       await loadAccount()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(normalizeAccountAuthError(err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -395,7 +408,7 @@ export default function AccountSettingsPage() {
       setSaved('Команда создана.')
       await loadAccount()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(normalizeAccountAuthError(err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -414,7 +427,7 @@ export default function AccountSettingsPage() {
       setSaved('Вы присоединились к команде.')
       await loadAccount()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(normalizeAccountAuthError(err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -436,7 +449,7 @@ export default function AccountSettingsPage() {
       setSaved('Space создан.')
       await loadAccount()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(normalizeAccountAuthError(err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -455,7 +468,7 @@ export default function AccountSettingsPage() {
       })
       setSaved(`Инвайт создан: ${data.invite.code} (${data.invite.role})`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(normalizeAccountAuthError(err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -475,7 +488,7 @@ export default function AccountSettingsPage() {
       setSaved(t('settings.account.sessionRevoked'))
       await loadAccount()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(normalizeAccountAuthError(err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -490,7 +503,7 @@ export default function AccountSettingsPage() {
       setSaved(t('settings.account.otherSessionsRevoked'))
       await loadAccount()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(normalizeAccountAuthError(err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -757,25 +770,27 @@ export default function AccountSettingsPage() {
                 </SettingsSection>
               </>
             ) : (
-              <>
-                <section className="rounded-2xl border border-border bg-card px-5 py-5">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Личный кабинет</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-foreground">Войдите в ROX ID</h2>
-                  <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                    Здесь будет профиль, баланс, команды, storage, публичные ссылки сессий и персональный прогресс Experience Layer.
+              <section className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+                <div className="flex flex-wrap items-end justify-between gap-3 px-1">
+                  <div>
+                    <p className="text-xs uppercase text-muted-foreground">Личный кабинет</p>
+                    <h2 className="mt-1 text-3xl font-semibold text-foreground">Войдите в ROX ID</h2>
+                  </div>
+                  <p className="max-w-xl text-sm leading-6 text-muted-foreground">
+                    Аккаунт остается внутри приложения: профиль, баланс, команды, публичный доступ к сессиям и прогресс Experience Layer
+                    открываются после подтвержденной account session.
                   </p>
-                </section>
-                <SettingsSection title={t('settings.account.desktopAuthTitle')} description="Вход, регистрация и сброс пароля выполняются внутри ROX ONE. Success показывается только после подтвержденной account session.">
-                  <AccountAuthPanel
-                    error={error}
-                    saving={saving}
-                    onSubmit={submitNativeAuth}
-                    onRefresh={() => { setLoading(true); void loadAccount() }}
-                  />
-                </SettingsSection>
-              </>
+                </div>
+                <AccountAuthPanel
+                  error={error}
+                  success={saved}
+                  saving={saving}
+                  onSubmit={submitNativeAuth}
+                  onRefresh={() => { setLoading(true); void loadAccount() }}
+                />
+              </section>
             )}
-            {saved && <p className="text-sm text-muted-foreground px-1">{saved}</p>}
+            {saved && accountUser && <p className="text-sm text-muted-foreground px-1">{saved}</p>}
             {error && accountUser && <p className="text-sm text-destructive px-1">{error}</p>}
           </div>
         </ScrollArea>

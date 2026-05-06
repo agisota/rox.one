@@ -17,10 +17,11 @@ Rox Agents OSS v0.9.1 base
   + safe account persistence
   + public share provider seam
   + aggregate persistence contracts
+  + corrected embedded ROX ID registration screen
   -> production-integrated agent workbench
 ```
 
-The immediate objective is to close the integration contour after T060-T065 and prepare the next e2e phase: durable missions, real provider orchestration, Experience Layer real-state binding, visual QA, CI/CD, security gates, and final release candidate.
+The immediate objective is to close the integration contour after T060-T065 and the T073 account UX repair, then prepare the next e2e phase: durable missions, real provider orchestration, Experience Layer real-state binding, visual QA, CI/CD, security gates, and final release candidate.
 
 ## 2. Assumptions And Boundaries
 
@@ -38,6 +39,7 @@ Boundaries:
 - T063 persists local Electron account sessions, but tests do not validate a real rox.one login roundtrip.
 - T064 adds a public share provider seam and safer default viewer provider. It does not create a new production shortlink service.
 - T065 adds persistence contracts and deterministic in-memory implementations. It does not wire a production database.
+- T073 fixes the embedded registration UX around the existing email-verification contract. It does not bypass verification or auto-create an authenticated session.
 - T066+ must connect these contracts to durable scheduler/state/runtime paths.
 
 ## 3. Fresh Repository Status
@@ -46,10 +48,10 @@ Fresh checks show:
 
 ```text
 git branch: mac/upstream-v0.9.1-rox-merge
-latest committed integration: T064
-current uncommitted implementation: T065 persistence adapter contracts
-ticket count: 66 canonical tickets
-ticket status after accounting cleanup: 66 DONE
+latest committed integration before this snapshot: T065
+current scoped implementation: T073 ROX ID registration screen
+ticket count: 67 canonical tickets
+ticket status after accounting cleanup and T073: 67 DONE
 known unrelated dirty items: events.jsonl, .claude/
 app process: Electron is running from this repo
 ```
@@ -57,6 +59,8 @@ app process: Electron is running from this repo
 Recent commits:
 
 ```text
+505af71 Add persistence contracts for Agent Workbench runtime state
+4b09204 Make the integration checkpoint auditable before durable runtime work
 a8f24ff Isolate public session sharing behind a provider contract
 716d913 Keep desktop account sessions across Electron restarts
 5c1f88b Integrate upstream v0.9.1 without dropping ROX product layers
@@ -65,16 +69,17 @@ a8f24ff Isolate public session sharing behind a provider contract
 bc5d97b Make project state legible before upstream work
 ```
 
-Current scoped work after this snapshot:
+Current scoped work in T073:
 
 ```text
-docs/tickets/T064-public-share-shortlink-provider.md      accounting status correction
-docs/tickets/T065-production-persistence-adapter.md       T065 DONE state
-docs/worklog/T065-production-persistence-adapter.md       T065 evidence
-packages/server-core/package.json                         persistence export
-packages/server-core/src/persistence/*                    new persistence seam and tests
-docs/release/current-state-snapshot-2026-05-06.md         this snapshot
-docs/release/e2e-integration-plan-2026-05-06.md           next integration plan
+apps/electron/src/renderer/pages/settings/AccountAuthPanel.tsx             ROX ID auth screen redesign
+apps/electron/src/renderer/pages/settings/AccountSettingsPage.tsx          register pending/error handling
+apps/electron/src/renderer/pages/settings/account-auth-feedback.ts         normalized account feedback
+apps/electron/src/renderer/pages/settings/__tests__/account-auth-*.ts*     regression tests
+docs/tickets/T073-rox-id-registration-screen.md                            T073 DONE ticket
+docs/worklog/T073-rox-id-registration-screen.md                            T073 evidence
+docs/release/current-state-snapshot-2026-05-06.md                          this snapshot update
+docs/release/e2e-integration-plan-2026-05-06.md                            next integration plan update
 ```
 
 Do not stage:
@@ -124,6 +129,7 @@ Runtime Contracts
   -> account session persistence
   -> public share provider contract
   -> aggregate persistence adapter contract
+  -> explicit registration-pending UX state over the email-verification contract
 ```
 
 ## 5. What T060-T065 Changed
@@ -322,6 +328,62 @@ git diff --check: passed
 electron:build: passed
 ```
 
+### T073 - ROX ID Registration Screen
+
+Problem:
+
+```text
+Registration looked like it succeeded and then immediately showed a raw red
+IPC/auth refresh error:
+
+Error invoking remote method 'account:request': Error: Authentication required
+```
+
+Root cause:
+
+```text
+/api/auth/register intentionally returns verificationRequired=true
+and does not issue rox_session before email verification.
+
+The renderer immediately refreshed /api/account/me.
+That refresh correctly returned Authentication required.
+The UI incorrectly treated that expected pending-auth state as a fatal red error.
+```
+
+Result:
+
+- Added normalized account auth feedback that strips raw IPC wrapper text.
+- Added register-specific pending copy:
+  `Аккаунт создан. Проверьте email и войдите после подтверждения ROX ID.`
+- Kept sign-in pending copy separate from registration pending copy.
+- Rebuilt the unauthenticated account view into a dedicated embedded ROX ID panel.
+- Added visible account benefits:
+  - profile
+  - balance
+  - teams
+  - Experience Layer progress
+- Removed misleading browser-handoff copy from the embedded account form.
+- Preserved the backend email-verification contract.
+
+Validation evidence:
+
+```text
+targeted account auth tests: 8 pass, 0 fail
+broader account settings tests: 17 pass, 0 fail
+typecheck:electron: passed
+validate:docs: passed
+lint:electron: 0 errors, 3 existing warnings
+git diff --check: passed
+electron:build: passed
+```
+
+Important boundary:
+
+```text
+Registration is not the same as authenticated account session.
+The account screen becomes authenticated only after /api/account/me returns a user.
+```
+
 ## 6. Current System Architecture
 
 ```text
@@ -377,6 +439,25 @@ Failure points:
   x ROX API rejects credentials -> auth error
   x safeStorage unavailable -> sign-in can work, persistence disabled
   x corrupt persisted file -> fail closed, delete file, require login
+```
+
+### Account Registration / Email Verification Pending
+
+```text
+User
+  -> AccountSettingsPage: submit displayName/email/password on register tab
+  -> preload bridge: account:request /api/auth/register
+  -> Electron main account proxy: forward to ROX account API
+  -> ROX account API: return verificationRequired=true, no Set-Cookie
+  -> renderer: refresh /api/account/me
+  -> ROX account API: return Authentication required
+  -> account-auth-feedback: normalize IPC/auth error
+  -> AccountSettingsPage: classify as register pending, not fatal error
+  -> AccountAuthPanel: show email verification/sign-in pending success state
+
+Invariant:
+  Registration can create an account record, but the desktop app is not signed in
+  until a later /api/account/me request confirms an authenticated user.
 ```
 
 ### Public Share
@@ -532,8 +613,11 @@ Done and verified:
 - Account session persistence exists and is tested.
 - Public share provider seam exists and is tested.
 - Aggregate persistence adapter contracts exist and are tested.
+- ROX ID registration no longer shows raw red IPC auth errors after the expected verification-pending refresh.
+- The unauthenticated account screen is now a dedicated embedded ROX ID surface instead of a generic settings block.
 - Experience Layer screens exist and have deterministic component/domain tests.
 - Full `bun test`, typecheck, docs validation, lint, and Electron build passed after T065.
+- T073 targeted account tests, account settings tests, `typecheck:electron`, docs validation, lint, and Electron build passed after the registration UX repair.
 - Local Electron app is running from this repo.
 
 ## 10. What Is Not Done
@@ -548,6 +632,7 @@ Not production-complete:
 - Real production S3/MinIO quota enforcement through the new persistence seam.
 - Real billing settlement beyond deterministic ledger/provider contracts.
 - Production email delivery.
+- Real rox.one email verification roundtrip for the T073 registration UX.
 - Signed/notarized production release.
 - CI/CD private release pipeline for the final RC.
 - GitHub push from this environment; push was blocked by the runtime approval policy before a git process could run.
@@ -604,7 +689,7 @@ Close T066-T068 first, then T069 visual polish, then T070-T072 release/security/
 ## 12. Recommended Next Path
 
 ```text
-T065 commit
+T073 account UX commit
   -> T066 durable mission scheduler
   -> T067 real provider orchestration
   -> T068 Experience Layer real-state binding

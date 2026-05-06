@@ -10,11 +10,17 @@ describe('AccountAuthPanel', () => {
   test('renders native auth tabs without browser account navigation', () => {
     const markup = renderToStaticMarkup(<AccountAuthPanel onSubmit={() => undefined} />);
 
+    expect(markup).toContain('data-auth-surface="rox-id"');
+    expect(markup).toContain('ROX ID');
+    expect(markup).toContain('Профиль');
+    expect(markup).toContain('Баланс');
+    expect(markup).toContain('Команды');
+    expect(markup).toContain('Прогресс');
     expect(markup).toContain('Вход');
     expect(markup).toContain('Регистрация');
     expect(markup).toContain('Сброс пароля');
     expect(markup).toContain('Email');
-    expect(markup).toContain('Password');
+    expect(markup).toContain('Пароль');
     expect(markup).not.toContain('rox.one/login');
     expect(markup).not.toContain('browser');
   });
