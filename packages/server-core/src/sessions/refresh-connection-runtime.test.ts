@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { resolveBackendContext } from '@craft-agent/shared/agent/backend'
+import { saveConfig, ensureConfigDir, type LlmConnection } from '@craft-agent/shared/config'
 import { loadWorkspaceConfig } from '@craft-agent/shared/workspaces'
 import { SessionManager, createManagedSession } from './SessionManager.ts'
 import { buildRestartRequiredSignature } from './runtime-config.ts'
@@ -42,6 +43,34 @@ function createAgentStub(opts: {
     }),
     dispose: () => { /* no-op for tests */ },
   }
+}
+
+
+function configureCompatConnection(slug: string): LlmConnection {
+  ensureConfigDir()
+  const connection: LlmConnection = {
+    slug,
+    name: 'Shape Check Connection',
+    providerType: 'pi',
+    authType: 'api_key',
+    baseUrl: 'http://127.0.0.1:11111/v1',
+    customEndpoint: { api: 'anthropic-messages', supportsImages: true },
+    models: [
+      { id: 'vision-model', name: 'Vision Model', shortName: 'Vision', description: 'Vision-capable model', provider: 'pi', contextWindow: 262_144, supportsImages: true } as never,
+      { id: 'text-only-model', name: 'Text Only Model', shortName: 'Text', description: 'Text-only model', provider: 'pi', contextWindow: 131_072, supportsImages: false } as never,
+      { id: 'plain-model', name: 'Plain Model', shortName: 'Plain', description: 'Plain model', provider: 'pi', contextWindow: 65_536 } as never,
+    ],
+    defaultModel: 'vision-model',
+    createdAt: Date.now(),
+  }
+  saveConfig({
+    workspaces: [],
+    activeWorkspaceId: null,
+    activeSessionId: null,
+    llmConnections: [connection],
+    defaultLlmConnection: slug,
+  })
+  return connection
 }
 
 function injectSession(
@@ -94,15 +123,26 @@ function injectSession(
 
 describe('refreshConnectionRuntime', () => {
   let tmpRoot: string
+  let configRoot: string
+  let previousConfigDir: string | undefined
   let sm: SessionManager
 
   beforeEach(() => {
+    previousConfigDir = process.env.CRAFT_CONFIG_DIR
+    configRoot = mkdtempSync(join(tmpdir(), 'sm-refresh-config-'))
+    process.env.CRAFT_CONFIG_DIR = configRoot
     tmpRoot = mkdtempSync(join(tmpdir(), 'sm-refresh-'))
     sm = new SessionManager()
   })
 
   afterEach(() => {
     rmSync(tmpRoot, { recursive: true, force: true })
+    rmSync(configRoot, { recursive: true, force: true })
+    if (previousConfigDir === undefined) {
+      delete process.env.CRAFT_CONFIG_DIR
+    } else {
+      process.env.CRAFT_CONFIG_DIR = previousConfigDir
+    }
   })
 
   it('pushes updateRuntimeConfig to sessions on the matching connection slug', async () => {
@@ -202,16 +242,19 @@ describe('refreshConnectionRuntime', () => {
     // pi_compat connection with explicit per-model `supportsImages`, the
     // helper must forward that field on `customModels` so the Pi subprocess
     // can re-register the model with `input: ['text', 'image']`.
+    const connection = configureCompatConnection('slug-A')
     const agent = createAgentStub()
-    injectSession(sm, 'shape-check', tmpRoot, 'slug-A', agent)
+    injectSession(sm, 'shape-check', tmpRoot, connection.slug, agent)
 
-    await sm.refreshConnectionRuntime('slug-A')
+    await sm.refreshConnectionRuntime(connection.slug)
 
     expect(agent.updateRuntimeConfig).toHaveBeenCalledTimes(1)
     const payload = agent.updateRuntimeConfig.mock.calls[0]?.[0]
     expect(payload).toBeDefined()
     expect(payload).toMatchObject({
-      model: expect.any(String),
+      model: connection.defaultModel,
+      providerType: connection.providerType,
+      authType: connection.authType,
       runtime: expect.any(Object),
     })
     // The runtime envelope mirrors what `pi-agent.ts:requestRuntimeConfigUpdate`
