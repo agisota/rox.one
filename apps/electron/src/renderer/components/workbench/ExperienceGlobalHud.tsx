@@ -7,6 +7,7 @@ import {
 } from '@rox-agent/shared/workbench';
 
 import { cn } from '@/lib/utils';
+import { ExperienceFeedbackStrip } from './experience-ui';
 
 export interface ExperienceGlobalHudState {
   layer: ExperienceLayer;
@@ -94,6 +95,17 @@ export function ExperienceGlobalHud({
         <HudMetric label="Прогресс" value={`${state.xp} XP / уровень ${state.level}`} />
         <HudMetric label="Событие" value={state.latestNotification} wide />
       </div>
+      <ExperienceFeedbackStrip
+        tone={layer === 'arena' ? 'arena' : layer === 'game' ? 'game' : 'command'}
+        className="mt-2"
+        items={[
+          { id: 'hud-vdi', kind: 'vdi', label: `VDI ${state.verifiedDeliverableIndex}`, detail: 'runtime truth' },
+          { id: 'hud-xp', kind: 'xp', label: `${state.xp} XP`, detail: `уровень ${state.level}` },
+          ...(state.blockers.length > 0
+            ? [{ id: 'hud-blocker', kind: 'gate_failed' as const, label: 'Gate failed', detail: blockerLabel }]
+            : [{ id: 'hud-artifact', kind: 'artifact_accepted' as const, label: 'Artifact accepted', detail: state.latestNotification }]),
+        ]}
+      />
     </section>
   );
 }

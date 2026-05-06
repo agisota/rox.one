@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 export type ExperienceTone = 'command' | 'game' | 'arena' | 'success' | 'warning' | 'danger' | 'neutral';
 export type ExperienceStatus = 'ready' | 'running' | 'queued' | 'completed' | 'locked' | 'warning' | 'blocking' | 'success' | 'draft';
 export type ExperienceSurfaceState = 'loading' | 'empty' | 'error';
+export type ExperienceFeedbackKind = 'vdi' | 'xp' | 'quest_advanced' | 'gate_failed' | 'mission_blocked' | 'artifact_accepted';
 
 const motionClass = 'transition-[transform,box-shadow,border-color,background-color,opacity] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none';
 const interactiveSurfaceClass = cn(
@@ -47,6 +48,15 @@ const surfaceStateClasses: Record<ExperienceSurfaceState, string> = {
   loading: 'border-sky-400/20 bg-sky-500/[0.07] text-sky-100',
   empty: 'border-white/10 bg-white/[0.035] text-foreground',
   error: 'border-rose-400/25 bg-rose-500/[0.09] text-rose-100',
+};
+
+const feedbackKindClasses: Record<ExperienceFeedbackKind, string> = {
+  vdi: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-100',
+  xp: 'border-violet-400/25 bg-violet-500/10 text-violet-100',
+  quest_advanced: 'border-cyan-400/25 bg-cyan-500/10 text-cyan-100',
+  gate_failed: 'border-rose-400/25 bg-rose-500/10 text-rose-100',
+  mission_blocked: 'border-amber-400/25 bg-amber-500/10 text-amber-100',
+  artifact_accepted: 'border-sky-400/25 bg-sky-500/10 text-sky-100',
 };
 
 export const EXPERIENCE_INTERACTION_HINTS = ['Наведение', 'Фокус', 'Активно'] as const;
@@ -332,6 +342,49 @@ export function ExperienceSkeletonCard({
         <div className="h-3 rounded-full bg-white/[0.06] motion-safe:animate-pulse motion-reduce:animate-none" />
         <div className="h-3 rounded-full bg-white/[0.06] motion-safe:animate-pulse motion-reduce:animate-none" />
       </div>
+    </div>
+  );
+}
+
+export function ExperienceFeedbackStrip({
+  items,
+  tone = 'command',
+  className,
+}: {
+  items: Array<{
+    id: string;
+    kind: ExperienceFeedbackKind;
+    label: string;
+    detail?: string;
+  }>;
+  tone?: Extract<ExperienceTone, 'command' | 'game' | 'arena'>;
+  className?: string;
+}) {
+  if (items.length === 0) return null;
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      data-feedback-tone={tone}
+      className={cn('flex max-w-full min-w-0 flex-wrap gap-2', className)}
+    >
+      {items.map((item) => (
+        <span
+          key={item.id}
+          data-feedback-kind={item.kind}
+          className={cn(
+            'inline-flex min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-full border px-2.5 py-1 text-[11px] leading-5 shadow-thin',
+            motionClass,
+            feedbackKindClasses[item.kind],
+            (item.kind === 'vdi' || item.kind === 'xp' || item.kind === 'quest_advanced') && 'motion-safe:animate-pulse motion-reduce:animate-none',
+          )}
+        >
+          <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-80" />
+          <span className="min-w-0 font-semibold">{item.label}</span>
+          {item.detail && <span className="min-w-0 break-words text-muted-foreground">{item.detail}</span>}
+        </span>
+      ))}
     </div>
   );
 }
