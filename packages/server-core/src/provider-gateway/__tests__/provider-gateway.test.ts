@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'bun:test'
+import {
+  compileMissionModePrompt,
+  getMissionModePromptContract,
+} from '@craft-agent/shared/workbench'
 
 import {
   createFakeProviderGateway,
@@ -202,6 +206,39 @@ describe('ProviderGateway', () => {
       error: expect.objectContaining({ code: 'real_provider_disabled' }),
     })
     expect(calls).toEqual([])
+  })
+
+  it('executes compiled mission mode prompts through the deterministic fake provider', async () => {
+    const gateway = createFakeProviderGateway({ now: () => NOW })
+    const contract = getMissionModePromptContract('swarm_arena')
+    const prompt = compileMissionModePrompt(contract, {
+      missionRunId: 'mission-swarm',
+      title: 'Arena branch',
+      objective: 'Coordinate trusted agents with evidence.',
+      rawInput: 'Select agents and produce a branch plan.',
+    })
+
+    const result = await gateway.execute({
+      capability: contract.providerCapabilities[0],
+      operation: `mission_mode:${contract.mode}`,
+      missionRunId: 'mission-swarm',
+      input: {
+        prompt,
+        requiredArtifacts: contract.requiredArtifacts,
+        validationGates: contract.validationGates,
+      },
+    })
+
+    expect(result).toMatchObject({
+      success: true,
+      state: 'completed',
+      evidenceRefs: ['provider:fake:llm:mission_mode:swarm_arena'],
+    })
+    expect(result.artifacts[0]).toMatchObject({
+      artifactId: 'artifact:mission-swarm:llm:mission_mode:swarm_arena',
+      artifactType: 'prompt',
+      providerCapability: 'llm',
+    })
   })
 })
 
