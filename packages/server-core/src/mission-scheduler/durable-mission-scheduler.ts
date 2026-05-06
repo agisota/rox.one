@@ -1,11 +1,12 @@
 import {
+  canFinalizeMissionRun,
   evaluateMissionCompletion,
+  isExecutableMissionRunStatus,
   MissionCheckpointSchema,
   MissionRunSchema,
   type MissionCheckpoint,
   type MissionGateResult,
   type MissionRun,
-  type MissionRunStatus,
 } from '@craft-agent/shared/workbench'
 
 import type { MissionRunRepository, MissionSchedulerEvent } from '../persistence'
@@ -138,14 +139,15 @@ export class DurableMissionScheduler {
     const mission = await this.requireMission(input.missionRunId)
     const now = this.clock.now()
     const checkpoints = await this.repository.listMissionCheckpoints(mission.id)
+    let currentMission = mission
     const result: SchedulerTickResult = {
-      mission,
+      mission: currentMission,
       executedCheckpointIds: [],
       blockedCheckpointIds: [],
       skippedCheckpointIds: [],
     }
 
-    if (!isExecutableMissionStatus(mission.status)) {
+    if (!isExecutableMissionRunStatus(mission.status)) {
       result.skippedCheckpointIds = checkpoints.map(checkpoint => checkpoint.id)
       return result
     }
@@ -180,11 +182,12 @@ export class DurableMissionScheduler {
         continue
       }
 
-      if (mission.status === 'queued') {
-        await this.repository.saveMissionRun({ ...mission, status: 'running' })
+      if (currentMission.status === 'queued') {
+        currentMission = await this.repository.saveMissionRun({ ...currentMission, status: 'running' })
+        result.mission = currentMission
       }
 
-      const execution = await this.checkpointExecutor.execute({ mission, checkpoint, now })
+      const execution = await this.checkpointExecutor.execute({ mission: currentMission, checkpoint, now })
       const savedCheckpoint = await this.repository.saveMissionCheckpoint({
         ...checkpoint,
         completedAt: now,
@@ -208,6 +211,18 @@ export class DurableMissionScheduler {
 
   async finalizeMission(input: FinalizeMissionInput) {
     const mission = await this.requireMission(input.missionRunId)
+    const checkpoints = await this.repository.listMissionCheckpoints(mission.id)
+    const finalization = canFinalizeMissionRun({
+      mission,
+      finalArtifactId: input.finalArtifactId,
+      gateEvidenceRefs: input.requiredGateResults
+        .map(result => result.evidenceRef)
+        .filter((evidenceRef): evidenceRef is string => Boolean(evidenceRef)),
+      artifacts: checkpoints.flatMap(checkpoint =>
+        checkpoint.artifactIds.map(artifactId => ({ id: artifactId, missionRunId: mission.id })),
+      ),
+      gateResults: input.requiredGateResults.map(result => ({ ...result, missionRunId: mission.id })),
+    })
     const gateEvidenceReasons = findGateEvidenceReasons(input.requiredGateResults)
     const completion = evaluateMissionCompletion({
       missionId: mission.id,
@@ -216,9 +231,9 @@ export class DurableMissionScheduler {
       finalArtifactId: input.finalArtifactId,
       requiredGateResults: input.requiredGateResults,
       criticalOpenFindings: input.criticalOpenFindings,
-      blocked: gateEvidenceReasons.length > 0,
+      blocked: gateEvidenceReasons.length > 0 || !finalization.allowed,
     })
-    const reasons = [...new Set([...completion.reasons, ...gateEvidenceReasons])]
+    const reasons = [...new Set([...completion.reasons, ...gateEvidenceReasons, ...finalization.reasons])]
     const decision = reasons.length > 0 && completion.decision === 'pass' ? 'fail' : completion.decision
 
     if (decision === 'pass' || decision === 'warn') {
@@ -358,10 +373,6 @@ function createMissionCheckpoints(mission: MissionRun): MissionCheckpoint[] {
       status: 'queued',
     })
   })
-}
-
-function isExecutableMissionStatus(status: MissionRunStatus): boolean {
-  return status === 'queued' || status === 'running'
 }
 
 function isDue(dueAt: string, now: string): boolean {

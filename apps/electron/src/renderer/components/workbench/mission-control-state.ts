@@ -10,7 +10,10 @@ import type {
   ProgressLedger,
   ValidationGate,
 } from '@craft-agent/shared/workbench';
-import { selectActiveExperienceTruthState } from '@craft-agent/shared/workbench';
+import {
+  canFinalizeMissionRun,
+  selectActiveExperienceTruthState,
+} from '@craft-agent/shared/workbench';
 
 export type MissionApprovalStatus = 'pending' | 'approved' | 'rejected';
 
@@ -187,6 +190,19 @@ function deriveMissionControlState(
     (approval) => approval.branchType === 'expensive' && approval.status === 'pending',
   );
   const blockingGateFailures = state.gateResults.filter((gate) => gate.status === 'fail' && gate.blocking);
+  const finalCheckpoint = state.checkpoints.at(-1);
+  const finalArtifact = finalCheckpoint
+    ? state.artifacts.find((artifact) => artifact.checkpointId === finalCheckpoint.id && artifact.validationState === 'passed')
+    : undefined;
+  const finalization = canFinalizeMissionRun({
+    mission: state.mission,
+    finalArtifactId: finalArtifact?.id,
+    gateEvidenceRefs: state.gateResults
+      .filter((gate) => gate.status === 'pass' && gate.evidenceRef)
+      .map((gate) => gate.evidenceRef as string),
+    artifacts: state.artifacts.map((artifact) => ({ id: artifact.id, missionRunId: state.mission.id })),
+    gateResults: state.gateResults.map((gate) => ({ ...gate, missionRunId: state.mission.id })),
+  });
 
   if (pendingExpensiveApproval) {
     blockingReasons.push(`Approval required for expensive branch: ${pendingExpensiveApproval.title}.`);
@@ -200,7 +216,7 @@ function deriveMissionControlState(
     ...state,
     blockingReasons,
     canRunExpensiveBranch: !pendingExpensiveApproval,
-    canFinalize: blockingReasons.length === 0,
+    canFinalize: blockingReasons.length === 0 && finalization.allowed,
   };
 }
 

@@ -9,6 +9,7 @@ export * from './experience-layer-security';
 export * from './experience-state';
 export * from './markdown-entity-graph';
 export * from './mission-scheduler-adapter';
+export * from './mission-lifecycle';
 export * from './mission-mode-prompt-registry';
 export * from './option-graph';
 export * from './product-mode-registry.ts';
