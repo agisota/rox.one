@@ -392,6 +392,9 @@ describe('ExperienceRuntimeStore', () => {
 
     expect(forgedRefs.missions.find((mission) => mission.id === 'mission-runtime')?.status).toBe('queued');
     expect(forgedRefs.metricSnapshots.at(-1)?.verifiedDeliverableIndex ?? 0).toBe(0);
+    expect(
+      forgedRefs.questProgress.find((progress) => progress.questId === 'quest-final-verified-deliverable')?.status,
+    ).not.toBe('completed');
 
     const failedGate = replayExperienceEvents([
       missionLaunchedEvent(),
@@ -420,6 +423,9 @@ describe('ExperienceRuntimeStore', () => {
 
     expect(failedGate.missions.find((mission) => mission.id === 'mission-runtime')?.status).toBe('queued');
     expect(failedGate.metricSnapshots.at(-1)?.verifiedDeliverableIndex ?? 0).toBe(0);
+    expect(
+      failedGate.questProgress.find((progress) => progress.questId === 'quest-final-verified-deliverable')?.status,
+    ).not.toBe('completed');
 
     const passingGate = replayExperienceEvents([
       missionLaunchedEvent(),

@@ -6,6 +6,7 @@ import {
   approveMissionBranch,
   createMissionControlState,
   createMissionControlStateFromRuntime,
+  completeMissionCheckpointFromControlAction,
   completeMissionCheckpointThroughRuntime,
   transitionMissionCheckpoint,
 } from '../mission-control-state';
@@ -116,6 +117,31 @@ describe('Mission Control run detail', () => {
     });
 
     expect(adapter.events.filter((event) => event.type === 'mission.checkpoint.completed')).toHaveLength(1);
+  });
+
+  test('checkpoint user action uses runtime dispatch instead of local-only mutation when a store exists', async () => {
+    const adapter = createInMemoryExperiencePersistenceAdapter([missionLaunchedEvent()]);
+    const runtimeStore = await createExperienceRuntimeStore({ adapter });
+    const current = createMissionControlStateFromRuntime(runtimeStore.getState());
+
+    const result = await completeMissionCheckpointFromControlAction(current, {
+      runtimeStore,
+      checkpointId: 'cp-runtime-6h',
+      now: '2026-05-06T06:00:00.000Z',
+      gateId: 'schema',
+      costCredits: 12,
+    });
+
+    expect(result.checkpoints.find((checkpoint) => checkpoint.id === 'cp-runtime-6h')?.status).toBe('completed');
+    expect(adapter.events.map((event) => event.type)).toEqual([
+      'mission.launched',
+      'artifact.created',
+      'gate.passed',
+      'mission.checkpoint.completed',
+      'ledger.entry.recorded',
+    ]);
+    expect(result.auditEvents.at(-1)?.createdAt).toBe('2026-05-06T06:00:00.000Z');
+    expect(result.auditEvents.at(-1)?.createdAt).not.toBe('2026-04-30T00:00:00.000Z');
   });
 
   test('runtime finalization remains blocked without final artifact and passing gate evidence', () => {
