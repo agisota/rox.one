@@ -22,7 +22,8 @@
     "./accounts": "./src/accounts/index.ts",
     "./sync": "./src/sync/index.ts",
     "./persistence": "./src/persistence/index.ts",
-    "./mission-scheduler": "./src/mission-scheduler/index.ts"
+    "./mission-scheduler": "./src/mission-scheduler/index.ts",
+    "./provider-gateway": "./src/provider-gateway/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
