@@ -20,7 +20,8 @@
     "./sessions": "./src/sessions/index.ts",
     "./webui": "./src/webui/index.ts",
     "./accounts": "./src/accounts/index.ts",
-    "./sync": "./src/sync/index.ts"
+    "./sync": "./src/sync/index.ts",
+    "./persistence": "./src/persistence/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
