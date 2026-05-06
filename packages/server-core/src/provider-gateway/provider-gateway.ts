@@ -1,5 +1,6 @@
 import { ArtifactTypeSchema, type ArtifactType } from '@rox-agent/shared/workbench'
 import { sanitizePublicPayload } from '../security/public-payload-sanitizer'
+import { createDeterministicFakeProviderAdapter } from './provider-gateway-adapters'
 
 export const PROVIDER_CAPABILITIES = [
   'llm',
@@ -152,7 +153,7 @@ export function createProviderGateway(options: ProviderGatewayOptions): Provider
 
 export function createFakeProviderGateway(options: FakeProviderGatewayOptions = {}): ProviderGateway {
   const adapters = Object.fromEntries(
-    PROVIDER_CAPABILITIES.map(capability => [capability, createDeterministicFakeAdapter(options)]),
+    PROVIDER_CAPABILITIES.map(capability => [capability, createDeterministicFakeProviderAdapter(options)]),
   ) as Record<ProviderCapability, ProviderAdapter>
 
   return createProviderGateway({
@@ -218,63 +219,6 @@ class DefaultProviderGateway implements ProviderGateway {
   }
 }
 
-function createDeterministicFakeAdapter(options: FakeProviderGatewayOptions): ProviderAdapter {
-  return {
-    kind: 'fake',
-    async execute(input) {
-      const createdAt = options.now?.() ?? new Date().toISOString()
-      const visibility = input.visibility ?? 'private'
-      const evidenceRef = `provider:fake:${input.capability}:${input.operation}`
-      const artifactType = defaultArtifactTypeForCapability(input.capability)
-      const missionKey = input.missionRunId ?? input.workspaceId ?? 'standalone'
-      const safeInput = visibility === 'public_share'
-        ? sanitizeProviderPublicPayload(input.input)
-        : input.input
-
-      return {
-        artifacts: [{
-          artifactId: `artifact:${missionKey}:${input.capability}:${input.operation}`,
-          artifactType,
-          title: `Fake ${input.capability} ${input.operation}`,
-          content: `Deterministic fake ${input.capability} artifact for ${input.operation}.`,
-          mimeType: 'text/markdown',
-          visibility,
-          evidenceRefs: [evidenceRef],
-          providerCapability: input.capability,
-          createdAt,
-          metadata: {
-            capability: input.capability,
-            operation: input.operation,
-            input: safeInput,
-          },
-        }],
-        evidenceRefs: [evidenceRef],
-      }
-    },
-  }
-}
-
-function defaultArtifactTypeForCapability(capability: ProviderCapability): ArtifactType {
-  switch (capability) {
-    case 'llm':
-      return 'prompt'
-    case 'research':
-      return 'report'
-    case 'object_storage':
-      return 'file'
-    case 'email':
-      return 'report'
-    case 'billing':
-      return 'report'
-    case 'shortlink':
-      return 'file'
-    case 'scheduler':
-      return 'tasks'
-    case 'agent_registry':
-      return 'spec'
-  }
-}
-
 function normalizeArtifacts(
   artifacts: ProviderArtifact[],
   context: { capability: ProviderCapability; visibility: ProviderArtifactVisibility; now: () => string },
@@ -315,9 +259,13 @@ function validateAndNormalizeArtifact(
   const metadata = visibility === 'public_share'
     ? sanitizeProviderPublicPayload(artifact.metadata)
     : { ...(artifact.metadata ?? {}) }
+  const content = visibility === 'public_share'
+    ? sanitizeProviderPublicPayload(artifact.content)
+    : artifact.content
 
   return {
     ...artifact,
+    content,
     visibility,
     providerCapability: artifact.providerCapability ?? context.capability,
     createdAt: artifact.createdAt || context.now(),

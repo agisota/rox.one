@@ -3,12 +3,13 @@ import * as React from 'react';
 import { Button } from '../ui/button';
 import {
   approveMissionBranch,
+  completeMissionCheckpointFromControlAction,
   createMissionControlState,
   createMissionControlStateFromTruth,
   transitionMissionCheckpoint,
   type MissionControlState,
 } from './mission-control-state';
-import type { ExperienceTruthState } from '@rox-agent/shared/workbench';
+import type { ExperienceRuntimeStore, ExperienceTruthState } from '@rox-agent/shared/workbench';
 import {
   ExperienceCard,
   ExperienceMetricRow,
@@ -22,12 +23,26 @@ import {
 export interface MissionControlRunDetailProps {
   initialState?: MissionControlState;
   truthState?: ExperienceTruthState;
+  runtimeStore?: ExperienceRuntimeStore;
+  now?: () => string;
 }
 
-export function MissionControlRunDetail({ initialState, truthState }: MissionControlRunDetailProps) {
+export function MissionControlRunDetail({ initialState, truthState, runtimeStore, now }: MissionControlRunDetailProps) {
   const [state, setState] = React.useState<MissionControlState>(() =>
     initialState ?? (truthState ? createMissionControlStateFromTruth(truthState) : createMissionControlState()),
   );
+  const completeCheckpoint = React.useCallback((checkpointId: string) => {
+    if (!runtimeStore) {
+      setState((current) => transitionMissionCheckpoint(current, checkpointId, 'completed'));
+      return;
+    }
+
+    void completeMissionCheckpointFromControlAction(state, {
+      runtimeStore,
+      checkpointId,
+      now: now?.() ?? new Date().toISOString(),
+    }).then(setState);
+  }, [now, runtimeStore, state]);
 
   return (
     <ExperienceShell
@@ -120,7 +135,7 @@ export function MissionControlRunDetail({ initialState, truthState }: MissionCon
                   <Button
                     variant="outline"
                     className="rounded-full"
-                    onClick={() => setState((current) => transitionMissionCheckpoint(current, checkpoint.id, 'completed'))}
+                    onClick={() => completeCheckpoint(checkpoint.id)}
                   >
                     Отметить готовым
                   </Button>

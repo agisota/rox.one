@@ -83,6 +83,18 @@ export type RuntimeCheckpointCompletionInput = {
   summary: string;
 };
 
+export type RuntimeCheckpointControlActionInput = {
+  runtimeStore: ExperienceRuntimeStore;
+  checkpointId: string;
+  now: string;
+  gateId?: ValidationGate;
+  artifactId?: string;
+  artifactTitle?: string;
+  gateEvidenceRef?: string;
+  costCredits?: number;
+  summary?: string;
+};
+
 export function createMissionControlState(input: Partial<MissionControlState> = {}): MissionControlState {
   const state = {
     mission: input.mission ?? createMissionRun(),
@@ -150,6 +162,28 @@ export async function completeMissionCheckpointThroughRuntime(
   }
 
   return createMissionControlStateFromRuntime(input.runtimeStore.getState());
+}
+
+export async function completeMissionCheckpointFromControlAction(
+  state: MissionControlState,
+  input: RuntimeCheckpointControlActionInput,
+): Promise<MissionControlState> {
+  const checkpoint = state.checkpoints.find((item) => item.id === input.checkpointId);
+  if (!checkpoint) return state;
+
+  const gateId = input.gateId ?? state.mission.requiredGateIds[0] ?? 'schema';
+  return completeMissionCheckpointThroughRuntime(state, {
+    runtimeStore: input.runtimeStore,
+    missionRunId: state.mission.id,
+    checkpointId: checkpoint.id,
+    now: input.now,
+    artifactId: input.artifactId ?? `artifact:${state.mission.id}:${checkpoint.id}:completion`,
+    artifactTitle: input.artifactTitle ?? `${checkpoint.title} evidence`,
+    gateId,
+    gateEvidenceRef: input.gateEvidenceRef ?? `gate:${state.mission.id}:${checkpoint.id}:${gateId}:passed`,
+    costCredits: input.costCredits ?? 0,
+    summary: (input.summary ?? checkpoint.summary) || `${checkpoint.title} completed.`,
+  });
 }
 
 export function transitionMissionCheckpoint(

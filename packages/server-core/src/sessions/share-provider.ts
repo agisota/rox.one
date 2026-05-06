@@ -141,7 +141,7 @@ export function createViewerShareProvider(options: ViewerShareProviderOptions = 
       const response = await fetchFn(`${viewerUrl}/s/api`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input.bundle),
+        body: JSON.stringify(sanitizeShareBundleForPublicViewer(input.bundle)),
       })
 
       if (!response.ok) {
@@ -163,7 +163,7 @@ export function createViewerShareProvider(options: ViewerShareProviderOptions = 
       const response = await fetchFn(`${viewerUrl}/s/api/${input.shareId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input.bundle),
+        body: JSON.stringify(sanitizeShareBundleForPublicViewer(input.bundle)),
       })
 
       if (!response.ok) {
@@ -220,7 +220,7 @@ export function createFakeShareProvider(options: FakeShareProviderOptions): Fake
     async uploadBundle(input) {
       if (options.uploadFailure) return options.uploadFailure
       const uploadId = `upload_${input.sessionId}`
-      uploads.push({ uploadId, sessionId: input.sessionId, bundle: input.bundle })
+      uploads.push({ uploadId, sessionId: input.sessionId, bundle: sanitizeShareBundleForPublicViewer(input.bundle) })
       return { success: true, uploadId }
     },
 
@@ -245,6 +245,7 @@ export function createFakeShareProvider(options: FakeShareProviderOptions): Fake
 
     async updateBundle(input) {
       if (options.updateFailure) return options.updateFailure
+      sanitizeShareBundleForPublicViewer(input.bundle)
       updates.push({ shareId: input.shareId, sessionId: input.sessionId })
       return { success: true, url: input.currentUrl }
     },

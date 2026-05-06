@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   assertPublicShareUrl,
   createFakeShareProvider,
+  createViewerShareProvider,
   mapShareProviderFailureToShareResult,
   sanitizeShareBundleForPublicViewer,
 } from './share-provider'
@@ -111,6 +112,67 @@ describe('share provider contract', () => {
     expect(provider.listUploads()).toEqual([
       { uploadId: 'upload_session-1', sessionId: 'session-1', bundle: { id: 'session-1' } },
     ])
+  })
+
+  test('fake provider sanitizes uploaded bundles at the provider seam', async () => {
+    const provider = createFakeShareProvider({ baseUrl: 'https://viewer.test' })
+
+    await provider.uploadBundle({
+      sessionId: 'session-secret',
+      bundle: {
+        id: 'session-secret',
+        authorization: 'Bearer upload-secret',
+        content: 'OPENAI_API_KEY=sk-uploadsecret123456\nSafe note',
+      },
+    })
+
+    const payload = JSON.stringify(provider.listUploads()[0]?.bundle)
+    expect(payload).toContain('Safe note')
+    expect(payload).toContain('OPENAI_API_KEY=[redacted]')
+    expect(payload).not.toContain('upload-secret')
+    expect(payload).not.toContain('sk-uploadsecret123456')
+    expect(payload).not.toContain('authorization')
+  })
+
+  test('viewer provider sanitizes upload and update bundles at the provider seam', async () => {
+    const bodies: string[] = []
+    const fetchFn = (async (_url: string | URL | Request, init?: RequestInit) => {
+      bodies.push(String(init?.body ?? ''))
+      return new Response(JSON.stringify({ id: 'upload_session-secret', url: 'https://viewer.test/s/share_session-secret' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }) as typeof fetch
+    const provider = createViewerShareProvider({ viewerUrl: 'https://viewer.test', fetchFn })
+
+    await provider.uploadBundle({
+      sessionId: 'session-secret',
+      bundle: {
+        authorization: 'Bearer viewer-upload-secret',
+        content: 'OPENAI_API_KEY=sk-viewerupload123456\nSafe upload',
+      },
+    })
+    await provider.updateBundle({
+      sessionId: 'session-secret',
+      shareId: 'share_session-secret',
+      currentUrl: 'https://viewer.test/s/share_session-secret',
+      bundle: {
+        rox_session: 'viewer-session-secret',
+        content: 'DATABASE_PASSWORD=db-viewer-secret\nSafe update',
+      },
+    })
+
+    const payload = JSON.stringify(bodies)
+    expect(payload).toContain('Safe upload')
+    expect(payload).toContain('Safe update')
+    expect(payload).toContain('OPENAI_API_KEY=[redacted]')
+    expect(payload).toContain('DATABASE_PASSWORD=[redacted]')
+    expect(payload).not.toContain('viewer-upload-secret')
+    expect(payload).not.toContain('sk-viewerupload123456')
+    expect(payload).not.toContain('viewer-session-secret')
+    expect(payload).not.toContain('db-viewer-secret')
+    expect(payload).not.toContain('authorization')
+    expect(payload).not.toContain('rox_session')
   })
 
   test('fake provider reports active and revoked share status deterministically', async () => {

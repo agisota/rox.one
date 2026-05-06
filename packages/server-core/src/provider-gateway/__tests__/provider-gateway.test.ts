@@ -173,6 +173,53 @@ describe('ProviderGateway', () => {
     expect(payload).not.toContain('apiKey')
   })
 
+  it('redacts public share artifact content from any adapter before returning evidence', async () => {
+    const gateway = createProviderGateway({
+      adapters: {
+        shortlink: artifactAdapter({
+          artifactId: 'artifact-public-content',
+          artifactType: 'file',
+          title: 'Public share content',
+          content: [
+            'Authorization: Bearer provider-content-secret',
+            'OPENAI_API_KEY=sk-providercontent123456',
+            'Safe public summary',
+          ].join('\n'),
+          mimeType: 'text/markdown',
+          visibility: 'public_share',
+          evidenceRefs: ['provider:fake:shortlink:public-content'],
+          providerCapability: 'shortlink',
+          createdAt: NOW,
+          metadata: {
+            apiKey: 'metadata-secret',
+            safe: 'visible',
+          },
+        }),
+      },
+      now: () => NOW,
+    })
+
+    const result = await gateway.execute({
+      capability: 'shortlink',
+      operation: 'share_session',
+      visibility: 'public_share',
+      input: { title: 'public share' },
+    })
+
+    expect(result.success).toBe(true)
+    if (!result.success) throw new Error('expected provider success')
+
+    const payload = JSON.stringify(result.artifacts)
+    expect(payload).toContain('Safe public summary')
+    expect(payload).toContain('visible')
+    expect(payload).toContain('Bearer [redacted]')
+    expect(payload).toContain('OPENAI_API_KEY=[redacted]')
+    expect(payload).not.toContain('provider-content-secret')
+    expect(payload).not.toContain('sk-providercontent123456')
+    expect(payload).not.toContain('metadata-secret')
+    expect(payload).not.toContain('apiKey')
+  })
+
   it('does not invoke real adapter seams unless explicitly enabled', async () => {
     const calls: string[] = []
     const gateway = createProviderGateway({
