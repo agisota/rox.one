@@ -1,11 +1,16 @@
 import type {
+  ExperienceEvent,
+  ExperienceRuntimeState,
+  ExperienceRuntimeStore,
   ExperienceTruthState,
   MissionCheckpoint,
   MissionCheckpointStatus,
   MissionGateResult,
   MissionRun,
   ProgressLedger,
+  ValidationGate,
 } from '@rox-agent/shared/workbench';
+import { selectActiveExperienceTruthState } from '@rox-agent/shared/workbench';
 
 export type MissionApprovalStatus = 'pending' | 'approved' | 'rejected';
 
@@ -62,6 +67,19 @@ export type MissionControlState = {
   canFinalize: boolean;
 };
 
+export type RuntimeCheckpointCompletionInput = {
+  runtimeStore: ExperienceRuntimeStore;
+  missionRunId: string;
+  checkpointId: string;
+  now: string;
+  artifactId: string;
+  artifactTitle: string;
+  gateId: ValidationGate;
+  gateEvidenceRef: string;
+  costCredits: number;
+  summary: string;
+};
+
 export function createMissionControlState(input: Partial<MissionControlState> = {}): MissionControlState {
   const state = {
     mission: input.mission ?? createMissionRun(),
@@ -112,6 +130,23 @@ export function createMissionControlStateFromTruth(truthState: ExperienceTruthSt
       source: entry.sourceArtifactId ?? entry.validationGateResultId ?? 'truth-ledger',
     })),
   });
+}
+
+export function createMissionControlStateFromRuntime(runtimeState: ExperienceRuntimeState): MissionControlState {
+  return createMissionControlStateFromTruth(selectActiveExperienceTruthState(runtimeState));
+}
+
+export async function completeMissionCheckpointThroughRuntime(
+  _state: MissionControlState,
+  input: RuntimeCheckpointCompletionInput,
+): Promise<MissionControlState> {
+  const events = createCheckpointCompletionEvents(input);
+
+  for (const event of events) {
+    await input.runtimeStore.dispatch(event);
+  }
+
+  return createMissionControlStateFromRuntime(input.runtimeStore.getState());
 }
 
 export function transitionMissionCheckpoint(
@@ -171,6 +206,71 @@ function deriveMissionControlState(
 
 function isCreditLedgerEntry(entry: ProgressLedger): boolean {
   return entry.currency === 'credits';
+}
+
+function createCheckpointCompletionEvents(input: RuntimeCheckpointCompletionInput): ExperienceEvent[] {
+  const baseId = `${input.missionRunId}:${input.checkpointId}:${input.artifactId}`;
+  return [
+    {
+      id: `${baseId}:artifact`,
+      type: 'artifact.created',
+      createdAt: input.now,
+      aggregateId: input.missionRunId,
+      payload: {
+        artifact: {
+          id: input.artifactId,
+          missionRunId: input.missionRunId,
+          checkpointId: input.checkpointId,
+          artifactType: 'report',
+          title: input.artifactTitle,
+          evidenceRefs: [input.gateEvidenceRef],
+          createdAt: input.now,
+        },
+      },
+    },
+    {
+      id: `${baseId}:gate`,
+      type: 'gate.passed',
+      createdAt: input.now,
+      aggregateId: input.missionRunId,
+      payload: {
+        missionRunId: input.missionRunId,
+        gateId: input.gateId,
+        evidenceRef: input.gateEvidenceRef,
+      },
+    },
+    {
+      id: `${baseId}:checkpoint-completed`,
+      type: 'mission.checkpoint.completed',
+      createdAt: input.now,
+      aggregateId: input.missionRunId,
+      payload: {
+        missionRunId: input.missionRunId,
+        checkpointId: input.checkpointId,
+        summary: input.summary,
+        artifactIds: [input.artifactId],
+        vdiDelta: 5,
+      },
+    },
+    {
+      id: `${baseId}:ledger`,
+      type: 'ledger.entry.recorded',
+      createdAt: input.now,
+      aggregateId: input.missionRunId,
+      payload: {
+        entry: {
+          id: `ledger-${input.checkpointId}-${input.artifactId}`,
+          eventType: 'credit',
+          amount: input.costCredits,
+          currency: 'credits',
+          reason: `Checkpoint ${input.checkpointId} execution`,
+          sourceArtifactId: input.artifactId,
+          validationGateResultId: input.gateEvidenceRef,
+          createdAt: input.now,
+        },
+      },
+    },
+  ];
 }
 
 function createMissionRun(): MissionRun {
