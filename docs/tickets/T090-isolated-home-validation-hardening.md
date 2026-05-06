@@ -36,4 +36,4 @@ validation evidence is internally consistent.
 | Targeted focused validation commands are recorded in worklog | DONE |
 | Remaining risks are documented precisely | DONE |
 | Worklog complete | DONE |
-| Scoped Lore commit exists | TODO |
+| Scoped Lore commit exists | DONE |

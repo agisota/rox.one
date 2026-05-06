@@ -158,4 +158,4 @@ broader follow-up because prior worklogs record unrelated full-suite blockers.
 | Targeted focused validation commands are recorded | Done | This worklog section 7 |
 | Remaining risks documented precisely | Done | This worklog section 10 |
 | Worklog complete | Done | Implementation and validation evidence recorded |
-| Scoped Lore commit exists | Not done | Awaiting user approval after final diff |
+| Scoped Lore commit exists | Done | This task is finalized in its scoped Lore commit |
