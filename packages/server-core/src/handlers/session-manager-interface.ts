@@ -22,6 +22,7 @@ import type {
   PermissionModeState,
   UnreadSummary,
   ShareResult,
+  PublicShareStatusResult,
 } from '@craft-agent/shared/protocol'
 import type { SessionBundle, DispatchMode } from '@craft-agent/shared/sessions'
 import type { EventSink } from '../transport'
@@ -141,6 +142,7 @@ export interface ISessionManager {
 
   shareToViewer(sessionId: string): Promise<ShareResult>
   updateShare(sessionId: string): Promise<ShareResult>
+  getShareStatus(sessionId: string): Promise<PublicShareStatusResult>
   revokeShare(sessionId: string): Promise<ShareResult>
 
   // ---------------------------------------------------------------------------

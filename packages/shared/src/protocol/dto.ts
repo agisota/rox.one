@@ -239,6 +239,7 @@ export type SessionCommand =
   | { type: 'copyPath' }
   | { type: 'shareToViewer' }
   | { type: 'updateShare' }
+  | { type: 'getShareStatus' }
   | { type: 'revokeShare' }
   | { type: 'refreshTitle' }
   | { type: 'setConnection'; connectionSlug: string }
@@ -448,6 +449,12 @@ export interface ShareResult {
   code?: 'auth_required' | 'payload_too_large' | 'viewer_unavailable' | 'expired' | 'invalid_public_url' | 'secret_leak_detected'
   status?: number
 }
+
+export type PublicShareLifecycleStatus = 'active' | 'expired' | 'revoked'
+
+export type PublicShareStatusResult =
+  | { success: true; shareId: string; status: PublicShareLifecycleStatus }
+  | { success: false; error?: string; code?: ShareResult['code']; status?: number }
 
 export interface RefreshTitleResult {
   success: boolean

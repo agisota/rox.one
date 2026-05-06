@@ -113,6 +113,33 @@ describe('share provider contract', () => {
     ])
   })
 
+  test('fake provider reports active and revoked share status deterministically', async () => {
+    const provider = createFakeShareProvider({ baseUrl: 'https://viewer.test' })
+
+    const upload = await provider.uploadBundle({ sessionId: 'session-status', bundle: { id: 'session-status' } })
+    expect(upload.success).toBe(true)
+    if (!upload.success) throw new Error('expected upload success')
+
+    const shortlink = await provider.createShortlink({ sessionId: 'session-status', uploadId: upload.uploadId })
+    expect(shortlink.success).toBe(true)
+    if (!shortlink.success) throw new Error('expected shortlink success')
+
+    expect(await provider.getShareStatus({ sessionId: 'session-status', shareId: shortlink.shareId })).toEqual({
+      success: true,
+      shareId: shortlink.shareId,
+      status: 'active',
+    })
+
+    expect(await provider.revokeShare({ sessionId: 'session-status', shareId: shortlink.shareId })).toEqual({
+      success: true,
+    })
+    expect(await provider.getShareStatus({ sessionId: 'session-status', shareId: shortlink.shareId })).toEqual({
+      success: true,
+      shareId: shortlink.shareId,
+      status: 'revoked',
+    })
+  })
+
   test('maps provider failures back to session share results', () => {
     expect(mapShareProviderFailureToShareResult({
       success: false,

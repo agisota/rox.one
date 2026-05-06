@@ -6,6 +6,7 @@ import type { MenuComponents } from '@/components/ui/menu-context'
 import { getStatusIconStyle, type SessionStatusId, type SessionStatus } from '@/config/session-status-config'
 import { sortLabelsForDisplay, type LabelConfig } from '@craft-agent/shared/labels'
 import { LabelIcon } from '@/components/ui/label-icon'
+import { getShareFailureState } from './session-share-flow'
 
 export interface ShareMenuItemsProps {
   sessionId: string
@@ -31,7 +32,7 @@ export function ShareMenuItems({ sessionId, sharedUrl, menu }: ShareMenuItemsPro
     if (result && 'success' in result && result.success) {
       toast.success(t("chat.shareUpdated"))
     } else {
-      const errorMsg = result && 'error' in result ? result.error : undefined
+      const errorMsg = result && 'success' in result ? getShareFailureState(result).message : undefined
       toast.error(t("chat.failedToUpdateShare"), { description: errorMsg })
     }
   }
@@ -41,7 +42,7 @@ export function ShareMenuItems({ sessionId, sharedUrl, menu }: ShareMenuItemsPro
     if (result && 'success' in result && result.success) {
       toast.success(t("chat.sharingStopped"))
     } else {
-      const errorMsg = result && 'error' in result ? result.error : undefined
+      const errorMsg = result && 'success' in result ? getShareFailureState(result).message : undefined
       toast.error(t("chat.failedToStopSharing"), { description: errorMsg })
     }
   }

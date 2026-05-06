@@ -44,8 +44,10 @@ import { useMenuComponents } from '@/components/ui/menu-context'
 import { getStateColor, getStateIcon, type SessionStatusId } from '@/config/session-status-config'
 import type { SessionStatus } from '@/config/session-status-config'
 import type { LabelConfig } from '@craft-agent/shared/labels'
+import type { ShareResult } from '@craft-agent/shared/protocol'
 import { extractLabelId } from '@craft-agent/shared/labels'
 import { LabelMenuItems, StatusMenuItems, ShareMenuItems } from './SessionMenuParts'
+import { createShareFlowController } from './session-share-flow'
 import { getFileManagerName } from '@/lib/platform'
 import type { SessionMeta } from '@/atoms/sessions'
 import { getSessionStatus, hasUnreadMeta, hasMessagesMeta } from '@/utils/session'
@@ -109,19 +111,36 @@ export function SessionMenu({
   const _hasUnread = hasUnreadMeta(item)
   // Share handlers
   const handleShare = async () => {
-    const result = await window.electronAPI.sessionCommand(sessionId, { type: 'shareToViewer' }) as { success: boolean; url?: string; error?: string } | undefined
-    if (result?.success && result.url) {
-      await navigator.clipboard.writeText(result.url)
-      toast.success(t('toast.linkCopied'), {
-        description: result.url,
-        action: {
-          label: 'Open',
-          onClick: () => window.electronAPI.openUrl(result.url!),
-        },
-      })
-    } else {
-      toast.error(t('toast.failedToShare'), { description: result?.error || t('toast.unknownError') })
-    }
+    const controller = createShareFlowController({
+      createShare: async () => {
+        const result = await window.electronAPI.sessionCommand(sessionId, { type: 'shareToViewer' })
+        return result && 'success' in result ? result as ShareResult : { success: false, error: t('toast.unknownError') }
+      },
+      copyToClipboard: (url) => navigator.clipboard.writeText(url),
+      onStateChange: (state) => {
+        if (state.state === 'preparing') toast.loading(t('sessionMenu.share'), { id: `share-${sessionId}` })
+        if (state.state === 'uploading') {
+          toast.loading(t('sessionMenu.share'), { id: `share-${sessionId}`, description: 'Подготовка публичного пакета' })
+        }
+        if (state.state === 'creating_link') {
+          toast.loading(t('sessionMenu.share'), { id: `share-${sessionId}`, description: 'Создание публичной ссылки' })
+        }
+        if (state.state === 'copied' && state.url) {
+          toast.success(t('toast.linkCopied'), {
+            id: `share-${sessionId}`,
+            description: state.url,
+            action: {
+              label: 'Open',
+              onClick: () => window.electronAPI.openUrl(state.url!),
+            },
+          })
+        }
+        if (state.state === 'auth_required' || state.state === 'failed_retryable' || state.state === 'failed_permanent') {
+          toast.error(t('toast.failedToShare'), { id: `share-${sessionId}`, description: state.message || t('toast.unknownError') })
+        }
+      },
+    })
+    await controller.share()
   }
 
   const handleShowInFinder = () => {
