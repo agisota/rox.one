@@ -3,7 +3,7 @@
 Repository: `/Users/marklindgreen/Projects/rox/rox`
 Branch: `mac/rox-production-ready-rc`
 Base: Rox Agents OSS v0.9.1
-Snapshot status: T074-T087 committed and validated locally for private RC.
+Snapshot status: T074-T089 implemented; T090 isolated-home hardening added; release docs reconciled against current local validation evidence.
 
 ## 1. Current Product Shape
 
@@ -81,6 +81,10 @@ caefffc T080 Global Experience HUD
 06a61d2 T084 Public Share Contract
 07ec92a T085 Private CI/CD Release Pipeline
 67e4695 T086 Security and Abuse Hardening
+1190514 T087 Final Product RC Documentation Build
+ab33f70 T088 MissionRun Lifecycle Contract Alignment
+4eb6dcd T089 Runtime Module Depth and Action Seams
+working tree T090 Isolated Home Validation Hardening (not committed)
 ```
 
 ## 5. Runtime Boundaries

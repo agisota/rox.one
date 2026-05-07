@@ -4,9 +4,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { pathToFileURL } from 'url'
 import { inferModelSelectionMode, shouldMigratePiOpenAiProvider, shouldRepairPiApiKeyCodexProvider } from '../storage'
-
 import { loadConfigDefaults, ensureConfigDir } from '../storage'
-
 
 const STORAGE_MODULE_PATH = pathToFileURL(join(import.meta.dir, '..', 'storage.ts')).href
 
@@ -27,7 +25,6 @@ function runLoadConfigDefaults(configDir: string): { exitCode: number; stdout: s
     stderr: run.stderr.toString(),
   }
 }
-
 
 describe('ensureConfigDir', () => {
   it('initializes a newly overridden ROX_CONFIG_DIR within the same process', () => {

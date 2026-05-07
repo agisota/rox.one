@@ -3,8 +3,16 @@ import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { pathToFileURL } from 'url'
+import { resolveBackendContext } from '@rox-agent/shared/agent/backend'
+import { loadWorkspaceConfig } from '@rox-agent/shared/workspaces'
+import { SessionManager, createManagedSession } from './SessionManager.ts'
+import { buildRestartRequiredSignature } from './runtime-config.ts'
 
-const TEST_MODULE_PATH = pathToFileURL(import.meta.path).href
+const SHARED_CONFIG_MODULE_PATH = pathToFileURL(join(import.meta.dir, '../../../shared/src/config/index.ts')).href
+const SHARED_BACKEND_MODULE_PATH = pathToFileURL(join(import.meta.dir, '../../../shared/src/agent/backend/index.ts')).href
+const SHARED_WORKSPACES_MODULE_PATH = pathToFileURL(join(import.meta.dir, '../../../shared/src/workspaces/index.ts')).href
+const SESSION_MANAGER_MODULE_PATH = pathToFileURL(join(import.meta.dir, 'SessionManager.ts')).href
+const RUNTIME_CONFIG_MODULE_PATH = pathToFileURL(join(import.meta.dir, 'runtime-config.ts')).href
 
 function runHermeticShapeCheck(configRoot: string, workspaceRoot: string): { exitCode: number; stdout: string; stderr: string } {
   const run = Bun.spawnSync([
@@ -12,9 +20,59 @@ function runHermeticShapeCheck(configRoot: string, workspaceRoot: string): { exi
     '--eval',
     `
       process.env.ROX_CONFIG_DIR = ${JSON.stringify(configRoot)};
-      const testModule = await import(${JSON.stringify(TEST_MODULE_PATH)});
-      const result = await testModule.runRuntimeRefreshShapeCheck(${JSON.stringify(workspaceRoot)});
-      console.log(JSON.stringify(result));
+      const { resolveBackendContext } = await import(${JSON.stringify(SHARED_BACKEND_MODULE_PATH)});
+      const { saveConfig, ensureConfigDir } = await import(${JSON.stringify(SHARED_CONFIG_MODULE_PATH)});
+      const { loadWorkspaceConfig } = await import(${JSON.stringify(SHARED_WORKSPACES_MODULE_PATH)});
+      const { SessionManager, createManagedSession } = await import(${JSON.stringify(SESSION_MANAGER_MODULE_PATH)});
+      const { buildRestartRequiredSignature } = await import(${JSON.stringify(RUNTIME_CONFIG_MODULE_PATH)});
+
+      const connection = {
+        slug: 'slug-A',
+        name: 'Shape Check Connection',
+        providerType: 'pi',
+        authType: 'api_key',
+        baseUrl: 'http://127.0.0.1:11111/v1',
+        customEndpoint: { api: 'anthropic-messages', supportsImages: true },
+        models: [
+          { id: 'vision-model', name: 'Vision Model', shortName: 'Vision', description: 'Vision-capable model', provider: 'pi', contextWindow: 262144, supportsImages: true },
+          { id: 'text-only-model', name: 'Text Only Model', shortName: 'Text', description: 'Text-only model', provider: 'pi', contextWindow: 131072, supportsImages: false },
+          { id: 'plain-model', name: 'Plain Model', shortName: 'Plain', description: 'Plain model', provider: 'pi', contextWindow: 65536 },
+        ],
+        defaultModel: 'vision-model',
+        createdAt: Date.now(),
+      };
+
+      ensureConfigDir();
+      saveConfig({
+        workspaces: [],
+        activeWorkspaceId: null,
+        activeSessionId: null,
+        llmConnections: [connection],
+        defaultLlmConnection: connection.slug,
+      });
+
+      const agent = {
+        isProcessing: () => false,
+        updateRuntimeConfig: { mock: { calls: [] }, async implementation(payload) { this.mock.calls.push([payload]); return true; } },
+        dispose: () => {},
+      };
+      agent.updateRuntimeConfig = async (payload) => { agent.updateRuntimeConfig.mock.calls.push([payload]); return true; };
+      agent.updateRuntimeConfig.mock = { calls: [] };
+
+      const workspace = { id: 'ws_test', name: 'Test Workspace', rootPath: ${JSON.stringify(workspaceRoot)}, createdAt: Date.now() };
+      const managed = createManagedSession({ id: 'shape-check', name: 'shape-check', llmConnection: connection.slug }, workspace, { messagesLoaded: true });
+      managed.agent = agent;
+      managed.backendRuntimeSignature = '__stale_runtime_signature_for_test__';
+      const workspaceConfig = loadWorkspaceConfig(${JSON.stringify(workspaceRoot)});
+      const ctx = resolveBackendContext({ sessionConnectionSlug: connection.slug, workspaceDefaultConnectionSlug: workspaceConfig?.defaults?.defaultLlmConnection });
+      managed.backendRestartSignature = buildRestartRequiredSignature({ connection: ctx.connection, provider: ctx.provider, authType: ctx.authType, resolvedModel: ctx.resolvedModel });
+      managed.llmConnection = connection.slug;
+
+      const sm = new SessionManager();
+      sm.sessions.set('shape-check', managed);
+      await sm.refreshConnectionRuntime(connection.slug);
+      const payload = agent.updateRuntimeConfig.mock.calls[0]?.[0];
+      console.log(JSON.stringify({ callCount: agent.updateRuntimeConfig.mock.calls.length, payload, expected: { model: connection.defaultModel, providerType: connection.providerType, authType: connection.authType } }));
     `,
   ], {
     env: { ...process.env, ROX_CONFIG_DIR: configRoot },
@@ -53,166 +111,51 @@ function createAgentStub(opts: {
   }
 }
 
-export async function runRuntimeRefreshShapeCheck(workspaceRoot: string) {
-  const { resolveBackendContext } = await import('@rox-agent/shared/agent/backend')
-  const { saveConfig, ensureConfigDir } = await import('@rox-agent/shared/config')
-  const { loadWorkspaceConfig } = await import('@rox-agent/shared/workspaces')
-  const { SessionManager, createManagedSession } = await import('./SessionManager.ts')
-  const { buildRestartRequiredSignature } = await import('./runtime-config.ts')
-
-  function configureCompatConnection(slug: string) {
-    ensureConfigDir()
-    const connection = {
-      slug,
-      name: 'Shape Check Connection',
-      providerType: 'pi',
-      authType: 'api_key',
-      baseUrl: 'http://127.0.0.1:11111/v1',
-      customEndpoint: { api: 'anthropic-messages', supportsImages: true },
-      models: [
-        { id: 'vision-model', name: 'Vision Model', shortName: 'Vision', description: 'Vision-capable model', provider: 'pi', contextWindow: 262_144, supportsImages: true } as never,
-        { id: 'text-only-model', name: 'Text Only Model', shortName: 'Text', description: 'Text-only model', provider: 'pi', contextWindow: 131_072, supportsImages: false } as never,
-        { id: 'plain-model', name: 'Plain Model', shortName: 'Plain', description: 'Plain model', provider: 'pi', contextWindow: 65_536 } as never,
-      ],
-      defaultModel: 'vision-model',
-      createdAt: Date.now(),
-    }
-    saveConfig({
-      workspaces: [],
-      activeWorkspaceId: null,
-      activeSessionId: null,
-      llmConnections: [connection],
-      defaultLlmConnection: slug,
-    })
-    return connection
-  }
-
-  function injectSession(
-    sm: InstanceType<typeof SessionManager>,
-    id: string,
-    llmConnection: string,
-    agent: AgentStub | null,
-    opts: { backendRuntimeSignature?: string; backendRestartSignature?: string; isProcessing?: boolean } = {},
-  ) {
-    const workspace = {
-      id: 'ws_test',
-      name: 'Test Workspace',
-      rootPath: workspaceRoot,
-      createdAt: Date.now(),
-    }
-    const managed = createManagedSession(
-      { id, name: id, llmConnection },
-      workspace as never,
-      { messagesLoaded: true },
-    ) as unknown as { agent: AgentStub | null; backendRuntimeSignature?: string; backendRestartSignature?: string; isProcessing: boolean; llmConnection?: string }
-    managed.agent = agent
-    managed.backendRuntimeSignature = opts.backendRuntimeSignature ?? '__stale_runtime_signature_for_test__'
-    if (opts.backendRestartSignature !== undefined) {
-      managed.backendRestartSignature = opts.backendRestartSignature
-    } else {
-      const workspaceConfig = loadWorkspaceConfig(workspaceRoot)
-      const ctx = resolveBackendContext({
-        sessionConnectionSlug: llmConnection,
-        workspaceDefaultConnectionSlug: workspaceConfig?.defaults?.defaultLlmConnection,
-      })
-      managed.backendRestartSignature = buildRestartRequiredSignature({
-        connection: ctx.connection,
-        provider: ctx.provider,
-        authType: ctx.authType,
-        resolvedModel: ctx.resolvedModel,
-      })
-    }
-    managed.isProcessing = opts.isProcessing ?? false
-    managed.llmConnection = llmConnection
-    ;(sm as unknown as { sessions: Map<string, unknown> }).sessions.set(id, managed)
-    return managed
-  }
-
-  const sm = new SessionManager()
-  const connection = configureCompatConnection('slug-A')
-  const agent = createAgentStub()
-  injectSession(sm, 'shape-check', connection.slug, agent)
-
-  await sm.refreshConnectionRuntime(connection.slug)
-
-  const payload = agent.updateRuntimeConfig.mock.calls[0]?.[0]
-  return {
-    callCount: agent.updateRuntimeConfig.mock.calls.length,
-    payload,
-    expected: {
-      model: connection.defaultModel,
-      providerType: connection.providerType,
-      authType: connection.authType,
-    },
-  }
-}
-
-const sharedModulePromise = Promise.all([
-  import('@rox-agent/shared/agent/backend'),
-  import('@rox-agent/shared/workspaces'),
-  import('./SessionManager.ts'),
-  import('./runtime-config.ts'),
-])
-
-function injectSessionFactory(
-  resolveBackendContext: Awaited<typeof sharedModulePromise>[0]['resolveBackendContext'],
-  loadWorkspaceConfig: Awaited<typeof sharedModulePromise>[1]['loadWorkspaceConfig'],
-  createManagedSession: Awaited<typeof sharedModulePromise>[2]['createManagedSession'],
-  buildRestartRequiredSignature: Awaited<typeof sharedModulePromise>[3]['buildRestartRequiredSignature'],
+function injectSession(
+  sm: SessionManager,
+  id: string,
+  workspaceRoot: string,
+  llmConnection: string,
+  agent: AgentStub | null,
+  opts: { backendRuntimeSignature?: string; backendRestartSignature?: string; isProcessing?: boolean } = {},
 ) {
-  return function injectSession(
-    sm: Awaited<typeof sharedModulePromise>[2]['SessionManager'],
-    id: string,
-    workspaceRoot: string,
-    llmConnection: string,
-    agent: AgentStub | null,
-    opts: { backendRuntimeSignature?: string; backendRestartSignature?: string; isProcessing?: boolean } = {},
-  ) {
-    const workspace = {
-      id: 'ws_test',
-      name: 'Test Workspace',
-      rootPath: workspaceRoot,
-      createdAt: Date.now(),
-    }
-    const managed = createManagedSession(
-      { id, name: id, llmConnection },
-      workspace as never,
-      { messagesLoaded: true },
-    ) as unknown as { agent: AgentStub | null; backendRuntimeSignature?: string; backendRestartSignature?: string; isProcessing: boolean; llmConnection?: string }
-    managed.agent = agent
-    managed.backendRuntimeSignature = opts.backendRuntimeSignature ?? '__stale_runtime_signature_for_test__'
-    if (opts.backendRestartSignature !== undefined) {
-      managed.backendRestartSignature = opts.backendRestartSignature
-    } else {
-      const workspaceConfig = loadWorkspaceConfig(workspaceRoot)
-      const ctx = resolveBackendContext({
-        sessionConnectionSlug: llmConnection,
-        workspaceDefaultConnectionSlug: workspaceConfig?.defaults?.defaultLlmConnection,
-      })
-      managed.backendRestartSignature = buildRestartRequiredSignature({
-        connection: ctx.connection,
-        provider: ctx.provider,
-        authType: ctx.authType,
-        resolvedModel: ctx.resolvedModel,
-      })
-    }
-    managed.isProcessing = opts.isProcessing ?? false
-    managed.llmConnection = llmConnection
-    ;(sm as unknown as { sessions: Map<string, unknown> }).sessions.set(id, managed)
-    return managed
+  const workspace = {
+    id: 'ws_test',
+    name: 'Test Workspace',
+    rootPath: workspaceRoot,
+    createdAt: Date.now(),
   }
+  const managed = createManagedSession(
+    { id, name: id, llmConnection },
+    workspace as never,
+    { messagesLoaded: true },
+  ) as unknown as { agent: AgentStub | null; backendRuntimeSignature?: string; backendRestartSignature?: string; isProcessing: boolean; llmConnection?: string }
+  managed.agent = agent
+  managed.backendRuntimeSignature = opts.backendRuntimeSignature ?? '__stale_runtime_signature_for_test__'
+  if (opts.backendRestartSignature !== undefined) {
+    managed.backendRestartSignature = opts.backendRestartSignature
+  } else {
+    const workspaceConfig = loadWorkspaceConfig(workspaceRoot)
+    const ctx = resolveBackendContext({
+      sessionConnectionSlug: llmConnection,
+      workspaceDefaultConnectionSlug: workspaceConfig?.defaults?.defaultLlmConnection,
+    })
+    managed.backendRestartSignature = buildRestartRequiredSignature({
+      connection: ctx.connection,
+      provider: ctx.provider,
+      authType: ctx.authType,
+      resolvedModel: ctx.resolvedModel,
+    })
+  }
+  managed.isProcessing = opts.isProcessing ?? false
+  managed.llmConnection = llmConnection
+  ;(sm as unknown as { sessions: Map<string, unknown> }).sessions.set(id, managed)
+  return managed
 }
 
-describe('refreshConnectionRuntime', async () => {
-  const [backendModule, workspacesModule, sessionModule, runtimeConfigModule] = await sharedModulePromise
-  const { resolveBackendContext } = backendModule
-  const { loadWorkspaceConfig } = workspacesModule
-  const { SessionManager, createManagedSession } = sessionModule
-  const { buildRestartRequiredSignature } = runtimeConfigModule
-  const injectSession = injectSessionFactory(resolveBackendContext, loadWorkspaceConfig, createManagedSession, buildRestartRequiredSignature)
-
+describe('refreshConnectionRuntime', () => {
   let tmpRoot: string
-  let sm: InstanceType<typeof SessionManager>
+  let sm: SessionManager
 
   beforeEach(() => {
     tmpRoot = mkdtempSync(join(tmpdir(), 'sm-refresh-'))
@@ -300,7 +243,9 @@ describe('refreshConnectionRuntime', async () => {
     try {
       const run = runHermeticShapeCheck(configRoot, tmpRoot)
       expect(run.exitCode).toBe(0)
-      const result = JSON.parse(run.stdout)
+      const jsonLine = run.stdout.trim().split(/\r?\n/).filter(Boolean).at(-1)
+      expect(jsonLine).toBeString()
+      const result = JSON.parse(jsonLine as string)
       expect(result.callCount).toBe(1)
       expect(result.payload).toMatchObject({
         model: result.expected.model,

@@ -1,6 +1,6 @@
 # T088 - MissionRun Lifecycle Contract Alignment
 
-Status: IN PROGRESS
+Status: DONE
 
 ## Goal
 
@@ -34,3 +34,20 @@ runtime store, durable mission scheduler, and renderer projections.
 - Relevant broad validation passes or exact blockers are recorded.
 - Worklog complete.
 - Scoped Lore commit exists.
+
+
+## Verification Notes
+
+Verified complete against acceptance criteria during the production-readiness
+hardening pass:
+
+- shared lifecycle vocabulary and contract are documented in the worklog;
+- launch truth is aligned to `queued` before scheduler execution;
+- scheduler lifecycle events project into canonical `MissionRun` status;
+- Mission Control finalization requires final artifact and passing gate evidence;
+- paid/elapsed state still cannot satisfy gates, quests, VDI, or finalization;
+- targeted validation remains green and previously broader blockers were either
+  fixed later (T090) or recorded precisely.
+
+See `docs/worklog/T088-mission-runtime-lifecycle-contract.md` for exact
+commands/results.

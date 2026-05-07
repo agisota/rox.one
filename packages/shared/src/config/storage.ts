@@ -15,7 +15,7 @@ import { initializeDocs } from '../docs/index.ts';
 import { expandPath, toPortablePath, getBundledAssetsDir } from '../utils/paths.ts';
 import { debug } from '../utils/debug.ts';
 import { readJsonFileSync } from '../utils/files.ts';
-import { CONFIG_DIR } from './paths.ts';
+import { getConfigDir } from './paths.ts';
 import type { StoredAttachment, StoredMessage } from '@rox-agent/core/types';
 import type { Plan } from '../agent/plan-types.ts';
 import type { PermissionMode } from '../agent/mode-manager.ts';
@@ -25,8 +25,7 @@ import { parsePermissionMode, PERMISSION_MODE_ORDER } from '../agent/mode-types.
 import { type ConfigDefaults } from './config-defaults-schema.ts';
 import { isValidThemeFile } from './validators.ts';
 
-// Re-export CONFIG_DIR for convenience (centralized in paths.ts)
-export { CONFIG_DIR } from './paths.ts';
+
 
 // Re-export base types from core (single source of truth)
 export type {
@@ -91,8 +90,13 @@ export interface StoredConfig {
   migrationsApplied?: string[];
 }
 
-const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
-const CONFIG_DEFAULTS_FILE = join(CONFIG_DIR, 'config-defaults.json');
+function getConfigFile(): string {
+  return join(getConfigDir(), 'config.json');
+}
+
+function getConfigDefaultsFile(): string {
+  return join(getConfigDir(), 'config-defaults.json');
+}
 
 // Track if config-defaults have been synced this session (prevents re-sync on hot reload)
 let configDefaultsSynced = false;
@@ -128,15 +132,15 @@ const FALLBACK_CONFIG_DEFAULTS: ConfigDefaults = {
 };
 
 function syncConfigDefaults(): void {
-  if (configDefaultsSynced && existsSync(CONFIG_DEFAULTS_FILE)) return;
+  if (configDefaultsSynced && existsSync(getConfigDefaultsFile())) return;
   configDefaultsSynced = true;
 
   // Get bundled config-defaults.json from resources folder
   const bundledDir = getBundledAssetsDir('.');
   if (!bundledDir) {
     debug('[config] No bundled assets dir found - using fallback config-defaults');
-    if (!existsSync(CONFIG_DEFAULTS_FILE)) {
-      writeFileSync(CONFIG_DEFAULTS_FILE, JSON.stringify(FALLBACK_CONFIG_DEFAULTS, null, 2), 'utf-8');
+    if (!existsSync(getConfigDefaultsFile())) {
+      writeFileSync(getConfigDefaultsFile(), JSON.stringify(FALLBACK_CONFIG_DEFAULTS, null, 2), 'utf-8');
     }
     return;
   }
@@ -144,15 +148,15 @@ function syncConfigDefaults(): void {
   const bundledFile = join(bundledDir, 'config-defaults.json');
   if (!existsSync(bundledFile)) {
     debug('[config] Bundled config-defaults.json not found at: ' + bundledFile + ' - using fallback');
-    if (!existsSync(CONFIG_DEFAULTS_FILE)) {
-      writeFileSync(CONFIG_DEFAULTS_FILE, JSON.stringify(FALLBACK_CONFIG_DEFAULTS, null, 2), 'utf-8');
+    if (!existsSync(getConfigDefaultsFile())) {
+      writeFileSync(getConfigDefaultsFile(), JSON.stringify(FALLBACK_CONFIG_DEFAULTS, null, 2), 'utf-8');
     }
     return;
   }
 
   // Sync from bundled file (same pattern as docs)
   const content = readFileSync(bundledFile, 'utf-8');
-  writeFileSync(CONFIG_DEFAULTS_FILE, content, 'utf-8');
+  writeFileSync(getConfigDefaultsFile(), content, 'utf-8');
   debug('[config] Synced config-defaults.json from bundled assets');
 }
 
@@ -161,14 +165,14 @@ function syncConfigDefaults(): void {
  * This file is synced from bundled assets on every launch.
  */
 export function loadConfigDefaults(): ConfigDefaults {
-  if (!existsSync(CONFIG_DEFAULTS_FILE)) {
-    if (!existsSync(CONFIG_DIR)) {
-      mkdirSync(CONFIG_DIR, { recursive: true });
+  if (!existsSync(getConfigDefaultsFile())) {
+    if (!existsSync(getConfigDir())) {
+      mkdirSync(getConfigDir(), { recursive: true });
     }
     ensureConfigDefaults();
   }
 
-  const defaults = readJsonFileSync<ConfigDefaults>(CONFIG_DEFAULTS_FILE);
+  const defaults = readJsonFileSync<ConfigDefaults>(getConfigDefaultsFile());
 
   const parsedPermissionMode =
     typeof defaults.workspaceDefaults?.permissionMode === 'string'
@@ -204,13 +208,14 @@ export function ensureConfigDefaults(): void {
   syncConfigDefaults();
 }
 
-let configDirInitialized = false;
+let initializedConfigDir: string | null = null;
 
 export function ensureConfigDir(): void {
-  if (configDirInitialized) return;
+  const configDir = getConfigDir();
+  if (initializedConfigDir === configDir) return;
 
-  if (!existsSync(CONFIG_DIR)) {
-    mkdirSync(CONFIG_DIR, { recursive: true });
+  if (!existsSync(configDir)) {
+    mkdirSync(configDir, { recursive: true });
   }
   // Initialize bundled docs (creates ~/.rox/docs/ with sources.md, agents.md, permissions.md)
   initializeDocs();
@@ -221,15 +226,15 @@ export function ensureConfigDir(): void {
   // Initialize tool icons (CLI tool icons for turn card display)
   ensureToolIcons();
 
-  configDirInitialized = true;
+  initializedConfigDir = configDir;
 }
 
 export function loadStoredConfig(): StoredConfig | null {
   try {
-    if (!existsSync(CONFIG_FILE)) {
+    if (!existsSync(getConfigFile())) {
       return null;
     }
-    const config = readJsonFileSync<StoredConfig>(CONFIG_FILE);
+    const config = readJsonFileSync<StoredConfig>(getConfigFile());
 
     // Must have workspaces array
     if (!Array.isArray(config.workspaces)) {
@@ -283,7 +288,7 @@ export function saveConfig(config: StoredConfig): void {
     })),
   };
 
-  writeFileSync(CONFIG_FILE, JSON.stringify(storageConfig, null, 2), 'utf-8');
+  writeFileSync(getConfigFile(), JSON.stringify(storageConfig, null, 2), 'utf-8');
 }
 
 // Legacy updateApiKey() removed - use setupLlmConnection IPC handler instead.
@@ -543,7 +548,7 @@ export function clearGitBashPath(): void {
 // Permission settings are now stored per-workspace in workspace config.json (defaults.permissionMode, defaults.cyclablePermissionModes)
 
 export function getConfigPath(): string {
-  return CONFIG_FILE;
+  return getConfigFile();
 }
 
 /**
@@ -552,18 +557,18 @@ export function getConfigPath(): string {
  */
 export async function clearAllConfig(): Promise<void> {
   // Delete config file
-  if (existsSync(CONFIG_FILE)) {
-    rmSync(CONFIG_FILE);
+  if (existsSync(getConfigFile())) {
+    rmSync(getConfigFile());
   }
 
   // Delete credentials file
-  const credentialsFile = join(CONFIG_DIR, 'credentials.enc');
+  const credentialsFile = join(getConfigDir(), 'credentials.enc');
   if (existsSync(credentialsFile)) {
     rmSync(credentialsFile);
   }
 
   // Optionally: Delete workspace data (conversations)
-  const workspacesDir = join(CONFIG_DIR, 'workspaces');
+  const workspacesDir = join(getConfigDir(), 'workspaces');
   if (existsSync(workspacesDir)) {
     rmSync(workspacesDir, { recursive: true });
   }
@@ -807,7 +812,7 @@ export async function removeWorkspace(workspaceId: string): Promise<boolean> {
   await manager.deleteWorkspaceCredentials(workspaceId);
 
   // Delete workspace data directory (sessions, plans, etc.)
-  const workspaceDataDir = join(WORKSPACES_DIR, workspaceId);
+  const workspaceDataDir = join(getWorkspacesDir(), workspaceId);
   if (existsSync(workspaceDataDir)) {
     try {
       rmSync(workspaceDataDir, { recursive: true });
@@ -826,10 +831,12 @@ export async function removeWorkspace(workspaceId: string): Promise<boolean> {
 // Workspace Conversation Persistence
 // ============================================
 
-const WORKSPACES_DIR = join(CONFIG_DIR, 'workspaces');
+function getWorkspacesDir(): string {
+  return join(getConfigDir(), 'workspaces');
+}
 
 function ensureWorkspaceDir(workspaceId: string): string {
-  const dir = join(WORKSPACES_DIR, workspaceId);
+  const dir = join(getWorkspacesDir(), workspaceId);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
@@ -904,7 +911,7 @@ export function saveWorkspaceConversation(
 
 // Load workspace conversation
 export function loadWorkspaceConversation(workspaceId: string): WorkspaceConversation | null {
-  const filePath = join(WORKSPACES_DIR, workspaceId, 'conversation.json');
+  const filePath = join(getWorkspacesDir(), workspaceId, 'conversation.json');
 
   try {
     if (!existsSync(filePath)) {
@@ -918,12 +925,12 @@ export function loadWorkspaceConversation(workspaceId: string): WorkspaceConvers
 
 // Get workspace data directory path
 export function getWorkspaceDataPath(workspaceId: string): string {
-  return join(WORKSPACES_DIR, workspaceId);
+  return join(getWorkspacesDir(), workspaceId);
 }
 
 // Clear workspace conversation
 export function clearWorkspaceConversation(workspaceId: string): void {
-  const filePath = join(WORKSPACES_DIR, workspaceId, 'conversation.json');
+  const filePath = join(getWorkspacesDir(), workspaceId, 'conversation.json');
   if (existsSync(filePath)) {
     writeFileSync(filePath, '{}', 'utf-8');
   }
@@ -953,7 +960,7 @@ export function saveWorkspacePlan(workspaceId: string, plan: Plan): void {
  * Returns null if no plan exists.
  */
 export function loadWorkspacePlan(workspaceId: string): Plan | null {
-  const filePath = join(WORKSPACES_DIR, workspaceId, 'plan.json');
+  const filePath = join(getWorkspacesDir(), workspaceId, 'plan.json');
 
   try {
     if (!existsSync(filePath)) {
@@ -970,7 +977,7 @@ export function loadWorkspacePlan(workspaceId: string): Plan | null {
  * Called when user runs /clear or cancels a plan.
  */
 export function clearWorkspacePlan(workspaceId: string): void {
-  const filePath = join(WORKSPACES_DIR, workspaceId, 'plan.json');
+  const filePath = join(getWorkspacesDir(), workspaceId, 'plan.json');
   if (existsSync(filePath)) {
     rmSync(filePath);
   }
@@ -986,7 +993,9 @@ export function clearWorkspacePlan(workspaceId: string): void {
 //    that never existed on disk. Hydrate reconstructs directly from the stored bytes.
 // ============================================
 
-const DRAFTS_FILE = join(CONFIG_DIR, 'drafts.json');
+function getDraftsFile(): string {
+  return join(getConfigDir(), 'drafts.json');
+}
 
 export interface DraftAttachmentContent {
   type: 'image' | 'pdf' | 'text' | 'office' | 'unknown';
@@ -1069,10 +1078,10 @@ function isEmptyDraft(draft: SessionDraft): boolean {
  */
 function loadDraftsData(): DraftsData {
   try {
-    if (!existsSync(DRAFTS_FILE)) {
+    if (!existsSync(getDraftsFile())) {
       return { drafts: {}, updatedAt: 0 };
     }
-    const raw = readJsonFileSync<{ drafts?: Record<string, unknown>; updatedAt?: number }>(DRAFTS_FILE);
+    const raw = readJsonFileSync<{ drafts?: Record<string, unknown>; updatedAt?: number }>(getDraftsFile());
     const drafts: Record<string, SessionDraft> = {};
     for (const [sessionId, value] of Object.entries(raw.drafts ?? {})) {
       if (isSessionDraft(value)) {
@@ -1088,7 +1097,7 @@ function loadDraftsData(): DraftsData {
 function saveDraftsData(data: DraftsData): void {
   ensureConfigDir();
   data.updatedAt = Date.now();
-  writeFileSync(DRAFTS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  writeFileSync(getDraftsFile(), JSON.stringify(data, null, 2), 'utf-8');
 }
 
 /**
@@ -1155,14 +1164,19 @@ export function getAllSessionDrafts(): Record<string, SessionDraft> {
 import type { ThemeOverrides, ThemeFile, PresetTheme } from './theme.ts';
 import { readdirSync } from 'fs';
 
-const APP_THEME_FILE = join(CONFIG_DIR, 'theme.json');
-const APP_THEMES_DIR = join(CONFIG_DIR, 'themes');
+function getAppThemeFile(): string {
+  return join(getConfigDir(), 'theme.json');
+}
+
+function resolveAppThemesDir(): string {
+  return join(getConfigDir(), 'themes');
+}
 
 /**
  * Get the path to the app-level theme override file (~/.rox/theme.json).
  */
 export function getAppThemePath(): string {
-  return APP_THEME_FILE;
+  return getAppThemeFile();
 }
 
 // Track if preset themes have been synced this session (prevents re-init on hot reload)
@@ -1173,7 +1187,7 @@ let presetsInitialized = false;
  * Preset themes are stored at ~/.rox/themes/
  */
 export function getAppThemesDir(): string {
-  return APP_THEMES_DIR;
+  return resolveAppThemesDir();
 }
 
 /**
@@ -1181,10 +1195,10 @@ export function getAppThemesDir(): string {
  */
 export function loadAppTheme(): ThemeOverrides | null {
   try {
-    if (!existsSync(APP_THEME_FILE)) {
+    if (!existsSync(getAppThemeFile())) {
       return null;
     }
-    return readJsonFileSync<ThemeOverrides>(APP_THEME_FILE);
+    return readJsonFileSync<ThemeOverrides>(getAppThemeFile());
   } catch {
     return null;
   }
@@ -1195,7 +1209,7 @@ export function loadAppTheme(): ThemeOverrides | null {
  */
 export function saveAppTheme(theme: ThemeOverrides): void {
   ensureConfigDir();
-  writeFileSync(APP_THEME_FILE, JSON.stringify(theme, null, 2), 'utf-8');
+  writeFileSync(getAppThemeFile(), JSON.stringify(theme, null, 2), 'utf-8');
 }
 
 
@@ -2848,7 +2862,7 @@ const TOOL_ICONS_DIR_NAME = 'tool-icons';
  * Returns the path to the tool-icons directory: ~/.rox/tool-icons/
  */
 export function getToolIconsDir(): string {
-  return join(CONFIG_DIR, TOOL_ICONS_DIR_NAME);
+  return join(getConfigDir(), TOOL_ICONS_DIR_NAME);
 }
 
 /**

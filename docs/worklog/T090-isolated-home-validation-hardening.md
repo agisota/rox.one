@@ -192,8 +192,9 @@ broader follow-up because prior worklogs record unrelated full-suite blockers.
   bootstrapping assumptions outside this ticket's focused config/runtime slice.
 - This ticket verifies targeted shared/server/electron startup-adjacent paths,
   not the entire monorepo validation surface.
-- Ticket/worklog/release-doc status reconciliation still remains after code/test
-  hardening.
+- Ticket/worklog/release-doc status reconciliation was completed in the
+  subsequent release-hardening follow-up; remaining risk is now limited to
+  broader suite coverage outside this focused slice.
 
 ## 11. Acceptance criteria matrix
 
@@ -205,4 +206,104 @@ broader follow-up because prior worklogs record unrelated full-suite blockers.
 | Targeted focused validation commands are recorded | Done | This worklog section 7 |
 | Remaining risks documented precisely | Done | This worklog section 10 |
 | Worklog complete | Done | Implementation and validation evidence recorded |
-| Scoped Lore commit exists | Done | This task is finalized in its scoped Lore commit |
+| Scoped Lore commit exists | Pending | Validation/worklog complete; awaiting commit approval, no commit created in this session |
+
+## 12. Release-hardening follow-up addendum
+
+Current diff review uncovered one obvious correctness gap before commit approval:
+
+- `packages/shared/src/config/storage.ts` still had a duplicate `getConfigDir`
+  import in the working tree and several config-root-derived paths (`workspaces`,
+  `drafts`, app themes) were still captured at module load time, which would
+  weaken same-process isolated-config switching.
+- `packages/server-core/src/sessions/refresh-connection-runtime.test.ts` parsed
+  hermetic subprocess stdout as a single raw JSON blob even though session logs
+  may precede the final JSON line.
+
+Follow-up hardening applied:
+
+- removed the duplicate import and converted the remaining config-root-derived
+  storage/theme/workspace paths to dynamic helpers so they honor the current
+  `ROX_CONFIG_DIR` at call time;
+- made `ensureConfigDir()` memoize per resolved config dir instead of using a
+  single process-global boolean;
+- made the hermetic refresh test parse the last non-empty stdout line as JSON,
+  which matches the subprocess contract even when debug/session logs are
+  present.
+
+Additional validation rerun:
+
+```bash
+bun test packages/shared/src/config/__tests__/storage-migrations.test.ts \
+  packages/server-core/src/sessions/refresh-connection-runtime.test.ts
+bun run typecheck:all
+git diff --check
+```
+
+Results:
+
+- Focused touched-file suite: PASS (`20 pass`, `0 fail`, `31 expect() calls`).
+- `bun run typecheck:all`: PASS.
+- `git diff --check`: PASS.
+
+## 13. Additional review/fix slice
+
+One more diff review on the remaining changed surface found that the original
+same-process `ensureConfigDir()` regression test had been dropped from
+`packages/shared/src/config/__tests__/storage-migrations.test.ts` even though
+that exact behavior remains an important correctness guard for the new dynamic
+`getConfigDir()` / per-config-dir initialization logic.
+
+Fix applied:
+
+- restored the direct same-process regression test that switches
+  `ROX_CONFIG_DIR` between two temp roots, calls `ensureConfigDir()` twice,
+  and asserts both roots bootstrap `config-defaults.json` successfully before
+  loading defaults from the second root.
+
+Validation rerun:
+
+```bash
+bun test packages/shared/src/config/__tests__/storage-migrations.test.ts \
+  packages/server-core/src/sessions/refresh-connection-runtime.test.ts
+git diff --check
+```
+
+Results:
+
+- Focused regression suite: PASS (`21 pass`, `0 fail`, `34 expect() calls`).
+- `git diff --check`: PASS.
+
+
+## 14. Final documentation/release reconciliation
+
+After the code/test hardening landed, the release-hardening pass also rechecked
+repo-document consistency and broader lightweight validation.
+
+Additional validation run:
+
+```bash
+bun run validate:docs
+bun run lint
+bun run electron:build
+bun run webui:build
+bun run viewer:build
+bun run electron:smoke
+```
+
+Results:
+
+- `bun run validate:docs`: PASS (`11 skills`, `91 tickets`, `7 required docs`; architecture and sync-v2 design validators green).
+- `bun run lint`: PASS with only the same 3 pre-existing React hook dependency warnings and `0 errors`.
+- `bun run electron:build`: PASS. Main, preload, renderer, resources, and assets built; Vite reported existing large-chunk warnings only.
+- `bun run webui:build`: PASS. Vite build completed; existing large-chunk warnings only.
+- `bun run viewer:build`: PASS. Vite build completed; existing large-chunk warnings only.
+- `bun run electron:smoke`: PASS. Electron initialized config, credentials, session services, ROX server, messaging gateway, and exited cleanly with `[smoke] Electron headless startup passed`.
+
+Documentation state after reconciliation:
+
+- T088/T089 tickets are marked `DONE` and reference their validated worklogs.
+- Release snapshot/final RC/readiness docs now distinguish historical T087
+  max-suite evidence from the current narrower T088/T089/T090 reruns.
+- T090 remains validated in the working tree and pending commit approval; no
+  commit was created in this session.

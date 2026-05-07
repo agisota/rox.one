@@ -215,8 +215,7 @@ and pre-existing factory/runtime payload setup issues.
 - `failed` and `cancelled` are schema-supported terminal states, but current
   scheduler flows do not emit all of them yet.
 - Full `ExperienceRuntimeStore` decomposition is deferred.
-- Full `bun test` remains blocked by 8 unrelated existing failures listed
-  above.
+- Historical broad-suite blockers were recorded at T088 time; the highest-impact isolated-home subset was later reduced in T090 focused validation.
 - No real provider validation was run by design; T088 remains fake-provider-safe.
 - Electron app launch/screenshot proof was not part of this narrow lifecycle
   contract ticket.
@@ -233,3 +232,14 @@ and pre-existing factory/runtime payload setup issues.
 | Targeted validation passes | Done | `37 pass, 0 fail` |
 | Broad validation passes or blocker recorded | Done with unrelated blocker | Full `bun test` blocker recorded |
 | Commit exists | Done | Lore commit for T088 |
+
+
+## 12. Closure verification addendum
+
+A later production-readiness verification pass re-ran the combined T088/T089
+runtime-focused suite and confirmed the T088 acceptance surface remains green:
+
+- `bun test packages/shared/src/workbench/__tests__/experience-runtime-modules.test.ts packages/shared/src/workbench/__tests__/experience-runtime-store.test.ts apps/electron/src/renderer/components/workbench/__tests__/mission-control-run-detail.test.tsx packages/server-core/src/provider-gateway/__tests__/provider-gateway.test.ts packages/server-core/src/sessions/share-provider.test.ts packages/shared/src/workbench/__tests__/mission-lifecycle.test.ts apps/electron/src/renderer/components/workbench/__tests__/deep-missions-screen.test.tsx packages/server-core/src/mission-scheduler/__tests__/durable-mission-scheduler.test.ts`
+- Result: `56 pass`, `0 fail`, `251 expect() calls`.
+
+Ticket status is therefore verified as complete at the focused acceptance level.
