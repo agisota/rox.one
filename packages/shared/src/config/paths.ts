@@ -26,5 +26,11 @@ function resolveDefaultConfigDir(): string {
   return newDir;
 }
 
-// Allow override via environment variable for multi-instance dev
-export const CONFIG_DIR = process.env.CRAFT_CONFIG_DIR || resolveDefaultConfigDir();
+// Resolve override dynamically so tests and multi-instance flows can switch
+// config roots within the same process before first use.
+export function getConfigDir(): string {
+  return process.env.CRAFT_CONFIG_DIR || resolveDefaultConfigDir();
+}
+
+// Backward-compatible snapshot for modules that only need import-time resolution.
+export const CONFIG_DIR = getConfigDir();

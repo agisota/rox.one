@@ -17,7 +17,7 @@ Prepare the local ROX.ONE / Craft Agents monorepo for disciplined next-step work
 - Runtime/package manager: Bun
 - Repo shape: monorepo with `packages/*` and `apps/*`
 - Branch: `mac/rox-production-ready-rc`
-- Current product snapshot documents T074-T087 as committed/validated, with T088/T089 continuing runtime hardening.
+- Current product snapshot/release docs now reflect T074-T089 as implemented, with T090 isolated-home hardening validated in the working tree and pending commit approval.
 - Operating contract from `AGENTS.md` requires:
   - work from `docs/tickets/*.md`;
   - inspect context first;
@@ -132,7 +132,7 @@ Likely focused commands for the runtime-hardening path:
 | Inspected `docs/worklog/` | Pass | worklog inventory reviewed |
 | Identified relevant pending work | Pass | T088/T089 + blocker follow-up candidates recorded |
 | Created readiness worklog | Pass | `docs/worklog/engineering-swarm-readiness.md` |
-| Proceed without guessing | Pass | stopping for user choice because multiple plausible tickets exist |
+| Proceed without guessing | Pass | initial ambiguity recorded, then autonomous default to T089 and follow-up program decisions documented |
 
 
 
@@ -150,3 +150,19 @@ Likely focused commands for the runtime-hardening path:
   inconsistent.
 - Program rule for next passes: prefer evidence integrity and repeatable clean-
   environment validation over cosmetic backlog cleanup.
+
+## 11. Release-hardening follow-up
+
+- Rechecked the default next-step ticket closure path after T090.
+- `docs/tickets/T088-mission-runtime-lifecycle-contract.md` has now been
+  reconciled with its existing validated worklog evidence and marked `DONE`.
+- Replayed the previously recorded watcher blocker command under isolated
+  `HOME`:
+
+```bash
+env HOME=/private/tmp/craft-bun-test-home bun test \
+  apps/electron/src/main/handlers/__tests__/session-watcher.test.ts \
+  apps/electron/src/main/handlers/__tests__/sessions-watchers.test.ts
+```
+
+Result: PASS (`5 pass, 0 fail`). This means the older blocker inventory in T088/T089 is stale after T090-era hardening and should not be treated as a current open defect without rerunning the broader suite.

@@ -153,8 +153,8 @@ Expected failures before implementation:
   The first sandboxed run rebuilt successfully but Electron exited with
   `SIGABRT`; the escalated GUI run reached `App initialized successfully` and
   finished with `[smoke] Electron headless startup passed`.
-- Full isolated-home `bun test`: `4711 pass`, `13 skip`, `8 fail`,
-  `11669 expect() calls`.
+- Historical full isolated-home `bun test` at T089 time: `4711 pass`, `13 skip`, `8 fail`,
+  `11669 expect() calls`. The highest-impact isolated-home blockers from that set were later reduced in T090 with focused green reruns.
 
 ## 10. Build output summary
 
@@ -175,23 +175,16 @@ Expected failures before implementation:
 
 ## 11. Remaining risks
 
-- Full isolated-home `bun test` still has 8 failures outside the T089 change
-  surface:
-  - `packages/server-core/src/sessions/refresh-connection-runtime.test.ts`:
-    expected IPC payload `runtime` shape is absent/undefined.
-  - `packages/shared/src/workbench/__tests__/default-workspace-bundle.test.ts`:
-    `config-defaults.json` is missing under `/private/tmp/craft-bun-test-home/.rox/`.
-  - `apps/electron/src/main/handlers/__tests__/session-watcher.test.ts` and
-    `apps/electron/src/main/handlers/__tests__/sessions-watchers.test.ts`:
-    file watcher tests did not receive expected notifications.
-  - `packages/shared/src/agent/backend/__tests__/factory.test.ts`: two
-    ClaudeAgent tests also fail because isolated HOME lacks
-    `/private/tmp/craft-bun-test-home/.rox/config-defaults.json`.
+- The T089 acceptance surface is now verified green, and the previously
+  recorded highest-impact isolated-home blockers were reduced later in T090.
 - Mission Control approval actions still use the existing local preview helper
   when no runtime store is supplied. This pass closes checkpoint completion; a
   future ticket should add typed approval events before changing approval truth.
 - Real provider/share infrastructure was not exercised by design; tests remain
   deterministic and fake-provider-safe.
+- Full current-pass max-suite validation was not rerun as part of T089 closure;
+  the repo should rely on the focused evidence recorded here plus later T090
+  focused reruns unless/until a new broad-suite pass is executed.
 
 ## 12. Acceptance criteria matrix
 
@@ -204,3 +197,14 @@ Expected failures before implementation:
 | Share upload/update sanitizes at provider seam | Pass | `share-provider.test.ts` fake/viewer provider seam regressions |
 | Targeted validation passes | Pass | Targeted T089 suite: `34 pass`, `0 fail` |
 | Scoped Lore commit exists | Pass | Scoped Lore commit for T089 |
+
+
+## 13. Closure verification addendum
+
+A later production-readiness verification pass re-ran the combined T088/T089
+runtime-focused suite and confirmed it remains green:
+
+- `bun test packages/shared/src/workbench/__tests__/experience-runtime-modules.test.ts packages/shared/src/workbench/__tests__/experience-runtime-store.test.ts apps/electron/src/renderer/components/workbench/__tests__/mission-control-run-detail.test.tsx packages/server-core/src/provider-gateway/__tests__/provider-gateway.test.ts packages/server-core/src/sessions/share-provider.test.ts packages/shared/src/workbench/__tests__/mission-lifecycle.test.ts apps/electron/src/renderer/components/workbench/__tests__/deep-missions-screen.test.tsx packages/server-core/src/mission-scheduler/__tests__/durable-mission-scheduler.test.ts`
+- Result: `56 pass`, `0 fail`, `251 expect() calls`.
+
+Ticket status is therefore verified as complete at the focused acceptance level.
