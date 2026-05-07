@@ -311,6 +311,7 @@ export default function App() {
   // hydrated via readFileAttachment() on session switch.
   const sessionDraftsRef = useRef<Map<string, SessionDraft>>(new Map())
   const draftSaveTimeoutRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const handleInputChangeRef = useRef<(sessionId: string, value: string) => void>(() => {})
   // Unified session options for all session-scoped settings
   const [sessionOptions, setSessionOptions] = useState<Map<string, SessionOptions>>(new Map())
 
@@ -853,7 +854,7 @@ export default function App() {
             const restored = existingText
               ? `${existingText}\n\n${restoredText}`
               : restoredText
-            handleInputChange(sessionId, restored)
+            handleInputChangeRef.current(sessionId, restored)
             // handleInputChange updates the ref but ChatPage has local state.
             // Dispatch a custom event so ChatPage re-reads the draft.
             window.dispatchEvent(new CustomEvent('craft:restore-input', {
@@ -1369,7 +1370,7 @@ export default function App() {
         ]
       }))
     }
-  }, [updateSessionById, skills, sources, windowWorkspaceSlug])
+  }, [updateSessionById, skills, sources, windowWorkspaceSlug, store])
 
   /**
    * Unified handler for all session option changes.
@@ -1481,6 +1482,7 @@ export default function App() {
     }
     schedulePersistDraft(sessionId)
   }, [schedulePersistDraft])
+  handleInputChangeRef.current = handleInputChange
 
   const handleAttachmentsChange = useCallback((sessionId: string, attachments: FileAttachment[]) => {
     const existing = sessionDraftsRef.current.get(sessionId)
