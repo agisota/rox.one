@@ -110,7 +110,8 @@
     "validate:sync-v2-design": "bun run scripts/validate-sync-v2-design.ts",
     "validate:ci-contract": "bun run scripts/validate-ci-contract.ts",
     "validate:mac-arm-build-workflow": "bun run scripts/validate-mac-arm-build-workflow.ts",
-    "validate:e2e-core-scenarios": "bun run scripts/validate-e2e-core-scenarios.ts"
+    "validate:e2e-core-scenarios": "bun run scripts/validate-e2e-core-scenarios.ts",
+    "validate:packaged-artifacts": "bun run scripts/validate-packaged-artifacts.ts"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1038.0",
