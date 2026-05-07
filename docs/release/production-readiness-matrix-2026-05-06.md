@@ -40,20 +40,20 @@ ROX ONE App
 | Gate | Status | Notes |
 |---|---|---|
 | Docs validation | Pass | `bun run validate:docs` passed in the current pass and in prior RC evidence |
-| Agent contract validation | Pass | `bun run validate:agent-contract` passed; 11 skills, 91 tickets, 7 required docs |
+| Agent contract validation | Pass | `bun run validate:agent-contract` passed; 11 skills, 92 tickets, 7 required docs |
 | Typecheck | Pass | `bun run typecheck:all` passed |
-| Tests | Partial pass | Focused runtime/isolated-home suites pass; no fresh full `bun test` rerun recorded in current pass |
+| Tests | Pass | Full `bun test` is green in the current verified release-hardening state: 4721 pass, 13 skip, 0 fail, 1 snapshot |
 | Lint | Pass | `bun run lint` passed with 0 errors and 3 existing React hook warnings |
-| Electron build | Pass | `bun run electron:build` passed; Vite chunk warnings only |
-| CI parity | Historical pass | Recorded in prior RC docs; not rerun in current pass |
+| Electron build | Pass | `bun run electron:build` passed; Vite chunk warnings only; packaged arm64 evidence audited in T091 |
+| CI parity | Historical/full-pass evidence | Full release-hardening state includes green `bun test`, `typecheck:all`, docs, lint, build, smoke, packaged smoke, and packaged arm64 build evidence; `validate:ci` itself was not the command rerun in T091 |
 | E2E core | Pass | `validate:e2e-core-scenarios` and `e2e:core` passed |
 | Electron smoke | Pass | `bun run electron:smoke` passed; app initialized successfully |
-| Mac ARM workflow contract | Pass | `bun run validate:mac-arm-build-workflow` passed |
+| Mac ARM workflow contract | Pass | `bun run validate:mac-arm-build-workflow` passed; packaged artifact set and manifest references additionally verified in T091 |
 | Whitespace | Pass | `git diff --check` passed |
 
 ## 4. Production Decision
 
-Private RC: yes, with T088/T089 runtime hardening verified and T090 isolated-home validation blockers reduced. Full current-pass max-suite reruns remain optional follow-up evidence, not assumed complete.
+Private RC: yes, with T088/T089/T090 complete, full test/typecheck/docs/lint/build/smoke evidence green in the current verified state, and T091 adding explicit packaged-artifact audit evidence. Public-production blockers remain separate.
 
 Public production: no. Public launch remains blocked by real provider
 integration, hosted persistence, public share infrastructure, signed release,
