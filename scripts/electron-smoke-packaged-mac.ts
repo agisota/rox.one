@@ -4,9 +4,9 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT_DIR = join(import.meta.dir, '..');
-const DEFAULT_APP_PATH = join(ROOT_DIR, 'apps/electron/release/mac-arm64/ROX ONE.app');
+const DEFAULT_APP_PATH = join(ROOT_DIR, 'apps/electron/release/mac-arm64/ROX.ONE.app');
 const APP_PATH = process.env.ROX_MAC_APP_PATH || DEFAULT_APP_PATH;
-const EXECUTABLE_PATH = join(APP_PATH, 'Contents/MacOS/ROX ONE');
+const EXECUTABLE_PATH = join(APP_PATH, 'Contents/MacOS/ROX.ONE');
 const STARTUP_TIMEOUT_MS = 30_000;
 const FORCE_KILL_GRACE_MS = 5_000;
 // Production packaged builds disable electron-log console transport, so the
@@ -124,12 +124,12 @@ if (timedOut) {
   const killMessage = forceKillTriggered
     ? `; escalated to SIGKILL after ${FORCE_KILL_GRACE_MS}ms grace`
     : '';
-  console.error(`[packaged-smoke] ROX ONE packaged startup timed out after ${STARTUP_TIMEOUT_MS}ms${pendingMessage}${killMessage}`);
+  console.error(`[packaged-smoke] ROX.ONE packaged startup timed out after ${STARTUP_TIMEOUT_MS}ms${pendingMessage}${killMessage}`);
   process.exit(1);
 }
 
 if (exitCode !== 0) {
-  console.error(`[packaged-smoke] ROX ONE packaged app exited with code ${exitCode}`);
+  console.error(`[packaged-smoke] ROX.ONE packaged app exited with code ${exitCode}`);
   process.exit(exitCode);
 }
 
@@ -139,4 +139,4 @@ if (missingMarkers.length > 0) {
   process.exit(1);
 }
 
-console.log('[packaged-smoke] ROX ONE packaged headless startup passed');
+console.log('[packaged-smoke] ROX.ONE packaged headless startup passed');

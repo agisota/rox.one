@@ -216,8 +216,9 @@ let messagingHandle: MessagingBootstrapHandle | null = null
 let pendingDeepLink: string | null = null
 
 // Set app name early (before app.whenReady) to ensure correct macOS menu bar title
-// Supports multi-instance dev: CRAFT_APP_NAME env var (e.g., "ROX ONE [1]")
-app.setName(process.env.CRAFT_APP_NAME || 'ROX ONE')
+// Supports multi-instance dev: CRAFT_APP_NAME env var (e.g., "ROX.ONE [1]")
+app.setName(process.env.CRAFT_APP_NAME || 'ROX.ONE')
+app.setAboutPanelOptions({ applicationName: process.env.CRAFT_APP_NAME || 'ROX.ONE' })
 
 // Register as default protocol client for rox:// URLs
 // This must be done before app.whenReady() on some platforms

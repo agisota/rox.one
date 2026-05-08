@@ -1,5 +1,5 @@
 appId: com.rox.one
-productName: ROX ONE
+productName: ROX.ONE
 copyright: Copyright © 2026 roxone
 
 electronVersion: "39.8.9"
@@ -144,7 +144,7 @@ dmg:
   # Use app icon as the mounted volume icon in Finder
   icon: resources/icon.icns
   iconSize: 80
-  title: "ROX ONE"
+  title: "ROX.ONE"
   contents:
     - x: 130
       y: 200

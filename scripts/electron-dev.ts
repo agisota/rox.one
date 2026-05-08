@@ -36,7 +36,7 @@ const IS_WINDOWS = process.platform === "win32";
 const BIN_EXT = IS_WINDOWS ? ".exe" : "";
 const VITE_BIN = join(ROOT_DIR, `node_modules/.bin/vite${BIN_EXT}`);
 const ELECTRON_BIN = join(ROOT_DIR, `node_modules/.bin/electron${BIN_EXT}`);
-const BRAND_NAME = "ROX ONE";
+const BRAND_NAME = "ROX.ONE";
 const ELECTRON_DIST_DIR = join(ROOT_DIR, "node_modules", "electron", "dist");
 const MAC_ELECTRON_APP = join(ELECTRON_DIST_DIR, "Electron.app");
 const DEV_RUNTIME_DIR = join(ROOT_DIR, ".build", "electron-dev-runtime");

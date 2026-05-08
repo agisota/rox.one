@@ -51,11 +51,12 @@ ROX ONE App
 | Mac ARM workflow contract | Pass | `bun run validate:mac-arm-build-workflow` passed; packaged artifact set and manifest references additionally verified in T091 |
 | Packaged artifacts | Pass | `bun run validate:packaged-artifacts` verified DMG/ZIP/blockmap/latest metadata and SHA256 hashes |
 | Bundle artifact report | Pass with warnings | `bun run report:bundle-artifacts` passed; size warnings remain non-fatal T092 follow-up scope |
+| Desktop app identity | Pass | T097 focused validation keeps Electron package/dev/workflow naming on `ROX.ONE` |
 | Whitespace | Pass | `git diff --check` passed |
 
 ## 4. Production Decision
 
-Private RC: yes, with T088/T089/T090 complete, full test/typecheck/docs/lint/build/smoke evidence green in the current verified state, T091 adding explicit packaged-artifact audit evidence, T092 documenting bundle-size risk, T093 restoring zero-warning aggregate lint, T095 reconciling release-state metadata against git truth, and T096 closing local verification blockers. Public-production blockers remain separate.
+Private RC: yes, with T088/T089/T090 complete, full test/typecheck/docs/lint/build/smoke evidence green in the current verified state, T091 adding explicit packaged-artifact audit evidence, T092 documenting bundle-size risk, T093 restoring zero-warning aggregate lint, T095 reconciling release-state metadata against git truth, T096 closing local verification blockers, and T097 normalizing desktop app identity to `ROX.ONE`. Public-production blockers remain separate.
 
 Public production: no. Public launch remains blocked by real provider
 integration, hosted persistence, public share infrastructure, ROX ID email

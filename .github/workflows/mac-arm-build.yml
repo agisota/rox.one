@@ -80,5 +80,5 @@ jobs:
           path: |
             apps/electron/release/ROX-ONE-arm64.dmg
             apps/electron/release/ROX-ONE-arm64.zip
-            apps/electron/release/mac-arm64/ROX ONE.app
+            apps/electron/release/mac-arm64/ROX.ONE.app
           if-no-files-found: error
