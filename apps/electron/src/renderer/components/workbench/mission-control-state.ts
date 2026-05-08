@@ -186,6 +186,35 @@ export async function completeMissionCheckpointFromControlAction(
   });
 }
 
+export async function finalizeMissionFromControlAction(
+  state: MissionControlState,
+  input: { runtimeStore: ExperienceRuntimeStore; now: string },
+): Promise<MissionControlState> {
+  if (!state.canFinalize) return state;
+
+  const finalCheckpoint = state.checkpoints[state.checkpoints.length - 1];
+  const finalArtifact = finalCheckpoint
+    ? state.artifacts.find((artifact) => artifact.checkpointId === finalCheckpoint.id && artifact.validationState === 'passed')
+    : undefined;
+  const gateEvidenceRefs = state.gateResults
+    .filter((gate) => gate.status === 'pass' && gate.evidenceRef)
+    .map((gate) => gate.evidenceRef as string);
+
+  await input.runtimeStore.dispatch({
+    id: `event:${state.mission.id}:finalized:${input.now}`,
+    type: 'mission.finalized',
+    createdAt: input.now,
+    aggregateId: state.mission.id,
+    payload: {
+      missionRunId: state.mission.id,
+      finalArtifactId: finalArtifact?.id,
+      gateEvidenceRefs,
+    },
+  });
+
+  return createMissionControlStateFromRuntime(input.runtimeStore.getState());
+}
+
 export function transitionMissionCheckpoint(
   state: MissionControlState,
   checkpointId: string,

@@ -71,6 +71,14 @@ export function completeQuest(state: QuestMapState, questId: string, evidenceRef
   });
 }
 
+export function completeQuestAndEvaluateUnlocks(
+  state: QuestMapState,
+  questId: string,
+  evidenceRefs: string[],
+): QuestMapState {
+  return evaluateQuestUnlocks(completeQuest(state, questId, evidenceRefs));
+}
+
 export function evaluateQuestUnlocks(state: QuestMapState): QuestMapState {
   const completedQuestIds = new Set(
     Object.entries(state.progressByQuestId)

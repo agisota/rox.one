@@ -1,10 +1,13 @@
 import * as React from 'react';
 
+import { Button } from '../ui/button';
 import {
   createAgentForgeState,
   createAgentForgeStateFromTruth,
   getPackageTrustScore,
+  installAgentPackage,
   listVisibleAgentPackages,
+  publishAgentPackage,
   type AgentForgeState,
   type AgentForgeStateInput,
 } from './agent-forge-state';
@@ -26,10 +29,20 @@ export interface AgentForgeTeamRegistryProps {
 }
 
 export function AgentForgeTeamRegistry({ initialState, initialInput, truthState }: AgentForgeTeamRegistryProps) {
-  const [state] = React.useState<AgentForgeState>(() =>
+  const [state, setState] = React.useState<AgentForgeState>(() =>
     initialState ?? (truthState ? createAgentForgeStateFromTruth(truthState, initialInput) : createAgentForgeState(initialInput)),
   );
+  const [lastAction, setLastAction] = React.useState<string>('Ожидает действия');
   const visiblePackages = listVisibleAgentPackages(state, { viewerTeamId: state.viewerTeamId });
+
+  const runForgeAction = React.useCallback((action: () => AgentForgeState, successMessage: string) => {
+    try {
+      setState(action());
+      setLastAction(successMessage);
+    } catch (error) {
+      setLastAction(error instanceof Error ? error.message : 'Действие кузницы заблокировано');
+    }
+  }, []);
 
   return (
     <ExperienceShell
@@ -58,6 +71,9 @@ export function AgentForgeTeamRegistry({ initialState, initialInput, truthState 
       )}
     >
       <ExperiencePanel title="Приватные и командные пакеты" subtitle="Каждый пакет должен иметь контракт, проверки и понятную оценку доверия.">
+        <div className="mb-4 rounded-[16px] border border-cyan-300/20 bg-cyan-400/[0.06] p-3 text-sm text-cyan-100">
+          Forge action: {lastAction}
+        </div>
         {visiblePackages.length === 0 ? (
           <ExperienceStateBlock
             state="empty"
@@ -86,6 +102,30 @@ export function AgentForgeTeamRegistry({ initialState, initialInput, truthState 
                     <ExperienceStatusChip status="draft" label="Форк доступен" />
                   </div>
                   <ExperienceProgressBar value={trustScore} label="Оценка доверия" />
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                      className="rounded-full"
+                      variant="outline"
+                      disabled={state.installedPackageIds.includes(pkg.id)}
+                      onClick={() => runForgeAction(() => installAgentPackage(state, pkg.id), `Пакет установлен: ${pkg.id}`)}
+                    >
+                      {state.installedPackageIds.includes(pkg.id) ? 'Установлен' : 'Установить'}
+                    </Button>
+                    <Button
+                      className="rounded-full"
+                      variant="outline"
+                      onClick={() => runForgeAction(() => forkAgentPackage(state, pkg.id), `Форк создан: ${pkg.id}`)}
+                    >
+                      Форкнуть
+                    </Button>
+                    <Button
+                      className="rounded-full"
+                      variant="outline"
+                      onClick={() => runForgeAction(() => publishAgentPackage(state, pkg.id, 'public'), `Опубликовано публично: ${pkg.id}`)}
+                    >
+                      Publish public
+                    </Button>
+                  </div>
                 </ExperienceCard>
               );
             })}
@@ -94,6 +134,41 @@ export function AgentForgeTeamRegistry({ initialState, initialInput, truthState 
       </ExperiencePanel>
     </ExperienceShell>
   );
+}
+
+function forkAgentPackage(state: AgentForgeState, packageId: string): AgentForgeState {
+  const source = state.packages.find((pkg) => pkg.id === packageId);
+  if (!source) return state;
+  const forkId = `${packageId}-team-fork-${state.packages.length + 1}`;
+  return {
+    ...state,
+    packages: state.packages.concat({
+      ...source,
+      id: forkId,
+      name: `${source.name} Team Fork`,
+      visibility: 'team',
+      ownerTeamId: state.viewerTeamId,
+      ownerUserId: undefined,
+      createdAt: '2026-04-30T00:00:00.000Z',
+      updatedAt: '2026-04-30T00:00:00.000Z',
+    }),
+    contractsByPackageId: {
+      ...state.contractsByPackageId,
+      [forkId]: state.contractsByPackageId[packageId],
+    },
+    reviewsByPackageId: {
+      ...state.reviewsByPackageId,
+      [forkId]: state.reviewsByPackageId[packageId] ?? 0,
+    },
+    testsByPackageId: {
+      ...state.testsByPackageId,
+      [forkId]: state.testsByPackageId[packageId] ?? 0,
+    },
+    promptInjectionWarningsByPackageId: {
+      ...state.promptInjectionWarningsByPackageId,
+      [forkId]: state.promptInjectionWarningsByPackageId[packageId] ?? [],
+    },
+  };
 }
 
 function localizeVisibility(visibility: string): string {
