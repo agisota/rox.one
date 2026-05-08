@@ -421,6 +421,7 @@ export function registerFilesHandlers(server: RpcServer, deps: HandlerDeps): voi
           sourcePath: storedPath,
           outputPath: mdPath,
           attachmentName: attachment.name,
+          conversionTrust: 'local-user-initiated',
           converter: deps.officeDocumentConverter ?? {
             async convert(path) {
               const markitdown = new MarkItDown()

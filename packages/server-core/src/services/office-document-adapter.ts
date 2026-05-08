@@ -13,10 +13,13 @@ export interface OfficeDocumentAdapterLogger {
   error(message: string): void;
 }
 
+export type OfficeDocumentConversionTrust = 'local-user-initiated' | 'public-untrusted';
+
 export interface ConvertOfficeDocumentToMarkdownInput {
   sourcePath: string;
   outputPath: string;
   attachmentName: string;
+  conversionTrust?: OfficeDocumentConversionTrust;
   converter: OfficeDocumentConverter;
   writeTextFile?: (path: string, content: string, encoding: BufferEncoding) => Promise<void>;
   logger?: OfficeDocumentAdapterLogger;
@@ -30,6 +33,11 @@ export interface ConvertOfficeDocumentToMarkdownResult {
 export async function convertOfficeDocumentToMarkdown(
   input: ConvertOfficeDocumentToMarkdownInput,
 ): Promise<ConvertOfficeDocumentToMarkdownResult> {
+  if (input.conversionTrust === 'public-untrusted') {
+    input.logger?.error('Office to markdown conversion rejected: public-untrusted input');
+    throw new Error('Document conversion is disabled for public untrusted uploads');
+  }
+
   const writeTextFile = input.writeTextFile ?? writeFile;
 
   try {
