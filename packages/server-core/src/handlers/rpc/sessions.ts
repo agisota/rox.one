@@ -1,3 +1,4 @@
+import { watch as watchFs } from 'fs'
 import { readFile, writeFile, stat } from 'fs/promises'
 import { join } from 'path'
 import { RPC_CHANNELS, type FileAttachment, type SendMessageOptions, type SessionEvent } from '@rox-agent/shared/protocol'
@@ -13,9 +14,33 @@ import { setTransferableHandler } from './transfer'
 import { requireSessionAccess, requireWorkspaceAccess } from './account-ownership'
 
 interface ClientSessionWatchState {
-  watcher: import('fs').FSWatcher
+  watcher: SessionFileWatcher
   sessionId: string
   debounceTimer: ReturnType<typeof setTimeout> | null
+}
+
+type SessionFileWatchFilename = string | Buffer | null
+type SessionFileWatchListener = (eventType: string, filename: SessionFileWatchFilename) => void
+type SessionFileWatcher = Pick<import('fs').FSWatcher, 'close'>
+type SessionFileWatcherFactory = (sessionPath: string, listener: SessionFileWatchListener) => SessionFileWatcher
+
+function defaultSessionFileWatcherFactory(sessionPath: string, listener: SessionFileWatchListener): SessionFileWatcher {
+  return watchFs(sessionPath, { recursive: true }, listener)
+}
+
+let sessionFileWatcherFactory: SessionFileWatcherFactory = defaultSessionFileWatcherFactory
+
+export function _setSessionFileWatcherFactoryForTesting(factory: SessionFileWatcherFactory | null): void {
+  sessionFileWatcherFactory = factory ?? defaultSessionFileWatcherFactory
+}
+
+function shouldIgnoreSessionFileWatchEvent(filename: SessionFileWatchFilename): boolean {
+  if (!filename) return false
+
+  const normalized = String(filename).replace(/\\/g, '/')
+  return normalized
+    .split('/')
+    .some(part => part === 'session.jsonl' || part.startsWith('.'))
 }
 
 // Per-client session file watcher state (supports concurrent windows/clients safely)
@@ -501,17 +526,16 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
     if (!sessionPath) return
 
     try {
-      const { watch } = await import('fs')
-
       const state: ClientSessionWatchState = {
-        watcher: null as unknown as import('fs').FSWatcher,
+        watcher: null as unknown as SessionFileWatcher,
         sessionId,
         debounceTimer: null,
       }
 
-      state.watcher = watch(sessionPath, { recursive: true }, (_eventType, filename) => {
-        // Ignore internal files and hidden files
-        if (filename && (filename.includes('session.jsonl') || filename.startsWith('.'))) {
+      state.watcher = sessionFileWatcherFactory(sessionPath, (_eventType, filename) => {
+        // Ignore internal files and hidden files; notify on unknown filenames
+        // because some platforms omit the filename for valid directory changes.
+        if (shouldIgnoreSessionFileWatchEvent(filename)) {
           return
         }
 

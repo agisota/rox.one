@@ -1,6 +1,6 @@
 # T083 - ROX ID Account / Registration Production Fix
 
-Status: IN PROGRESS
+Status: DONE
 
 ## Goal
 

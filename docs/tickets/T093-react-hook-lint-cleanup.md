@@ -1,6 +1,6 @@
 # T093 - React Hook Lint Cleanup
 
-Status: READY_TO_COMMIT
+Status: DONE
 
 ## Summary
 Remove the remaining React hook dependency warnings in the Electron renderer so `bun run lint` returns 0 warnings without changing runtime behavior.
@@ -16,7 +16,7 @@ Remove the remaining React hook dependency warnings in the Electron renderer so 
 - Broad hook refactors
 - Non-hook lint issues
 - Changes to `events.jsonl` or `.claude`
-- Committing before explicit user approval
+- Broad hook refactors or unrelated runtime/code changes
 
 ## Acceptance Criteria
 

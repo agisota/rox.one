@@ -104,4 +104,4 @@ SyntaxError: Export named 'runExperienceRuntimeJourneyScenario' not found in mod
 | E2E contract validator requires journey | Pass | `validate-e2e-core-scenarios.ts` |
 | No real provider calls | Pass | Provider call summary assertions |
 | Worklog complete | Pass | This file |
-| Commit exists | Pending | Scoped Lore commit |
+| Commit exists | Pass | `1a354e2` — `Prove Experience journey through replayable runtime evidence` |

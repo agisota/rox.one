@@ -39,22 +39,25 @@ ROX ONE App
 
 | Gate | Status | Notes |
 |---|---|---|
-| Docs validation | Pass | `bun run validate:docs` passed in the current pass and in prior RC evidence |
-| Agent contract validation | Pass | `bun run validate:agent-contract` passed; 11 skills, 92 tickets, 7 required docs |
+| Docs validation | Pass | `bun run validate:docs` passed in the current handoff pass; T095/T096 keep ticket/worklog metadata aligned with git truth |
+| Agent contract validation | Pass | `bun run validate:agent-contract` passed through `validate:docs`; 11 skills, 97 tickets, 7 required docs after T096 |
 | Typecheck | Pass | `bun run typecheck:all` passed |
-| Tests | Pass | Full `bun test` is green in the current verified release-hardening state: 4721 pass, 13 skip, 0 fail, 1 snapshot |
-| Lint | Pass | `bun run lint` passed with 0 errors and 3 existing React hook warnings |
+| Tests | Pass | Full `bun test` is green in the current verified release-hardening state: 4722 pass, 13 skip, 0 fail, 1 snapshot |
+| Lint | Pass | `bun run lint` passed with 0 errors and 0 warnings after T093 cleared the remaining React hook dependency warnings |
 | Electron build | Pass | `bun run electron:build` passed; Vite chunk warnings only; packaged arm64 evidence audited in T091 |
 | CI parity | Historical/full-pass evidence | Full release-hardening state includes green `bun test`, `typecheck:all`, docs, lint, build, smoke, packaged smoke, and packaged arm64 build evidence; `validate:ci` itself was not the command rerun in T091 |
-| E2E core | Pass | `validate:e2e-core-scenarios` and `e2e:core` passed |
-| Electron smoke | Pass | `bun run electron:smoke` passed; app initialized successfully |
+| E2E core | Pass | Current handoff reran `validate:e2e-core-scenarios`; historical `e2e:core` pass remains recorded in T087 evidence |
+| Electron smoke | Pass | `bun run electron:smoke` passed on a GUI-capable non-sandbox launch surface; app initialized successfully |
 | Mac ARM workflow contract | Pass | `bun run validate:mac-arm-build-workflow` passed; packaged artifact set and manifest references additionally verified in T091 |
+| Packaged artifacts | Pass | `bun run validate:packaged-artifacts` verified DMG/ZIP/blockmap/latest metadata and SHA256 hashes |
+| Bundle artifact report | Pass with warnings | `bun run report:bundle-artifacts` passed; size warnings remain non-fatal T092 follow-up scope |
 | Whitespace | Pass | `git diff --check` passed |
 
 ## 4. Production Decision
 
-Private RC: yes, with T088/T089/T090 complete, full test/typecheck/docs/lint/build/smoke evidence green in the current verified state, and T091 adding explicit packaged-artifact audit evidence. Public-production blockers remain separate.
+Private RC: yes, with T088/T089/T090 complete, full test/typecheck/docs/lint/build/smoke evidence green in the current verified state, T091 adding explicit packaged-artifact audit evidence, T092 documenting bundle-size risk, T093 restoring zero-warning aggregate lint, T095 reconciling release-state metadata against git truth, and T096 closing local verification blockers. Public-production blockers remain separate.
 
 Public production: no. Public launch remains blocked by real provider
-integration, hosted persistence, public share infrastructure, signed release,
+integration, hosted persistence, public share infrastructure, ROX ID email
+verification, payments/billing reconciliation, signed/notarized release,
 observability, dependency audit, and external security review.

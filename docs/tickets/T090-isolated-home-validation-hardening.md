@@ -1,6 +1,6 @@
 # T090 - Isolated Home Validation Hardening
 
-Status: READY_TO_COMMIT
+Status: DONE
 
 ## Goal
 
@@ -36,4 +36,4 @@ validation evidence is internally consistent.
 | Targeted focused validation commands are recorded in worklog | DONE |
 | Remaining risks are documented precisely | DONE |
 | Worklog complete | DONE |
-| Scoped Lore commit exists | PENDING |
+| Scoped Lore commit exists | DONE |

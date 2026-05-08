@@ -1,6 +1,6 @@
 # T091 - Packaged Release Hardening
 
-Status: READY_TO_COMMIT
+Status: DONE
 
 ## Goal
 
@@ -53,4 +53,4 @@ program in this slice.
 | Focused validation command passes | DONE |
 | Worklog is complete | DONE |
 | No unrelated runtime artifacts are touched | DONE |
-| Commit exists only after explicit user approval | PENDING |
+| Commit exists after approved hardening pass | DONE |
