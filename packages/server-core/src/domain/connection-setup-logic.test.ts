@@ -2,7 +2,9 @@ import { describe, expect, it } from 'bun:test'
 import {
   validateSetupTestInput,
   isLoopbackBaseUrl,
+  resolveLlmEndpointDependencyRiskMode,
   setupTestRequiresApiKey,
+  validatePublicCustomEndpointBaseUrl,
   resolveCustomEndpointSetup,
   createBuiltInConnection,
 } from './connection-setup-logic'
@@ -45,6 +47,66 @@ describe('setup test API key requirements', () => {
   it('allows keyless setup tests for loopback endpoints', () => {
     expect(setupTestRequiresApiKey('http://localhost:11434/v1')).toBe(false)
     expect(setupTestRequiresApiKey('http://127.0.0.1:11434/v1')).toBe(false)
+  })
+})
+
+describe('public custom endpoint exposure guard', () => {
+  it('defaults public app deployments to public-untrusted endpoint risk mode', () => {
+    expect(resolveLlmEndpointDependencyRiskMode({
+      ROX_PUBLIC_APP_URL: 'https://app.rox.one',
+    })).toBe('public-untrusted')
+  })
+
+  it('lets explicit accepted-risk mode override the public app default', () => {
+    expect(resolveLlmEndpointDependencyRiskMode({
+      ROX_PUBLIC_APP_URL: 'https://app.rox.one',
+      ROX_LLM_ENDPOINT_DEPENDENCY_RISK_MODE: 'accepted-risk',
+    })).toBe('accepted-risk')
+  })
+
+  it('rejects loopback and private custom endpoints in public-untrusted mode', () => {
+    const blocked = [
+      'http://localhost:11434/v1',
+      'http://127.0.0.1:11434/v1',
+      'http://10.0.0.10/v1',
+      'http://172.16.0.10/v1',
+      'http://192.168.1.10/v1',
+      'http://169.254.169.254/latest/meta-data',
+    ]
+
+    for (const baseUrl of blocked) {
+      expect(validatePublicCustomEndpointBaseUrl({
+        baseUrl,
+        mode: 'public-untrusted',
+      })).toEqual({
+        valid: false,
+        error: 'Custom LLM base URL points to a private, loopback, or link-local address and is disabled for public untrusted exposure.',
+      })
+    }
+  })
+
+  it('allows public HTTPS custom endpoints in public-untrusted mode', () => {
+    expect(validatePublicCustomEndpointBaseUrl({
+      baseUrl: 'https://api.example.com/v1',
+      mode: 'public-untrusted',
+    })).toEqual({ valid: true })
+
+    expect(validatePublicCustomEndpointBaseUrl({
+      baseUrl: 'https://fc.example.com/v1',
+      mode: 'public-untrusted',
+    })).toEqual({ valid: true })
+  })
+
+  it('preserves private-local and accepted-risk custom endpoint behavior', () => {
+    expect(validatePublicCustomEndpointBaseUrl({
+      baseUrl: 'http://localhost:11434/v1',
+      mode: 'private-local',
+    })).toEqual({ valid: true })
+
+    expect(validatePublicCustomEndpointBaseUrl({
+      baseUrl: 'http://localhost:11434/v1',
+      mode: 'accepted-risk',
+    })).toEqual({ valid: true })
   })
 })
 

@@ -62,6 +62,12 @@ as of this baseline, no public-production dependency risk is accepted.
 5. Record any unresolved vulnerability as an explicit accepted risk with owner,
    expiration date, compensating control, and rollback plan.
 
+Current hardening note: T110 adds a public-untrusted guard for LLM custom
+endpoint setup/test/save so loopback, private-network, and link-local base URLs
+are rejected before backend network calls or persistence in public deployments.
+Remaining provider SDK HTTP paths still need upgrades, isolation evidence, or
+accepted-risk handling before public production.
+
 ## Verification Commands
 
 Current baseline:

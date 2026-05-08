@@ -68,6 +68,100 @@ export function validateSetupTestInput(params: {
   return { valid: true }
 }
 
+export type LlmEndpointDependencyRiskMode =
+  | 'private-local'
+  | 'public-untrusted'
+  | 'accepted-risk'
+  | 'isolated-worker'
+
+const VALID_LLM_ENDPOINT_DEPENDENCY_RISK_MODES: ReadonlySet<string> = new Set([
+  'private-local',
+  'public-untrusted',
+  'accepted-risk',
+  'isolated-worker',
+])
+
+const PUBLIC_CUSTOM_ENDPOINT_BLOCK_ERROR =
+  'Custom LLM base URL points to a private, loopback, or link-local address and is disabled for public untrusted exposure.'
+
+function parseLlmEndpointDependencyRiskMode(
+  value: string | undefined,
+  source: string,
+): LlmEndpointDependencyRiskMode | undefined {
+  const normalized = value?.trim()
+  if (!normalized) return undefined
+  if (VALID_LLM_ENDPOINT_DEPENDENCY_RISK_MODES.has(normalized)) {
+    return normalized as LlmEndpointDependencyRiskMode
+  }
+
+  throw new Error(
+    `Invalid ${source}: expected private-local, public-untrusted, accepted-risk, or isolated-worker.`,
+  )
+}
+
+export function resolveLlmEndpointDependencyRiskMode(
+  env: Record<string, string | undefined> = process.env,
+): LlmEndpointDependencyRiskMode {
+  const llmSpecific = parseLlmEndpointDependencyRiskMode(
+    env.ROX_LLM_ENDPOINT_DEPENDENCY_RISK_MODE,
+    'ROX_LLM_ENDPOINT_DEPENDENCY_RISK_MODE',
+  )
+  if (llmSpecific) return llmSpecific
+
+  const generic = parseLlmEndpointDependencyRiskMode(
+    env.ROX_PROVIDER_DEPENDENCY_RISK_MODE,
+    'ROX_PROVIDER_DEPENDENCY_RISK_MODE',
+  )
+  if (generic) return generic
+
+  return env.ROX_PUBLIC_APP_URL?.trim() ? 'public-untrusted' : 'private-local'
+}
+
+function isPrivateLoopbackOrLinkLocalHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '')
+
+  if (host === 'localhost' || host.endsWith('.localhost')) return true
+  if (host.includes(':')) {
+    if (host === '::1' || host === '0:0:0:0:0:0:0:1') return true
+    if (host.startsWith('fe80:') || host.startsWith('fc') || host.startsWith('fd')) return true
+    return false
+  }
+
+  const parts = host.split('.').map(part => Number.parseInt(part, 10))
+  if (parts.length !== 4 || parts.some(part => Number.isNaN(part) || part < 0 || part > 255)) {
+    return false
+  }
+
+  const [a, b] = parts
+  if (a === 0 || a === 10 || a === 127) return true
+  if (a === 169 && b === 254) return true
+  if (a === 172 && b >= 16 && b <= 31) return true
+  if (a === 192 && b === 168) return true
+
+  return false
+}
+
+export function validatePublicCustomEndpointBaseUrl(params: {
+  baseUrl?: string
+  mode: LlmEndpointDependencyRiskMode
+}): { valid: true } | { valid: false; error: string } {
+  if (params.mode !== 'public-untrusted') return { valid: true }
+
+  const trimmed = params.baseUrl?.trim()
+  if (!trimmed) return { valid: true }
+
+  try {
+    const parsed = new URL(trimmed)
+    if (isPrivateLoopbackOrLinkLocalHost(parsed.hostname)) {
+      return { valid: false, error: PUBLIC_CUSTOM_ENDPOINT_BLOCK_ERROR }
+    }
+  } catch {
+    // Keep malformed values on the existing validation path.
+  }
+
+  return { valid: true }
+}
+
 /**
  * Returns true when a URL points to local loopback.
  * Used to permit keyless setup tests for local model runtimes (e.g. Ollama).

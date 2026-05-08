@@ -8,7 +8,7 @@ import {
   validateStoredBackendConnection,
 } from '@rox-agent/shared/agent/backend'
 import { getModelRefreshService } from '@rox-agent/server-core/model-fetchers'
-import { parseTestConnectionError, createBuiltInConnection, validateModelList, piAuthProviderDisplayName, validateSetupTestInput, setupTestRequiresApiKey, resolveCustomEndpointSetup } from '@rox-agent/server-core/domain'
+import { parseTestConnectionError, createBuiltInConnection, validateModelList, piAuthProviderDisplayName, validateSetupTestInput, setupTestRequiresApiKey, resolveCustomEndpointSetup, resolveLlmEndpointDependencyRiskMode, validatePublicCustomEndpointBaseUrl } from '@rox-agent/server-core/domain'
 import { getWorkspaceOrThrow, buildBackendHostRuntimeContext } from '@rox-agent/server-core/handlers'
 import { pushTyped, type RpcServer } from '@rox-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
@@ -54,6 +54,13 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
     requireAdmin(deps, ctx)
     try {
       const manager = getCredentialManager()
+      const endpointExposure = validatePublicCustomEndpointBaseUrl({
+        baseUrl: setup.baseUrl ?? undefined,
+        mode: resolveLlmEndpointDependencyRiskMode(),
+      })
+      if (!endpointExposure.valid) {
+        return { success: false, error: endpointExposure.error }
+      }
 
       // Ensure connection exists in config
       let connection = getLlmConnection(setup.slug)
@@ -299,6 +306,14 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
     const trimmedKey = apiKey?.trim() ?? ''
     const allowEmptyApiKey = !setupTestRequiresApiKey(baseUrl)
 
+    const endpointExposure = validatePublicCustomEndpointBaseUrl({
+      baseUrl,
+      mode: resolveLlmEndpointDependencyRiskMode(),
+    })
+    if (!endpointExposure.valid) {
+      return { success: false, error: endpointExposure.error }
+    }
+
     if (!trimmedKey && !allowEmptyApiKey) {
       return { success: false, error: 'API key is required' }
     }
@@ -429,6 +444,14 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   server.handle(RPC_CHANNELS.llmConnections.SAVE, async (ctx, connection: LlmConnection): Promise<{ success: boolean; error?: string }> => {
     requireAdmin(deps, ctx)
     try {
+      const endpointExposure = validatePublicCustomEndpointBaseUrl({
+        baseUrl: connection.baseUrl,
+        mode: resolveLlmEndpointDependencyRiskMode(),
+      })
+      if (!endpointExposure.valid) {
+        return { success: false, error: endpointExposure.error }
+      }
+
       // Check if this is an update or create
       const existing = getLlmConnection(connection.slug)
       if (existing) {
