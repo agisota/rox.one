@@ -71,6 +71,10 @@ The test asserts:
 - Public production remains blocked by the same external/provider/hosted
   infrastructure, signing, dependency remediation, and external security-review
   requirements.
+- T120 later reconciled the bundle evidence layer with T119
+  `report:bundle-artifacts:fresh`: fresh WebUI baseline `17,464,023` bytes
+  (`16.65 MB`) instead of the stale T092 `158,242,602` bytes (`150.91 MB`)
+  read-only `dist` total.
 
 ## 7. Acceptance criteria matrix
 

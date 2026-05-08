@@ -10,6 +10,10 @@ Experience tab proof, Electron smoke stabilization, ROX.ONE backend copy,
 start-script aliasing, packaged-smoke exit proof, runtime artifact git hygiene,
 and dependency audit risk registration.
 
+T120 addendum: the current bundle evidence now comes from T119
+`report:bundle-artifacts:fresh`; T105 remains the historical T098-T104 handoff
+reconciliation slice.
+
 ## Goal
 
 Reconcile the top-level release handoff docs with current git truth through

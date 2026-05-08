@@ -3,7 +3,7 @@
 Repository: `/Users/marklindgreen/Projects/craft/craft`
 Branch: `mac/rox-production-ready-rc`
 Base: Craft Agents OSS v0.9.1
-Snapshot status: T074-T097 private/local RC handoff validated locally; T094/T095 reconcile release state, T096 closes the live verification blockers, and T097 normalizes desktop package identity to `ROX.ONE`. The T098-T104 continuation adds screenshot-backed Experience tab proof, Electron smoke/startup hardening, ROX.ONE active backend copy, runtime artifact git hygiene, and a dependency audit risk register without converting the RC into public production.
+Snapshot status: T074-T097 private/local RC handoff validated locally; T094/T095 reconcile release state, T096 closes the live verification blockers, and T097 normalizes desktop package identity to `ROX.ONE`. The T098-T120 continuation adds screenshot-backed Experience tab proof, Electron smoke/startup/package hardening, ROX.ONE active backend copy, runtime artifact git hygiene, public-risk boundaries, build-warning gates, fresh bundle evidence, and release-evidence reconciliation without converting the RC into public production.
 
 ## 1. Current Product Shape
 
@@ -92,6 +92,29 @@ handoff commit T094 Release Doc Reconciliation
 handoff commit T095 Release State Reconciliation
 handoff commit T096 Private RC Verification Stabilization
 handoff commit T097 Desktop App Dot Branding
+706b638 T098 Experience Tab Interactions
+7ff5cd9 T099 Electron Smoke Shutdown Stabilization
+c5cd060 T100 ROX.ONE Active Backend Copy
+da5ed8d T101 Electron Start Script Alias Contract
+4213878 T102 Packaged Smoke Exit Proof Contract
+154b722 T103 Runtime Artifact Git Hygiene
+4485641 T104 Dependency Audit Risk Register
+1c8090e T105 Release Handoff Current Evidence
+994313a T106 Document Conversion Trust Boundary
+64e8858 T107 Messaging Public Risk Boundary
+39c8e3b T108 PI Provider Public Risk Boundary
+6e5bb1a T109 Accepted Risk Register Contract
+d8d7c43 T110 Public Custom Endpoint SSRF Guard
+fc3726f T111 Accepted Risk Guard Evidence Sync
+323d20d T112 Provider SDK Public Risk Boundary
+6b5def6 T113 PI SDK Import Boundary
+a5a8c13 T114 PI Driver Lazy Model Registry
+ec7924f T115 Release Validation Build Gate
+2ff8f55 T116 Liquid Glass Icon Freshness
+9fb743f T117 Vite Jotai Production Warning Gate
+74b11cf T118 InputContainer Rollup Circular Chunk Warning
+ea83a1e T119 Fresh Bundle Artifact Report
+handoff commit T120 Fresh Bundle Release Evidence Reconciliation
 ```
 
 ## 5. Runtime Boundaries
@@ -123,7 +146,7 @@ Not production-hosted yet:
 - Email verification provider.
 - Hosted durable workers.
 - Signed/notarized macOS release.
-- Bundle-size policy and chunk-splitting gate beyond the current read-only T092 baseline.
+- Bundle-size policy and chunk-splitting gate beyond the current T119 fresh clean-build baseline.
 - Dependency remediation or signed accepted-risk approval after the current
   `docs/release/dependency-risk-register-2026-05-08.md` baseline.
 - External security audit and public-infra abuse controls.
