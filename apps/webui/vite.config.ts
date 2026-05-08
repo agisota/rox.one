@@ -3,16 +3,20 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
-    react({
-      babel: {
-        plugins: [
-          'jotai/babel/plugin-debug-label',
-          ['jotai/babel/plugin-react-refresh', { customAtomNames: ['atomFamily'] }],
-        ],
-      },
-    }),
+    react(command === 'serve'
+      ? {
+          babel: {
+            plugins: [
+              // Dev-only Jotai HMR support: production builds avoid deprecated
+              // jotai/babel transforms until a jotai-babel migration is explicit.
+              'jotai/babel/plugin-debug-label',
+              ['jotai/babel/plugin-react-refresh', { customAtomNames: ['atomFamily'] }],
+            ],
+          },
+        }
+      : {}),
     tailwindcss(),
   ],
   root: resolve(__dirname, 'src'),
@@ -88,4 +92,4 @@ export default defineConfig({
     port: 5175,
     open: false,
   },
-})
+}))

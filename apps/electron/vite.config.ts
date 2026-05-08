@@ -8,19 +8,20 @@ import { resolve } from 'path'
 // SENTRY_ORG, SENTRY_PROJECT to CI secrets. See CLAUDE.md "Sentry Error Tracking" section.
 // import { sentryVitePlugin } from '@sentry/vite-plugin'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
-    react({
-      babel: {
-        plugins: [
-          // Jotai HMR support: caches atom instances in globalThis.jotaiAtomCache
-          // so that HMR module re-execution returns stable atom references
-          // instead of creating new (empty) atoms that orphan existing data.
-          'jotai/babel/plugin-debug-label',
-          ['jotai/babel/plugin-react-refresh', { customAtomNames: ['atomFamily'] }],
-        ],
-      },
-    }),
+    react(command === 'serve'
+      ? {
+          babel: {
+            plugins: [
+              // Dev-only Jotai HMR support: production builds avoid deprecated
+              // jotai/babel transforms until a jotai-babel migration is explicit.
+              'jotai/babel/plugin-debug-label',
+              ['jotai/babel/plugin-react-refresh', { customAtomNames: ['atomFamily'] }],
+            ],
+          },
+        }
+      : {}),
     tailwindcss(),
     // Sentry source map upload — intentionally disabled. See CLAUDE.md for re-enabling instructions.
     // sentryVitePlugin({
@@ -71,4 +72,4 @@ export default defineConfig({
     port: 5173,
     open: false
   }
-})
+}))
