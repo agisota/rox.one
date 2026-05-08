@@ -32,7 +32,7 @@ support a public-production release decision:
 
 | Risk ID | Dependency/advisory | Affected path | Severity | Decision | Owner | Expires | Compensating control | Rollback plan | Evidence |
 |---|---|---|---|---|---|---|---|---|---|
-| AR-DEPENDENCY-AUDIT-2026-05-08 | Current `bun audit` findings from `dependency-risk-register-2026-05-08.md` | Messaging adapters, PI provider, document conversion, provider SDK paths | Critical | Not accepted | Unassigned | N/A | Public production remains blocked; T106/T107/T108/T110 add local guards for known risky runtime surfaces | Keep public launch disabled until advisories are remediated, isolated, or signed acceptance is added | `docs/release/dependency-risk-register-2026-05-08.md`; `bun audit` |
+| AR-DEPENDENCY-AUDIT-2026-05-08 | Current `bun audit` findings from `dependency-risk-register-2026-05-08.md` | Messaging adapters, PI provider, document conversion, provider SDK paths | Critical | Not accepted | Unassigned | N/A | Public production remains blocked; T106/T107/T108/T110/T112 add local guards for known risky runtime surfaces | Keep public launch disabled until advisories are remediated, isolated, or signed acceptance is added | `docs/release/dependency-risk-register-2026-05-08.md`; `bun audit` |
 
 ## Acceptance Rules
 

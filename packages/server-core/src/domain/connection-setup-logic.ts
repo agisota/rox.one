@@ -117,6 +117,38 @@ export function resolveLlmEndpointDependencyRiskMode(
   return env.ROX_PUBLIC_APP_URL?.trim() ? 'public-untrusted' : 'private-local'
 }
 
+export type LlmProviderDependencyRiskMode = LlmEndpointDependencyRiskMode
+
+export function resolveLlmProviderDependencyRiskMode(
+  env: Record<string, string | undefined> = process.env,
+): LlmProviderDependencyRiskMode {
+  const llmSpecific = parseLlmEndpointDependencyRiskMode(
+    env.ROX_LLM_PROVIDER_DEPENDENCY_RISK_MODE,
+    'ROX_LLM_PROVIDER_DEPENDENCY_RISK_MODE',
+  )
+  if (llmSpecific) return llmSpecific
+
+  const generic = parseLlmEndpointDependencyRiskMode(
+    env.ROX_PROVIDER_DEPENDENCY_RISK_MODE,
+    'ROX_PROVIDER_DEPENDENCY_RISK_MODE',
+  )
+  if (generic) return generic
+
+  return env.ROX_PUBLIC_APP_URL?.trim() ? 'public-untrusted' : 'private-local'
+}
+
+export function validatePublicProviderSdkAccess(params: {
+  mode: LlmProviderDependencyRiskMode
+  surface: string
+}): { valid: true } | { valid: false; error: string } {
+  if (params.mode !== 'public-untrusted') return { valid: true }
+
+  return {
+    valid: false,
+    error: `${params.surface} provider SDK access is disabled for public untrusted exposure.`,
+  }
+}
+
 function isPrivateLoopbackOrLinkLocalHost(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/^\[|\]$/g, '')
 

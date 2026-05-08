@@ -65,8 +65,10 @@ as of this baseline, no public-production dependency risk is accepted.
 Current hardening note: T110 adds a public-untrusted guard for LLM custom
 endpoint setup/test/save so loopback, private-network, and link-local base URLs
 are rejected before backend network calls or persistence in public deployments.
-Remaining provider SDK HTTP paths still need upgrades, isolation evidence, or
-accepted-risk handling before public production.
+T112 adds a public-untrusted guard before PI provider model discovery and
+GitHub Copilot OAuth import/invocation. Remaining provider SDK HTTP paths still
+need upgrades, isolation evidence, or accepted-risk handling before public
+production.
 
 ## Verification Commands
 

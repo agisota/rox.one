@@ -70,7 +70,7 @@ describe('dependency risk register release contract', () => {
     expect(acceptedRisk).toContain('Evidence');
     expect(acceptedRisk).toContain('| AR-DEPENDENCY-AUDIT-2026-05-08 |');
     expect(acceptedRisk).toContain('| Not accepted |');
-    expect(acceptedRisk).toContain('T106/T107/T108/T110');
+    expect(acceptedRisk).toContain('T106/T107/T108/T110/T112');
     expect(acceptedRisk).toContain('## Verification Commands');
     expect(acceptedRisk).toContain('bun audit');
 
