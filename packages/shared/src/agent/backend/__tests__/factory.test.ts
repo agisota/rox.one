@@ -291,6 +291,7 @@ describe('phase4 backend abstraction APIs', () => {
   });
 
   it('fetchBackendModels dispatches for pi provider', async () => {
+    const previousRiskMode = process.env.ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE;
     const connection: LlmConnection = {
       slug: 'pi-test',
       name: 'Pi Test',
@@ -299,16 +300,26 @@ describe('phase4 backend abstraction APIs', () => {
       createdAt: Date.now(),
     };
 
-    const result = await fetchBackendModels({
-      connection,
-      credentials: {},
-      hostRuntime: {
-        appRootPath: process.cwd(),
-        isPackaged: false,
-      },
-    });
+    try {
+      process.env.ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE = 'private-local';
 
-    expect(result.models.length).toBeGreaterThan(0);
+      const result = await fetchBackendModels({
+        connection,
+        credentials: {},
+        hostRuntime: {
+          appRootPath: process.cwd(),
+          isPackaged: false,
+        },
+      });
+
+      expect(result.models.length).toBeGreaterThan(0);
+    } finally {
+      if (previousRiskMode === undefined) {
+        delete process.env.ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE;
+      } else {
+        process.env.ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE = previousRiskMode;
+      }
+    }
   });
 
   it('validateStoredBackendConnection returns not found for unknown slug', async () => {
