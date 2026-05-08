@@ -27,6 +27,7 @@ for (const scriptName of [
   'electron:smoke:packaged:mac',
   'electron:dist:dev:mac:arm64',
   'validate:mac-private-release-boundary',
+  'validate:packaged-artifacts',
 ]) {
   if (typeof scripts[scriptName] !== 'string' || scripts[scriptName].length === 0) {
     fail(`package.json missing script: ${scriptName}`);
@@ -56,6 +57,7 @@ requireText(workflow, 'bun run lint:i18n:parity', 'i18n parity gate');
 requireText(workflow, 'bun run electron:build', 'electron build gate');
 requireText(workflow, 'bun run electron:dist:dev:mac:arm64', 'arm64 dist gate');
 requireText(workflow, 'bun run electron:smoke:packaged:mac', 'packaged launch smoke gate');
+requireText(workflow, 'bun run validate:packaged-artifacts', 'packaged artifact validation gate');
 requireText(workflow, 'bun run validate:mac-private-release-boundary', 'private mac release trust-boundary gate');
 requireText(workflow, 'bun run electron:smoke', 'launch smoke gate');
 requireText(workflow, 'ROX-ONE-arm64.dmg', 'DMG artifact path');
@@ -70,6 +72,7 @@ requireText(
   'scripts/validate-mac-private-release-boundary.ts',
   'private mac release trust-boundary validator',
 );
+requireText(scripts['validate:packaged-artifacts'], 'scripts/validate-packaged-artifacts.ts', 'packaged artifact validator');
 requireText(macArmConfig, 'extends: electron-builder.yml', 'base electron-builder config extension');
 requireText(macArmConfig, '- arm64', 'arm64 target arch');
 if (macArmConfig.includes('- x64')) {

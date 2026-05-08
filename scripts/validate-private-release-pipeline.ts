@@ -93,6 +93,7 @@ const macArmWorkflow = read('.github/workflows/mac-arm-build.yml');
 for (const requiredText of [
   'runs-on: macos-15-xlarge',
   'bun run electron:dist:dev:mac:arm64',
+  'bun run validate:packaged-artifacts',
   'bun run validate:mac-private-release-boundary',
   'actions/upload-artifact@v4',
   'if-no-files-found: error',
