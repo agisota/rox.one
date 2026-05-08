@@ -70,7 +70,10 @@ GitHub Copilot OAuth import/invocation. Remaining provider SDK HTTP paths still
 need upgrades, isolation evidence, or accepted-risk handling before public
 production. T113 removes PI SDK model discovery from the broad shared config
 barrel and routes PI-only callers through `@rox-agent/shared/config/models-pi`
-so generic config imports do not transitively load `@mariozechner/pi-ai`.
+so generic config imports do not transitively load `@mariozechner/pi-ai`. T114
+lazy-loads the PI backend driver's SDK-backed model registry and blocks PI
+driver model discovery/test-connection paths in public-untrusted mode before
+registry-backed fallback or endpoint resolution.
 
 ## Verification Commands
 

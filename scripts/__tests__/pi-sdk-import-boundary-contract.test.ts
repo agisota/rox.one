@@ -65,4 +65,11 @@ describe('PI SDK import boundary contract', () => {
     expect(baseUrlImport).toBeGreaterThan(baseUrlHandler);
     expect(baseUrlGuard).toBeLessThan(baseUrlImport);
   });
+
+  it('keeps the internal PI driver model registry behind lazy imports', () => {
+    const piDriver = read('packages/shared/src/agent/backend/internal/drivers/pi.ts');
+
+    expect(piDriver).not.toContain("from '../../../../config/models-pi.ts'");
+    expect(piDriver).toContain("await import('../../../../config/models-pi.ts')");
+  });
 });

@@ -40,3 +40,82 @@ describe('piDriver.buildRuntime custom endpoint models', () => {
     ]);
   });
 });
+
+describe('piDriver dependency risk guard', () => {
+  it('rejects model discovery in public-untrusted mode before SDK-backed registry access', async () => {
+    const previousMode = process.env.ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE;
+    process.env.ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE = 'public-untrusted';
+
+    try {
+      await expect(piDriver.fetchModels?.({
+        connection: {
+          slug: 'pi-public',
+          name: 'PI Public',
+          providerType: 'pi',
+          authType: 'none',
+          createdAt: Date.now(),
+        } as any,
+        credentials: {},
+        hostRuntime: {
+          appRootPath: process.cwd(),
+          isPackaged: false,
+        },
+        resolvedPaths: {},
+        timeoutMs: 1_000,
+      })).rejects.toThrow('PI provider runtime is disabled for public untrusted exposure');
+    } finally {
+      if (previousMode === undefined) {
+        delete process.env.ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE;
+      } else {
+        process.env.ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE = previousMode;
+      }
+    }
+  });
+});
+
+describe('piDriver.testConnection', () => {
+  it('keeps Anthropic-compatible endpoint resolution available through the lazy registry path', async () => {
+    const previousMode = process.env.ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE;
+    const previousFetch = globalThis.fetch;
+    const requests: Array<{ url: string; init?: RequestInit }> = [];
+
+    process.env.ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE = 'private-local';
+    globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
+      const [input, init] = args;
+      requests.push({ url: String(input), init });
+      return new Response('{}', { status: 200 });
+    }) as typeof fetch;
+
+    try {
+      const result = await piDriver.testConnection?.({
+        provider: 'pi',
+        apiKey: 'sk-test',
+        model: 'pi/claude-3-5-haiku-20241022',
+        connection: {
+          providerType: 'pi',
+          piAuthProvider: 'anthropic',
+        },
+        hostRuntime: {
+          appRootPath: process.cwd(),
+          isPackaged: false,
+        },
+        resolvedPaths: {},
+        timeoutMs: 1_000,
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(requests).toHaveLength(1);
+      const request = requests[0];
+      expect(request).toBeDefined();
+      expect(request!.url).toBe('https://api.anthropic.com/v1/messages');
+      expect(JSON.parse(request!.init?.body as string).model).toBe('claude-3-5-haiku-20241022');
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousMode === undefined) {
+        delete process.env.ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE;
+      } else {
+        process.env.ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE = previousMode;
+      }
+    }
+  });
+});
