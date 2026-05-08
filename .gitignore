@@ -17,6 +17,7 @@ coverage
 # logs
 logs
 .e2e-logs/
+events.jsonl
 _.log
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
@@ -48,7 +49,11 @@ __pycache__/
 .DS_Store
 
 # Claude Code local settings (user-specific)
+.claude/
 .claude/settings.local.json
+
+# Local agent/evidence runtime state
+.ouroboros/
 
 # Accidental literal tilde directories (Node.js doesn't expand ~)
 ~/
