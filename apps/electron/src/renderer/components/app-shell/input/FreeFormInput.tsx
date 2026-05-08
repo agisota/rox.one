@@ -419,7 +419,7 @@ export function FreeFormInput({
     const groups: Record<string, typeof llmConnections> = {
       'Anthropic': [],
       'Local': [],
-      'ROX ONE Backend': [],
+      'ROX.ONE Backend': [],
     }
     for (const conn of llmConnections) {
       const provider = conn.providerType || 'anthropic'
@@ -429,7 +429,7 @@ export function FreeFormInput({
       } else if (provider === 'pi_compat' && isLocalConnection(conn)) {
         groups['Local'].push(conn)
       } else if (provider === 'pi' || provider === 'pi_compat') {
-        groups['ROX ONE Backend'].push(conn)
+        groups['ROX.ONE Backend'].push(conn)
       }
     }
     // Return only non-empty groups
