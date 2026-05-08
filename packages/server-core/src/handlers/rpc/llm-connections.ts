@@ -8,7 +8,7 @@ import {
   validateStoredBackendConnection,
 } from '@craft-agent/shared/agent/backend'
 import { getModelRefreshService } from '@craft-agent/server-core/model-fetchers'
-import { parseTestConnectionError, createBuiltInConnection, validateModelList, piAuthProviderDisplayName, validateSetupTestInput, setupTestRequiresApiKey, resolveCustomEndpointSetup, resolveLlmEndpointDependencyRiskMode, validatePublicCustomEndpointBaseUrl } from '@craft-agent/server-core/domain'
+import { parseTestConnectionError, createBuiltInConnection, validateModelList, piAuthProviderDisplayName, validateSetupTestInput, setupTestRequiresApiKey, resolveCustomEndpointSetup, resolveLlmEndpointDependencyRiskMode, resolveLlmProviderDependencyRiskMode, validatePublicCustomEndpointBaseUrl, validatePublicProviderSdkAccess } from '@craft-agent/server-core/domain'
 import { getWorkspaceOrThrow, buildBackendHostRuntimeContext } from '@craft-agent/server-core/handlers'
 import { pushTyped, type RpcServer } from '@craft-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
@@ -372,8 +372,16 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   })
 
   server.handle(RPC_CHANNELS.pi.GET_PROVIDER_MODELS, async (_ctx, provider: string) => {
-    const { getModels } = await import('@mariozechner/pi-ai')
     try {
+      const providerSdkExposure = validatePublicProviderSdkAccess({
+        mode: resolveLlmProviderDependencyRiskMode(),
+        surface: 'PI provider model discovery',
+      })
+      if (!providerSdkExposure.valid) {
+        return { models: [], totalCount: 0 }
+      }
+
+      const { getModels } = await import('@mariozechner/pi-ai')
       const models = getModels(provider as Parameters<typeof getModels>[0])
       const sorted = [...models].sort((a, b) => b.cost.output - a.cost.output || b.cost.input - a.cost.input)
       return {
@@ -782,6 +790,14 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   }> => {
     requireAdmin(deps, ctx)
     try {
+      const providerSdkExposure = validatePublicProviderSdkAccess({
+        mode: resolveLlmProviderDependencyRiskMode(),
+        surface: 'GitHub Copilot OAuth',
+      })
+      if (!providerSdkExposure.valid) {
+        return { success: false, error: providerSdkExposure.error }
+      }
+
       const { loginGitHubCopilot } = await import('@mariozechner/pi-ai/oauth')
       const credentialManager = getCredentialManager()
 

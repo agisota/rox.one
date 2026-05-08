@@ -3,8 +3,10 @@ import {
   validateSetupTestInput,
   isLoopbackBaseUrl,
   resolveLlmEndpointDependencyRiskMode,
+  resolveLlmProviderDependencyRiskMode,
   setupTestRequiresApiKey,
   validatePublicCustomEndpointBaseUrl,
+  validatePublicProviderSdkAccess,
   resolveCustomEndpointSetup,
   createBuiltInConnection,
 } from './connection-setup-logic'
@@ -106,6 +108,43 @@ describe('public custom endpoint exposure guard', () => {
     expect(validatePublicCustomEndpointBaseUrl({
       baseUrl: 'http://localhost:11434/v1',
       mode: 'accepted-risk',
+    })).toEqual({ valid: true })
+  })
+})
+
+describe('public provider SDK exposure guard', () => {
+  it('defaults public app deployments to public-untrusted provider SDK risk mode', () => {
+    expect(resolveLlmProviderDependencyRiskMode({
+      CRAFT_PUBLIC_APP_URL: 'https://app.rox.one',
+    })).toBe('public-untrusted')
+  })
+
+  it('lets explicit accepted-risk provider mode override the public app default', () => {
+    expect(resolveLlmProviderDependencyRiskMode({
+      CRAFT_PUBLIC_APP_URL: 'https://app.rox.one',
+      CRAFT_LLM_PROVIDER_DEPENDENCY_RISK_MODE: 'accepted-risk',
+    })).toBe('accepted-risk')
+  })
+
+  it('rejects provider SDK surfaces in public-untrusted mode', () => {
+    expect(validatePublicProviderSdkAccess({
+      mode: 'public-untrusted',
+      surface: 'GitHub Copilot OAuth',
+    })).toEqual({
+      valid: false,
+      error: 'GitHub Copilot OAuth provider SDK access is disabled for public untrusted exposure.',
+    })
+  })
+
+  it('preserves accepted-risk and isolated-worker provider SDK behavior', () => {
+    expect(validatePublicProviderSdkAccess({
+      mode: 'accepted-risk',
+      surface: 'GitHub Copilot OAuth',
+    })).toEqual({ valid: true })
+
+    expect(validatePublicProviderSdkAccess({
+      mode: 'isolated-worker',
+      surface: 'PI provider model discovery',
     })).toEqual({ valid: true })
   })
 })
