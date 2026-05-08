@@ -3,7 +3,7 @@
 Repository: `/Users/marklindgreen/Projects/rox/rox`
 Branch: `mac/rox-production-ready-rc`
 Base: Rox Agents OSS v0.9.1
-Snapshot status: T074-T097 private/local RC handoff validated locally; T094/T095 reconcile release state, T096 closes the live verification blockers, and T097 normalizes desktop package identity to `ROX.ONE` without converting the RC into public production.
+Snapshot status: T074-T097 private/local RC handoff validated locally; T094/T095 reconcile release state, T096 closes the live verification blockers, and T097 normalizes desktop package identity to `ROX.ONE`. The T098-T104 continuation adds screenshot-backed Experience tab proof, Electron smoke/startup hardening, ROX.ONE active backend copy, runtime artifact git hygiene, and a dependency audit risk register without converting the RC into public production.
 
 ## 1. Current Product Shape
 
@@ -124,7 +124,9 @@ Not production-hosted yet:
 - Hosted durable workers.
 - Signed/notarized macOS release.
 - Bundle-size policy and chunk-splitting gate beyond the current read-only T092 baseline.
-- External dependency/security audit and public-infra abuse controls.
+- Dependency remediation or signed accepted-risk approval after the current
+  `docs/release/dependency-risk-register-2026-05-08.md` baseline.
+- External security audit and public-infra abuse controls.
 
 ## 6. Local Worktree Note
 
@@ -137,3 +139,11 @@ events.jsonl
 ```
 
 They are local runtime artifacts and are not part of the RC commit scope.
+After T103, root `events.jsonl`, `.claude/`, and `.ouroboros/` are ignored by
+git; local files may remain on disk as operator/runtime state.
+
+Public production remains blocked by real provider orchestration, hosted
+persistence/workers, public share storage/shortlinks, ROX ID email
+verification, payments, signed/notarized distribution, observability,
+dependency audit remediation or signed accepted-risk approval, and external
+security review.
