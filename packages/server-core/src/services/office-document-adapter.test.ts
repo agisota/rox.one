@@ -91,4 +91,35 @@ describe('office document adapter', () => {
 
     expect(errors).toEqual(['Office to markdown conversion failed: unsupported workbook']);
   });
+
+  it('rejects public untrusted conversion before invoking the converter', async () => {
+    const errors: string[] = [];
+    let converterCalled = false;
+
+    await expect(
+      convertOfficeDocumentToMarkdown({
+        sourcePath: '/tmp/public-upload.xlsx',
+        outputPath: '/tmp/public-upload.md',
+        attachmentName: 'public-upload.xlsx',
+        conversionTrust: 'public-untrusted',
+        converter: {
+          async convert() {
+            converterCalled = true;
+            return { textContent: '# should not run' };
+          },
+        },
+        logger: {
+          info() {
+            throw new Error('unexpected info log');
+          },
+          error(message) {
+            errors.push(message);
+          },
+        },
+      }),
+    ).rejects.toThrow('Document conversion is disabled for public untrusted uploads');
+
+    expect(converterCalled).toBe(false);
+    expect(errors).toEqual(['Office to markdown conversion rejected: public-untrusted input']);
+  });
 });
