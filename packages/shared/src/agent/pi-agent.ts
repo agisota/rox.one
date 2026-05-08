@@ -119,7 +119,7 @@ export const PI_BACKEND_SESSION_TOOL_NAMES = new Set<string>([
  * planning heuristics, config watching, usage tracking).
  */
 export class PiAgent extends BaseAgent {
-  protected backendName = 'ROX ONE Backend';
+  protected backendName = 'ROX.ONE Backend';
 
   // ============================================================
   // Subprocess State
@@ -1940,7 +1940,7 @@ export class PiAgent extends BaseAgent {
         this.config.workspace.rootPath,
         this.config.session?.workingDirectory,
         this.config.systemPromptPreset,
-        'ROX ONE Backend', // backendName
+        'ROX.ONE Backend', // backendName
         getCoAuthorPreference() // respect user's includeCoAuthoredBy preference (#576)
       );
 

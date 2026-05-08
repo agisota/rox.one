@@ -32,7 +32,7 @@ function piModelToDefinition(m: Model<Api>): ModelDefinition {
     id: `pi/${m.id}`,
     name: m.name,
     shortName,
-    description: `${m.provider} model via ROX ONE Backend`,
+    description: `${m.provider} model via ROX.ONE Backend`,
     provider: 'pi',
     contextWindow: m.contextWindow,
     supportsThinking: m.reasoning,

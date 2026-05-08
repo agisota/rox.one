@@ -55,8 +55,8 @@ const providerDisplayNames: Record<string, string> = {
   minimax: 'Minimax',
   ollama: 'Ollama',
   openrouter: 'OpenRouter',
-  pi: 'ROX ONE Backend',
-  pi_compat: 'ROX ONE Backend',
+  pi: 'ROX.ONE Backend',
+  pi_compat: 'ROX.ONE Backend',
   vercel: 'Vercel',
 }
 
