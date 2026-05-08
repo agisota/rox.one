@@ -73,6 +73,9 @@ jobs:
       - name: Smoke Electron startup path
         run: bun run electron:smoke
 
+      - name: Validate packaged artifact metadata
+        run: bun run validate:packaged-artifacts
+
       - name: Validate private mac release trust boundary
         run: bun run validate:mac-private-release-boundary
 
