@@ -7,9 +7,11 @@
  *
  * To regenerate Assets.car after icon changes:
  *   cd apps/electron
- *   xcrun actool "resources/icon.icon" --compile "resources" \
- *     --app-icon AppIcon --minimum-deployment-target 26.0 \
- *     --platform macosx --output-partial-info-plist /dev/null
+ *   tmpdir=$(mktemp -d /tmp/rox-icon-actool-XXXXXX)
+ *   xcrun actool "resources/icon.icon" --compile "$tmpdir" \
+ *     --app-icon icon --minimum-deployment-target 26.0 \
+ *     --platform macosx --output-partial-info-plist "$tmpdir/partial.plist"
+ *   cp "$tmpdir/Assets.car" resources/Assets.car
  *
  * For older macOS versions, the app falls back to icon.icns which is
  * included separately by electron-builder.
@@ -33,6 +35,7 @@ module.exports = async function afterPack(context) {
   const precompiledAssets = path.join(context.packager.projectDir, 'resources', 'Assets.car');
   const rootIconSvg = path.join(context.packager.projectDir, 'resources', 'icon.svg');
   const rootIconPng = path.join(context.packager.projectDir, 'resources', 'icon.png');
+  const liquidGlassIconManifest = path.join(context.packager.projectDir, 'resources', 'icon.icon', 'icon.json');
   const liquidGlassIconSvg = path.join(context.packager.projectDir, 'resources', 'icon.icon', 'Assets', 'icon.svg');
   const liquidGlassIconPng = path.join(context.packager.projectDir, 'resources', 'icon.icon', 'Assets', 'icon.png');
 
@@ -103,6 +106,7 @@ module.exports = async function afterPack(context) {
   const assetCatalogSources = [
     rootIconSvg,
     rootIconPng,
+    liquidGlassIconManifest,
     liquidGlassIconSvg,
     liquidGlassIconPng,
   ].filter(fs.existsSync);

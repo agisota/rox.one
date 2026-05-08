@@ -89,9 +89,9 @@ mac:
   category: public.app-category.productivity
   icon: resources/icon.icns
   # macOS 26+ Liquid Glass: Tell macOS to look for icon in Assets.car
-  # The value must match --app-icon used in actool (see afterPack.js)
+  # The value must match --app-icon used in actool (see afterPack.cjs)
   extendInfo:
-    CFBundleIconName: AppIcon
+    CFBundleIconName: icon
   target:
     - target: dmg
       arch:

@@ -187,9 +187,11 @@ If you modify `resources/icon.icon`, regenerate the Assets.car:
 
 ```bash
 cd apps/electron
-xcrun actool "resources/icon.icon" --compile "resources" \
-  --app-icon AppIcon --minimum-deployment-target 26.0 \
-  --platform macosx --output-partial-info-plist /dev/null
+tmpdir=$(mktemp -d /tmp/rox-icon-actool-XXXXXX)
+xcrun actool "resources/icon.icon" --compile "$tmpdir" \
+  --app-icon icon --minimum-deployment-target 26.0 \
+  --platform macosx --output-partial-info-plist "$tmpdir/partial.plist"
+cp "$tmpdir/Assets.car" resources/Assets.car
 ```
 
 > **Note:** This requires macOS 26 with Xcode 26 (macOS 26 SDK). The pre-compiled Assets.car is committed to the repo so CI builds work without the SDK.
