@@ -362,12 +362,28 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   // ============================================================
 
   server.handle(RPC_CHANNELS.pi.GET_API_KEY_PROVIDERS, async () => {
-    const { getPiApiKeyProviders } = await import('@rox-agent/shared/config')
+    const providerSdkExposure = validatePublicProviderSdkAccess({
+      mode: resolveLlmProviderDependencyRiskMode(),
+      surface: 'PI API key provider discovery',
+    })
+    if (!providerSdkExposure.valid) {
+      return []
+    }
+
+    const { getPiApiKeyProviders } = await import('@rox-agent/shared/config/models-pi')
     return getPiApiKeyProviders()
   })
 
   server.handle(RPC_CHANNELS.pi.GET_PROVIDER_BASE_URL, async (_ctx, provider: string) => {
-    const { getPiProviderBaseUrl } = await import('@rox-agent/shared/config')
+    const providerSdkExposure = validatePublicProviderSdkAccess({
+      mode: resolveLlmProviderDependencyRiskMode(),
+      surface: 'PI provider base URL discovery',
+    })
+    if (!providerSdkExposure.valid) {
+      return undefined
+    }
+
+    const { getPiProviderBaseUrl } = await import('@rox-agent/shared/config/models-pi')
     return getPiProviderBaseUrl(provider)
   })
 

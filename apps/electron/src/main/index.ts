@@ -100,7 +100,7 @@ import { registerThumbnailScheme, registerThumbnailHandler } from './thumbnail-p
 import log, { isDebugMode, mainLog, getLogFilePath, getMessagingGatewayLogFilePath, messagingGatewayLog } from './logger'
 import { setPerfEnabled, enableDebug } from '@rox-agent/shared/utils'
 import { registerPiModelResolver } from '@rox-agent/shared/config'
-import { getPiModelsForAuthProvider, getAllPiModels } from '@rox-agent/shared/config'
+import { getPiModelsForAuthProvider, getAllPiModels } from '@rox-agent/shared/config/models-pi'
 import { initNotificationService, initBadgeIcon, initInstanceBadge, updateBadgeCount } from './notifications'
 import { checkForUpdatesOnLaunch, setAutoUpdateEventSink, isUpdating } from './auto-update'
 import type { EventSink } from '@rox-agent/server-core/transport'
