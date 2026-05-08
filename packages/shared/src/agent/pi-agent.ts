@@ -18,6 +18,10 @@ import { createInterface, type Interface as ReadlineInterface } from 'node:readl
 import type { AgentEvent } from '@rox-agent/core/types';
 import type { FileAttachment } from '../utils/files.ts';
 import { getProxyEnvVars } from '../config/proxy-env.ts';
+import {
+  assertPiProviderDependencyRiskAllowed,
+  resolvePiProviderDependencyRiskMode,
+} from './dependency-risk.ts';
 
 import type {
   BackendConfig,
@@ -352,6 +356,10 @@ export class PiAgent extends BaseAgent {
    * Spawn the pi-agent-server subprocess and set up JSONL communication.
    */
   private async spawnSubprocess(): Promise<void> {
+    assertPiProviderDependencyRiskAllowed(
+      resolvePiProviderDependencyRiskMode(process.env, this.config.envOverrides),
+    );
+
     const runtime = getBackendRuntime(this.config);
     const piServerPath = runtime.paths?.piServer;
     if (!piServerPath) {
