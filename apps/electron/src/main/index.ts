@@ -387,7 +387,10 @@ app.whenReady().then(async () => {
       mainLog.info(message)
     }
 
-    setImmediate(() => app.quit())
+    setImmediate(() => {
+      app.quit()
+      setTimeout(() => app.exit(exitCode), 1_000)
+    })
   }
 
   // Export packaged state as env var so logger.ts (and headless Bun) don't need 'electron'

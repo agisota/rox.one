@@ -22,4 +22,17 @@ describe('electron smoke isolation', () => {
     expect(lockIndex).toBeGreaterThan(-1);
     expect(smokePathIndex).toBeLessThan(lockIndex);
   });
+
+  it('keeps the smoke force-exit fallback alive during async quit cleanup', () => {
+    const main = readFileSync(join(rootDir, 'apps/electron/src/main/index.ts'), 'utf8');
+    const smokeShutdownStart = main.indexOf('const scheduleSmokeShutdown =');
+    const smokeShutdownEnd = main.indexOf('// Export packaged state as env var');
+    const smokeShutdown = main.slice(smokeShutdownStart, smokeShutdownEnd);
+
+    expect(smokeShutdownStart).toBeGreaterThan(-1);
+    expect(smokeShutdownEnd).toBeGreaterThan(smokeShutdownStart);
+    expect(smokeShutdown).toContain('app.quit()');
+    expect(smokeShutdown).toContain('setTimeout(() => app.exit(exitCode), 1_000)');
+    expect(smokeShutdown).not.toContain('.unref()');
+  });
 });
