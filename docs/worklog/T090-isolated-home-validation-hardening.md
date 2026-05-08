@@ -206,7 +206,7 @@ broader follow-up because prior worklogs record unrelated full-suite blockers.
 | Targeted focused validation commands are recorded | Done | This worklog section 7 |
 | Remaining risks documented precisely | Done | This worklog section 10 |
 | Worklog complete | Done | Implementation and validation evidence recorded |
-| Scoped Lore commit exists | Pending | Validation/worklog complete; awaiting commit approval, no commit created in this session |
+| Scoped Lore commit exists | Done | `f9b11a5` — `Finalize T090 isolated-home validation hardening`; follow-up release docs also record `8ab5c11` validation reconciliation |
 
 ## 12. Release-hardening follow-up addendum
 
@@ -305,5 +305,4 @@ Documentation state after reconciliation:
 - T088/T089 tickets are marked `DONE` and reference their validated worklogs.
 - Release snapshot/final RC/readiness docs now distinguish historical T087
   max-suite evidence from the current narrower T088/T089/T090 reruns.
-- T090 remains validated in the working tree and pending commit approval; no
-  commit was created in this session.
+- T090 is committed in `f9b11a5`; follow-up release-hardening reconciliation is committed in `8ab5c11`.

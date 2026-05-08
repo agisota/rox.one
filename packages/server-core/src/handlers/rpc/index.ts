@@ -10,7 +10,11 @@ import { registerOAuthHandlers } from './oauth'
 import { registerResourcesHandlers } from './resources'
 import { registerOnboardingHandlers } from './onboarding'
 import { registerSessionsHandlers } from './sessions'
-export { registerSessionsHandlers, cleanupSessionFileWatchForClient } from './sessions'
+export {
+  registerSessionsHandlers,
+  cleanupSessionFileWatchForClient,
+  _setSessionFileWatcherFactoryForTesting,
+} from './sessions'
 import { registerServerHandlers } from './server'
 import type { ServerHandlerContext } from '../../bootstrap/headless-start'
 export type { ServerHandlerContext } from '../../bootstrap/headless-start'

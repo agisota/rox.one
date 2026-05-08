@@ -3,7 +3,7 @@
 Repository: `/Users/marklindgreen/Projects/craft/craft`
 Branch: `mac/rox-production-ready-rc`
 Base: Craft Agents OSS v0.9.1
-Snapshot status: T074-T090 committed and validated locally; T091 packaged-release hardening evidence added in the working tree.
+Snapshot status: T074-T096 private/local RC handoff validated locally; T094/T095 reconcile release state and T096 closes the live verification blockers without converting the RC into public production.
 
 ## 1. Current Product Shape
 
@@ -85,7 +85,12 @@ caefffc T080 Global Experience HUD
 ab33f70 T088 MissionRun Lifecycle Contract Alignment
 4eb6dcd T089 Runtime Module Depth and Action Seams
 8ab5c11 Finalize release hardening validation pass
-working tree T091 Packaged Release Hardening (not committed)
+0dba818 T091 Packaged Release Hardening
+bee0aa5 T092 Bundle Artifact Baseline Report
+efec07a T093 React Hook Lint Cleanup
+handoff commit T094 Release Doc Reconciliation
+handoff commit T095 Release State Reconciliation
+handoff commit T096 Private RC Verification Stabilization
 ```
 
 ## 5. Runtime Boundaries
@@ -117,7 +122,8 @@ Not production-hosted yet:
 - Email verification provider.
 - Hosted durable workers.
 - Signed/notarized macOS release.
-- Formalized packaged-release checksum/evidence trail beyond local validation.
+- Bundle-size policy and chunk-splitting gate beyond the current read-only T092 baseline.
+- External dependency/security audit and public-infra abuse controls.
 
 ## 6. Local Worktree Note
 
@@ -126,6 +132,7 @@ Do not stage unrelated runtime files:
 ```text
 events.jsonl
 .claude/
+.ouroboros/
 ```
 
 They are local runtime artifacts and are not part of the RC commit scope.

@@ -3,7 +3,11 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { RPC_CHANNELS } from '../../../shared/types'
-import { registerSessionsHandlers, cleanupSessionFileWatchForClient } from '@craft-agent/server-core/handlers/rpc'
+import {
+  registerSessionsHandlers,
+  cleanupSessionFileWatchForClient,
+  _setSessionFileWatcherFactoryForTesting,
+} from '@craft-agent/server-core/handlers/rpc'
 import type { RpcServer } from '@craft-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 
@@ -13,6 +17,40 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+interface FakeWatcher {
+  closed: boolean
+  close: () => void
+  emit: (filename: string | null) => void
+}
+
+function createFakeWatchFactory() {
+  const watchersByPath = new Map<string, FakeWatcher[]>()
+
+  return {
+    factory(sessionPath: string, listener: (_eventType: string, filename: string | Buffer | null) => void) {
+      const watcher: FakeWatcher = {
+        closed: false,
+        close() {
+          this.closed = true
+        },
+        emit(filename: string | null) {
+          if (!this.closed) listener('change', filename)
+        },
+      }
+
+      const watchers = watchersByPath.get(sessionPath) ?? []
+      watchers.push(watcher)
+      watchersByPath.set(sessionPath, watchers)
+      return watcher
+    },
+    emit(sessionPath: string, filename: string | null) {
+      for (const watcher of watchersByPath.get(sessionPath) ?? []) {
+        watcher.emit(filename)
+      }
+    },
+  }
+}
+
 describe('sessions file watchers', () => {
   const handlers = new Map<string, HandlerFn>()
   const pushed: Array<{ channel: string; target: any; args: any[] }> = []
@@ -20,6 +58,7 @@ describe('sessions file watchers', () => {
   let tempRoot = ''
   let sessionDirA = ''
   let sessionDirB = ''
+  let watchFactory: ReturnType<typeof createFakeWatchFactory>
 
   beforeEach(() => {
     handlers.clear()
@@ -30,6 +69,8 @@ describe('sessions file watchers', () => {
     sessionDirB = join(tempRoot, 'session-b')
     mkdirSync(sessionDirA, { recursive: true })
     mkdirSync(sessionDirB, { recursive: true })
+    watchFactory = createFakeWatchFactory()
+    _setSessionFileWatcherFactoryForTesting(watchFactory.factory)
 
     const server: RpcServer = {
       handle(channel, handler) {
@@ -84,6 +125,7 @@ describe('sessions file watchers', () => {
   afterEach(() => {
     cleanupSessionFileWatchForClient('client-a')
     cleanupSessionFileWatchForClient('client-b')
+    _setSessionFileWatcherFactoryForTesting(null)
     if (tempRoot) {
       rmSync(tempRoot, { recursive: true, force: true })
     }
@@ -97,11 +139,12 @@ describe('sessions file watchers', () => {
 
     await watch!({ clientId: 'client-a' }, 'session-a')
     await watch!({ clientId: 'client-b' }, 'session-b')
-    await wait(50)
 
     writeFileSync(join(sessionDirA, 'a.txt'), `a-${Date.now()}`)
     writeFileSync(join(sessionDirB, 'b.txt'), `b-${Date.now()}`)
-    await wait(300)
+    watchFactory.emit(sessionDirA, 'a.txt')
+    watchFactory.emit(sessionDirB, 'b.txt')
+    await wait(150)
 
     const aEvents = pushed.filter((evt) => evt.target?.to === 'client' && evt.target?.clientId === 'client-a')
     const bEvents = pushed.filter((evt) => evt.target?.to === 'client' && evt.target?.clientId === 'client-b')
@@ -114,7 +157,9 @@ describe('sessions file watchers', () => {
 
     writeFileSync(join(sessionDirA, 'a.txt'), `a2-${Date.now()}`)
     writeFileSync(join(sessionDirB, 'b.txt'), `b2-${Date.now()}`)
-    await wait(300)
+    watchFactory.emit(sessionDirA, 'a.txt')
+    watchFactory.emit(sessionDirB, 'b.txt')
+    await wait(150)
 
     const aEventsAfter = pushed.filter((evt) => evt.target?.clientId === 'client-a')
     const bEventsAfter = pushed.filter((evt) => evt.target?.clientId === 'client-b')
@@ -128,13 +173,13 @@ describe('sessions file watchers', () => {
     expect(watch).toBeTruthy()
 
     await watch!({ clientId: 'client-a' }, 'session-a')
-    await wait(50)
 
     cleanupSessionFileWatchForClient('client-a')
     pushed.length = 0
 
     writeFileSync(join(sessionDirA, 'after-cleanup.txt'), `x-${Date.now()}`)
-    await wait(300)
+    watchFactory.emit(sessionDirA, 'after-cleanup.txt')
+    await wait(150)
 
     expect(pushed.length).toBe(0)
   })

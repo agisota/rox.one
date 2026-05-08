@@ -1,6 +1,6 @@
 # T092 - Bundle/Performance Chunk Budget
 
-Status: READY_TO_COMMIT
+Status: DONE
 
 ## Goal
 
@@ -46,4 +46,4 @@ recording the measured baseline in repo docs.
 | Measured baseline for Electron/WebUI/Viewer is documented as release evidence | DONE |
 | Focused validation commands pass | DONE |
 | No unrelated runtime files are touched | DONE |
-| Commit exists only after explicit user approval | PENDING |
+| Commit exists after approved hardening pass | DONE |

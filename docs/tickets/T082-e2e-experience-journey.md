@@ -1,6 +1,6 @@
 # T082 - E2E Experience Journey
 
-Status: IN PROGRESS
+Status: DONE
 
 ## Goal
 

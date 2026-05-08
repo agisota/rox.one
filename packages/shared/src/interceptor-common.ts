@@ -10,8 +10,8 @@
  */
 
 import { existsSync, readFileSync, writeFileSync, renameSync, unlinkSync, appendFileSync, mkdirSync, statSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { getConfigDir } from './config/paths.ts';
 
 // ============================================================================
 // CONSTANTS
@@ -27,7 +27,11 @@ export const DEBUG = INTERCEPTOR_LOGGING_ENABLED &&
   (process.argv.includes('--debug') || process.env.CRAFT_DEBUG === '1');
 
 /** Config file path for reading settings in the SDK subprocess */
-export const CONFIG_FILE = join(homedir(), '.rox', 'config.json');
+export const CONFIG_FILE = join(getConfigDir(), 'config.json');
+
+function getConfigFilePath(): string {
+  return join(getConfigDir(), 'config.json');
+}
 
 /** Session directory — set by env var (subprocess) or setSessionDir() (main process) */
 let _sessionDir: string | null = process.env.CRAFT_SESSION_DIR || null;
@@ -36,7 +40,7 @@ let _sessionDir: string | null = process.env.CRAFT_SESSION_DIR || null;
 // LOGGING
 // ============================================================================
 
-export const LOG_DIR = join(homedir(), '.rox', 'logs');
+export const LOG_DIR = join(getConfigDir(), 'logs');
 export const LOG_FILE = join(LOG_DIR, 'interceptor.log');
 
 // Ensure log directory exists at module load
@@ -100,7 +104,7 @@ function getInterceptorConfig(): Record<string, unknown> | null {
   const now = Date.now();
   if (_cachedConfig && (now - _cacheTimestamp) < CONFIG_CACHE_TTL_MS) return _cachedConfig;
   try {
-    const content = readFileSync(CONFIG_FILE, 'utf-8');
+    const content = readFileSync(getConfigFilePath(), 'utf-8');
     _cachedConfig = JSON.parse(content);
     _cacheTimestamp = now;
     return _cachedConfig;
@@ -171,7 +175,7 @@ function getErrorFilePath(): string {
   // Prefer session-scoped file to avoid cross-session error consumption.
   if (_sessionDir) return join(_sessionDir, 'api-error.json');
   // Fallback for legacy/non-session contexts.
-  return join(homedir(), '.rox', 'api-error.json');
+  return join(getConfigDir(), 'api-error.json');
 }
 
 function getStoredError(sessionDir?: string): LastApiError | null {

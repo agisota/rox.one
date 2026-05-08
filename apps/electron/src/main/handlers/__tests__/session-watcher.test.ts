@@ -4,8 +4,8 @@
  * Verifies per-client watcher lifecycle: creation, cleanup, disconnect,
  * and that concurrent clients don't interfere with each other.
  *
- * Uses real temp directories + real fs.watch to avoid mocking fs
- * (which breaks transitive imports that need real fs exports).
+ * Uses real temp directories plus an injected watcher factory so lifecycle
+ * assertions do not depend on OS-level fs.watch delivery.
  */
 
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test'
@@ -42,11 +42,50 @@ interface PushCall {
 }
 
 let tempDirs: string[] = []
+let resetSessionWatcherFactory: (() => void) | null = null
 
 function makeTempSessionDir(): string {
   const dir = mkdtempSync(join(tmpdir(), 'watcher-test-'))
   tempDirs.push(dir)
   return dir
+}
+
+interface FakeWatcher {
+  closed: boolean
+  close: () => void
+  emit: (filename: string | null) => void
+}
+
+function createFakeWatchFactory() {
+  const watchersByPath = new Map<string, FakeWatcher[]>()
+
+  return {
+    factory(sessionPath: string, listener: (_eventType: string, filename: string | Buffer | null) => void) {
+      const watcher: FakeWatcher = {
+        closed: false,
+        close() {
+          this.closed = true
+        },
+        emit(filename: string | null) {
+          if (!this.closed) listener('change', filename)
+        },
+      }
+
+      const watchers = watchersByPath.get(sessionPath) ?? []
+      watchers.push(watcher)
+      watchersByPath.set(sessionPath, watchers)
+      return watcher
+    },
+    emit(sessionPath: string, filename: string | null) {
+      for (const watcher of watchersByPath.get(sessionPath) ?? []) {
+        watcher.emit(filename)
+      }
+    },
+  }
+}
+
+function waitForDebounce(): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, 150))
 }
 
 function createTestHarness(sessionPaths: Map<string, string>) {
@@ -96,6 +135,8 @@ function makeCtx(clientId: string, workspaceId = 'ws-1'): RequestContext {
 
 describe('session file watcher isolation', () => {
   afterEach(() => {
+    resetSessionWatcherFactory?.()
+    resetSessionWatcherFactory = null
     for (const dir of tempDirs) {
       try { rmSync(dir, { recursive: true, force: true }) } catch {}
     }
@@ -108,7 +149,14 @@ describe('session file watcher isolation', () => {
     const sessionPaths = new Map([['s1', dir1], ['s2', dir2]])
     const { server, deps, handlers, pushCalls } = createTestHarness(sessionPaths)
 
-    const { registerSessionsHandlers, cleanupSessionFileWatchForClient } = await import('@craft-agent/server-core/handlers/rpc')
+    const {
+      registerSessionsHandlers,
+      cleanupSessionFileWatchForClient,
+      _setSessionFileWatcherFactoryForTesting,
+    } = await import('@craft-agent/server-core/handlers/rpc')
+    const watchFactory = createFakeWatchFactory()
+    _setSessionFileWatcherFactoryForTesting(watchFactory.factory)
+    resetSessionWatcherFactory = () => _setSessionFileWatcherFactoryForTesting(null)
     registerSessionsHandlers(server, deps)
 
     const watchHandler = handlers.get(RPC_CHANNELS.sessions.WATCH_FILES)!
@@ -120,9 +168,8 @@ describe('session file watcher isolation', () => {
 
     // Trigger a change in s1
     writeFileSync(join(dir1, 'output.txt'), 'hello')
-
-    // Wait for debounce + fs.watch delay
-    await new Promise(r => setTimeout(r, 300))
+    watchFactory.emit(dir1, 'output.txt')
+    await waitForDebounce()
 
     // Only client-a should have received the notification
     const clientAPushes = pushCalls.filter(p => p.target?.clientId === 'client-a')
@@ -142,7 +189,8 @@ describe('session file watcher isolation', () => {
 
     // Trigger a change in s2
     writeFileSync(join(dir2, 'data.json'), '{}')
-    await new Promise(r => setTimeout(r, 300))
+    watchFactory.emit(dir2, 'data.json')
+    await waitForDebounce()
 
     // Client B should still receive notifications
     const clientBAfter = pushCalls.filter(p => p.target?.clientId === 'client-b')
@@ -161,7 +209,14 @@ describe('session file watcher isolation', () => {
     const sessionPaths = new Map([['s1', dir1], ['s2', dir2]])
     const { server, deps, handlers, pushCalls } = createTestHarness(sessionPaths)
 
-    const { registerSessionsHandlers, cleanupSessionFileWatchForClient } = await import('@craft-agent/server-core/handlers/rpc')
+    const {
+      registerSessionsHandlers,
+      cleanupSessionFileWatchForClient,
+      _setSessionFileWatcherFactoryForTesting,
+    } = await import('@craft-agent/server-core/handlers/rpc')
+    const watchFactory = createFakeWatchFactory()
+    _setSessionFileWatcherFactoryForTesting(watchFactory.factory)
+    resetSessionWatcherFactory = () => _setSessionFileWatcherFactoryForTesting(null)
     registerSessionsHandlers(server, deps)
 
     const watchHandler = handlers.get(RPC_CHANNELS.sessions.WATCH_FILES)!
@@ -174,7 +229,8 @@ describe('session file watcher isolation', () => {
 
     // Write to s1 — should NOT trigger notification (old watcher closed)
     writeFileSync(join(dir1, 'old.txt'), 'stale')
-    await new Promise(r => setTimeout(r, 300))
+    watchFactory.emit(dir1, 'old.txt')
+    await waitForDebounce()
 
     const s1Pushes = pushCalls.filter(p =>
       p.args[0] === 's1' && p.channel === RPC_CHANNELS.sessions.FILES_CHANGED
@@ -183,7 +239,8 @@ describe('session file watcher isolation', () => {
 
     // Write to s2 — should trigger notification
     writeFileSync(join(dir2, 'new.txt'), 'fresh')
-    await new Promise(r => setTimeout(r, 300))
+    watchFactory.emit(dir2, 'new.txt')
+    await waitForDebounce()
 
     const s2Pushes = pushCalls.filter(p =>
       p.args[0] === 's2' && p.channel === RPC_CHANNELS.sessions.FILES_CHANGED
@@ -198,7 +255,14 @@ describe('session file watcher isolation', () => {
     const sessionPaths = new Map([['s1', dir]])
     const { server, deps, handlers, pushCalls } = createTestHarness(sessionPaths)
 
-    const { registerSessionsHandlers, cleanupSessionFileWatchForClient } = await import('@craft-agent/server-core/handlers/rpc')
+    const {
+      registerSessionsHandlers,
+      cleanupSessionFileWatchForClient,
+      _setSessionFileWatcherFactoryForTesting,
+    } = await import('@craft-agent/server-core/handlers/rpc')
+    const watchFactory = createFakeWatchFactory()
+    _setSessionFileWatcherFactoryForTesting(watchFactory.factory)
+    resetSessionWatcherFactory = () => _setSessionFileWatcherFactoryForTesting(null)
     registerSessionsHandlers(server, deps)
 
     const watchHandler = handlers.get(RPC_CHANNELS.sessions.WATCH_FILES)!
@@ -207,13 +271,16 @@ describe('session file watcher isolation', () => {
     // Write internal files — should be ignored
     writeFileSync(join(dir, 'session.jsonl'), 'log entry')
     writeFileSync(join(dir, '.hidden'), 'secret')
-    await new Promise(r => setTimeout(r, 300))
+    watchFactory.emit(dir, 'session.jsonl')
+    watchFactory.emit(dir, '.hidden')
+    await waitForDebounce()
 
     expect(pushCalls.length).toBe(0)
 
     // Write a normal file — should trigger notification
     writeFileSync(join(dir, 'result.txt'), 'output')
-    await new Promise(r => setTimeout(r, 300))
+    watchFactory.emit(dir, 'result.txt')
+    await waitForDebounce()
 
     expect(pushCalls.length).toBeGreaterThanOrEqual(1)
 
