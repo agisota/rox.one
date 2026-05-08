@@ -23,6 +23,47 @@ function gitStatusFor(paths: string[]): string {
   return result.stdout.trim();
 }
 
+function gitShowText(revisionPath: string): string {
+  const result = spawnSync('git', ['show', revisionPath], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  });
+  if (result.status !== 0) {
+    throw new Error(result.stderr || result.stdout || `git show ${revisionPath} failed`);
+  }
+  return result.stdout;
+}
+
+function readJsonFromHead(relativePath: string): Record<string, unknown> {
+  return JSON.parse(gitShowText(`HEAD:${relativePath}`)) as Record<string, unknown>;
+}
+
+function readJson(relativePath: string): Record<string, unknown> {
+  return JSON.parse(read(relativePath)) as Record<string, unknown>;
+}
+
+function expectDependencySurfaceUnchanged(): void {
+  expect(gitStatusFor(['bun.lock', 'apps/electron/package.json'])).toBe('');
+
+  const headPackageJson = readJsonFromHead('package.json');
+  const currentPackageJson = readJson('package.json');
+  const dependencySurfaceKeys = [
+    'workspaces',
+    'dependencies',
+    'devDependencies',
+    'optionalDependencies',
+    'peerDependencies',
+    'trustedDependencies',
+    'resolutions',
+    'overrides',
+    'packageManager',
+  ];
+
+  for (const key of dependencySurfaceKeys) {
+    expect(currentPackageJson[key]).toEqual(headPackageJson[key]);
+  }
+}
+
 describe('dependency risk register release contract', () => {
   it('requires an audit-backed risk register linked from release readiness docs', () => {
     expect(existsSync(registerPath)).toBe(true);
@@ -43,7 +84,7 @@ describe('dependency risk register release contract', () => {
     expect(matrix).toContain('Public production: no.');
     expect(matrix).toContain('dependency audit');
 
-    expect(gitStatusFor(['package.json', 'bun.lock', 'apps/electron/package.json'])).toBe('');
+    expectDependencySurfaceUnchanged();
   });
 
   it('requires an accepted-risk register contract before unresolved advisories can be approved', () => {

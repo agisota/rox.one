@@ -28,6 +28,7 @@ for (const scriptName of [
   'typecheck:all',
   'test',
   'electron:build',
+  'validate:bundle-policy',
   'validate:mac-arm-build-workflow',
   'validate:private-release-pipeline',
   'validate:release',
@@ -44,6 +45,7 @@ for (const requiredCommand of [
   'typecheck:all',
   'bun test',
   'electron:build',
+  'validate:bundle-policy',
   'validate:mac-arm-build-workflow',
   'validate:private-release-pipeline',
 ]) {
@@ -81,6 +83,7 @@ for (const [expected, description] of [
   ['bun run typecheck:all', 'typecheck gate'],
   ['bun test', 'full deterministic test gate'],
   ['bun run electron:build', 'Electron build gate'],
+  ['bun run validate:bundle-policy', 'bundle policy gate'],
   ['bun run validate:mac-arm-build-workflow', 'Mac ARM workflow contract gate'],
   ['.ci-logs/private-release', 'release log directory'],
   ['apps/electron/dist', 'Electron dist artifact path'],

@@ -100,6 +100,12 @@ jobs:
           set -o pipefail
           bun run electron:build 2>&1 | tee .ci-logs/private-release/electron-build.log
 
+      - name: Validate bundle policy
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:bundle-policy 2>&1 | tee .ci-logs/private-release/bundle-policy.log
+
       - name: Validate Mac ARM workflow contract
         shell: bash
         run: |
