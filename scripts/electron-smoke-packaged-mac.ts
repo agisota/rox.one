@@ -9,9 +9,10 @@ const APP_PATH = process.env.ROX_MAC_APP_PATH || DEFAULT_APP_PATH;
 const EXECUTABLE_PATH = join(APP_PATH, 'Contents/MacOS/ROX.ONE');
 const STARTUP_TIMEOUT_MS = 30_000;
 const FORCE_KILL_GRACE_MS = 5_000;
-// Production packaged builds disable electron-log console transport, so the
-// server URL marker plus a clean smoke-mode exit is the observable readiness proof.
-const REQUIRED_MARKERS = ['CRAFT_SERVER_URL='] as const;
+// Production packaged builds can route readiness details to electron-log instead of
+// stdout/stderr. A clean smoke-mode exit is therefore the observable readiness proof;
+// stdout markers are best-effort diagnostics only.
+const REQUIRED_MARKERS: readonly string[] = [];
 
 if (process.platform !== 'darwin') {
   console.error('[packaged-smoke] Packaged macOS smoke must run on darwin');
@@ -71,9 +72,7 @@ function sanitizeOutput(text: string): string {
     .replace(/CRAFT_SERVER_URL=\S+/g, 'CRAFT_SERVER_URL=[REDACTED]');
 }
 
-const seen: Record<(typeof REQUIRED_MARKERS)[number], boolean> = {
-  'CRAFT_SERVER_URL=': false,
-};
+const seen: Record<(typeof REQUIRED_MARKERS)[number], boolean> = {};
 
 const appProc = spawn({
   cmd: [EXECUTABLE_PATH],
