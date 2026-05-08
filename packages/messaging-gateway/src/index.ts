@@ -31,6 +31,7 @@ export type {
   ChannelBinding,
   BindingConfig,
   MessagingConfig,
+  MessagingDependencyRiskMode,
   MessagingLogger,
   MessagingLogContext,
   MessagingLogMeta,

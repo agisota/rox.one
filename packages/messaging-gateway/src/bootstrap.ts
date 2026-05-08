@@ -21,7 +21,7 @@ import type { ISessionManager } from '@craft-agent/server-core/handlers'
 
 import { MessagingGatewayRegistry } from './registry'
 import { createFanOutSink, type EventSinkFn } from './event-fanout'
-import type { MessagingLogger } from './types'
+import type { MessagingDependencyRiskMode, MessagingLogger } from './types'
 
 export type PublishEventFn = (channel: string, target: PushTarget, ...args: unknown[]) => void
 
@@ -45,6 +45,7 @@ export interface MessagingBootstrapOptions {
     nodeBin?: string
     pairingMode?: 'qr' | 'code'
   }
+  dependencyRiskMode?: MessagingDependencyRiskMode
 }
 
 export interface MessagingBootstrapHandle {
@@ -77,6 +78,7 @@ export function createMessagingBootstrap(opts: MessagingBootstrapOptions): Messa
       nodeBin: opts.whatsapp.nodeBin,
       pairingMode: opts.whatsapp.pairingMode ?? 'qr',
     },
+    dependencyRiskMode: opts.dependencyRiskMode ?? 'private-local',
     publishEvent: (channel, target, ...args) => {
       publisher?.(channel, target, ...args)
     },
@@ -88,6 +90,7 @@ export function createMessagingBootstrap(opts: MessagingBootstrapOptions): Messa
     workerEntry: opts.whatsapp.workerEntry,
     nodeBin: opts.whatsapp.nodeBin ?? '(host default)',
     pairingMode: opts.whatsapp.pairingMode ?? 'qr',
+    dependencyRiskMode: opts.dependencyRiskMode ?? 'private-local',
   })
 
   return {

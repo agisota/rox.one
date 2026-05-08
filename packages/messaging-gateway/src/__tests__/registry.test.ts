@@ -18,7 +18,7 @@ import type {
 } from '@craft-agent/shared/credentials'
 import type { ISessionManager } from '@craft-agent/server-core/handlers'
 
-import { MessagingGatewayRegistry } from '../registry'
+import { MessagingGatewayRegistry, type MessagingGatewayRegistryOptions } from '../registry'
 import type { TelegramChatInfo } from '../adapters/telegram/index'
 import type { PlatformAdapter, PlatformType } from '../types'
 
@@ -99,12 +99,13 @@ interface Harness {
   workspaceId: string
 }
 
-function makeRegistry(): Harness {
+function makeRegistry(overrides: Partial<MessagingGatewayRegistryOptions> = {}): Harness {
   const registry = new MessagingGatewayRegistry({
     sessionManager: makeStubSessionManager(),
     credentialManager: makeStubCredentialManager(),
     getMessagingDir: (workspaceId: string) => join(dir, 'workspaces', workspaceId, 'messaging'),
     whatsapp: { workerEntry: '/dev/null' },
+    ...overrides,
   })
   return { registry, workspaceId: 'ws-test' }
 }
@@ -322,5 +323,46 @@ describe('MessagingGatewayRegistry.bindWorkspaceSupergroup — chat-type validat
       title: 'My Forum',
       capturedAt: expect.any(Number),
     })
+  })
+})
+
+describe('MessagingGatewayRegistry public dependency risk guard', () => {
+  it('rejects Lark public-untrusted exposure before credential network validation', async () => {
+    const originalFetch = globalThis.fetch
+    let fetchCalled = false
+    globalThis.fetch = (async () => {
+      fetchCalled = true
+      throw new Error('unexpected credential validation network call')
+    }) as unknown as typeof fetch
+
+    try {
+      const h = makeRegistry({ dependencyRiskMode: 'public-untrusted' })
+
+      await expect(
+        h.registry.saveLarkCredentials(h.workspaceId, {
+          appId: 'cli_audit_test',
+          appSecret: 'secret',
+          domain: 'lark',
+        }),
+      ).rejects.toThrow('Lark messaging is disabled for public untrusted exposure')
+
+      expect(fetchCalled).toBe(false)
+      const cfg = h.registry.getConfig(h.workspaceId)
+      expect(cfg?.platforms.lark?.enabled).not.toBe(true)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('rejects WhatsApp public-untrusted exposure before worker startup', async () => {
+    const h = makeRegistry({ dependencyRiskMode: 'public-untrusted' })
+
+    await expect(h.registry.startWhatsAppConnect(h.workspaceId)).rejects.toThrow(
+      'WhatsApp messaging is disabled for public untrusted exposure',
+    )
+
+    const cfg = h.registry.getConfig(h.workspaceId)
+    expect(cfg?.platforms.whatsapp?.enabled).not.toBe(true)
+    expect(cfg?.runtime.whatsapp?.state).toBe('disconnected')
   })
 })

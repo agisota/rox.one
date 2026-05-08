@@ -26,6 +26,7 @@
  *   CRAFT_AUTH_JWT_SECRET      — optional JWT signing secret for WebUI account sessions
  *   CRAFT_SIGNUP_ENABLED       — optional true/false open-signup switch (default true when DB is configured)
  *   CRAFT_PUBLIC_APP_URL       — optional public HTTPS origin used in auth emails
+ *   CRAFT_MESSAGING_DEPENDENCY_RISK_MODE — private-local|public-untrusted|accepted-risk|isolated-worker
  *   RESEND_API_KEY             — optional Resend API key for account verification/reset emails
  *   CRAFT_EMAIL_FROM           — optional sender address for account emails
  *   CRAFT_MESSAGING_WA_WORKER  — absolute path to worker.cjs (default: packages/messaging-whatsapp-worker/dist/worker.cjs)
@@ -53,7 +54,11 @@ import { createPostgresAccountStore } from '@craft-agent/server-core/accounts'
 import { InMemoryWorkspaceSyncService } from '@craft-agent/server-core/sync'
 import { getCredentialManager } from '@craft-agent/shared/credentials'
 import { getWorkspaces } from '@craft-agent/shared/config'
-import { createMessagingBootstrap, type MessagingBootstrapHandle } from '@craft-agent/messaging-gateway'
+import {
+  createMessagingBootstrap,
+  type MessagingBootstrapHandle,
+  type MessagingDependencyRiskMode,
+} from '@craft-agent/messaging-gateway'
 
 // --generate-token: print a crypto-random token and exit
 if (process.argv.includes('--generate-token')) {
@@ -113,6 +118,28 @@ function parseListEnv(value: string | undefined): string[] | undefined {
   return entries?.length ? entries : undefined
 }
 
+function parseMessagingDependencyRiskMode(
+  value: string | undefined,
+  publicAppUrlValue: string | undefined,
+): MessagingDependencyRiskMode {
+  const normalized = value?.trim()
+  if (!normalized) return publicAppUrlValue ? 'public-untrusted' : 'private-local'
+
+  if (
+    normalized === 'private-local' ||
+    normalized === 'public-untrusted' ||
+    normalized === 'accepted-risk' ||
+    normalized === 'isolated-worker'
+  ) {
+    return normalized
+  }
+
+  console.error(
+    'Invalid CRAFT_MESSAGING_DEPENDENCY_RISK_MODE: expected private-local, public-untrusted, accepted-risk, or isolated-worker.',
+  )
+  process.exit(1)
+}
+
 // In dev (monorepo), bundled assets root is the repo root (4 levels up from this file).
 // In packaged mode, use CRAFT_BUNDLED_ASSETS_ROOT env or cwd.
 const bundledAssetsRoot = process.env.CRAFT_BUNDLED_ASSETS_ROOT
@@ -144,6 +171,10 @@ const serverToken = process.env.CRAFT_SERVER_TOKEN
 const authJwtSecret = process.env.CRAFT_AUTH_JWT_SECRET || serverToken
 const signupEnabled = parseOptionalBooleanEnv('CRAFT_SIGNUP_ENABLED', process.env.CRAFT_SIGNUP_ENABLED)
 const publicAppUrl = process.env.CRAFT_PUBLIC_APP_URL || undefined
+const messagingDependencyRiskMode = parseMessagingDependencyRiskMode(
+  process.env.CRAFT_MESSAGING_DEPENDENCY_RISK_MODE,
+  publicAppUrl,
+)
 const accountStore = process.env.CRAFT_DATABASE_URL
   ? createPostgresAccountStore({ connectionString: process.env.CRAFT_DATABASE_URL })
   : null
@@ -285,6 +316,7 @@ const instance = await (async () => {
             nodeBin: waNodeBin,
             pairingMode: 'qr',
           },
+          dependencyRiskMode: messagingDependencyRiskMode,
         })
           return {
             sessionManager,
