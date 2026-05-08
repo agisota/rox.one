@@ -27,7 +27,7 @@ module.exports = async function afterPack(context) {
   }
 
   const appPath = context.appOutDir;
-  const bundleName = 'ROX ONE.app';
+  const bundleName = 'ROX.ONE.app';
   const bundlePath = path.join(appPath, bundleName);
   const resourcesDir = path.join(bundlePath, 'Contents', 'Resources');
   const precompiledAssets = path.join(context.packager.projectDir, 'resources', 'Assets.car');
@@ -40,10 +40,10 @@ module.exports = async function afterPack(context) {
   console.log(`afterPack: looking for Assets.car at ${precompiledAssets}`);
 
   const helperNames = [
-    'ROX ONE Helper',
-    'ROX ONE Helper (GPU)',
-    'ROX ONE Helper (Plugin)',
-    'ROX ONE Helper (Renderer)',
+    'ROX.ONE Helper',
+    'ROX.ONE Helper (GPU)',
+    'ROX.ONE Helper (Plugin)',
+    'ROX.ONE Helper (Renderer)',
   ];
 
   const updatePlistString = (plistPath, key, value) => {
@@ -80,7 +80,8 @@ module.exports = async function afterPack(context) {
 
   // electron-builder brands helper app display names, but CFBundleName can
   // still remain "Electron Helper" unless we normalize it before signing.
-  updatePlistString(path.join(bundlePath, 'Contents', 'Info.plist'), 'CFBundleName', 'ROX ONE');
+  updatePlistString(path.join(bundlePath, 'Contents', 'Info.plist'), 'CFBundleName', 'ROX.ONE');
+  updatePlistString(path.join(bundlePath, 'Contents', 'Info.plist'), 'CFBundleDisplayName', 'ROX.ONE');
   for (const helperName of helperNames) {
     updatePlistString(
       path.join(bundlePath, 'Contents', 'Frameworks', `${helperName}.app`, 'Contents', 'Info.plist'),

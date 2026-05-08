@@ -3,7 +3,7 @@
 Repository: `/Users/marklindgreen/Projects/rox/rox`
 Branch: `mac/rox-production-ready-rc`
 Base: Rox Agents OSS v0.9.1
-Snapshot status: T074-T096 private/local RC handoff validated locally; T094/T095 reconcile release state and T096 closes the live verification blockers without converting the RC into public production.
+Snapshot status: T074-T097 private/local RC handoff validated locally; T094/T095 reconcile release state, T096 closes the live verification blockers, and T097 normalizes desktop package identity to `ROX.ONE` without converting the RC into public production.
 
 ## 1. Current Product Shape
 
@@ -91,6 +91,7 @@ efec07a T093 React Hook Lint Cleanup
 handoff commit T094 Release Doc Reconciliation
 handoff commit T095 Release State Reconciliation
 handoff commit T096 Private RC Verification Stabilization
+handoff commit T097 Desktop App Dot Branding
 ```
 
 ## 5. Runtime Boundaries

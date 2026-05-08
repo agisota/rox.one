@@ -24,11 +24,11 @@ export interface BrandValidationResult {
 
 export const FALLBACK_BRAND_CONFIG: BrandConfig = {
   appName: 'ROX',
-  productName: 'ROX ONE',
+  productName: 'ROX.ONE',
   tagline: 'Agent workspace for local and remote sessions',
   supportEmail: 'support@rox.one',
   docsUrl: 'https://rox.one/docs',
-  legalName: 'ROX ONE',
+  legalName: 'ROX.ONE',
   defaultThemeId: 'default',
   logoAssetPath: 'assets/pzdrk.png',
   iconAssetPath: 'assets/pzdrk.png',
@@ -40,7 +40,7 @@ export const AGENT_WORKBENCH_BRAND_CONFIG: BrandConfig = {
   tagline: 'A local and cloud workbench for agentic workflows',
   supportEmail: 'support@rox.one',
   docsUrl: 'https://rox.one/docs',
-  legalName: 'ROX ONE',
+  legalName: 'ROX.ONE',
   defaultThemeId: 'default',
   logoAssetPath: 'assets/pzdrk.png',
   iconAssetPath: 'assets/pzdrk.png',

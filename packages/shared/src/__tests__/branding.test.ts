@@ -14,7 +14,7 @@ describe('brand config', () => {
       productName: 'Agent Workbench Suite',
       supportEmail: 'support@rox.one',
       docsUrl: 'https://rox.one/docs',
-      legalName: 'ROX ONE',
+      legalName: 'ROX.ONE',
       defaultThemeId: 'default',
     })
   })

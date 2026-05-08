@@ -30,7 +30,7 @@ describe('account brand summary localization', () => {
         label: 'Product',
         description: 'Agent Workbench Suite / A local and cloud workbench for agentic workflows',
       },
-      { label: 'Legal entity', description: 'ROX ONE' },
+      { label: 'Legal entity', description: 'ROX.ONE' },
       { label: 'Support', description: 'support@rox.one' },
       { label: 'Documentation', description: 'https://rox.one/docs' },
     ])

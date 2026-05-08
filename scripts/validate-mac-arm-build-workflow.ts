@@ -58,7 +58,7 @@ requireText(workflow, 'bun run electron:smoke:packaged:mac', 'packaged launch sm
 requireText(workflow, 'bun run electron:smoke', 'launch smoke gate');
 requireText(workflow, 'ROX-ONE-arm64.dmg', 'DMG artifact path');
 requireText(workflow, 'ROX-ONE-arm64.zip', 'ZIP artifact path');
-requireText(workflow, 'mac-arm64/ROX ONE.app', 'packaged app artifact path');
+requireText(workflow, 'mac-arm64/ROX.ONE.app', 'packaged app artifact path');
 requireText(workflow, 'actions/upload-artifact@v4', 'artifact upload');
 requireText(workflow, 'if-no-files-found: error', 'hard artifact upload failure');
 
