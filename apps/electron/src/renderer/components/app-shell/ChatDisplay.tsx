@@ -74,6 +74,7 @@ import { CHAT_LAYOUT } from "@/config/layout"
 import { collectFileChangesFromActivities, getFirstFileChangeIdForActivity } from "@/lib/file-changes"
 import { resolveBranchNewPanelOption } from "./branching"
 import { handleErrorMessageAction } from "./error-message-actions"
+import { createErrorMessagePresentation } from "./error-message-presentation"
 
 // ============================================================================
 // CSS Custom Highlight API helper
@@ -2126,9 +2127,10 @@ interface MessageBubbleProps {
  */
 function ErrorMessage({ message, onOpenUrl, sessionId, onRetry }: { message: Message; onOpenUrl?: (url: string) => void; sessionId?: string; onRetry?: () => void }) {
   const { t } = useTranslation()
-  const hasDetails = (message.errorDetails && message.errorDetails.length > 0) || message.errorOriginal
+  const presentation = createErrorMessagePresentation(message, t)
+  const hasDetails = (presentation.details && presentation.details.length > 0) || presentation.original
   const [detailsOpen, setDetailsOpen] = React.useState(false)
-  const actions = message.errorActions?.filter(a => {
+  const actions = presentation.actions?.filter(a => {
     if (a.action === 'open_url') return !!a.url && !!onOpenUrl
     return true
   })
@@ -2144,9 +2146,9 @@ function ErrorMessage({ message, onOpenUrl, sessionId, onRetry }: { message: Mes
         } as React.CSSProperties}
       >
         <div className="text-xs text-destructive/50 mb-0.5 font-semibold">
-          {message.errorTitle || t('common.error')}
+          {presentation.title || t('common.error')}
         </div>
-        <p className="text-sm text-destructive">{message.content}</p>
+        <p className="text-sm text-destructive">{presentation.content}</p>
 
         {/* Action buttons */}
         {actions && actions.length > 0 && (
@@ -2182,11 +2184,11 @@ function ErrorMessage({ message, onOpenUrl, sessionId, onRetry }: { message: Mes
 
             <AnimatedCollapsibleContent isOpen={detailsOpen} className="overflow-hidden">
               <div className="mt-2 pt-2 border-t border-destructive/20 text-xs text-destructive/60 font-mono space-y-0.5">
-                {message.errorDetails?.map((detail, i) => (
+                {presentation.details?.map((detail, i) => (
                   <div key={i}>{detail}</div>
                 ))}
-                {message.errorOriginal && !message.errorDetails?.some(d => d.includes('Raw error:')) && (
-                  <div className="mt-1">Raw: {message.errorOriginal.slice(0, 200)}{message.errorOriginal.length > 200 ? '...' : ''}</div>
+                {presentation.original && !presentation.details?.some(d => d.includes('Raw error:')) && (
+                  <div className="mt-1">Raw: {presentation.original.slice(0, 200)}{presentation.original.length > 200 ? '...' : ''}</div>
                 )}
               </div>
             </AnimatedCollapsibleContent>
