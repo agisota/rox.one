@@ -181,8 +181,10 @@ export class PostgresAccountStore implements AccountStore {
          RETURNING id, email, password_hash, display_name, role, status, email_verified_at, created_at, updated_at`,
         [randomUUID(), email, passwordHash, input.displayName?.trim() || null, role],
       )
+      const createdUser = result.rows[0]
+      if (!createdUser) throw new Error('Failed to create user')
       await client.query('COMMIT')
-      return toPublicUser(result.rows[0])
+      return toPublicUser(createdUser)
     } catch (error) {
       await client.query('ROLLBACK').catch(() => {})
       if ((error as { code?: string }).code === '23505') {
@@ -225,7 +227,9 @@ export class PostgresAccountStore implements AccountStore {
        RETURNING id, user_id, user_agent, ip_address, auth_method, created_at, expires_at, revoked_at`,
       [randomUUID(), input.userId, input.userAgent ?? null, input.ipAddress ?? null, input.authMethod ?? 'password', expiresAt],
     )
-    return toAccountSession(result.rows[0])
+    const createdSession = result.rows[0]
+    if (!createdSession) throw new Error('Failed to create account session')
+    return toAccountSession(createdSession)
   }
 
   async getSessionIdentity(sessionId: string): Promise<SessionIdentity | null> {

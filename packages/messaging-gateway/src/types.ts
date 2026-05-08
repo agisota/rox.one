@@ -11,6 +11,24 @@
 
 export type PlatformType = 'telegram' | 'whatsapp' | 'lark'
 
+/**
+ * Runtime policy for messaging adapters backed by dependency-audit risk.
+ *
+ * - `private-local`       — current desktop/private RC behavior.
+ * - `public-untrusted`   — public ingress is enabled; risky adapters must not
+ *                          start until dependency remediation, worker
+ *                          isolation, or signed accepted-risk approval exists.
+ * - `accepted-risk`      — explicit release decision accepted the remaining
+ *                          dependency risk for this deployment.
+ * - `isolated-worker`    — adapters run behind a production isolation boundary
+ *                          outside the default process.
+ */
+export type MessagingDependencyRiskMode =
+  | 'private-local'
+  | 'public-untrusted'
+  | 'accepted-risk'
+  | 'isolated-worker'
+
 // ---------------------------------------------------------------------------
 // Logger
 // ---------------------------------------------------------------------------

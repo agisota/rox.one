@@ -37,6 +37,7 @@ import type {
   BindingAccessMode,
   ChannelBinding,
   MessagingConfig,
+  MessagingDependencyRiskMode,
   MessagingLogger,
   MessagingPlatformRuntimeInfo,
   PendingSender,
@@ -77,6 +78,11 @@ export interface MessagingGatewayRegistryOptions {
     /** Pairing flow: 'qr' or 'code'. Defaults to 'code' (phone-number based). */
     pairingMode?: 'qr' | 'code'
   }
+  /**
+   * Production dependency-risk posture for externally reachable adapters.
+   * Defaults to `private-local` to preserve desktop/private RC behavior.
+   */
+  dependencyRiskMode?: MessagingDependencyRiskMode
   /** Optional logger — shared with the gateway and adapters. */
   logger?: MessagingLogger
 }
@@ -163,6 +169,12 @@ export class MessagingGatewayRegistry implements IMessagingGatewayRegistry {
           event: 'lark_connect_failed',
           workspaceId,
           error: err,
+        })
+        this.setPlatformRuntime(workspaceId, state, 'lark', {
+          configured: true,
+          connected: false,
+          state: 'error',
+          lastError: err instanceof Error ? err.message : String(err),
         })
       })
     }
@@ -678,6 +690,7 @@ export class MessagingGatewayRegistry implements IMessagingGatewayRegistry {
     if (creds.domain !== 'lark' && creds.domain !== 'feishu') {
       throw new Error('Domain must be "lark" or "feishu"')
     }
+    this.assertDependencyRiskAllowed('lark')
 
     const test = await this.testLarkCredentials(creds)
     if (!test.success) throw new Error(test.error ?? 'Invalid Lark credentials')
@@ -786,6 +799,7 @@ export class MessagingGatewayRegistry implements IMessagingGatewayRegistry {
   // -------------------------------------------------------------------------
 
   async startWhatsAppConnect(workspaceId: string): Promise<void> {
+    this.assertDependencyRiskAllowed('whatsapp')
     const waConfig = this.opts.whatsapp
     if (!waConfig) {
       throw new Error('WhatsApp support is not configured on this server')
@@ -815,6 +829,7 @@ export class MessagingGatewayRegistry implements IMessagingGatewayRegistry {
     state: WorkspaceState,
     options: { persistConfig: boolean; reason: 'restore' | 'user_connect' },
   ): Promise<void> {
+    this.assertDependencyRiskAllowed('whatsapp')
     const waConfig = this.opts.whatsapp
     if (!waConfig) {
       throw new Error('WhatsApp support is not configured on this server')
@@ -1022,6 +1037,7 @@ export class MessagingGatewayRegistry implements IMessagingGatewayRegistry {
   }
 
   private async tryConnectLark(workspaceId: string, state: WorkspaceState): Promise<void> {
+    this.assertDependencyRiskAllowed('lark')
     const cred = await this.opts.credentialManager
       .get({ type: 'messaging_bearer', workspaceId, name: 'lark' })
       .catch(() => null)
@@ -1181,6 +1197,15 @@ export class MessagingGatewayRegistry implements IMessagingGatewayRegistry {
     }
     state.runtime[platform] = next
     this.emitPlatformStatus(workspaceId, platform, next)
+  }
+
+  private assertDependencyRiskAllowed(platform: Extract<PlatformType, 'lark' | 'whatsapp'>): void {
+    if (this.opts.dependencyRiskMode !== 'public-untrusted') return
+
+    const label = platform === 'lark' ? 'Lark' : 'WhatsApp'
+    throw new Error(
+      `${label} messaging is disabled for public untrusted exposure until dependency risks are remediated, isolated, or explicitly accepted.`,
+    )
   }
 
   private emitBindingChanged(workspaceId: string): void {
