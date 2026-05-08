@@ -21,6 +21,9 @@ No dependency manifest or lockfile changes were made in this slice.
 
 Public production remains blocked until these findings are remediated, isolated
 behind production controls, or explicitly accepted in a signed release decision.
+The accepted-risk decision contract is tracked in
+[`accepted-risk-register-2026-05-08.md`](accepted-risk-register-2026-05-08.md);
+as of this baseline, no public-production dependency risk is accepted.
 
 ## Severity Snapshot
 
@@ -76,6 +79,7 @@ Exit criteria before public production:
 bun audit
 ```
 
-must either pass cleanly or be paired with a signed accepted-risk register for
-every remaining advisory plus production isolation evidence for externally
-reachable code paths.
+must either pass cleanly or be paired with
+[`accepted-risk-register-2026-05-08.md`](accepted-risk-register-2026-05-08.md)
+entries for every remaining advisory plus production isolation evidence for
+externally reachable code paths.

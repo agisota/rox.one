@@ -5,6 +5,7 @@ import { describe, expect, it } from 'bun:test';
 
 const rootDir = join(import.meta.dir, '..', '..');
 const registerPath = join(rootDir, 'docs/release/dependency-risk-register-2026-05-08.md');
+const acceptedRiskPath = join(rootDir, 'docs/release/accepted-risk-register-2026-05-08.md');
 const matrixPath = join(rootDir, 'docs/release/production-readiness-matrix-2026-05-06.md');
 
 function read(relativePath: string): string {
@@ -43,5 +44,37 @@ describe('dependency risk register release contract', () => {
     expect(matrix).toContain('dependency audit');
 
     expect(gitStatusFor(['package.json', 'bun.lock', 'apps/electron/package.json'])).toBe('');
+  });
+
+  it('requires an accepted-risk register contract before unresolved advisories can be approved', () => {
+    expect(existsSync(acceptedRiskPath)).toBe(true);
+
+    const acceptedRisk = read('docs/release/accepted-risk-register-2026-05-08.md');
+    const register = read('docs/release/dependency-risk-register-2026-05-08.md');
+    const matrix = read('docs/release/production-readiness-matrix-2026-05-06.md');
+
+    expect(acceptedRisk).toContain('# Accepted Risk Register - 2026-05-08');
+    expect(acceptedRisk).toContain(
+      'Current decision: no accepted public-production dependency risks are approved.',
+    );
+    expect(acceptedRisk).toContain('## Required Fields');
+    expect(acceptedRisk).toContain('Risk ID');
+    expect(acceptedRisk).toContain('Dependency/advisory');
+    expect(acceptedRisk).toContain('Affected path');
+    expect(acceptedRisk).toContain('Severity');
+    expect(acceptedRisk).toContain('Decision');
+    expect(acceptedRisk).toContain('Owner');
+    expect(acceptedRisk).toContain('Expires');
+    expect(acceptedRisk).toContain('Compensating control');
+    expect(acceptedRisk).toContain('Rollback plan');
+    expect(acceptedRisk).toContain('Evidence');
+    expect(acceptedRisk).toContain('| AR-DEPENDENCY-AUDIT-2026-05-08 |');
+    expect(acceptedRisk).toContain('| Not accepted |');
+    expect(acceptedRisk).toContain('## Verification Commands');
+    expect(acceptedRisk).toContain('bun audit');
+
+    expect(register).toContain('accepted-risk-register-2026-05-08.md');
+    expect(matrix).toContain('accepted-risk-register-2026-05-08.md');
+    expect(matrix).toContain('signed accepted-risk approval');
   });
 });
