@@ -107,8 +107,10 @@ describe('Agent Forge and Team Registry', () => {
     expect(markup).toContain('Контракт');
     expect(markup).toContain('Установка разрешена');
     expect(markup).toContain('Форк доступен');
-    expect(markup).not.toContain('>Установить<');
-    expect(markup).not.toContain('>Форкнуть<');
+    expect(markup).toContain('>Установить<');
+    expect(markup).toContain('>Форкнуть<');
+    expect(markup).toContain('Установка заблокирована');
+    expect(markup).toContain('Контракт отсутствует');
     expect(markup).toContain('Проверочный гаунтлет');
   });
 
