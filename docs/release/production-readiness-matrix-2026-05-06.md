@@ -18,7 +18,7 @@ Branch: `mac/rox-production-ready-rc`
 | ROX ID | RC-safe | T083 feedback tests | Real auth/email backend verification |
 | Share/shortlink | Contract-ready | T084, T089 provider/status tests | Public viewer/storage/shortlink service |
 | Private CI | Ready | T085 validators | Remote private CI run on protected branch |
-| Security | RC-hardened | T086 + prior T071 tests | External audit and dependency risk register |
+| Security | RC-hardened | T086 + prior T071 tests; [dependency risk register](dependency-risk-register-2026-05-08.md) records the current `bun audit` blocker | External audit and dependency remediation or signed accepted-risk approval |
 | Electron build | Local-ready | T087 final build gate | Signed/notarized artifact |
 
 ## 2. Product Architecture Diagram
@@ -61,4 +61,5 @@ Private RC: yes, with T088/T089/T090 complete, full test/typecheck/docs/lint/bui
 Public production: no. Public launch remains blocked by real provider
 integration, hosted persistence, public share infrastructure, ROX ID email
 verification, payments/billing reconciliation, signed/notarized release,
-observability, dependency audit, and external security review.
+observability, dependency audit remediation or signed accepted-risk approval,
+and external security review.
