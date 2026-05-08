@@ -68,7 +68,9 @@ are rejected before backend network calls or persistence in public deployments.
 T112 adds a public-untrusted guard before PI provider model discovery and
 GitHub Copilot OAuth import/invocation. Remaining provider SDK HTTP paths still
 need upgrades, isolation evidence, or accepted-risk handling before public
-production.
+production. T113 removes PI SDK model discovery from the broad shared config
+barrel and routes PI-only callers through `@craft-agent/shared/config/models-pi`
+so generic config imports do not transitively load `@mariozechner/pi-ai`.
 
 ## Verification Commands
 
