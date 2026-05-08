@@ -73,6 +73,9 @@ jobs:
       - name: Smoke Electron startup path
         run: bun run electron:smoke
 
+      - name: Validate private mac release trust boundary
+        run: bun run validate:mac-private-release-boundary
+
       - name: Upload Mac ARM artifacts
         uses: actions/upload-artifact@v4
         with:

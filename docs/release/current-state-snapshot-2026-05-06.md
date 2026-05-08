@@ -3,7 +3,7 @@
 Repository: `/Users/marklindgreen/Projects/rox/rox`
 Branch: `mac/rox-production-ready-rc`
 Base: Rox Agents OSS v0.9.1
-Snapshot status: T074-T097 private/local RC handoff validated locally; T094/T095 reconcile release state, T096 closes the live verification blockers, and T097 normalizes desktop package identity to `ROX.ONE`. The T098-T120 continuation adds screenshot-backed Experience tab proof, Electron smoke/startup/package hardening, ROX.ONE active backend copy, runtime artifact git hygiene, public-risk boundaries, build-warning gates, fresh bundle evidence, and release-evidence reconciliation without converting the RC into public production.
+Snapshot status: T074-T097 private/local RC handoff validated locally; T094/T095 reconcile release state, T096 closes the live verification blockers, and T097 normalizes desktop package identity to `ROX.ONE`. The T098-T121 continuation adds screenshot-backed Experience tab proof, Electron smoke/startup/package hardening, ROX.ONE active backend copy, runtime artifact git hygiene, public-risk boundaries, build-warning gates, fresh bundle evidence, release-evidence reconciliation, and a Mac private-release trust-boundary gate without converting the RC into public production.
 
 ## 1. Current Product Shape
 
@@ -115,6 +115,7 @@ ec7924f T115 Release Validation Build Gate
 74b11cf T118 InputContainer Rollup Circular Chunk Warning
 ea83a1e T119 Fresh Bundle Artifact Report
 handoff commit T120 Fresh Bundle Release Evidence Reconciliation
+handoff commit T121 Mac Private Release Trust Boundary
 ```
 
 ## 5. Runtime Boundaries
@@ -145,7 +146,9 @@ Not production-hosted yet:
 - Payment settlement.
 - Email verification provider.
 - Hosted durable workers.
-- Signed/notarized macOS release.
+- Signed/notarized macOS release. T121 validates that the current packaged app
+  is private/local RC only: ad-hoc signed, no stapled notarization ticket, and
+  not production distribution evidence.
 - Bundle-size policy and chunk-splitting gate beyond the current T119 fresh clean-build baseline.
 - Dependency remediation or signed accepted-risk approval after the current
   `docs/release/dependency-risk-register-2026-05-08.md` baseline.
