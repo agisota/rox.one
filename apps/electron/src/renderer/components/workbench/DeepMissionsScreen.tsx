@@ -5,6 +5,9 @@ import {
   DEEP_MISSION_PRESETS,
   createDeepMissionEntryState,
   createDeepMissionEntryStateFromTruth,
+  createDeepMissionLaunchPlan,
+  createFakeDeepMissionDraftPersistenceAdapter,
+  createFakeDeepMissionSchedulerAdapter,
   selectDeepMissionPreset,
   updateDeepMissionDraft,
   type DeepMissionEntryState,
@@ -12,7 +15,11 @@ import {
   type DeepMissionPreset,
   type DeepMissionPresetId,
 } from './deep-missions-state';
-import type { ExperienceTruthState } from '@rox-agent/shared/workbench';
+import {
+  createExperienceRuntimeStore,
+  createInMemoryExperiencePersistenceAdapter,
+  type ExperienceTruthState,
+} from '@rox-agent/shared/workbench';
 import {
   ExperienceCard,
   ExperienceMetricRow,
@@ -39,6 +46,25 @@ export function DeepMissionsScreen({
   const [state, setState] = React.useState<DeepMissionEntryState>(() =>
     initialState ?? (truthState ? createDeepMissionEntryStateFromTruth(truthState) : createDeepMissionEntryState(initialInput)),
   );
+  const [launchStatus, setLaunchStatus] = React.useState<string>('Ожидает запуска');
+
+  const launchMission = React.useCallback(() => {
+    if (!state.canLaunch) return;
+    onLaunchMission?.(state);
+    void createExperienceRuntimeStore({ adapter: createInMemoryExperiencePersistenceAdapter() })
+      .then((runtimeStore) => createDeepMissionLaunchPlan(state, {
+        now: '2026-04-30T00:00:00.000Z',
+        actorId: 'user-one',
+        ownerUserId: 'user-one',
+        workspaceId: 'workspace-rox',
+        teamId: 'team-alpha',
+        draftPersistence: createFakeDeepMissionDraftPersistenceAdapter(),
+        scheduler: createFakeDeepMissionSchedulerAdapter(),
+        runtimeStore,
+      }))
+      .then((plan) => setLaunchStatus(`Запущено: ${plan.mission.id} / checkpoints ${plan.checkpoints.length}`))
+      .catch((error) => setLaunchStatus(error instanceof Error ? error.message : 'Запуск миссии не удался'));
+  }, [onLaunchMission, state]);
 
   return (
     <ExperienceShell
@@ -52,7 +78,7 @@ export function DeepMissionsScreen({
           <Button className="rounded-full border-white/10" variant="outline" onClick={() => onSaveDraft?.(state)}>
             Сохранить черновик
           </Button>
-          <Button className="rounded-full" disabled={!state.canLaunch} onClick={() => state.canLaunch && onLaunchMission?.(state)}>
+          <Button className="rounded-full" disabled={!state.canLaunch} onClick={launchMission}>
             Запустить миссию
           </Button>
         </>
@@ -120,6 +146,9 @@ export function DeepMissionsScreen({
       </ExperiencePanel>
 
       <ExperiencePanel className="mt-4" title="Бриф миссии" subtitle="То, что увидит планировщик перед стартом длительного прогона.">
+        <div className="mb-4 rounded-[16px] border border-cyan-300/20 bg-cyan-400/[0.06] p-3 text-sm text-cyan-100">
+          Runtime launch: {launchStatus}
+        </div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground" aria-label="Режимы миссий">
           {['Deep Run', 'Deep Reasoning Lab', 'Agenda Carnage', 'Swarm Arena', 'Proactive Watchtower'].map((modeLabel) => (
             <span key={modeLabel} className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1">

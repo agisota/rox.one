@@ -3,7 +3,9 @@ import * as React from 'react';
 import type { ExperienceLayer } from '@rox-agent/shared/workbench';
 import type { ExperienceTruthState } from '@rox-agent/shared/workbench';
 
+import { Button } from '../ui/button';
 import {
+  completeQuestAndEvaluateUnlocks,
   createQuestMapState,
   createQuestMapStateFromTruth,
   getQuestPresentation,
@@ -28,11 +30,21 @@ export interface QuestMapSkillTreeProps {
 }
 
 export function QuestMapSkillTree({ initialState, layer = 'command', truthState }: QuestMapSkillTreeProps) {
-  const [state] = React.useState<QuestMapState>(() =>
+  const [state, setState] = React.useState<QuestMapState>(() =>
     initialState ?? (truthState ? createQuestMapStateFromTruth(truthState) : createQuestMapState()),
   );
+  const [lastAction, setLastAction] = React.useState<string>('Ожидает действия');
   const presentation = getQuestPresentation(layer);
   const laneGroups = groupQuestsByLane(state.quests);
+
+  const completeQuest = React.useCallback((questId: string) => {
+    try {
+      setState((current) => completeQuestAndEvaluateUnlocks(current, questId, [`artifact:${questId}:interactive-evidence`]));
+      setLastAction(`Квест завершен: ${questId}`);
+    } catch (error) {
+      setLastAction(error instanceof Error ? error.message : 'Квест не удалось завершить');
+    }
+  }, []);
 
   return (
     <ExperienceShell
@@ -64,6 +76,9 @@ export function QuestMapSkillTree({ initialState, layer = 'command', truthState 
       )}
     >
       <ExperiencePanel title={presentation.laneLabel} subtitle="Квесты открываются только через доказанный прогресс, а не через ручную отметку.">
+        <div className="mb-4 rounded-[16px] border border-cyan-300/20 bg-cyan-400/[0.06] p-3 text-sm text-cyan-100">
+          Runtime action: {lastAction}
+        </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
             {laneGroups.map((group) => (
               <section key={group.lane} className="rounded-[20px] border border-white/[0.07] bg-white/[0.025] p-4">
@@ -80,6 +95,14 @@ export function QuestMapSkillTree({ initialState, layer = 'command', truthState 
                       >
                         <p>{localizeQuestDescription(quest.description)}</p>
                         <ExperienceProgressBar value={progress?.percent ?? 0} label={presentation.progressLabel} />
+                        <Button
+                          className="mt-4 rounded-full"
+                          variant="outline"
+                          disabled={progress?.status === 'locked' || progress?.status === 'completed'}
+                          onClick={() => completeQuest(quest.id)}
+                        >
+                          {progress?.status === 'completed' ? 'Квест закрыт' : 'Завершить с evidence'}
+                        </Button>
                       </ExperienceCard>
                     );
                   })}

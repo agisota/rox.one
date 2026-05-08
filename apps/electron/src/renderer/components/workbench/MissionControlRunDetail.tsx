@@ -6,6 +6,7 @@ import {
   completeMissionCheckpointFromControlAction,
   createMissionControlState,
   createMissionControlStateFromTruth,
+  finalizeMissionFromControlAction,
   transitionMissionCheckpoint,
   type MissionControlState,
 } from './mission-control-state';
@@ -31,9 +32,11 @@ export function MissionControlRunDetail({ initialState, truthState, runtimeStore
   const [state, setState] = React.useState<MissionControlState>(() =>
     initialState ?? (truthState ? createMissionControlStateFromTruth(truthState) : createMissionControlState()),
   );
+  const [lastAction, setLastAction] = React.useState<string>('Ожидает checkpoint action');
   const completeCheckpoint = React.useCallback((checkpointId: string) => {
     if (!runtimeStore) {
       setState((current) => transitionMissionCheckpoint(current, checkpointId, 'completed'));
+      setLastAction(`Checkpoint completed locally: ${checkpointId}`);
       return;
     }
 
@@ -41,7 +44,29 @@ export function MissionControlRunDetail({ initialState, truthState, runtimeStore
       runtimeStore,
       checkpointId,
       now: now?.() ?? new Date().toISOString(),
-    }).then(setState);
+    }).then((nextState) => {
+      setState(nextState);
+      setLastAction(`Runtime checkpoint completed: ${checkpointId}`);
+    });
+  }, [now, runtimeStore, state]);
+  const finalizeMission = React.useCallback(() => {
+    if (!state.canFinalize) {
+      setLastAction('Mission finalization blocked by evidence gate');
+      return;
+    }
+
+    if (!runtimeStore) {
+      setLastAction('Mission finalize ready locally');
+      return;
+    }
+
+    void finalizeMissionFromControlAction(state, {
+      runtimeStore,
+      now: now?.() ?? new Date().toISOString(),
+    }).then((nextState) => {
+      setState(nextState);
+      setLastAction(nextState.mission.status === 'completed' ? 'Mission finalized through runtime' : 'Mission finalization blocked by evidence gate');
+    });
   }, [now, runtimeStore, state]);
 
   return (
@@ -52,11 +77,14 @@ export function MissionControlRunDetail({ initialState, truthState, runtimeStore
       title="Центр миссий"
       description={`${state.mission.title}: ${state.mission.objective}`}
       actions={(
-        <div className="rounded-[18px] border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-right">
+        <div className="space-y-3 rounded-[18px] border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-right">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Финальный статус</div>
           <div className="mt-2">
             <ExperienceStatusChip status={state.canFinalize ? 'success' : 'blocking'} label={state.canFinalize ? 'Готово' : 'Заблокировано'} />
           </div>
+          <Button className="rounded-full" disabled={!state.canFinalize} onClick={finalizeMission}>
+            Финализировать миссию
+          </Button>
         </div>
       )}
       aside={(
@@ -124,6 +152,9 @@ export function MissionControlRunDetail({ initialState, truthState, runtimeStore
       )}
     >
       <ExperiencePanel title="Таймлайн прогона" subtitle="Чекпоинты дают промежуточный результат и дельту VDI, но не завершают миссию без доказательств.">
+        <div className="mb-4 rounded-[16px] border border-cyan-300/20 bg-cyan-400/[0.06] p-3 text-sm text-cyan-100">
+          Runtime action: {lastAction}
+        </div>
         <ol className="mt-4 space-y-3">
             {state.checkpoints.map((checkpoint) => (
               <li key={checkpoint.id}>

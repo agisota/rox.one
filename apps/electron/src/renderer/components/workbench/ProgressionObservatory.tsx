@@ -1,6 +1,8 @@
 import * as React from 'react';
 
+import { Button } from '../ui/button';
 import {
+  appendProgressLedgerEvent,
   createProgressionState,
   createProgressionStateFromTruth,
   projectLeaderboardRows,
@@ -23,10 +25,23 @@ export interface ProgressionObservatoryProps {
 }
 
 export function ProgressionObservatory({ initialState, initialInput, truthState }: ProgressionObservatoryProps) {
-  const [state] = React.useState<ProgressionState>(() =>
+  const [state, setState] = React.useState<ProgressionState>(() =>
     initialState ?? (truthState ? createProgressionStateFromTruth(truthState, initialInput) : createProgressionState(initialInput)),
   );
   const visibleLeaderboardRows = projectLeaderboardRows(state);
+  const awardEvidenceXp = React.useCallback(() => {
+    setState((current) => appendProgressLedgerEvent(current, {
+      id: `ledger-xp-interactive-${current.ledger.length + 1}`,
+      userId: 'user-one',
+      teamId: current.leaderboardPolicy.viewerTeamId ?? 'team-alpha',
+      eventType: 'xp',
+      amount: 25,
+      currency: 'xp',
+      reason: 'Interactive evidence checkpoint accepted',
+      sourceArtifactId: 'artifact:interactive-checkpoint-evidence',
+      createdAt: '2026-04-30T00:00:00.000Z',
+    }));
+  }, []);
 
   return (
     <ExperienceShell
@@ -35,6 +50,11 @@ export function ProgressionObservatory({ initialState, initialInput, truthState 
       eyebrow="Слой опыта"
       title="Обсерватория прогресса"
       description="Сквозная метрика продукта: VDI как North Star, а качество постановки и готовность к выполнению остаются доказательными подметриками."
+      actions={(
+        <Button className="rounded-full" onClick={awardEvidenceXp}>
+          Записать XP evidence
+        </Button>
+      )}
       aside={(
         <>
           <ExperiencePanel title="Журнал экономики" subtitle="XP и кредиты записываются только от событий с доказательствами.">

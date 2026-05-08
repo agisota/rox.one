@@ -35,6 +35,13 @@ export function ArenaBuilderScreen({ initialState, initialInput, truthState, onC
   const selectedAgents = state.selectedAgentPackageIds
     .map((id) => state.roster.find((agent) => agent.package.id === id))
     .filter((agent): agent is ArenaAgentCollectionItem => Boolean(agent));
+  const [draftRun, setDraftRun] = React.useState<ArenaDraftRun | undefined>();
+  const createDraft = React.useCallback(() => {
+    if (!state.canCreateDraft) return;
+    const nextDraft = createArenaDraftRun(state);
+    setDraftRun(nextDraft);
+    onCreateDraftRun?.(nextDraft);
+  }, [onCreateDraftRun, state]);
 
   return (
     <ExperienceShell
@@ -47,7 +54,7 @@ export function ArenaBuilderScreen({ initialState, initialInput, truthState, onC
         <Button
           className="rounded-full"
           disabled={!state.canCreateDraft}
-          onClick={() => state.canCreateDraft && onCreateDraftRun?.(createArenaDraftRun(state))}
+          onClick={createDraft}
         >
           Создать прогон
         </Button>
@@ -81,6 +88,18 @@ export function ArenaBuilderScreen({ initialState, initialInput, truthState, onC
             <ExperienceMetricRow label="Ожидаемые вклады" value={`${state.runEstimate.estimatedContributionCount}`} />
             <ExperienceMetricRow label="Минимум доверия" value={`${state.runEstimate.trustFloor}`} />
             <ExperienceMetricRow label="Обязательные гейты" value={state.runEstimate.validationGateIds.join(', ')} />
+          </ExperiencePanel>
+
+          <ExperiencePanel title="Черновик swarm" subtitle="Создается из текущего selector state, без скрытых выбранных агентов.">
+            {draftRun ? (
+              <>
+                <ExperienceMetricRow label="Режим" value={draftRun.mode} />
+                <ExperienceMetricRow label="Агенты" value={draftRun.selectedAgentPackageIds.join(', ')} />
+                <ExperienceMetricRow label="Бюджет" value={`${draftRun.budgetEstimateCredits} credits`} />
+              </>
+            ) : (
+              <p className="mt-3 text-sm text-muted-foreground">Нажмите «Создать прогон», чтобы зафиксировать draft из выбранной команды.</p>
+            )}
           </ExperiencePanel>
 
           <ExperiencePanel title="Предупреждения выбора">
