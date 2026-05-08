@@ -32,15 +32,17 @@ describe('release current handoff contract', () => {
     expect(finalRc).toContain('dependency-risk-register-2026-05-08.md');
     expect(finalRc).toContain('Public production launch status: blocked');
 
-    expect(snapshot).toContain('T098-T122 continuation');
+    expect(snapshot).toContain('T098-T124 continuation');
     expect(snapshot).toContain('runtime artifact git hygiene');
     expect(snapshot).toContain('T104 Dependency Audit Risk Register');
     expect(snapshot).toContain('Public production remains blocked');
 
-    expect(finalRc).toContain('T090 through T122 are committed');
-    expect(finalRc).toContain('T098-T122');
+    expect(finalRc).toContain('T090 through T124 are committed');
+    expect(finalRc).toContain('T098-T124');
+    expect(finalRc).toContain('T124 focused validation: `bun run validate:bundle-policy`');
     expect(matrix).toContain('T104 dependency risk-register');
     expect(matrix).toContain('dependency-risk-register-2026-05-08.md');
+    expect(matrix).toContain('Bundle policy');
     expect(matrix).toContain('Public production: no.');
   });
 });

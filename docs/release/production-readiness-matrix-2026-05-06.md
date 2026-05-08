@@ -52,12 +52,13 @@ ROX ONE App
 | Packaged artifacts | Pass | `bun run validate:packaged-artifacts` verified DMG/ZIP/blockmap/latest metadata and SHA256 hashes; T122 requires this gate in the Mac ARM workflow before artifact upload |
 | Mac private release trust boundary | Pass | T121 `bun run validate:mac-private-release-boundary` confirms current packaged app is ad-hoc signed, has no stapled notarization ticket, and remains documented as private/local RC only |
 | Bundle artifact report | Pass with warnings | T119 `bun run report:bundle-artifacts:fresh` rebuilt clean Electron renderer, WebUI, and Viewer outputs before reporting; clean JS baselines are Electron renderer `314` files / `17.56 MB`, WebUI `305` files / `16.65 MB`, Viewer `304` files / `14.12 MB`; size warnings remain non-fatal |
+| Bundle policy | Pass | T124 `bun run validate:bundle-policy` refreshes Electron renderer, WebUI, and Viewer outputs and fails if JS/CSS totals, asset counts, oversized asset counts, or largest JS assets exceed current RC ceilings |
 | Desktop app identity | Pass | T097 focused validation keeps Electron package/dev/workflow naming on `ROX.ONE` |
 | Whitespace | Pass | `git diff --check` passed |
 
 ## 4. Production Decision
 
-Private RC: yes, with T088/T089/T090 complete, full test/typecheck/docs/lint/build/smoke evidence green in the current verified state, T091 adding explicit packaged-artifact audit evidence, T092 documenting historical bundle-size risk, T093 restoring zero-warning aggregate lint, T095 reconciling release-state metadata against git truth, T096 closing local verification blockers, T097 normalizing desktop app identity to `ROX.ONE`, T119 replacing stale bundle-output measurement with a fresh clean-build baseline, T121 guarding the private mac release trust boundary before workflow upload, and T122 requiring packaged artifact metadata validation before Mac ARM artifact upload. Public-production blockers remain separate.
+Private RC: yes, with T088/T089/T090 complete, full test/typecheck/docs/lint/build/smoke evidence green in the current verified state, T091 adding explicit packaged-artifact audit evidence, T092 documenting historical bundle-size risk, T093 restoring zero-warning aggregate lint, T095 reconciling release-state metadata against git truth, T096 closing local verification blockers, T097 normalizing desktop app identity to `ROX.ONE`, T119 replacing stale bundle-output measurement with a fresh clean-build baseline, T121 guarding the private mac release trust boundary before workflow upload, T122 requiring packaged artifact metadata validation before Mac ARM artifact upload, and T124 enforcing current clean bundle ceilings as a release gate. Public-production blockers remain separate.
 
 Public production: no. Public launch remains blocked by real provider
 integration, hosted persistence, public share infrastructure, ROX ID email

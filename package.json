@@ -42,7 +42,7 @@
     "validate:dev": "bun run typecheck:all && bun run test:shared:all && bun run test:doc-tools",
     "validate:ci": "bun run validate:agent-contract && bun run validate:architecture-docs && bun run validate:ci-contract && bun run validate:private-release-pipeline && bun run validate:dev && bun run lint:i18n:parity && bun run lint:i18n:sorted && bun run lint:i18n:coverage",
     "validate:private-release-pipeline": "bun run scripts/validate-private-release-pipeline.ts",
-    "validate:release": "bun run validate:docs && bun run lint && bun run typecheck:all && bun test && bun run electron:build && bun run validate:mac-arm-build-workflow && bun run validate:private-release-pipeline",
+    "validate:release": "bun run validate:docs && bun run lint && bun run typecheck:all && bun test && bun run electron:build && bun run validate:bundle-policy && bun run validate:mac-arm-build-workflow && bun run validate:private-release-pipeline",
     "lint:ipc-sends": "bash scripts/check-raw-sends.sh",
     "lint:electron": "cd apps/electron && bun run lint",
     "lint:shared": "cd packages/shared && npx eslint .",
@@ -113,6 +113,7 @@
     "validate:mac-private-release-boundary": "bun run scripts/validate-mac-private-release-boundary.ts",
     "validate:e2e-core-scenarios": "bun run scripts/validate-e2e-core-scenarios.ts",
     "validate:packaged-artifacts": "bun run scripts/validate-packaged-artifacts.ts",
+    "validate:bundle-policy": "bun run scripts/validate-bundle-policy.ts",
     "report:bundle-artifacts": "bun run scripts/report-bundle-artifacts.ts",
     "report:bundle-artifacts:fresh": "bun run scripts/report-fresh-bundle-artifacts.ts"
   },
