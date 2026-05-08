@@ -50,13 +50,13 @@ ROX ONE App
 | Electron smoke | Pass | `bun run electron:smoke` passed on a GUI-capable non-sandbox launch surface; app initialized successfully |
 | Mac ARM workflow contract | Pass | `bun run validate:mac-arm-build-workflow` passed; packaged artifact set and manifest references additionally verified in T091 |
 | Packaged artifacts | Pass | `bun run validate:packaged-artifacts` verified DMG/ZIP/blockmap/latest metadata and SHA256 hashes |
-| Bundle artifact report | Pass with warnings | `bun run report:bundle-artifacts` passed; size warnings remain non-fatal T092 follow-up scope |
+| Bundle artifact report | Pass with warnings | T119 `bun run report:bundle-artifacts:fresh` rebuilt clean Electron renderer, WebUI, and Viewer outputs before reporting; clean JS baselines are Electron renderer `314` files / `17.56 MB`, WebUI `305` files / `16.65 MB`, Viewer `304` files / `14.12 MB`; size warnings remain non-fatal |
 | Desktop app identity | Pass | T097 focused validation keeps Electron package/dev/workflow naming on `ROX.ONE` |
 | Whitespace | Pass | `git diff --check` passed |
 
 ## 4. Production Decision
 
-Private RC: yes, with T088/T089/T090 complete, full test/typecheck/docs/lint/build/smoke evidence green in the current verified state, T091 adding explicit packaged-artifact audit evidence, T092 documenting bundle-size risk, T093 restoring zero-warning aggregate lint, T095 reconciling release-state metadata against git truth, T096 closing local verification blockers, and T097 normalizing desktop app identity to `ROX.ONE`. Public-production blockers remain separate.
+Private RC: yes, with T088/T089/T090 complete, full test/typecheck/docs/lint/build/smoke evidence green in the current verified state, T091 adding explicit packaged-artifact audit evidence, T092 documenting historical bundle-size risk, T093 restoring zero-warning aggregate lint, T095 reconciling release-state metadata against git truth, T096 closing local verification blockers, T097 normalizing desktop app identity to `ROX.ONE`, and T119 replacing stale bundle-output measurement with a fresh clean-build baseline. Public-production blockers remain separate.
 
 Public production: no. Public launch remains blocked by real provider
 integration, hosted persistence, public share infrastructure, ROX ID email
