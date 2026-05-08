@@ -1,7 +1,9 @@
 import type { ProviderDriver, DriverTestConnectionArgs } from '../driver-types.ts';
 import type { ModelDefinition } from '../../../../config/models.ts';
-import { getAllPiModels, getPiModelsForAuthProvider } from '../../../../config/models-pi.ts';
-import { getPiProviderBaseUrl } from '../../../../config/models-pi.ts';
+import {
+  assertPiProviderDependencyRiskAllowed,
+  resolvePiProviderDependencyRiskMode,
+} from '../../../dependency-risk.ts';
 
 // ── Copilot model types ────────────────────────────────────────────────
 type RawCopilotModel = {
@@ -11,6 +13,10 @@ type RawCopilotModel = {
   policy?: { state: string };
   contextWindow?: number;
 };
+
+async function loadPiModelRegistry(): Promise<typeof import('../../../../config/models-pi.ts')> {
+  return await import('../../../../config/models-pi.ts');
+}
 
 // ── Direct HTTP approach ─────────────────────────────────────────────
 
@@ -170,6 +176,7 @@ async function fetchCopilotModels(
   }
 
   // ── Tier 2: Pi SDK static catalog (last resort) ──────────────────
+  const { getPiModelsForAuthProvider } = await loadPiModelRegistry();
   const staticModels = getPiModelsForAuthProvider('github-copilot');
   if (staticModels.length > 0) {
     console.warn(`[fetchCopilotModels] tier2-staticCatalog: falling back to ${staticModels.length} Pi SDK models`);
@@ -251,6 +258,8 @@ export const piDriver: ProviderDriver = {
     }),
   }),
   fetchModels: async ({ connection, credentials, timeoutMs }) => {
+    assertPiProviderDependencyRiskAllowed(resolvePiProviderDependencyRiskMode());
+
     // Copilot OAuth: fetch models directly from the Copilot API via HTTP.
     // Uses the GitHub OAuth token (our refreshToken) to exchange for a
     // Copilot API token, then queries GET /models for the live model list.
@@ -261,6 +270,7 @@ export const piDriver: ProviderDriver = {
     }
 
     // All other Pi providers: use static Pi SDK model registry
+    const { getAllPiModels, getPiModelsForAuthProvider } = await loadPiModelRegistry();
     const models = connection.piAuthProvider
       ? getPiModelsForAuthProvider(connection.piAuthProvider)
       : getAllPiModels();
@@ -279,6 +289,7 @@ export const piDriver: ProviderDriver = {
       // No provider hint — fall back to generic subprocess path
       return null;
     }
+    assertPiProviderDependencyRiskAllowed(resolvePiProviderDependencyRiskMode());
 
     // Resolve the model's API type from the Pi SDK registry.
     // For anthropic-messages providers, do a lightweight direct HTTP test
@@ -301,6 +312,7 @@ export const piDriver: ProviderDriver = {
       return null;
     }
 
+    const { getPiProviderBaseUrl } = await loadPiModelRegistry();
     const baseUrl = args.baseUrl?.trim() || modelBaseUrl || getPiProviderBaseUrl(piAuthProvider);
     if (!baseUrl) {
       return { success: false, error: 'Could not determine API endpoint for provider' };
