@@ -7,5 +7,5 @@ routes = [
 ]
 
 [vars]
-ROX_ONE_MARKETING_ORIGIN = "https://rox-one.pages.dev"
+ROX_ONE_MARKETING_ORIGIN = "https://main.rox-one.pages.dev"
 ROX_ONE_WEBUI_ORIGIN = "https://app.rox.one"
