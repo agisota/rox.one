@@ -210,35 +210,14 @@ export class SessionManager implements ISessionManager {
   private sessions: Map<string, ManagedSession> = new Map()
   // IPC concern (event sink, browser pane manager handle, batched deltas, broadcasts).
   // Composed eagerly; leaf of the helper graph (no helper deps).
-  private ipc = new SessionIPC({
-    getLogger: () => sessionLog,
-    getUnreadSummary: () => this.getUnreadSummary(),
-    updateBadgeCount: (count) => sessionRuntimeHooks.updateBadgeCount(count),
-  })
+  private ipc!: SessionIPC
   // Persistence concern (disk I/O, JSONL writes, message hydration, persist queue).
   // Composed eagerly; depends on IPC for any post-write broadcasts.
-  private persistence = new SessionPersistence({
-    getLogger: () => sessionLog,
-    getSessions: () => this.sessions,
-    getAutomationSystem: (workspaceRootPath) => this.automationSystems.get(workspaceRootPath),
-    processNextQueuedMessage: (sessionId) => this.processNextQueuedMessage(sessionId),
-    ipc: this.ipc,
-  })
+  private persistence!: SessionPersistence
   // Auth concern (credential/permission resolvers, admin remember approvals,
   // OAuth/auth lifecycle, attempt-retry). Top of helper graph — depends on
   // both IPC (1/3) and Persistence (2/3) plus SM coordinator callbacks.
-  private auth = new SessionAuth({
-    getLogger: () => sessionLog,
-    getSessions: () => this.sessions,
-    ipc: this.ipc,
-    persistence: this.persistence,
-    sendMessage: (sid, msg, attachments, storedAttachments, options, existingMessageId, isAuthRetry) =>
-      this.sendMessage(sid, msg, attachments, storedAttachments, options, existingMessageId, isAuthRetry),
-    setProcessing: (managed, p) => this.setProcessing(managed, p),
-    onProcessingStopped: (sid, reason) => this.onProcessingStopped(sid, reason),
-    monotonic: () => this.monotonic(),
-    captureException: (error, context) => sessionRuntimeHooks.captureException(error, context),
-  })
+  private auth!: SessionAuth
   // Config watchers for live updates (sources, etc.) - one per workspace
   private configWatchers: Map<string, ConfigWatcher> = new Map()
   // Automation systems for workspace event automations - one per workspace (includes scheduler, diffing, and handlers)
@@ -264,6 +243,42 @@ export class SessionManager implements ISessionManager {
   private agentRefreshLocks: Map<string, Promise<void>> = new Map()
   /** Monotonic clock to ensure strictly increasing message timestamps */
   private lastTimestamp = 0
+
+  /**
+   * Compose the helper graph in dependency order: IPC (leaf) → Persistence
+   * (depends on IPC) → Auth (depends on IPC + Persistence + SM callbacks).
+   *
+   * Field declarations above use definite-assignment (`!:`) so TypeScript trusts
+   * this constructor to populate them; declaration-order initializers were
+   * removed in the E3 follow-up to make the wiring explicit and reviewable in
+   * one place rather than spread across three field initializers.
+   */
+  constructor() {
+    this.ipc = new SessionIPC({
+      getLogger: () => sessionLog,
+      getUnreadSummary: () => this.getUnreadSummary(),
+      updateBadgeCount: (count) => sessionRuntimeHooks.updateBadgeCount(count),
+    })
+    this.persistence = new SessionPersistence({
+      getLogger: () => sessionLog,
+      getSessions: () => this.sessions,
+      getAutomationSystem: (workspaceRootPath) => this.automationSystems.get(workspaceRootPath),
+      processNextQueuedMessage: (sessionId) => this.processNextQueuedMessage(sessionId),
+      ipc: this.ipc,
+    })
+    this.auth = new SessionAuth({
+      getLogger: () => sessionLog,
+      getSessions: () => this.sessions,
+      ipc: this.ipc,
+      persistence: this.persistence,
+      sendMessage: (sid, msg, attachments, storedAttachments, options, existingMessageId, isAuthRetry) =>
+        this.sendMessage(sid, msg, attachments, storedAttachments, options, existingMessageId, isAuthRetry),
+      setProcessing: (managed, p) => this.setProcessing(managed, p),
+      onProcessingStopped: (sid, reason) => this.onProcessingStopped(sid, reason),
+      monotonic: () => this.monotonic(),
+      captureException: (error, context) => sessionRuntimeHooks.captureException(error, context),
+    })
+  }
 
   /**
    * Optional binder installed by the messaging-gateway bootstrap. When set,
