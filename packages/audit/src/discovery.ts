@@ -61,26 +61,41 @@ export function findBudget(surfaceRoot: string): string | null {
 }
 
 export async function discoverRoutes(
-  _surface: Surface,
+  surface: Surface,
   surfaceRoot: string,
   liveUrl?: string,
   playwright?: PlaywrightRunner,
+  cache?: Map<Surface, string[]>,
 ): Promise<string[]> {
+  // Return cached result immediately if available — avoids double-crawl when
+  // multiple probes (e.g. runtime-axe + runtime-states) run against the same surface.
+  const cached = cache?.get(surface);
+  if (cached !== undefined) return cached;
+
+  let result: string[];
+
   // A.4: when a live dev-server URL and a Playwright runner are both available,
   // crawl the live SPA. This is the only way to enumerate routes for SPAs whose
   // routing is defined in JS (e.g. React Router) rather than as static .html files.
   if (liveUrl && playwright) {
-    return crawlRoutes({ baseUrl: liveUrl, playwright, maxDepth: 2, maxRoutes: 20 });
+    result = await crawlRoutes({ baseUrl: liveUrl, playwright, maxDepth: 2, maxRoutes: 20 });
+  } else {
+    // A.2 fallback: file-based routes from <surfaceRoot>/src/pages/*.html.
+    const pagesDir = join(surfaceRoot, "src", "pages");
+    if (!existsSync(pagesDir)) {
+      result = [];
+    } else {
+      try {
+        const entries = readdirSync(pagesDir);
+        result = entries
+          .filter((name) => name.endsWith(".html") && statSync(join(pagesDir, name)).isFile())
+          .map((name) => `/${name === "index.html" ? "" : name.replace(/\.html$/, "")}`);
+      } catch {
+        result = [];
+      }
+    }
   }
-  // A.2 fallback: file-based routes from <surfaceRoot>/src/pages/*.html.
-  const pagesDir = join(surfaceRoot, "src", "pages");
-  if (!existsSync(pagesDir)) return [];
-  try {
-    const entries = readdirSync(pagesDir);
-    return entries
-      .filter((name) => name.endsWith(".html") && statSync(join(pagesDir, name)).isFile())
-      .map((name) => `/${name === "index.html" ? "" : name.replace(/\.html$/, "")}`);
-  } catch {
-    return [];
-  }
+
+  cache?.set(surface, result);
+  return result;
 }

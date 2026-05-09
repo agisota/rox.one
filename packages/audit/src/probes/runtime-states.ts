@@ -10,7 +10,7 @@ export const runtimeStatesProbe: Probe = {
   applicableTo: () => true,
   async run(ctx: ProbeContext): Promise<Finding[]> {
     if (!ctx.playwright) return [];
-    const routes = await discoverRoutes(ctx.surface, ctx.surfaceRoot, ctx.devServerUrl, ctx.playwright);
+    const routes = await discoverRoutes(ctx.surface, ctx.surfaceRoot, ctx.devServerUrl, ctx.playwright, ctx.routeCache);
     const indexFile = join(ctx.surfaceRoot, "index.html");
     if (routes.length === 0 && !ctx.devServerUrl && !existsSync(indexFile)) return [];
 

@@ -102,4 +102,45 @@ describe("discoverRoutes", () => {
       expect(routes.length).toBeGreaterThanOrEqual(2);
     });
   });
+
+  test("route cache short-circuits second call", async () => {
+    await withScratch(async (dir) => {
+      mkdirSync(join(dir, "src", "pages"), { recursive: true });
+      writeFileSync(join(dir, "src", "pages", "index.html"), "<html></html>");
+      writeFileSync(join(dir, "src", "pages", "shop.html"), "<html></html>");
+
+      const cache = new Map<import("../src/probe.ts").Surface, string[]>();
+
+      // First call: populates cache via file-based discovery.
+      const first = await discoverRoutes("marketing", dir, undefined, undefined, cache);
+      expect(first.length).toBeGreaterThanOrEqual(2);
+      expect(cache.has("marketing")).toBe(true);
+
+      // Remove the pages directory so a real second crawl would return [].
+      rmSync(join(dir, "src"), { recursive: true, force: true });
+
+      // Second call: must return the cached value, not re-crawl.
+      const second = await discoverRoutes("marketing", dir, undefined, undefined, cache);
+      expect(second).toEqual(first);
+    });
+  });
+
+  test("cache is keyed per surface — different surfaces don't share entries", async () => {
+    await withScratch(async (dir) => {
+      const webDir = join(dir, "webui");
+      const mktDir = join(dir, "marketing");
+      mkdirSync(join(webDir, "src", "pages"), { recursive: true });
+      mkdirSync(join(mktDir, "src", "pages"), { recursive: true });
+      writeFileSync(join(mktDir, "src", "pages", "index.html"), "<html></html>");
+
+      const cache = new Map<import("../src/probe.ts").Surface, string[]>();
+
+      const webRoutes = await discoverRoutes("webui", webDir, undefined, undefined, cache);
+      const mktRoutes = await discoverRoutes("marketing", mktDir, undefined, undefined, cache);
+
+      expect(cache.has("webui")).toBe(true);
+      expect(cache.has("marketing")).toBe(true);
+      expect(webRoutes).not.toEqual(mktRoutes);
+    });
+  });
 });

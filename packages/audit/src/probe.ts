@@ -19,6 +19,8 @@ export interface ProbeContext {
   // When set together with `playwright`, runtime probes route-crawl the live
   // server instead of falling back to file-based discovery.
   devServerUrl?: string;
+  /** Per-run, per-surface route cache shared across A.2+ probes. */
+  routeCache?: Map<Surface, string[]>;
 }
 
 export interface Probe {
