@@ -141,7 +141,11 @@ Same for `PDFPreviewOverlay` in `App.tsx`.
 
 **Effort revised:** Small → **Small-Medium (~1-2 days)**. Need to wrap consumer call sites in `<Suspense>`. Risk: some consumers may render synchronously (e.g. inside a memoized component); audit each call site.
 
-**Recommendation:** Combine with Fix #1's shiki refactor into sub-project **F (footprint)**. Both follow the same pattern: lazy-load heavy library code that isn't needed on initial paint. Brainstorm them together to ensure consistent Suspense boundaries.
+**Recommendation:** Combine with Fix #1 into sub-project **F (footprint)**.
+
+### IMPLEMENTED (PR #11 — empirical result)
+
+Fix #2 SHIPPED. Branch `fix/lazy-load-react-pdf`. main-*.js webui: 5,268,190 -> 4,788,240 bytes (-480KB / -9.1%). New chunk PDFPreviewOverlay-*.js (466KB) loads on demand. **Critical learning:** fix worked only after moving module-level side effects (`pdfjs.GlobalWorkerOptions.workerSrc = ...`) into a render-time guard. Just adding React.lazy() saved 4KB. Side effects block rollup tree-shaking — same pattern needed for F.1 (shiki).
 
 ## Root cause #3 — pzdrk.png 1.44 MB (saves ~1.4 MB)
 
@@ -174,10 +178,10 @@ The brand icon is a 1.44 MB PNG. Imported as an ES module asset:
 
 | Phase | Scope | Expected reduction |
 |---|---|---|
-| **Quick win** (~1 day) | Fix #3 (pzdrk PNG → optimized PNG or SVG) | −1.2 MB across webui + marketing |
-| **Medium** (~2-3 days) | Fix #2 (lazy pdf.worker for webui) | −1.2 MB on webui |
-| **Big** (~3-5 days) | Fix #1 (shiki dynamic language loading) | −4+ MB across webui + viewer |
-| **Long tail** (~1 week) | Code-splitting via `React.lazy()` at route boundaries; prefetch tuning | −1-2 MB further on each |
+| **Quick win** | Fix #3 — pzdrk PNG → PNG8 quantization | **SHIPPED PR #10:** −1.29 MB asset |
+| **Medium** | Fix #2 — lazy react-pdf with side-effect-into-guard | **SHIPPED PR #11:** −480 KB main JS |
+| **Big** (~1 week) | Fix #1 — shiki/core API migration | Pending — needs F.1 brainstorm |
+| **Long tail** (~1 week) | Route-boundary `React.lazy()` for App.tsx | Pending — needs B/C scope decisions |
 
 After all four phases, webui and viewer should land in the **300-700 KB range** for the largest chunk. The user's stated `≤200KB` rule may still need calibration upward to ~500KB-1MB for SPAs of this complexity, but the harness (sub-project D) ensures any future regression is caught.
 
