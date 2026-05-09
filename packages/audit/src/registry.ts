@@ -42,15 +42,25 @@ export class ProbeRegistry {
 
     const allFindings: Finding[] = [];
     const crashed: RegistryRunResult["crashed"] = [];
-    for (const { probe, surface } of pairs) {
-      try {
-        const ctx = opts.contextFor(surface);
-        const findings = await probe.run(ctx);
-        allFindings.push(...findings);
-      } catch (e) {
-        crashed.push({ probe: probe.name, surface, error: e instanceof Error ? e.message : String(e) });
+    const queue = [...pairs];
+    const cap = Math.max(1, opts.workerCap);
+
+    async function worker(): Promise<void> {
+      while (queue.length > 0) {
+        const next = queue.shift();
+        if (!next) return;
+        try {
+          const ctx = opts.contextFor(next.surface);
+          const findings = await next.probe.run(ctx);
+          allFindings.push(...findings);
+        } catch (e) {
+          crashed.push({ probe: next.probe.name, surface: next.surface, error: e instanceof Error ? e.message : String(e) });
+        }
       }
     }
+
+    const workers = Array.from({ length: Math.min(cap, queue.length) }, () => worker());
+    await Promise.all(workers);
 
     return {
       findings: allFindings,
