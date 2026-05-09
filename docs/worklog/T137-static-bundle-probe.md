@@ -1,4 +1,4 @@
-# T063 - static-bundle probe
+# T137 - static-bundle probe
 
 ## 1. Task summary
 
@@ -6,7 +6,7 @@ Implement the `static-bundle` probe: read `budget.json` from `surfaceRoot`, stat
 
 ## 2. Repo context discovered
 
-- None of the four real surfaces (`apps/electron/src/renderer`, `apps/webui`, `apps/viewer`, `apps/marketing`) ship a `budget.json` file. The probe's graceful skip on missing `budget.json` means the first full audit run (T064) produces 0 bundle findings — by design, not by error. Phase A.2 or the "D" sub-project (a11y + perf budgets) should author `budget.json` per surface based on current `dist/` measurements.
+- None of the four real surfaces (`apps/electron/src/renderer`, `apps/webui`, `apps/viewer`, `apps/marketing`) ship a `budget.json` file. The probe's graceful skip on missing `budget.json` means the first full audit run (T138) produces 0 bundle findings — by design, not by error. Phase A.2 or the "D" sub-project (a11y + perf budgets) should author `budget.json` per surface based on current `dist/` measurements.
 - `apps/webui/dist/` and `apps/viewer/dist/` exist locally after a build but are gitignored. The probe only reads existing artifacts; it does not call `bun run build`. Correct behavior — the probe is invoked post-build in CI, pre-existing artifacts locally.
 - `statSync().size` returns the raw file size in bytes. For gzipped assets, this reflects the on-disk size, not the gzip-compressed size that the browser receives. Budget entries should be set against the uncompressed size for simplicity; a Phase A.2 enhancement could add a `gzip: true` flag to `budget.json` entries.
 - `ctx.buildOutputRoot` is an optional override that the CLI populates if `--out` points to a non-default dist location. Currently defaults to `join(surfaceRoot, "dist")`.
@@ -72,7 +72,7 @@ bun test v1.3.13
  packages/audit/tests/probes/static-bundle.test.ts: 3 pass, 0 fail
 ```
 
-Running full suite at T063 boundary: 38 pass, 0 fail.
+Running full suite at T137 boundary: 38 pass, 0 fail.
 
 ## 9. Build output summary
 
@@ -88,12 +88,12 @@ No build step. `bun run typecheck` exits 0.
 
 | Criterion | Status | Evidence |
 |---|---|---|
-| Probe skips surface with no budget.json | ✅ | Test "skips surface with no budget.json" passes |
-| 0 findings when within budget | ✅ | Test "returns 0 findings when dist file within budget" passes |
-| 1 finding when over budget | ✅ | Test "returns 1 finding when dist file exceeds budget" passes |
-| Rule is `bundle:over-budget` | ✅ | Verified in test assertions |
-| Message includes actual/budget/overage bytes | ✅ | Verified in test assertions |
-| Severity is `high` | ✅ | Verified in test assertions |
+| Probe metadata (name + phase) correct | ✅ | Test "metadata" passes |
+| 0 findings when within budget | ✅ | Test "returns no findings when bundle under budget" passes |
+| 1 finding when over budget | ✅ | Test "emits finding when bundle exceeds budget" passes |
+| Rule is `bundle:over-budget` | ✅ | Asserted inline in "emits finding when bundle exceeds budget" |
+| Message includes actual/budget/overage bytes | ✅ | Asserted inline in "emits finding when bundle exceeds budget" |
+| Severity is `high` | ✅ | Asserted inline in "emits finding when bundle exceeds budget" |
 | `bun test static-bundle.test.ts` passes | ✅ | 3 pass, 0 fail |
 | Typecheck exits 0 | ✅ | `tsc --noEmit` exit 0 |
 | Worklog complete | ✅ | This document |

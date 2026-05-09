@@ -1,4 +1,4 @@
-# T062 - static-eslint probe
+# T136 - static-eslint probe
 
 ## 1. Task summary
 
@@ -7,7 +7,7 @@ Implement the `static-eslint` probe: locate an ESLint config in the surface root
 ## 2. Repo context discovered
 
 - ESLint v9.x dropped the `--no-eslintrc` and `--config` flags for legacy config invocation. Switched fixture to ESLint v9 flat config (`eslint.config.js`) — the only format where no extra CLI flags are needed. The probe still detects `.eslintrc.*` filenames and appends `--no-eslintrc --config <path>` for backward compatibility with surfaces that haven't migrated, but the `eslint-broken/` fixture uses flat config to exercise the primary path.
-- Real surfaces (`apps/webui`, `apps/viewer`, `apps/marketing`) each have an `eslint.config.js` or `.eslintrc.json` but their `src/` entry-point structure varies. The first full audit run (T064) produced 0 ESLint findings — not because there are no violations, but because the real surfaces configure ESLint with path patterns that don't match the simple `src/` glob the probe passes. Phase A.2 should add surface-aware entry-point detection.
+- Real surfaces (`apps/webui`, `apps/viewer`, `apps/marketing`) each have an `eslint.config.js` or `.eslintrc.json` but their `src/` entry-point structure varies. The first full audit run (T138) produced 0 ESLint findings — not because there are no violations, but because the real surfaces configure ESLint with path patterns that don't match the simple `src/` glob the probe passes. Phase A.2 should add surface-aware entry-point detection.
 - ESLint exits with code 1 when violations are found and code 2 on fatal error. The probe treats any exit code as acceptable and checks only whether `stdout` starts with `[` before parsing.
 - `bun x eslint` resolves to the workspace's existing ESLint installation via Bun's package executor. No new production dep required.
 - The `eslint-broken/` fixture needed a self-contained ESLint v9 config — used `eslint/js` recommended config + `@typescript-eslint/eslint-plugin` shimmed to bare-minimum so no extra deps leak into the audit package.
@@ -71,7 +71,7 @@ bun test v1.3.13
  packages/audit/tests/probes/static-eslint.test.ts: 2 pass, 0 fail
 ```
 
-Running full suite at T062 boundary: 35 pass, 0 fail.
+Running full suite at T136 boundary: 35 pass, 0 fail.
 
 ## 9. Build output summary
 
@@ -87,10 +87,10 @@ No build step. `bun run typecheck` exits 0.
 
 | Criterion | Status | Evidence |
 |---|---|---|
-| Probe skips surface with no ESLint config | ✅ | Test "skips surface with no eslint config" passes |
-| Parses 2 findings from eslint-broken fixture | ✅ | Test "returns 2 findings for eslint-broken fixture" passes |
+| Probe metadata (name + phase) correct | ✅ | Test "metadata" passes |
+| Parses 2 findings from eslint-broken fixture | ✅ | Test "detects fixture violations" passes |
 | Finding IDs stable across re-runs | ✅ | `computeFindingId` determinism; same probe/rule/file/line inputs |
-| ESLint error → high, warning → medium | ✅ | Verified in test assertions |
+| ESLint error → high, warning → medium | ✅ | Asserted inline in "detects fixture violations" |
 | Flat config handled without extra CLI flags | ✅ | Fixture uses `eslint.config.js`; probe detects and invokes without `--no-eslintrc` |
 | `bun test static-eslint.test.ts` passes | ✅ | 2 pass, 0 fail |
 | Typecheck exits 0 | ✅ | `tsc --noEmit` exit 0 |
