@@ -1472,6 +1472,7 @@
   "workbench.brand.productDescription": "{{productName}} / {{tagline}}",
   "workbench.brand.section": "Application",
   "workbench.brand.support": "Support",
+  "workbench.composer.actions.removeRecentFolder": "Eliminar carpeta reciente",
   "workbench.composer.input.editLabel": "Editar mensaje",
   "workbench.composer.input.label": "Editor de mensajes",
   "workbench.modes.board.description": "Shows reviewer cards, severity matrix, fix plan, and readiness status.",
