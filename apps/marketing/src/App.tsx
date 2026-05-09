@@ -70,6 +70,39 @@ const useCases = [
   'Интеграционные команды: безопасное подключение API, MCP и внутренних знаний',
 ]
 
+const experienceTiles = [
+  {
+    title: 'Долгие миссии',
+    body: 'План, журнал, blockers и evidence для задач, которые нельзя держать в одном чате.',
+    metric: 'mission log',
+  },
+  {
+    title: 'Арена агентов',
+    body: 'Сравнение агентов и skill-паков по качеству, стоимости, риску и готовности.',
+    metric: 'quality gates',
+  },
+  {
+    title: 'Центр миссий',
+    body: 'Единое место запуска командных сценариев, watchers, approvals и повторных прогонов.',
+    metric: 'run center',
+  },
+  {
+    title: 'Прогресс',
+    body: 'VDI, readiness, XP и история улучшений превращают проверенную работу в измеримый прогресс.',
+    metric: 'VDI / XP',
+  },
+  {
+    title: 'Карта квестов',
+    body: 'Цепочки unlock-ов, зависимости и следующий лучший шаг без ручного восстановления контекста.',
+    metric: 'quest graph',
+  },
+  {
+    title: 'Кузница агентов',
+    body: 'Упаковка удачных сценариев в reusable packages с trust score и risk gates.',
+    metric: 'agent packs',
+  },
+]
+
 const runSteps = [
   { label: 'План выката', value: 86 },
   { label: 'Интеграция API', value: 68 },
@@ -77,26 +110,34 @@ const runSteps = [
 ]
 
 const terminalRelease = {
-  version: '0.8.12',
-  pageUrl: 'https://github.com/agisota/rox-one-terminal/releases/tag/v0.8.12',
-  baseUrl: 'https://github.com/agisota/rox-one-terminal/releases/download/v0.8.12',
+  version: '0.9.1',
+  manifestUrl: 'https://app.rox.one/electron/latest/manifest.json',
+  baseUrl: 'https://app.rox.one/electron/latest',
 }
 
 const terminalDownloads = [
   {
-    title: 'macOS Apple Silicon',
+    title: 'macOS Apple Silicon DMG',
     subtitle: 'Для Mac на M1, M2, M3 и M4',
     fileName: 'ROX-ONE-arm64.dmg',
-    size: '228 MB',
-    sha256: '43f9e85f6ea221774df014527dd7f7766d930d1baabb9dc18c70acc19a0a1cb3',
+    size: '328 MB',
+    sha256: 'd4e75a4359c3decfdb98845b51d6831415e5c64ec5b06ddfd6eda512b23848ab',
+    action: 'Скачать DMG',
   },
   {
-    title: 'macOS Intel',
-    subtitle: 'Для Mac на x64 / Intel',
-    fileName: 'ROX-ONE-x64.dmg',
-    size: '234 MB',
-    sha256: '1a540dfa7ae76e1d1c4a96e70d7bb1189cf8cc7841648edf1f467f25d351af4a',
+    title: 'macOS Apple Silicon ZIP',
+    subtitle: 'Для auto-update feed и ручной распаковки',
+    fileName: 'ROX-ONE-arm64.zip',
+    size: '317 MB',
+    sha256: '3a124e2619c9880051716132e345d22badd61301a01c9e2ef275cc90d0ecc19f',
+    action: 'Скачать ZIP',
   },
+]
+
+const releaseFacts = [
+  'Публичный feed: app.rox.one/electron/latest',
+  'Актуальная сборка: macOS arm64 v0.9.1',
+  'Installer scripts: shell + PowerShell',
 ]
 
 function ProductDemo() {
@@ -209,6 +250,7 @@ export function App() {
         <nav aria-label="Основная навигация">
           <a href="#product">Продукт</a>
           <a href="#use-cases">Кейсы</a>
+          <a href="#experience">Опыт</a>
           <a href="#download">Скачать</a>
           <a href="#install">Self-host</a>
           <a href="/login">Войти</a>
@@ -227,7 +269,8 @@ export function App() {
             <h1 id="hero-title">ROX ONE</h1>
             <p>
               Продуктовая платформа для команд, которые внедряют AI-агентов в реальные процессы:
-              источники, сессии, навыки, автоматизации и контроль результата в одном интерфейсе.
+              источники, сессии, навыки, автоматизации, desktop terminal и контроль результата
+              в одном интерфейсе.
             </p>
             <div className="hero-actions" aria-label="Основные действия">
               <a className="button primary" href="/login?tab=register">
@@ -302,21 +345,45 @@ export function App() {
           </div>
         </section>
 
+        <section className="section experience-section" id="experience" aria-labelledby="experience-title">
+          <div className="section-heading">
+            <span>Опыт в desktop app</span>
+            <h2 id="experience-title">Шесть рабочих вкладок превращают агентные сессии в наблюдаемую систему.</h2>
+          </div>
+          <div className="experience-grid">
+            {experienceTiles.map((tile) => (
+              <article className="experience-card" key={tile.title}>
+                <span>{tile.metric}</span>
+                <h3>{tile.title}</h3>
+                <p>{tile.body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section className="download-section" id="download" aria-labelledby="download-title">
           <div className="section-heading">
             <span>Desktop terminal</span>
-            <h2 id="download-title">ROX ONE Terminal для macOS уже собран и доступен в приватном релизе.</h2>
+            <h2 id="download-title">ROX ONE Terminal v{terminalRelease.version} доступен через live install/update feed.</h2>
           </div>
           <div className="download-layout">
             <div className="download-intro">
               <p>
                 Скачайте нативное приложение ROX ONE Terminal. Сборка использует бренд ROX ONE,
-                bundle id <code>com.rox.one</code> и поставляется через private GitHub release
-                для участников проекта.
+                bundle id <code>com.rox.one</code> и поставляется через публичный release feed
+                на <code>app.rox.one</code>.
               </p>
-              <a className="repo-link release-link" href={terminalRelease.pageUrl}>
+              <div className="release-facts" aria-label="Состояние релиза">
+                {releaseFacts.map((fact) => (
+                  <div className="release-fact" key={fact}>
+                    <CheckCircle2 aria-hidden="true" />
+                    <span>{fact}</span>
+                  </div>
+                ))}
+              </div>
+              <a className="repo-link release-link" href={terminalRelease.manifestUrl}>
                 <GitBranch aria-hidden="true" />
-                <span>Открыть релиз v{terminalRelease.version}</span>
+                <span>Проверить live manifest</span>
                 <ArrowRight aria-hidden="true" />
               </a>
             </div>
@@ -348,7 +415,7 @@ export function App() {
                   </dl>
                   <a className="button primary download-button" href={`${terminalRelease.baseUrl}/${download.fileName}`}>
                     <MonitorDown aria-hidden="true" />
-                    <span>Скачать DMG</span>
+                    <span>{download.action}</span>
                   </a>
                 </article>
               ))}
