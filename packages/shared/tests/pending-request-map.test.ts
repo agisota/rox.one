@@ -69,6 +69,23 @@ describe('PendingRequestMap', () => {
     await expect(c).rejects.toThrow('subprocess exit');
   });
 
+  test('resolveAll settles every outstanding entry to the sentinel value and clears the map', async () => {
+    const map = new PendingRequestMap<boolean>();
+    const a = new Promise<boolean>((resolve, reject) => {
+      map.register('a', resolve, reject);
+    });
+    const b = new Promise<boolean>((resolve, reject) => {
+      map.register('b', resolve, reject);
+    });
+
+    expect(map.size).toBe(2);
+    map.resolveAll(false); // permission-deny semantics
+    expect(map.size).toBe(0);
+
+    await expect(a).resolves.toBe(false);
+    await expect(b).resolves.toBe(false);
+  });
+
   test('rejectAll snapshot prevents re-entrant settle from observing stale entries', () => {
     const map = new PendingRequestMap<number>();
 

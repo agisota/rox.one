@@ -96,6 +96,9 @@ import { parseError, type AgentError } from './errors.ts';
 // Centralized PreToolUse pipeline
 import { runPreToolUseChecks, type PreToolUseCheckResult } from './core/pre-tool-use.ts';
 
+// RPC pending-request bookkeeping (used for the 8 subprocess RPC correlation maps)
+import { PendingRequestMap } from './core/pending-request-map.ts';
+
 // Workspace slug extraction for skill qualification
 import { extractWorkspaceSlug } from '../utils/workspace.ts';
 
@@ -192,54 +195,34 @@ export class PiAgent extends BaseAgent {
   }
 
   // Pending permission requests (used by handlePreToolUseRequest for ask-mode prompting)
-  private pendingPermissions: Map<string, {
-    resolve: (allowed: boolean) => void;
-    toolName: string;
-  }> = new Map();
+  private pendingPermissions = new PendingRequestMap<boolean, { toolName: string }>();
 
   // Pending tool executions (correlation map for subprocess tool_execute_request -> main process -> tool_execute_response)
-  private pendingToolExecutions: Map<string, {
-    resolve: (result: { content: string; isError: boolean }) => void;
-    reject: (error: Error) => void;
-  }> = new Map();
+  // NOTE: this map is currently never written from the main-process side; the
+  // subprocess (`pi-agent-server/src/index.ts`) owns the symmetric one. Kept
+  // here so the bulk-reject paths on subprocess exit / forceAbort remain
+  // wired in case future code starts populating it.
+  private pendingToolExecutions = new PendingRequestMap<{ content: string; isError: boolean }>();
 
   // Pending mini completions (correlation map for subprocess mini_completion_result)
-  private pendingMiniCompletions: Map<string, {
-    resolve: (text: string | null) => void;
-    reject: (error: Error) => void;
-  }> = new Map();
+  private pendingMiniCompletions = new PendingRequestMap<string | null>();
 
   // Pending llm_query calls (correlation map for subprocess llm_query_result).
   // Separate from pendingMiniCompletions because the payload shape differs:
   // queryLlm returns a full LLMQueryResult, not just text.
-  private pendingLlmQueries: Map<string, {
-    resolve: (result: LLMQueryResult) => void;
-    reject: (error: Error) => void;
-  }> = new Map();
+  private pendingLlmQueries = new PendingRequestMap<LLMQueryResult>();
 
   // Pending ensure_session_ready requests (branch preflight handshake)
-  private pendingEnsureSessionReady: Map<string, {
-    resolve: (sessionId: string | null) => void;
-    reject: (error: Error) => void;
-  }> = new Map();
+  private pendingEnsureSessionReady = new PendingRequestMap<string | null>();
 
   // Pending compact requests (manual compaction RPC)
-  private pendingCompactions: Map<string, {
-    resolve: (result: { summary: string; firstKeptEntryId: string; tokensBefore: number } | null) => void;
-    reject: (error: Error) => void;
-  }> = new Map();
+  private pendingCompactions = new PendingRequestMap<{ summary: string; firstKeptEntryId: string; tokensBefore: number } | null>();
 
   // Pending auto-compaction toggle requests
-  private pendingAutoCompactionToggles: Map<string, {
-    resolve: (enabled: boolean) => void;
-    reject: (error: Error) => void;
-  }> = new Map();
+  private pendingAutoCompactionToggles = new PendingRequestMap<boolean>();
 
   // Pending runtime config updates (custom endpoint model capability refresh)
-  private pendingRuntimeConfigUpdates: Map<string, {
-    resolve: (updated: boolean) => void;
-    reject: (error: Error) => void;
-  }> = new Map();
+  private pendingRuntimeConfigUpdates = new PendingRequestMap<boolean>();
 
   // Metadata captured before PreToolUse stripping, keyed by toolCallId.
   // This provides a deterministic bridge when side-channel metadata store misses.
@@ -885,16 +868,12 @@ export class PiAgent extends BaseAgent {
       case 'llm_query_result': {
         // Response to an llm_query request
         const id = msg.id as string;
-        const pending = this.pendingLlmQueries.get(id);
-        if (pending) {
-          this.pendingLlmQueries.delete(id);
-          const result = msg.result as LLMQueryResult | null;
-          if (result) {
-            pending.resolve(result);
-          } else {
-            const errorMessage = typeof msg.errorMessage === 'string' ? msg.errorMessage : 'llm_query failed';
-            pending.reject(new Error(errorMessage));
-          }
+        const result = msg.result as LLMQueryResult | null;
+        if (result) {
+          this.pendingLlmQueries.resolve(id, result);
+        } else {
+          const errorMessage = typeof msg.errorMessage === 'string' ? msg.errorMessage : 'llm_query failed';
+          this.pendingLlmQueries.reject(id, new Error(errorMessage));
         }
         break;
       }
@@ -952,20 +931,14 @@ export class PiAgent extends BaseAgent {
         // Reject any pending mini completions so errors propagate immediately.
         // mini_completion_error is an internal utility-path failure (title/summarization)
         // and should not surface as a user-visible chat error.
-        for (const [id, pending] of this.pendingMiniCompletions) {
-          pending.reject(new Error(rawMessage));
-          this.pendingMiniCompletions.delete(id);
-        }
+        this.pendingMiniCompletions.rejectAll(new Error(rawMessage));
 
         // Same treatment for pending llm_query calls. llm_query_error is also an
         // internal utility-path code (call_llm): the dual-emit from the subprocess
         // means a targeted `llm_query_result` is sent alongside this generic `error`
         // to reject the specific pending promise — this loop is the defensive cleanup
         // for queries that never got a targeted result (subprocess crash, etc.).
-        for (const [id, pending] of this.pendingLlmQueries) {
-          pending.reject(new Error(rawMessage));
-          this.pendingLlmQueries.delete(id);
-        }
+        this.pendingLlmQueries.rejectAll(new Error(rawMessage));
 
         if (errorCode === 'mini_completion_error' || errorCode === 'llm_query_error') {
           this.debug(`Ignoring ${errorCode} subprocess error in chat stream`);
@@ -973,24 +946,12 @@ export class PiAgent extends BaseAgent {
         }
 
         // Reject pending ensure_session_ready requests (used by branch preflight)
-        for (const [id, pending] of this.pendingEnsureSessionReady) {
-          pending.reject(new Error(rawMessage));
-          this.pendingEnsureSessionReady.delete(id);
-        }
+        this.pendingEnsureSessionReady.rejectAll(new Error(rawMessage));
 
         // Reject pending compact/toggle requests
-        for (const [id, pending] of this.pendingCompactions) {
-          pending.reject(new Error(rawMessage));
-          this.pendingCompactions.delete(id);
-        }
-        for (const [id, pending] of this.pendingAutoCompactionToggles) {
-          pending.reject(new Error(rawMessage));
-          this.pendingAutoCompactionToggles.delete(id);
-        }
-        for (const [id, pending] of this.pendingRuntimeConfigUpdates) {
-          pending.reject(new Error(rawMessage));
-          this.pendingRuntimeConfigUpdates.delete(id);
-        }
+        this.pendingCompactions.rejectAll(new Error(rawMessage));
+        this.pendingAutoCompactionToggles.rejectAll(new Error(rawMessage));
+        this.pendingRuntimeConfigUpdates.rejectAll(new Error(rawMessage));
 
         // Suppress repeated identical errors to prevent a broken subprocess
         // from flooding the user's session (e.g. EFAULT loop).
@@ -1276,11 +1237,8 @@ export class PiAgent extends BaseAgent {
         this.debug(`PreToolUse(sessionId=${sessionId}): Prompting user for ${toolName} - ${checkResult.description}`);
 
         // Wait for user response via pendingPermissions
-        const permissionPromise = new Promise<boolean>((resolve) => {
-          this.pendingPermissions.set(permRequestId, {
-            resolve,
-            toolName,
-          });
+        const permissionPromise = new Promise<boolean>((resolve, reject) => {
+          this.pendingPermissions.register(permRequestId, resolve, reject, { toolName });
         });
 
         this.onPermissionRequest({
@@ -1299,7 +1257,11 @@ export class PiAgent extends BaseAgent {
         });
 
         const allowed = await permissionPromise;
-        this.pendingPermissions.delete(permRequestId);
+        // PendingRequestMap.resolve() already deleted the entry; the duplicate
+        // delete below is a no-op-safe legacy belt-and-suspenders if respondToPermission
+        // raced. PendingRequestMap.has() check is cheaper than a .delete on absent key.
+        // (Kept conservative: explicit no-op when entry already drained.)
+        // No action needed — settle path handles cleanup.
 
         if (!allowed) {
           this.send({ type: 'pre_tool_use_response', requestId, action: 'block', reason: 'Permission denied by user.' });
@@ -1549,11 +1511,7 @@ export class PiAgent extends BaseAgent {
   private handleMiniCompletionResult(msg: Record<string, unknown>): void {
     const id = msg.id as string;
     const text = msg.text as string | null;
-    const pending = this.pendingMiniCompletions.get(id);
-    if (pending) {
-      this.pendingMiniCompletions.delete(id);
-      pending.resolve(text);
-    }
+    this.pendingMiniCompletions.resolve(id, text);
   }
 
   /**
@@ -1562,15 +1520,13 @@ export class PiAgent extends BaseAgent {
   private handleEnsureSessionReadyResult(msg: Record<string, unknown>): void {
     const id = msg.id as string;
     const sessionId = (msg.sessionId as string | null) ?? null;
-    const pending = this.pendingEnsureSessionReady.get(id);
-    if (!pending) return;
+    if (!this.pendingEnsureSessionReady.has(id)) return;
 
-    this.pendingEnsureSessionReady.delete(id);
     if (sessionId && this.piSessionId !== sessionId) {
       this.piSessionId = sessionId;
       this.config.onSdkSessionIdUpdate?.(sessionId);
     }
-    pending.resolve(sessionId);
+    this.pendingEnsureSessionReady.resolve(id, sessionId);
   }
 
   /**
@@ -1579,22 +1535,20 @@ export class PiAgent extends BaseAgent {
   private handleCompactResult(msg: Record<string, unknown>): void {
     const id = msg.id as string;
     const success = Boolean(msg.success);
-    const pending = this.pendingCompactions.get(id);
-    if (!pending) return;
+    if (!this.pendingCompactions.has(id)) return;
 
-    this.pendingCompactions.delete(id);
     if (!success) {
-      pending.reject(new Error(String(msg.errorMessage || 'Compaction failed')));
+      this.pendingCompactions.reject(id, new Error(String(msg.errorMessage || 'Compaction failed')));
       return;
     }
 
     const raw = msg.result as Record<string, unknown> | undefined;
     if (!raw) {
-      pending.resolve(null);
+      this.pendingCompactions.resolve(id, null);
       return;
     }
 
-    pending.resolve({
+    this.pendingCompactions.resolve(id, {
       summary: String(raw.summary || ''),
       firstKeptEntryId: String(raw.firstKeptEntryId || ''),
       tokensBefore: Number(raw.tokensBefore || 0),
@@ -1607,16 +1561,14 @@ export class PiAgent extends BaseAgent {
   private handleSetAutoCompactionResult(msg: Record<string, unknown>): void {
     const id = msg.id as string;
     const success = Boolean(msg.success);
-    const pending = this.pendingAutoCompactionToggles.get(id);
-    if (!pending) return;
+    if (!this.pendingAutoCompactionToggles.has(id)) return;
 
-    this.pendingAutoCompactionToggles.delete(id);
     if (!success) {
-      pending.reject(new Error(String(msg.errorMessage || 'Failed to set auto-compaction')));
+      this.pendingAutoCompactionToggles.reject(id, new Error(String(msg.errorMessage || 'Failed to set auto-compaction')));
       return;
     }
 
-    pending.resolve(Boolean(msg.enabled));
+    this.pendingAutoCompactionToggles.resolve(id, Boolean(msg.enabled));
   }
 
   /**
@@ -1625,16 +1577,14 @@ export class PiAgent extends BaseAgent {
   private handleRuntimeConfigUpdateResult(msg: Record<string, unknown>): void {
     const id = msg.id as string;
     const success = Boolean(msg.success);
-    const pending = this.pendingRuntimeConfigUpdates.get(id);
-    if (!pending) return;
+    if (!this.pendingRuntimeConfigUpdates.has(id)) return;
 
-    this.pendingRuntimeConfigUpdates.delete(id);
     if (!success) {
-      pending.reject(new Error(String(msg.errorMessage || 'Runtime config update failed')));
+      this.pendingRuntimeConfigUpdates.reject(id, new Error(String(msg.errorMessage || 'Runtime config update failed')));
       return;
     }
 
-    pending.resolve(Boolean(msg.updated ?? true));
+    this.pendingRuntimeConfigUpdates.resolve(id, Boolean(msg.updated ?? true));
   }
 
   /**
@@ -1662,44 +1612,22 @@ export class PiAgent extends BaseAgent {
     // Reject pending mini completions with error (not null) so callers
     // get a meaningful error instead of silently returning "no response"
     const exitReason = signal ? `signal ${signal}` : `code ${code}`;
-    for (const [, pending] of this.pendingMiniCompletions) {
-      pending.reject(new Error(`Pi subprocess exited unexpectedly (${exitReason})`));
-    }
-    this.pendingMiniCompletions.clear();
+    const exitError = new Error(`Pi subprocess exited unexpectedly (${exitReason})`);
+    this.pendingMiniCompletions.rejectAll(exitError);
 
     // Reject pending llm_query calls (call_llm in-flight during subprocess crash)
-    for (const [, pending] of this.pendingLlmQueries) {
-      pending.reject(new Error(`Pi subprocess exited unexpectedly (${exitReason})`));
-    }
-    this.pendingLlmQueries.clear();
+    this.pendingLlmQueries.rejectAll(exitError);
 
     // Reject pending ensure_session_ready requests
-    for (const [, pending] of this.pendingEnsureSessionReady) {
-      pending.reject(new Error(`Pi subprocess exited unexpectedly (${exitReason})`));
-    }
-    this.pendingEnsureSessionReady.clear();
+    this.pendingEnsureSessionReady.rejectAll(exitError);
 
     // Reject pending compact/toggle requests
-    for (const [, pending] of this.pendingCompactions) {
-      pending.reject(new Error(`Pi subprocess exited unexpectedly (${exitReason})`));
-    }
-    this.pendingCompactions.clear();
-
-    for (const [, pending] of this.pendingAutoCompactionToggles) {
-      pending.reject(new Error(`Pi subprocess exited unexpectedly (${exitReason})`));
-    }
-    this.pendingAutoCompactionToggles.clear();
-
-    for (const [, pending] of this.pendingRuntimeConfigUpdates) {
-      pending.reject(new Error(`Pi subprocess exited unexpectedly (${exitReason})`));
-    }
-    this.pendingRuntimeConfigUpdates.clear();
+    this.pendingCompactions.rejectAll(exitError);
+    this.pendingAutoCompactionToggles.rejectAll(exitError);
+    this.pendingRuntimeConfigUpdates.rejectAll(exitError);
 
     // Reject all pending tool executions
-    for (const [, pending] of this.pendingToolExecutions) {
-      pending.reject(new Error('Pi subprocess exited'));
-    }
-    this.pendingToolExecutions.clear();
+    this.pendingToolExecutions.rejectAll(new Error('Pi subprocess exited'));
 
     // Drop any cached pre-tool metadata for the dead subprocess.
     this.preToolMetadataByCallId.clear();
@@ -1717,20 +1645,23 @@ export class PiAgent extends BaseAgent {
 
     return new Promise<string | null>((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.pendingEnsureSessionReady.delete(id);
-        reject(new Error(`ensure_session_ready timed out after ${Math.floor(timeoutMs / 1000)}s`));
+        this.pendingEnsureSessionReady.reject(
+          id,
+          new Error(`ensure_session_ready timed out after ${Math.floor(timeoutMs / 1000)}s`),
+        );
       }, timeoutMs);
 
-      this.pendingEnsureSessionReady.set(id, {
-        resolve: (sessionId) => {
+      this.pendingEnsureSessionReady.register(
+        id,
+        (sessionId) => {
           clearTimeout(timer);
           resolve(sessionId);
         },
-        reject: (error) => {
+        (error) => {
           clearTimeout(timer);
           reject(error);
         },
-      });
+      );
 
       this.send({ type: 'ensure_session_ready', id });
     });
@@ -1750,20 +1681,23 @@ export class PiAgent extends BaseAgent {
 
     return new Promise<{ summary: string; firstKeptEntryId: string; tokensBefore: number } | null>((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.pendingCompactions.delete(id);
-        reject(new Error(`compact timed out after ${Math.floor(timeoutMs / 1000)}s`));
+        this.pendingCompactions.reject(
+          id,
+          new Error(`compact timed out after ${Math.floor(timeoutMs / 1000)}s`),
+        );
       }, timeoutMs);
 
-      this.pendingCompactions.set(id, {
-        resolve: (result) => {
+      this.pendingCompactions.register(
+        id,
+        (result) => {
           clearTimeout(timer);
           resolve(result);
         },
-        reject: (error) => {
+        (error) => {
           clearTimeout(timer);
           reject(error);
         },
-      });
+      );
 
       this.send({ type: 'compact', id, customInstructions });
     });
@@ -1780,20 +1714,23 @@ export class PiAgent extends BaseAgent {
 
     return new Promise<boolean>((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.pendingAutoCompactionToggles.delete(id);
-        reject(new Error(`set_auto_compaction timed out after ${Math.floor(timeoutMs / 1000)}s`));
+        this.pendingAutoCompactionToggles.reject(
+          id,
+          new Error(`set_auto_compaction timed out after ${Math.floor(timeoutMs / 1000)}s`),
+        );
       }, timeoutMs);
 
-      this.pendingAutoCompactionToggles.set(id, {
-        resolve: (value) => {
+      this.pendingAutoCompactionToggles.register(
+        id,
+        (value) => {
           clearTimeout(timer);
           resolve(value);
         },
-        reject: (error) => {
+        (error) => {
           clearTimeout(timer);
           reject(error);
         },
-      });
+      );
 
       this.send({ type: 'set_auto_compaction', id, enabled });
     });
@@ -1811,20 +1748,23 @@ export class PiAgent extends BaseAgent {
 
     return new Promise<boolean>((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.pendingRuntimeConfigUpdates.delete(id);
-        reject(new Error(`update_runtime_config timed out after ${Math.floor(timeoutMs / 1000)}s`));
+        this.pendingRuntimeConfigUpdates.reject(
+          id,
+          new Error(`update_runtime_config timed out after ${Math.floor(timeoutMs / 1000)}s`),
+        );
       }, timeoutMs);
 
-      this.pendingRuntimeConfigUpdates.set(id, {
-        resolve: (value) => {
+      this.pendingRuntimeConfigUpdates.register(
+        id,
+        (value) => {
           clearTimeout(timer);
           resolve(value);
         },
-        reject: (error) => {
+        (error) => {
           clearTimeout(timer);
           reject(error);
         },
-      });
+      );
 
       this.send({
         type: 'update_runtime_config',
@@ -2074,11 +2014,7 @@ export class PiAgent extends BaseAgent {
    * Permission checking now happens in the main process, so this resolves locally.
    */
   respondToPermission(requestId: string, allowed: boolean, _alwaysAllow?: boolean): void {
-    const pending = this.pendingPermissions.get(requestId);
-    if (pending) {
-      this.pendingPermissions.delete(requestId);
-      pending.resolve(allowed);
-    }
+    this.pendingPermissions.resolve(requestId, allowed);
   }
 
   // ============================================================
@@ -2170,11 +2106,8 @@ export class PiAgent extends BaseAgent {
     // Fire Stop hook event (fire-and-forget)
     this.emitAutomationEvent('Stop', { hook_event_name: 'Stop' });
 
-    // Deny all pending permissions
-    for (const [, pending] of this.pendingPermissions) {
-      pending.resolve(false);
-    }
-    this.pendingPermissions.clear();
+    // Deny all pending permissions (sentinel-resolve, not reject)
+    this.pendingPermissions.resolveAll(false);
 
     // Send abort to subprocess
     this.send({ type: 'abort' });
@@ -2191,17 +2124,11 @@ export class PiAgent extends BaseAgent {
     this.abortReason = reason;
     this._isProcessing = false;
 
-    // Reject all pending permissions
-    for (const [, pending] of this.pendingPermissions) {
-      pending.resolve(false);
-    }
-    this.pendingPermissions.clear();
+    // Deny all pending permissions (sentinel-resolve, not reject)
+    this.pendingPermissions.resolveAll(false);
 
     // Reject all pending tool executions
-    for (const [, pending] of this.pendingToolExecutions) {
-      pending.reject(new Error(`Force aborted: ${reason}`));
-    }
-    this.pendingToolExecutions.clear();
+    this.pendingToolExecutions.rejectAll(new Error(`Force aborted: ${reason}`));
 
     // Signal turn complete to wake up any waiting consumers
     this.eventQueue.complete();
@@ -2400,7 +2327,7 @@ export class PiAgent extends BaseAgent {
 
     const id = `mini-${++this.rpcIdCounter}`;
     const resultPromise = new Promise<string | null>((resolve, reject) => {
-      this.pendingMiniCompletions.set(id, { resolve, reject });
+      this.pendingMiniCompletions.register(id, resolve, reject);
     });
 
     this.send({ type: 'mini_completion', id, prompt });
@@ -2408,11 +2335,12 @@ export class PiAgent extends BaseAgent {
     // Keep this aligned with the subprocess-side queryLlm timeout.
     const timeout = new Promise<string | null>((resolve) => {
       setTimeout(() => {
-        if (this.pendingMiniCompletions.has(id)) {
-          this.pendingMiniCompletions.delete(id);
+        // resolve(null) drops the entry and settles the awaiting resultPromise
+        // to null — matches the prior `delete + resolve(null)` semantics.
+        if (this.pendingMiniCompletions.resolve(id, null)) {
           this.debug(`[runMiniCompletion] Timed out after ${LLM_QUERY_TIMEOUT_MS / 1000}s`);
-          resolve(null);
         }
+        resolve(null);
       }, LLM_QUERY_TIMEOUT_MS);
     });
 
@@ -2438,7 +2366,7 @@ export class PiAgent extends BaseAgent {
 
     const id = `llm-${++this.rpcIdCounter}`;
     const resultPromise = new Promise<LLMQueryResult>((resolve, reject) => {
-      this.pendingLlmQueries.set(id, { resolve, reject });
+      this.pendingLlmQueries.register(id, resolve, reject);
     });
 
     this.send({ type: 'llm_query', id, request });
@@ -2446,10 +2374,13 @@ export class PiAgent extends BaseAgent {
     // Keep this aligned with the subprocess-side queryLlm timeout.
     const timeout = new Promise<LLMQueryResult>((_, reject) => {
       setTimeout(() => {
-        if (this.pendingLlmQueries.has(id)) {
-          this.pendingLlmQueries.delete(id);
-          reject(new Error(`queryLlm timed out after ${LLM_QUERY_TIMEOUT_MS / 1000}s`));
-        }
+        // reject(id, err) drops the entry AND rejects the awaiting resultPromise.
+        // Promise.race below propagates whichever settles first.
+        this.pendingLlmQueries.reject(
+          id,
+          new Error(`queryLlm timed out after ${LLM_QUERY_TIMEOUT_MS / 1000}s`),
+        );
+        reject(new Error(`queryLlm timed out after ${LLM_QUERY_TIMEOUT_MS / 1000}s`));
       }, LLM_QUERY_TIMEOUT_MS);
     });
 
