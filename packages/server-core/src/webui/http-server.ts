@@ -919,22 +919,23 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       // legitimate user is active. `me` is called regularly by the UI shell,
       // making it the natural rotation trigger.
       //
-      // Race envelope (PR #19 review finding #3): rotation only fires for
-      // idempotent reads — specifically, this `GET /api/account/me` handler.
-      // The CAS in `rotateAccountSessionIfStale` (revoke FIRST, then create)
-      // guarantees at most one orphan-free rotation per source session. But
-      // any concurrent in-flight `PATCH`/`POST`/`DELETE` issued under the
-      // PRE-rotation cookie can briefly see a 401 if its identity check runs
-      // after the revoke and before the client has received the new
-      // `Set-Cookie`. The mitigations are:
+      // Race serialization (Slice 4 follow-up B2 — implemented):
+      // `rotateAccountSessionIfStale` now takes a per-user mutex keyed on
+      // `userId` (`withAccountRotationMutex` in `auth.ts`). Concurrent
+      // rotators for the same user are queued, so by the time the second
+      // rotator runs the first has already revoked the source session and
+      // its `getSessionIdentity` lookup returns `null`, exiting cleanly
+      // without any store mutation. The CAS-on-revoke remains as
+      // belt-and-braces for any caller that bypasses the helper.
+      //
+      // The mitigations that protected the un-serialized window remain
+      // valid as defence-in-depth:
       //   1) Mutating endpoints re-validate the JWT on each request, so once
       //      the browser sends the new cookie the request resolves normally.
-      //   2) Mutations are short-lived (sub-second), bounding the race window
-      //      to request RTT.
+      //   2) Mutations are short-lived (sub-second), bounding any residual
+      //      race window to request RTT.
       //   3) Idempotency-Key on side-effecting POSTs (per repo convention)
       //      makes a retry-after-401 safe.
-      // A per-user mutex around rotation is the cleaner long-term fix and is
-      // tracked as a Slice 4 follow-up.
       const rotated = await rotateAccountSessionIfStale({
         identity: session.identity,
         accountStore: accountStore!,

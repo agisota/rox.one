@@ -244,6 +244,93 @@ export async function validateAccountSession(
 }
 
 // ---------------------------------------------------------------------------
+// Per-user rotation mutex (Slice 4 follow-up B2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Per-user serialization for `rotateAccountSessionIfStale`.
+ *
+ * Closes the transient-401 race surfaced as finding #3 on PR #19: the CAS
+ * already prevents orphaned sessions, but two rotators racing the same
+ * userId still execute interleaved store calls. Without serialization, a
+ * `PATCH`/`POST` issued under the pre-rotation cookie can briefly observe
+ * a 401 between rotator A's `revokeSession` and rotator A's response
+ * carrying the new `Set-Cookie`.
+ *
+ * Implementation:
+ *   - `Map<string, Promise<void>>` keyed by `userId`.
+ *   - Acquire: chain a fresh promise off the existing tail; the new
+ *     awaiter resolves after the previous holder releases.
+ *   - Release: clear the map entry only if the tail we just released is
+ *     still the current tail; otherwise a later acquirer has already
+ *     extended the chain and is responsible for cleanup.
+ *   - try/finally guarantees release on the error path (covered by the
+ *     "releases the mutex on error" test).
+ *
+ * Timing-leak note: acquisition is keyed by `userId` (which has already
+ * been validated against the JWT signature via `validateAccountSession`
+ * before we get here). We do NOT branch on whether the userId is "known"
+ * vs "unknown" — every caller takes the same code path, so acquisition
+ * timing does not depend on whether the userId exists in the store.
+ */
+const accountRotationMutex = new Map<string, Promise<void>>()
+
+async function withAccountRotationMutex<T>(
+  userId: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  // Wait for any in-flight rotator for this userId to release. We do NOT
+  // short-circuit when the map is empty; the chained-promise pattern below
+  // is uniform regardless of whether there is an active holder, so timing
+  // is independent of "is anyone else holding the lock right now?".
+  const previous = accountRotationMutex.get(userId) ?? Promise.resolve()
+
+  let release!: () => void
+  const next = new Promise<void>(resolve => {
+    release = resolve
+  })
+  // The new tail is `previous` chained into `next`. Store the chained
+  // promise so the cleanup branch can compare-and-delete by identity.
+  const chained = previous.then(() => next)
+  accountRotationMutex.set(userId, chained)
+
+  // Wait for our turn. `previous` is always a settled or in-flight Promise
+  // that was created by an earlier acquirer; it never rejects (the inner
+  // body is wrapped in try/finally so release is unconditional).
+  await previous
+
+  try {
+    return await fn()
+  } finally {
+    // Drop our entry only if it is still the tail. If a later acquirer
+    // has already chained onto `chained`, they own the cleanup.
+    if (accountRotationMutex.get(userId) === chained) {
+      accountRotationMutex.delete(userId)
+    }
+    release()
+  }
+}
+
+/**
+ * Test-only helper: clears all in-flight mutex entries. Each test in
+ * `auth-rotation.test.ts` calls this in its setup so the per-file Map is
+ * not contaminated by prior tests' state. Not exported from the package
+ * barrel; consumers must `import { __resetAccountRotationMutexForTest }
+ * from './auth'` directly.
+ */
+export function __resetAccountRotationMutexForTest(): void {
+  accountRotationMutex.clear()
+}
+
+/**
+ * Test-only helper: returns the current size of the mutex map. Used by
+ * the "mutex must release" assertions to prove no leaked entries.
+ */
+export function __accountRotationMutexSizeForTest(): number {
+  return accountRotationMutex.size
+}
+
+// ---------------------------------------------------------------------------
 // Sliding-window session-id rotation (Slice 4 hardening)
 // ---------------------------------------------------------------------------
 
@@ -310,46 +397,57 @@ export interface RotatedAccountSession {
 export async function rotateAccountSessionIfStale(
   input: RotateAccountSessionInput,
 ): Promise<RotatedAccountSession | null> {
-  const now = input.nowMs ?? Date.now()
-  const window = input.rotationWindowMs ?? ACCOUNT_SESSION_ROTATION_WINDOW_MS
+  // Per-user mutex: serializes concurrent rotators for the same userId so
+  // that rotator B does not even *enter* the read→CAS→create critical
+  // section until rotator A has fully completed. By the time B resumes,
+  // A has already revoked the source session, so B's `getSessionIdentity`
+  // lookup returns `null` and B exits cleanly without any store mutation.
+  // This closes the transient-401 race surfaced as finding #3 on PR #19.
+  return withAccountRotationMutex(input.identity.userId, async () => {
+    const now = input.nowMs ?? Date.now()
+    const window = input.rotationWindowMs ?? ACCOUNT_SESSION_ROTATION_WINDOW_MS
 
-  // Re-resolve the session through the store so a concurrent revoke wins.
-  const current = await input.accountStore.getSessionIdentity(input.identity.sessionId)
-  if (!current) return null
+    // Re-resolve the session through the store so a concurrent revoke wins.
+    const current = await input.accountStore.getSessionIdentity(input.identity.sessionId)
+    if (!current) return null
 
-  const sessions = await input.accountStore.listSessions(current.userId)
-  const session = sessions.find(candidate => candidate.id === current.sessionId)
-  // If the session is too new to rotate, or has gone missing from the active
-  // list (e.g. revoked between calls), do nothing.
-  if (!session) return null
+    const sessions = await input.accountStore.listSessions(current.userId)
+    const session = sessions.find(candidate => candidate.id === current.sessionId)
+    // If the session is too new to rotate, or has gone missing from the active
+    // list (e.g. revoked between calls), do nothing.
+    if (!session) return null
 
-  const ageMs = now - new Date(session.createdAt).getTime()
-  if (ageMs < window) return null
+    const ageMs = now - new Date(session.createdAt).getTime()
+    if (ageMs < window) return null
 
-  // Compare-and-swap revoke FIRST. Only the caller that flips the row from
-  // active to revoked proceeds to mint a replacement. All other concurrent
-  // rotators see `revoked: false` and bail out without leaving an orphan.
-  const previousSessionId = current.sessionId
-  const revokeOutcome = await input.accountStore.revokeSession(previousSessionId)
-  if (!revokeOutcome.revoked) return null
+    // Compare-and-swap revoke FIRST. Only the caller that flips the row
+    // from active to revoked proceeds to mint a replacement. The mutex
+    // means concurrent rotators are already serialized, so the CAS is
+    // belt-and-braces against any caller that bypasses the mutex (e.g.
+    // a future endpoint that wires rotation without going through this
+    // helper).
+    const previousSessionId = current.sessionId
+    const revokeOutcome = await input.accountStore.revokeSession(previousSessionId)
+    if (!revokeOutcome.revoked) return null
 
-  const fresh = await input.accountStore.createSession({
-    userId: current.userId,
-    userAgent: input.userAgent,
-    ipAddress: input.ipAddress,
-    authMethod: session.authMethod ?? 'password',
+    const fresh = await input.accountStore.createSession({
+      userId: current.userId,
+      userAgent: input.userAgent,
+      ipAddress: input.ipAddress,
+      authMethod: session.authMethod ?? 'password',
+    })
+
+    const rotatedIdentity: SessionIdentity = {
+      userId: current.userId,
+      sessionId: fresh.id,
+      email: current.email,
+      displayName: current.displayName,
+      role: current.role,
+    }
+
+    const jwt = await createAccountSessionToken(input.secret, rotatedIdentity)
+    const cookie = buildSessionCookie(jwt, input.secure)
+
+    return { identity: rotatedIdentity, cookie, previousSessionId }
   })
-
-  const rotatedIdentity: SessionIdentity = {
-    userId: current.userId,
-    sessionId: fresh.id,
-    email: current.email,
-    displayName: current.displayName,
-    role: current.role,
-  }
-
-  const jwt = await createAccountSessionToken(input.secret, rotatedIdentity)
-  const cookie = buildSessionCookie(jwt, input.secure)
-
-  return { identity: rotatedIdentity, cookie, previousSessionId }
 }
