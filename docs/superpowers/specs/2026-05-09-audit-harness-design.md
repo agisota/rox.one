@@ -165,8 +165,8 @@ audits/2026-05-09T11-30-00Z/                # GITIGNORED (raw artifacts)
 └── manifest.json                           # written LAST; existence = run is committed-to-disk
 
 docs/tickets/                                # COMMITTED (agent-facing)
-├── T060-static-tsc-no-implicit-any-renderer.md
-├── T061-runtime-axe-button-name-webui-settings.md
+├── T134-static-tsc-no-implicit-any-renderer.md
+├── T135-runtime-axe-button-name-webui-settings.md
 └── ...
 
 docs/audits/INDEX.md                         # COMMITTED, append-only log
@@ -175,16 +175,16 @@ docs/audits/INDEX.md                         # COMMITTED, append-only log
 ### 5.2 Idempotency Invariant
 
 ```
-Run 1: Finding(id=abc) → docs/tickets/T060 created
-Run 2: Finding(id=abc) still present → ticket-gen sees existing T060, no-op
-       Finding(id=def) is new        → docs/tickets/T061 created
-Run 3: Finding(id=abc) GONE          → T060 marked status: auto-resolved via frontmatter
+Run 1: Finding(id=abc) → docs/tickets/T134 created
+Run 2: Finding(id=abc) still present → ticket-gen sees existing T134, no-op
+       Finding(id=def) is new        → docs/tickets/T135 created
+Run 3: Finding(id=abc) GONE          → T134 marked status: auto-resolved via frontmatter
                                         agents stop seeing it in active queue
 ```
 
 Tickets carry frontmatter: `findingId`, `firstSeen`, `lastSeen`, `status: open | auto-resolved`. `firstSeen` / `lastSeen` are mirrored from the corresponding `Finding` (which is the source of truth) — ticket-gen copies, never invents.
 
-The next-ticket-number allocator scans `docs/tickets/T<N>-*.md` for the highest existing N and increments. A.1 begins at T060 (your last is T059).
+The next-ticket-number allocator scans `docs/tickets/T<N>-*.md` for the highest existing N and increments. A.1 begins at T134 (highest existing as of 2026-05-09 is T128 in tickets/, T130 in worklog/).
 
 ### 5.3 Output Integrity
 
@@ -275,14 +275,14 @@ For every probe, three test layers — written **before** the probe's production
 
 ## 11. Phasing & Tickets
 
-### 11.1 Phase A.1 — Static Probes (~2 days, T060–T064)
+### 11.1 Phase A.1 — Static Probes (~2 days, T134–T138)
 | Ticket | Deliverable |
 |---|---|
-| T060 | `packages/audit/` workspace bootstrap, `Probe` interface, registry, CLI skeleton, ranker, JSON reporter |
-| T061 | `static-tsc` probe + tests + fixture |
-| T062 | `static-eslint` probe + tests + fixture |
-| T063 | `static-bundle` probe + tests + fixture |
-| T064 | `ticket-gen` + idempotency tests + first end-to-end run |
+| T134 | `packages/audit/` workspace bootstrap, `Probe` interface, registry, CLI skeleton, ranker, JSON reporter |
+| T135 | `static-tsc` probe + tests + fixture |
+| T136 | `static-eslint` probe + tests + fixture |
+| T137 | `static-bundle` probe + tests + fixture |
+| T138 | `ticket-gen` + idempotency tests + first end-to-end run |
 
 **A.1 acceptance gate:** `bun run audit run renderer,webui,viewer,marketing --probes=static-*` produces queue.json with real findings; ticket stubs land in `docs/tickets/`; all tests green; ≥80% branch coverage; `validate:ci` still passes.
 
@@ -332,7 +332,7 @@ Each ticket ships with `docs/worklog/T<N>-<slug>.md` containing the 11 sections 
 10. Remaining risks
 11. Acceptance criteria matrix
 
-`packages/audit/scripts/new-worklog.sh <ticket-id>` (delivered in T060) scaffolds this template.
+`packages/audit/scripts/new-worklog.sh <ticket-id>` (delivered in T134) scaffolds this template.
 
 ## 13. Branching & Commits
 
