@@ -1959,25 +1959,15 @@ export class PiAgent extends BaseAgent {
 
       // Yield events as they arrive. After each tool_result, check whether
       // a session-scoped tool (source_test) activated a new source — if so,
-      // yield source_activated and force-abort the turn for auto-retry.
-      // Mirrors the same check in ClaudeAgent.chatImpl; Pi's subprocess only
+      // yield source_activated and force-abort the turn for auto-retry. The
+      // sequencing is centralized in BaseAgent.maybeYieldSourceActivationRestart
+      // so this matches the ClaudeAgent path exactly. Pi's subprocess only
       // picks up new proxy tools on the next handlePrompt, so the restart
       // is needed here too.
       for await (const event of this.eventQueue.drain()) {
         yield event;
-        if (event.type === 'tool_result') {
-          const pendingRestart = this.consumePendingSourceActivationRestart();
-          if (pendingRestart) {
-            this.debug(`source_test activated "${pendingRestart.sourceSlug}", interrupting turn for auto-retry`);
-            yield {
-              type: 'source_activated' as const,
-              sourceSlug: pendingRestart.sourceSlug,
-              originalMessage: pendingRestart.userMessage,
-            };
-            this.forceAbort(AbortReason.SourceActivated);
-            return;
-          }
-        }
+        const sourceActivated = yield* this.maybeYieldSourceActivationRestart(event);
+        if (sourceActivated) return;
       }
     } catch (error) {
       if (error instanceof Error && error.message.includes('abort')) {
