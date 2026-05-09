@@ -234,6 +234,7 @@
       "name": "@craft-agent/audit",
       "version": "0.9.1",
       "dependencies": {
+        "@anthropic-ai/sdk": "0.81.0",
         "@axe-core/playwright": "4.10.2",
         "js-yaml": "4.1.1",
       },
