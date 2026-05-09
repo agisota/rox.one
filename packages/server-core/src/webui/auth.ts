@@ -5,6 +5,13 @@
  * - Login: verify password → issue signed JWT → set HttpOnly cookie
  * - Validation: check cookie on every HTTP request + WebSocket upgrade
  * - Rate limiting: per-IP brute-force protection on /api/auth
+ *
+ * **Slice 4 hardening (2026-05):** the cookie's lifetime was tightened from a
+ * single 24h JWT to a 1h JWT envelope wrapping a server-controlled DB session
+ * id. The DB session id rotates on a sliding window (default 15 min) so a
+ * stolen cookie ages out even when the legitimate user is active. The JWT
+ * itself never carries a long-lived bearer secret — only the rotated session
+ * id and the user's identity claims, both verifiable against the store.
  */
 
 import { SignJWT, jwtVerify } from 'jose'
@@ -14,7 +21,23 @@ import type { AccountStore, SessionIdentity } from '../accounts'
 // JWT helpers (via jose library)
 // ---------------------------------------------------------------------------
 
-const JWT_EXPIRY_SECONDS = 86_400 // 24 hours
+/**
+ * Lifetime of the signed cookie envelope. Rotation is triggered well inside
+ * this window (see `ACCOUNT_SESSION_ROTATION_WINDOW_MS`) so the cookie is
+ * normally refreshed before it expires; this value is the hard upper bound
+ * on bearer reuse for an idle session.
+ */
+export const ACCOUNT_SESSION_TTL_SECONDS = 60 * 60 // 1 hour
+
+/** @deprecated Internal alias retained while existing call sites migrate. */
+const JWT_EXPIRY_SECONDS = ACCOUNT_SESSION_TTL_SECONDS
+
+/**
+ * Sliding-window threshold above which the underlying DB session id is
+ * rotated on the next authenticated request. Keep ≤ TTL/2 so rotation always
+ * runs before the cookie expires.
+ */
+export const ACCOUNT_SESSION_ROTATION_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
 
 export interface JwtPayload {
   sub: string
@@ -218,4 +241,106 @@ export async function validateAccountSession(
   if (!identity) return null
   if (identity.userId !== payload.sub) return null
   return identity
+}
+
+// ---------------------------------------------------------------------------
+// Sliding-window session-id rotation (Slice 4 hardening)
+// ---------------------------------------------------------------------------
+
+/**
+ * Input for {@link rotateAccountSessionIfStale}.
+ *
+ * @property identity - The currently-validated session identity for the request.
+ * @property accountStore - The store that owns DB session lifecycle.
+ * @property secret - HMAC secret used to sign the new JWT envelope.
+ * @property secure - Whether to set the `Secure` cookie attribute (TLS only).
+ * @property userAgent - User agent recorded against the freshly-minted session.
+ * @property ipAddress - Client IP recorded against the freshly-minted session.
+ * @property nowMs - Optional clock injection for tests; defaults to `Date.now()`.
+ * @property rotationWindowMs - Optional override of the rotation threshold.
+ */
+export interface RotateAccountSessionInput {
+  identity: SessionIdentity
+  accountStore: AccountStore
+  secret: string
+  secure: boolean
+  userAgent: string | null
+  ipAddress: string | null
+  nowMs?: number
+  rotationWindowMs?: number
+}
+
+/**
+ * Output of {@link rotateAccountSessionIfStale} when rotation occurred.
+ *
+ * @property identity - The rotated identity, carrying the new session id.
+ * @property cookie - A `Set-Cookie` value the caller should attach to the response.
+ * @property previousSessionId - The id that was just revoked (logged, never echoed to clients).
+ */
+export interface RotatedAccountSession {
+  identity: SessionIdentity
+  cookie: string
+  previousSessionId: string
+}
+
+/**
+ * Rotate the underlying DB session id if it is older than the rotation window.
+ *
+ * Slice 4 hardening: a stolen cookie should not remain valid for the full
+ * cookie TTL when the user is actively using the app. On every authenticated
+ * request, the caller asks this helper whether to rotate. If the existing
+ * session is younger than `rotationWindowMs`, the helper returns `null` and
+ * nothing changes. Otherwise it mints a fresh DB session, revokes the old
+ * one, and returns a new identity + `Set-Cookie` value.
+ *
+ * The cookie is regenerated via {@link buildSessionCookie} so it inherits
+ * `HttpOnly`, `SameSite=Strict`, `Path=/`, and the (configurable) `Secure`
+ * flag. The bearer envelope continues to be a short-lived signed JWT carrying
+ * only server-controlled identifiers — never raw secret material.
+ *
+ * Race-safety: if the existing session is no longer present in the store
+ * (e.g. revoked concurrently), this helper returns `null` rather than minting
+ * a fresh session for an absent owner.
+ */
+export async function rotateAccountSessionIfStale(
+  input: RotateAccountSessionInput,
+): Promise<RotatedAccountSession | null> {
+  const now = input.nowMs ?? Date.now()
+  const window = input.rotationWindowMs ?? ACCOUNT_SESSION_ROTATION_WINDOW_MS
+
+  // Re-resolve the session through the store so a concurrent revoke wins.
+  const current = await input.accountStore.getSessionIdentity(input.identity.sessionId)
+  if (!current) return null
+
+  const sessions = await input.accountStore.listSessions(current.userId)
+  const session = sessions.find(candidate => candidate.id === current.sessionId)
+  // If the session is too new to rotate, or has gone missing from the active
+  // list (e.g. revoked between calls), do nothing.
+  if (!session) return null
+
+  const ageMs = now - new Date(session.createdAt).getTime()
+  if (ageMs < window) return null
+
+  const fresh = await input.accountStore.createSession({
+    userId: current.userId,
+    userAgent: input.userAgent,
+    ipAddress: input.ipAddress,
+    authMethod: session.authMethod ?? 'password',
+  })
+
+  const previousSessionId = current.sessionId
+  await input.accountStore.revokeSession(previousSessionId)
+
+  const rotatedIdentity: SessionIdentity = {
+    userId: current.userId,
+    sessionId: fresh.id,
+    email: current.email,
+    displayName: current.displayName,
+    role: current.role,
+  }
+
+  const jwt = await createAccountSessionToken(input.secret, rotatedIdentity)
+  const cookie = buildSessionCookie(jwt, input.secure)
+
+  return { identity: rotatedIdentity, cookie, previousSessionId }
 }
