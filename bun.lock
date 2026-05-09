@@ -389,6 +389,7 @@
         "shell-quote": "^1.8.3",
       },
       "devDependencies": {
+        "@craft-agent/test-fixtures": "workspace:*",
         "@types/shell-quote": "^1.7.5",
         "@types/uuid": "^11.0.0",
       },
