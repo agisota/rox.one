@@ -14,6 +14,18 @@ const resources = Object.fromEntries(
 // If async init is ever needed, replace with a promise-based singleton.
 let initialized = false;
 
+function getInitialLanguage(): string {
+  if (typeof globalThis === "undefined" || !("localStorage" in globalThis)) {
+    return "ru";
+  }
+
+  try {
+    return globalThis.localStorage?.getItem("i18nextLng") || "ru";
+  } catch {
+    return "ru";
+  }
+}
+
 /**
  * Initialize i18next with bundled translations.
  * Call once at app startup. Pass `plugins` to add framework integrations
@@ -31,6 +43,7 @@ export function setupI18n(
 
   instance.init({
     resources,
+    lng: getInitialLanguage(),
     fallbackLng: "ru",
     supportedLngs: [...SUPPORTED_LANGUAGE_CODES],
     interpolation: { escapeValue: false },

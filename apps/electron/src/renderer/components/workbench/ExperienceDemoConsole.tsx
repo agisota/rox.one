@@ -23,9 +23,11 @@ import {
 
 type ExperienceDemoConsoleProps = {
   screen: WorkbenchScreen
-  sessions: DemoExperienceSession[]
   activeSession: DemoExperienceSession
-  onSelectSession: (sessionId: string) => void
+  actionResult?: string
+  eventCount: number
+  lastActionId?: DemoExperienceAction['id']
+  onRunAction: (action: DemoExperienceAction) => void
 }
 
 const ACTION_ICONS: Record<DemoExperienceAction['id'], React.ComponentType<{ className?: string }>> = {
@@ -38,28 +40,22 @@ const ACTION_ICONS: Record<DemoExperienceAction['id'], React.ComponentType<{ cla
 
 export function ExperienceDemoConsole({
   screen,
-  sessions,
   activeSession,
-  onSelectSession,
+  actionResult,
+  eventCount,
+  lastActionId,
+  onRunAction,
 }: ExperienceDemoConsoleProps) {
-  const [actionResultBySessionId, setActionResultBySessionId] = React.useState<Record<string, string>>({})
-  const actionResult = actionResultBySessionId[activeSession.id] ?? `Готово к демо: ${activeSession.sourceSessionLabel}`
+  const visibleActionResult = actionResult ?? `Готово к демо: ${activeSession.sourceSessionLabel}`
   const metricSnapshot = activeSession.truthState.metricSnapshots[0]
   const openRiskScore = metricSnapshot?.openRiskScore ?? 0
-
-  const runDemoAction = React.useCallback((action: DemoExperienceAction) => {
-    setActionResultBySessionId((current) => ({
-      ...current,
-      [activeSession.id]: action.result,
-    }))
-  }, [activeSession.id])
 
   return (
     <section
       aria-label={`Демо-контур ${EXPERIENCE_SCREEN_LABELS[screen]}`}
       className="shrink-0 border-b border-white/[0.08] bg-[#07090d] px-4 py-3 sm:px-6"
     >
-      <div className="grid gap-3 xl:grid-cols-[minmax(260px,0.9fr)_minmax(420px,1.4fr)_minmax(260px,0.85fr)]">
+      <div className="grid gap-3 2xl:grid-cols-[minmax(260px,0.8fr)_minmax(520px,1.55fr)_minmax(260px,0.8fr)]">
         <ExperiencePanel
           title="Демо-контур"
           subtitle={`${activeSession.sourceSessionLabel} · ${EXPERIENCE_SCREEN_LABELS[screen]}`}
@@ -71,8 +67,8 @@ export function ExperienceDemoConsole({
             <ExperienceStatusChip status="success" label={`Readiness ${metricSnapshot?.executionReadiness ?? 0}`} />
             <ExperienceStatusChip status={openRiskScore > 16 ? 'warning' : 'success'} label={`Risk ${openRiskScore}`} />
           </div>
-          <div className="mt-3 rounded-[16px] border border-cyan-300/20 bg-cyan-400/[0.06] p-3 text-sm leading-6 text-cyan-100">
-            {actionResult}
+          <div className="mt-3 rounded-lg border border-cyan-300/20 bg-cyan-400/[0.06] p-3 text-sm leading-6 text-cyan-100">
+            {visibleActionResult}
           </div>
         </ExperiencePanel>
 
@@ -81,7 +77,7 @@ export function ExperienceDemoConsole({
           subtitle="Эти кнопки меняют видимый статус демо и показывают, что именно ожидать от сценария."
           tone="neutral"
         >
-          <div className="mt-3 grid gap-3 lg:grid-cols-3">
+          <div className="mt-3 grid gap-3 xl:grid-cols-3">
             <StepList title="Как пользоваться" steps={activeSession.usageSteps} />
             <StepList title="Как настраивать" steps={activeSession.setupSteps} />
             <StepList title="Что ожидать" steps={activeSession.expectedOutcomes} />
@@ -95,7 +91,7 @@ export function ExperienceDemoConsole({
                   type="button"
                   variant={action.id === 'run' ? 'default' : 'outline'}
                   className="rounded-full"
-                  onClick={() => runDemoAction(action)}
+                  onClick={() => onRunAction(action)}
                 >
                   <ActionIcon className="h-4 w-4" />
                   {action.label}
@@ -124,24 +120,14 @@ export function ExperienceDemoConsole({
               </span>
             ))}
           </div>
-          <div className="mt-4 grid gap-2">
-            {sessions.map((session) => {
-              const selected = session.id === activeSession.id
-              return (
-                <button
-                  key={session.id}
-                  type="button"
-                  onClick={() => onSelectSession(session.id)}
-                  className={`rounded-[14px] border px-3 py-2 text-left text-xs transition ${
-                    selected
-                      ? 'border-cyan-300/45 bg-cyan-400/15 text-cyan-100'
-                      : 'border-white/10 bg-white/[0.035] text-muted-foreground hover:border-white/20 hover:text-foreground'
-                  }`}
-                >
-                  {session.sourceSessionLabel}
-                </button>
-              )
-            })}
+          <div className="mt-4 rounded-lg border border-white/[0.07] bg-white/[0.035] p-3 text-sm leading-6 text-muted-foreground">
+            <div className="flex items-center justify-between gap-3">
+              <span>Журнал действий</span>
+              <ExperienceStatusChip status={eventCount > 0 ? 'running' : 'queued'} label={`${eventCount} событий`} />
+            </div>
+            <div className="mt-2 text-xs">
+              Последнее действие: {lastActionId ? localizeActionId(lastActionId) : 'еще не запускалось'}
+            </div>
           </div>
         </ExperiencePanel>
       </div>
@@ -149,9 +135,26 @@ export function ExperienceDemoConsole({
   )
 }
 
+function localizeActionId(actionId: DemoExperienceAction['id']): string {
+  switch (actionId) {
+    case 'configure':
+      return 'настройка сценария'
+    case 'run':
+      return 'запуск демо'
+    case 'expectations':
+      return 'проверка ожиданий'
+    case 'evidence':
+      return 'запись evidence'
+    case 'reset':
+      return 'сброс'
+    default:
+      return actionId
+  }
+}
+
 function StepList({ title, steps }: { title: string; steps: string[] }) {
   return (
-    <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.035] p-3">
+    <div className="rounded-lg border border-white/[0.07] bg-white/[0.035] p-3">
       <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</div>
       <ol className="mt-2 space-y-1.5 text-sm leading-5 text-muted-foreground">
         {steps.map((step, index) => (

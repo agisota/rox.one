@@ -140,6 +140,7 @@ import {
 import { hasOpenOverlay } from "@/lib/overlay-detection"
 import { clearSourceIconCaches } from "@/lib/icon-cache"
 import { dispatchFocusInputEvent } from "./input/focus-input-events"
+import { ExperienceDemoSessionList } from "../workbench/ExperienceDemoSessionList"
 
 /**
  * AppShellProps - Minimal props interface for AppShell component
@@ -3252,6 +3253,9 @@ function AppShellContent({
                 selectedSubpage={navState.subpage}
                 onSelectSubpage={(subpage) => handleSettingsClick(subpage)}
               />
+            )}
+            {isWorkbenchNavigation(navState) && (
+              <ExperienceDemoSessionList screen={navState.screen} />
             )}
             {isSessionsNavigation(navState) && (
               /* Sessions List */
