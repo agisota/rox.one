@@ -29,6 +29,8 @@ export interface FreeFormInputContextBadgeProps {
   buttonRef?: React.RefObject<HTMLButtonElement>
   /** Data attribute for tutorials */
   'data-tutorial'?: string
+  /** When true, renders skeleton placeholder instead of content (async loading state) */
+  loading?: boolean
 }
 
 /**
@@ -55,11 +57,22 @@ export const FreeFormInputContextBadge = React.forwardRef<HTMLButtonElement, Fre
       className,
       buttonRef,
       'data-tutorial': dataTutorial,
+      loading = false,
     },
     ref
   ) {
     // Merge refs if both are provided
     const mergedRef = buttonRef || ref
+
+    // Skeleton loading state — renders placeholder shapes sized to match the badge
+    if (loading) {
+      return (
+        <div className="inline-flex items-center gap-1.5 h-7 px-1.5 rounded-[6px]">
+          <div className="h-4 w-4 rounded bg-muted animate-pulse shrink-0" />
+          <div className="h-3 w-16 rounded bg-muted animate-pulse" />
+        </div>
+      )
+    }
 
     // Show label in expanded state OR in collapsed state with selection
     const showLabel = isExpanded || hasSelection
