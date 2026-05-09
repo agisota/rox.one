@@ -25,13 +25,21 @@ function makeMetaFinding(
   };
 }
 
-async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<{ ok: true; value: T } | { ok: false; reason: "timeout" }> {
-  return await Promise.race([
-    promise.then((value) => ({ ok: true as const, value })),
-    new Promise<{ ok: false; reason: "timeout" }>((resolve) =>
-      setTimeout(() => resolve({ ok: false, reason: "timeout" }), ms),
-    ),
-  ]);
+async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+): Promise<{ ok: true; value: T } | { ok: false; reason: "timeout" }> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise.then((value) => ({ ok: true as const, value })),
+      new Promise<{ ok: false; reason: "timeout" }>((resolve) => {
+        timeoutId = setTimeout(() => resolve({ ok: false, reason: "timeout" }), ms);
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
 }
 
 export interface RegistryRunOptions {
@@ -84,20 +92,17 @@ export class ProbeRegistry {
         const next = queue.shift();
         if (!next) return;
         const ctx = opts.contextFor(next.surface);
-        const outcome = await withTimeout(
-          (async () => next.probe.run(ctx))().catch((e) => {
-            throw e instanceof Error ? e : new Error(String(e));
-          }),
-          ctx.timeoutMs,
-        ).catch((e: Error) => ({ ok: false as const, reason: "crash" as const, err: e }));
-
-        if (outcome.ok === true) {
-          allFindings.push(...outcome.value);
-        } else if (outcome.reason === "timeout") {
-          allFindings.push(makeMetaFinding(next.probe.name, next.surface, "_probe.timeout", `probe exceeded ${ctx.timeoutMs}ms`));
-          crashed.push({ probe: next.probe.name, surface: next.surface, error: "timeout" });
-        } else {
-          const msg = (outcome as { err: Error }).err.message;
+        try {
+          const outcome = await withTimeout(next.probe.run(ctx), ctx.timeoutMs);
+          if (outcome.ok) {
+            allFindings.push(...outcome.value);
+          } else {
+            // outcome.reason === "timeout"
+            allFindings.push(makeMetaFinding(next.probe.name, next.surface, "_probe.timeout", `probe exceeded ${ctx.timeoutMs}ms`));
+            crashed.push({ probe: next.probe.name, surface: next.surface, error: "timeout" });
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
           allFindings.push(makeMetaFinding(next.probe.name, next.surface, "_probe.crash", msg));
           crashed.push({ probe: next.probe.name, surface: next.surface, error: msg });
         }
