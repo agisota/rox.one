@@ -1,5 +1,7 @@
-import { describe, expect, test, beforeAll } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { staticBundleProbe } from "../../src/probes/static-bundle.ts";
 import type { ProbeContext } from "../../src/probe.ts";
@@ -56,5 +58,22 @@ describe("static-bundle probe", () => {
     };
     const findings = await staticBundleProbe.run(ctx);
     expect(findings.length).toBe(0);
+  });
+
+  describe("graceful skip", () => {
+    let scratchDir: string;
+    beforeEach(() => { scratchDir = mkdtempSync(join(tmpdir(), "audit-bundle-skip-")); });
+    afterEach(() => { rmSync(scratchDir, { recursive: true, force: true }); });
+
+    test("returns [] when surfaceRoot has no budget.json", async () => {
+      const ctx: ProbeContext = {
+        surface: "renderer",
+        workspaceRoot: scratchDir,
+        surfaceRoot: scratchDir,
+        timeoutMs: 30_000,
+      };
+      const findings = await staticBundleProbe.run(ctx);
+      expect(findings).toEqual([]);
+    });
   });
 });

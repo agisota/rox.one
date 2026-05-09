@@ -1,4 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { staticEslintProbe } from "../../src/probes/static-eslint.ts";
 import type { ProbeContext } from "../../src/probe.ts";
@@ -31,5 +33,22 @@ describe("static-eslint probe", () => {
       expect(f.severity).toBe("high"); // severity 2 → high
       expect(f.probe).toBe("static-eslint");
     }
+  });
+
+  describe("graceful skip", () => {
+    let scratchDir: string;
+    beforeEach(() => { scratchDir = mkdtempSync(join(tmpdir(), "audit-eslint-skip-")); });
+    afterEach(() => { rmSync(scratchDir, { recursive: true, force: true }); });
+
+    test("returns [] when surfaceRoot has no eslint config", async () => {
+      const ctx: ProbeContext = {
+        surface: "renderer",
+        workspaceRoot: scratchDir,
+        surfaceRoot: scratchDir,
+        timeoutMs: 30_000,
+      };
+      const findings = await staticEslintProbe.run(ctx);
+      expect(findings).toEqual([]);
+    });
   });
 });
