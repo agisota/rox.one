@@ -63,3 +63,50 @@ describe("ProbeRegistry — basic", () => {
     expect(result.executedPairs).toEqual([]);
   });
 });
+
+describe("ProbeRegistry — parallelism", () => {
+  test("workerCap=1 runs probes serially (proven by overlapping start times being impossible)", async () => {
+    const reg = new ProbeRegistry();
+    const log: string[] = [];
+    const slow = (name: string): Probe => ({
+      name,
+      phase: "A.1",
+      applicableTo: () => true,
+      run: async () => {
+        log.push(`${name}:start`);
+        await new Promise((r) => setTimeout(r, 30));
+        log.push(`${name}:end`);
+        return [];
+      },
+    });
+    reg.register(slow("p1"));
+    reg.register(slow("p2"));
+    await reg.run({ surfaces: ["renderer"], probes: ["p1", "p2"], workerCap: 1, contextFor: ctxFor });
+    expect(log).toEqual(["p1:start", "p1:end", "p2:start", "p2:end"]);
+  });
+
+  test("workerCap=2 runs two probes in parallel (overlapping windows)", async () => {
+    const reg = new ProbeRegistry();
+    const log: string[] = [];
+    const slow = (name: string): Probe => ({
+      name,
+      phase: "A.1",
+      applicableTo: () => true,
+      run: async () => {
+        log.push(`${name}:start`);
+        await new Promise((r) => setTimeout(r, 30));
+        log.push(`${name}:end`);
+        return [];
+      },
+    });
+    reg.register(slow("p1"));
+    reg.register(slow("p2"));
+    await reg.run({ surfaces: ["renderer"], probes: ["p1", "p2"], workerCap: 2, contextFor: ctxFor });
+    // Both should start before either ends
+    const p1StartIdx = log.indexOf("p1:start");
+    const p2StartIdx = log.indexOf("p2:start");
+    const p1EndIdx = log.indexOf("p1:end");
+    expect(p2StartIdx).toBeLessThan(p1EndIdx);
+    expect(p1StartIdx).toBeLessThan(p1EndIdx);
+  });
+});
