@@ -10,7 +10,9 @@ import { staticEslintProbe } from "./probes/static-eslint.ts";
 import { staticBundleProbe } from "./probes/static-bundle.ts";
 import { runtimeAxeProbe } from "./probes/runtime-axe.ts";
 import { runtimeStatesProbe } from "./probes/runtime-states.ts";
+import { tasteLlmProbe } from "./probes/taste-llm.ts";
 import { createPlaywrightRunner } from "./runners/playwright-runner.ts";
+import { createLLMRunner, type LLMClient } from "./runners/llm-runner.ts";
 import { spawnDevServer, type DevServerHandle } from "./runners/dev-server-runner.ts";
 import { join } from "node:path";
 
@@ -97,7 +99,7 @@ async function main(): Promise<number> {
 
   // Discover probes by static import. Each probe module exports a default Probe.
   const registry = new ProbeRegistry();
-  const probeModules: Probe[] = [staticTscProbe, staticEslintProbe, staticBundleProbe, runtimeAxeProbe, runtimeStatesProbe];
+  const probeModules: Probe[] = [staticTscProbe, staticEslintProbe, staticBundleProbe, runtimeAxeProbe, runtimeStatesProbe, tasteLlmProbe];
   for (const p of probeModules) {
     if (probeMatches(p.name, parsed.probesGlob)) registry.register(p);
   }
@@ -115,6 +117,19 @@ async function main(): Promise<number> {
   // Instantiate a shared Playwright runner when any registered probe is A.2+.
   const needsPlaywright = registry.list().some((p) => p.phase !== "A.1");
   const playwright = needsPlaywright ? await createPlaywrightRunner() : undefined;
+
+  // A.3+: instantiate a shared LLM runner when any A.3 probe is selected.
+  // Falls back to undefined if ANTHROPIC_API_KEY is not set so the run
+  // doesn't crash; the affected probes will return [] in that case.
+  const needsLLM = registry.list().some((p) => p.phase === "A.3");
+  let llm: LLMClient | undefined;
+  if (needsLLM) {
+    try {
+      llm = createLLMRunner({});
+    } catch (e) {
+      process.stderr.write(`warning: LLM runner unavailable, A.3 probes will be skipped (${e instanceof Error ? e.message : String(e)})\n`);
+    }
+  }
 
   // A.4: when any A.2+ probe is selected, spawn dev servers per surface so
   // runtime probes can crawl the live SPA. Renderer is skipped (Electron app
@@ -169,6 +184,7 @@ async function main(): Promise<number> {
         timeoutMs: 60_000,
         playwright,
         devServerUrl: devServers.get(surface)?.url,
+        llm,
       }),
     });
     const ranked = rank(result.findings);
@@ -206,6 +222,7 @@ async function main(): Promise<number> {
     return 0;
   } finally {
     if (playwright) await playwright.close();
+    if (llm) await llm.close().catch(() => undefined);
     if (devServers.size > 0) {
       await Promise.all(Array.from(devServers.values()).map((h) => h.kill().catch(() => undefined)));
     }
