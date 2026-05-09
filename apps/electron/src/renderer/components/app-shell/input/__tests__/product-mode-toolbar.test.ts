@@ -8,6 +8,7 @@ import {
   createProductModeIntent,
   getComposerProductModeActions,
   getComposerProductModeOptions,
+  resolveComposerProductModeKeyboardTarget,
   resolveComposerProductModeFromAction,
   type ComposerProductModeActionId,
   type ProductMode,
@@ -89,6 +90,15 @@ describe('product mode toolbar contract', () => {
     }
   });
 
+  test('resolves keyboard navigation targets through the visible mode order', () => {
+    expect(resolveComposerProductModeKeyboardTarget('build', 'ArrowDown')).toBe('review');
+    expect(resolveComposerProductModeKeyboardTarget('build', 'ArrowUp')).toBe('plan');
+    expect(resolveComposerProductModeKeyboardTarget('research', 'ArrowDown')).toBe('rewrite');
+    expect(resolveComposerProductModeKeyboardTarget('research', 'ArrowUp')).toBe('tdd');
+    expect(resolveComposerProductModeKeyboardTarget('verify', 'Home')).toBe('rewrite');
+    expect(resolveComposerProductModeKeyboardTarget('verify', 'End')).toBe('research');
+  });
+
   test('renders a custom mode picker and does not depend on a native select', () => {
     const markup = renderToStaticMarkup(
       React.createElement(ProductModeToolbar, {
@@ -102,6 +112,7 @@ describe('product mode toolbar contract', () => {
     expect(markup).toContain('data-testid="product-mode-picker"');
     expect(markup).toContain('aria-haspopup="listbox"');
     expect(markup).toContain('aria-controls=');
+    expect(markup).toContain('aria-keyshortcuts="ArrowDown ArrowUp Home End Enter Space Escape"');
     expect(markup).toContain('data-state="closed"');
     expect(markup).toContain('<svg');
     expect(markup).toContain('title="workbench.actions.improvePrompt.description"');

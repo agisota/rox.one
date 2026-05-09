@@ -4,6 +4,15 @@ export type { ProductMode };
 
 export const PRODUCT_MODE_TOOLBAR_DEFAULT_MODE = 'research' satisfies ProductMode;
 
+export const COMPOSER_PRODUCT_MODE_NAVIGATION_KEYS = [
+  'ArrowDown',
+  'ArrowUp',
+  'Home',
+  'End',
+] as const;
+
+export type ComposerProductModeNavigationKey = typeof COMPOSER_PRODUCT_MODE_NAVIGATION_KEYS[number];
+
 const COMPOSER_PRODUCT_MODE_IDS = [
   'rewrite',
   'think',
@@ -107,6 +116,31 @@ export function getComposerProductModeOptions(): ComposerProductModeOption[] {
     labelKey: `workbench.modes.${id}.label`,
     descriptionKey: `workbench.modes.${id}.description`,
   }));
+}
+
+export function isComposerProductModeNavigationKey(key: string): key is ComposerProductModeNavigationKey {
+  return COMPOSER_PRODUCT_MODE_NAVIGATION_KEYS.some(candidate => candidate === key);
+}
+
+export function resolveComposerProductModeKeyboardTarget(
+  currentMode: ProductMode,
+  key: ComposerProductModeNavigationKey,
+): ProductMode {
+  const currentIndex = COMPOSER_PRODUCT_MODE_IDS.indexOf(currentMode);
+  const safeIndex = currentIndex === -1 ? 0 : currentIndex;
+
+  switch (key) {
+    case 'ArrowDown':
+      return COMPOSER_PRODUCT_MODE_IDS[(safeIndex + 1) % COMPOSER_PRODUCT_MODE_IDS.length];
+    case 'ArrowUp':
+      return COMPOSER_PRODUCT_MODE_IDS[
+        (safeIndex - 1 + COMPOSER_PRODUCT_MODE_IDS.length) % COMPOSER_PRODUCT_MODE_IDS.length
+      ];
+    case 'Home':
+      return COMPOSER_PRODUCT_MODE_IDS[0];
+    case 'End':
+      return COMPOSER_PRODUCT_MODE_IDS[COMPOSER_PRODUCT_MODE_IDS.length - 1];
+  }
 }
 
 export function resolveComposerProductModeFromAction(
