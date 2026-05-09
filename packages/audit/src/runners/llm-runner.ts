@@ -84,7 +84,11 @@ export function createLLMRunner(input: CreateLLMRunnerInput = {}): LLMClient {
           {
             role: "user",
             content: [
-              { type: "image", source: { type: "base64", media_type: "image/png", data: base64 } },
+              {
+                type: "image",
+                source: { type: "base64", media_type: "image/png", data: base64 },
+                cache_control: { type: "ephemeral" }, // cache image tokens (~1000-2000 tokens per screenshot)
+              },
               { type: "text", text: `Surface: ${surface}, Route: ${route}` },
             ],
           },
