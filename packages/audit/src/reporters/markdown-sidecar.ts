@@ -4,6 +4,10 @@ import type { Finding, FindingSeverity } from "../probe.ts";
 
 const SEVERITY_ORDER: FindingSeverity[] = ["critical", "high", "medium", "low"];
 
+function escapeMd(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/`/g, "\\`");
+}
+
 export interface WriteMarkdownSidecarInput {
   outDir: string;
   runId: string;
@@ -18,7 +22,7 @@ function atomicWrite(path: string, content: string): void {
 
 function findingToBullet(f: Finding): string {
   const loc = f.location.line ? `${f.location.file}:${f.location.line}` : f.location.file;
-  return `- **[${f.surface}]** \`${f.rule}\` — ${f.message} \`(${loc})\` _confidence ${f.confidence}_ \`id:${f.id}\``;
+  return `- **[${f.surface}]** \`${f.rule}\` — ${escapeMd(f.message)} \`(${loc})\` _confidence ${f.confidence}_ \`id:${f.id}\``;
 }
 
 export async function writeMarkdownSidecar(input: WriteMarkdownSidecarInput): Promise<void> {
