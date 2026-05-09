@@ -230,6 +230,18 @@
         "sonner": "^2.0.7",
       },
     },
+    "packages/audit": {
+      "name": "audit",
+      "version": "0.9.1",
+      "dependencies": {
+        "js-yaml": "^4.1.1",
+      },
+      "devDependencies": {
+        "@types/js-yaml": "^4.0.9",
+        "@types/node": "^25.6.0",
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/core": {
       "name": "@rox-agent/core",
       "version": "0.9.1",
@@ -1722,6 +1734,8 @@
     "audio-decode": ["audio-decode@2.2.3", "", { "dependencies": { "@wasm-audio-decoders/flac": "^0.2.4", "@wasm-audio-decoders/ogg-vorbis": "^0.1.15", "audio-buffer": "^5.0.0", "audio-type": "^2.2.1", "mpg123-decoder": "^1.0.0", "node-wav": "^0.0.2", "ogg-opus-decoder": "^1.6.12", "qoa-format": "^1.0.1" } }, "sha512-Z0lHvMayR/Pad9+O9ddzaBJE0DrhZkQlStrC1RwcAHF3AhQAsdwKHeLGK8fYKyp2DDU6xHxzGb4CLMui12yVrg=="],
 
     "audio-type": ["audio-type@2.4.1", "", {}, "sha512-dK9Z/P83C/rBfTrXXgPD3jZ+aXxx2o/P4rq8+H1JqxbXklitEeJw4CrcwMC5CkON3CX3yy2gaWnIEVYejYh0zQ=="],
+
+    "audit": ["audit@workspace:packages/audit"],
 
     "author-regex": ["author-regex@1.0.0", "", {}, "sha512-KbWgR8wOYRAPekEmMXrYYdc7BRyhn2Ftk7KWfMUnQ43hFdojWEFRxhhRUm3/OFEdPa1r0KAvTTg9YQK57xTe0g=="],
 
