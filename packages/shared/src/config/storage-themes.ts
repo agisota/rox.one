@@ -14,6 +14,7 @@ import { getConfigDir } from './paths.ts';
 import { isValidThemeFile } from './validators.ts';
 import { ensureConfigDir } from './storage-io.ts';
 import type { ThemeOverrides, ThemeFile, PresetTheme } from './theme.ts';
+import { DEFAULT_LOCAL_SCOPE, type WorkspaceScope } from './storage-scope.ts';
 
 function getAppThemeFile(): string {
   return join(getConfigDir(), 'theme.json');
@@ -26,7 +27,7 @@ function resolveAppThemesDir(): string {
 /**
  * Get the path to the app-level theme override file (~/.rox/theme.json).
  */
-export function getAppThemePath(): string {
+export function getAppThemePath(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): string {
   return getAppThemeFile();
 }
 
@@ -37,14 +38,14 @@ let presetsInitialized = false;
  * Get the app-level themes directory.
  * Preset themes are stored at ~/.rox/themes/
  */
-export function getAppThemesDir(): string {
+export function getAppThemesDir(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): string {
   return resolveAppThemesDir();
 }
 
 /**
  * Load app-level theme overrides
  */
-export function loadAppTheme(): ThemeOverrides | null {
+export function loadAppTheme(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): ThemeOverrides | null {
   try {
     if (!existsSync(getAppThemeFile())) {
       return null;
@@ -58,7 +59,7 @@ export function loadAppTheme(): ThemeOverrides | null {
 /**
  * Save app-level theme overrides
  */
-export function saveAppTheme(theme: ThemeOverrides): void {
+export function saveAppTheme(theme: ThemeOverrides, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
   ensureConfigDir();
   writeFileSync(getAppThemeFile(), JSON.stringify(theme, null, 2), 'utf-8');
 }
@@ -78,7 +79,7 @@ export function saveAppTheme(theme: ThemeOverrides): void {
  * User-created custom theme files (with non-bundled filenames) are untouched.
  * User color overrides live in theme.json (separate file) and are never touched.
  */
-export function ensurePresetThemes(): void {
+export function ensurePresetThemes(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
   // Skip if already initialized this session (prevents re-init on hot reload)
   if (presetsInitialized) {
     return;
@@ -126,7 +127,7 @@ export function ensurePresetThemes(): void {
  * Load all preset themes from app themes directory.
  * Returns array of PresetTheme objects sorted by name.
  */
-export function loadPresetThemes(): PresetTheme[] {
+export function loadPresetThemes(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): PresetTheme[] {
   ensurePresetThemes();
 
   const themesDir = getAppThemesDir();
@@ -228,7 +229,7 @@ function resolveThemeBackgroundImage(theme: ThemeFile, themePath: string): Theme
  * Load a specific preset theme by ID.
  * @param id - Theme ID (filename without .json)
  */
-export function loadPresetTheme(id: string): PresetTheme | null {
+export function loadPresetTheme(id: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): PresetTheme | null {
   const themesDir = getAppThemesDir();
   const path = join(themesDir, `${id}.json`);
 
@@ -249,7 +250,7 @@ export function loadPresetTheme(id: string): PresetTheme | null {
 /**
  * Get the path to the app-level preset themes directory.
  */
-export function getPresetThemesDir(): string {
+export function getPresetThemesDir(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): string {
   return getAppThemesDir();
 }
 
@@ -259,7 +260,7 @@ export function getPresetThemesDir(): string {
  * Resolves bundled path automatically via getBundledAssetsDir('themes').
  * @param id - Theme ID to reset
  */
-export function resetPresetTheme(id: string): boolean {
+export function resetPresetTheme(id: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
   // Resolve bundled themes directory via shared asset resolver
   const bundledThemesDir = getBundledAssetsDir('themes');
   if (!bundledThemesDir) {
