@@ -1,18 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { findEslintConfig } from "../discovery.ts";
 import type { Finding, FindingSeverity, Probe, ProbeContext } from "../probe.ts";
 import { computeFindingId, FINDING_SCHEMA_VERSION } from "../probe.ts";
-
-// ESLint v9 flat config filenames (in priority order)
-const ESLINT_CONFIG_FILES = [
-  "eslint.config.js",
-  "eslint.config.mjs",
-  "eslint.config.cjs",
-  ".eslintrc.json",
-  ".eslintrc.js",
-  ".eslintrc",
-];
 
 interface EslintMessage {
   ruleId: string | null;
@@ -36,17 +25,17 @@ export const staticEslintProbe: Probe = {
   phase: "A.1",
   applicableTo: () => true,
   async run(ctx: ProbeContext): Promise<Finding[]> {
-    // Find config file in surface root
-    const configFile = ESLINT_CONFIG_FILES.find((f) => existsSync(join(ctx.surfaceRoot, f)));
-    if (!configFile) return [];
+    // Find config file via discovery (surfaceRoot, then walk up to repo root)
+    const found = findEslintConfig(ctx.surfaceRoot);
+    if (found === null) return [];
 
-    const isLegacyConfig = configFile.startsWith(".eslintrc");
+    const isLegacyConfig = found.format === "legacy";
     const bunBin = process.execPath;
 
     // Build eslint args
     const args = ["x", "eslint", "--format=json", "--no-error-on-unmatched-pattern"];
     if (isLegacyConfig) {
-      args.push("--no-eslintrc", "--config", join(ctx.surfaceRoot, configFile));
+      args.push("--no-eslintrc", "--config", found.path);
     }
     args.push("src/");
 

@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { findTsconfig } from "../discovery.ts";
 import type { Finding, FindingSeverity, Probe, ProbeContext } from "../probe.ts";
 import { computeFindingId, FINDING_SCHEMA_VERSION } from "../probe.ts";
 
@@ -46,8 +46,8 @@ export const staticTscProbe: Probe = {
   phase: "A.1",
   applicableTo: () => true,
   async run(ctx: ProbeContext): Promise<Finding[]> {
-    const tsconfigPath = join(ctx.surfaceRoot, "tsconfig.json");
-    if (!existsSync(tsconfigPath)) return [];
+    const tsconfigPath = findTsconfig(ctx.surfaceRoot);
+    if (tsconfigPath === null) return [];
     const bunBin = process.execPath; // resolves to the bun binary that is running this process
     const result = spawnSync(bunBin, ["x", "tsc", "--noEmit", "-p", tsconfigPath], {
       cwd: ctx.surfaceRoot,
