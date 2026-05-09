@@ -18,7 +18,7 @@ import {
   type BackendHostRuntimeContext,
   type PostInitResult,
 } from '@craft-agent/shared/agent/backend'
-import { getLlmConnection, getLlmConnections, getDefaultLlmConnection, getDefaultThinkingLevel, resetManagedAnthropicAuthEnvVars, resolveMidStreamBehavior } from '@craft-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, getLlmConnection, getLlmConnections, getDefaultLlmConnection, getDefaultThinkingLevel, resetManagedAnthropicAuthEnvVars, resolveMidStreamBehavior } from '@craft-agent/shared/config'
 import { PrivilegedExecutionBroker } from '@craft-agent/server-core/services'
 import { isValidWorkingDirectory } from '../utils/path-validation'
 import { InitGate } from '@craft-agent/server-core/domain'
@@ -519,7 +519,7 @@ async function getBrowserToolIconDataUrl(): Promise<string | undefined> {
 
   try {
     const iconCandidates = [
-      join(getToolIconsDir(), BROWSER_TOOL_ICON_FILENAME),
+      join(getToolIconsDir(DEFAULT_LOCAL_SCOPE), BROWSER_TOOL_ICON_FILENAME),
       // Dev fallback (before sync to ~/.rox/tool-icons)
       join(process.cwd(), 'apps', 'electron', 'resources', 'tool-icons', BROWSER_TOOL_ICON_FILENAME),
       // Packaged fallback (app resources)
@@ -657,7 +657,7 @@ async function resolveToolDisplayMeta(
   // and resolves their brand icon from ~/.rox/tool-icons/
   if (toolName === 'Bash' && toolInput?.command) {
     try {
-      const toolIconsDir = getToolIconsDir()
+      const toolIconsDir = getToolIconsDir(DEFAULT_LOCAL_SCOPE)
       const match = resolveToolIcon(String(toolInput.command), toolIconsDir)
       if (match) {
         return {
@@ -1571,7 +1571,7 @@ export class SessionManager implements ISessionManager {
       const manager = getCredentialManager()
 
       // Get the connection to use (explicit parameter or default)
-      const slug = connectionSlug || getDefaultLlmConnection()
+      const slug = connectionSlug || getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE)
 
       // Restore managed auth env vars to their baseline before applying this connection.
       resetManagedAnthropicAuthEnvVars()
@@ -1582,7 +1582,7 @@ export class SessionManager implements ISessionManager {
         return
       }
 
-      const connection = getLlmConnection(slug)
+      const connection = getLlmConnection(slug, DEFAULT_LOCAL_SCOPE)
 
       if (!connection) {
         sessionLog.error(`No LLM connection found for slug: ${slug}`)
@@ -1616,10 +1616,10 @@ export class SessionManager implements ISessionManager {
   async initialize(): Promise<void> {
     try {
       // Backfill missing `models` arrays on existing LLM connections
-      migrateLegacyLlmConnectionsConfig()
+      migrateLegacyLlmConnectionsConfig(DEFAULT_LOCAL_SCOPE)
 
       // Fix defaultLlmConnection if it points to a non-existent connection
-      migrateOrphanedDefaultConnections()
+      migrateOrphanedDefaultConnections(DEFAULT_LOCAL_SCOPE)
 
       // Migrate legacy credentials to LLM connection format (one-time migration)
       // This ensures credentials saved before LLM connections are available via the new system
@@ -1632,7 +1632,7 @@ export class SessionManager implements ISessionManager {
       // the scheduler and event handlers start at boot — not lazily on first
       // client connect. This is critical for headless servers where no UI may
       // ever connect, yet scheduled/event-driven automations must still fire.
-      const workspaces = getWorkspaces()
+      const workspaces = getWorkspaces(DEFAULT_LOCAL_SCOPE)
       for (const workspace of workspaces) {
         const bundleResult = installDefaultWorkbenchBundle(workspace.rootPath)
         if (bundleResult.createdSourceSlugs.length > 0) {
@@ -1661,7 +1661,7 @@ export class SessionManager implements ISessionManager {
   // Load all existing sessions from disk into memory (metadata only - messages are lazy-loaded)
   private loadSessionsFromDisk(): void {
     try {
-      const workspaces = getWorkspaces()
+      const workspaces = getWorkspaces(DEFAULT_LOCAL_SCOPE)
       let totalSessions = 0
 
       // Iterate over each workspace and load its sessions
@@ -2042,11 +2042,11 @@ export class SessionManager implements ISessionManager {
   }
 
   getWorkspaces(): Workspace[] {
-    return getWorkspaces()
+    return getWorkspaces(DEFAULT_LOCAL_SCOPE)
   }
 
   getWorkspacesInfo(): WorkspaceInfo[] {
-    return getWorkspaces().map(({ rootPath, createdAt, ...info }) => info)
+    return getWorkspaces(DEFAULT_LOCAL_SCOPE).map(({ rootPath, createdAt, ...info }) => info)
   }
 
   getActiveSessionCount(workspaceId?: string): number {
@@ -2059,7 +2059,7 @@ export class SessionManager implements ISessionManager {
   }
 
   getWorkspaceAutomationSummary(workspaceId: string): { automationCount: number; schedulerRunning: boolean } {
-    const workspace = getWorkspaceByNameOrId(workspaceId)
+    const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
     if (!workspace) return { automationCount: 0, schedulerRunning: false }
 
     const automationSystem = this.automationSystems.get(workspace.rootPath)
@@ -2134,7 +2134,7 @@ export class SessionManager implements ISessionManager {
     const byWorkspace: Record<string, number> = {}
     const hasUnreadByWorkspace: Record<string, boolean> = {}
 
-    for (const workspace of getWorkspaces()) {
+    for (const workspace of getWorkspaces(DEFAULT_LOCAL_SCOPE)) {
       byWorkspace[workspace.id] = 0
       hasUnreadByWorkspace[workspace.id] = false
     }
@@ -2286,7 +2286,7 @@ export class SessionManager implements ISessionManager {
   }
 
   async createSession(workspaceId: string, options?: import('@craft-agent/shared/protocol').CreateSessionOptions): Promise<Session> {
-    const workspace = getWorkspaceByNameOrId(workspaceId)
+    const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
     if (!workspace) {
       throw new Error(`Workspace ${workspaceId} not found`)
     }
@@ -2295,7 +2295,7 @@ export class SessionManager implements ISessionManager {
     // Options.permissionMode overrides the workspace default (used by EditPopover for auto-execute)
     const workspaceRootPath = workspace.rootPath
     const wsConfig = loadWorkspaceConfig(workspaceRootPath)
-    const globalDefaults = loadConfigDefaults()
+    const globalDefaults = loadConfigDefaults(DEFAULT_LOCAL_SCOPE)
 
     // Read permission mode from workspace config, fallback to global defaults
     const defaultPermissionMode = options?.permissionMode
@@ -2309,7 +2309,7 @@ export class SessionManager implements ISessionManager {
     const defaultThinkingLevel =
       normalizeThinkingLevel(options?.thinkingLevel)
       ?? normalizeThinkingLevel(wsConfig?.defaults?.thinkingLevel)
-      ?? getDefaultThinkingLevel()
+      ?? getDefaultThinkingLevel(DEFAULT_LOCAL_SCOPE)
     // Get default model from workspace config (used when no session-specific model is set)
     const defaultModel = wsConfig?.defaults?.model
     // Get default enabled sources from workspace config
@@ -3133,7 +3133,7 @@ export class SessionManager implements ISessionManager {
         automationSystem: this.automationSystems.get(managed.workspace.rootPath),
         systemPromptPreset: managed.systemPromptPreset,
         debugMode: _platform?.isDebugMode ? { enabled: true, logFilePath: _platform.getLogFilePath?.() } : undefined,
-        enable1MContext: await (async () => { const { getEnable1MContext } = await import('@craft-agent/shared/config/storage'); return getEnable1MContext(); })(),
+        enable1MContext: await (async () => { const { getEnable1MContext } = await import('@craft-agent/shared/config/storage'); return getEnable1MContext(DEFAULT_LOCAL_SCOPE); })(),
         // Image resize callback — prevents oversized images from entering conversation history
         onImageResize: async (filePath: string, maxSizeBytes: number): Promise<string | null> => {
           try {
@@ -4168,7 +4168,7 @@ export class SessionManager implements ISessionManager {
 
     // Validate connection exists
     const { getLlmConnection } = await import('@craft-agent/shared/config/storage')
-    const connection = getLlmConnection(connectionSlug)
+    const connection = getLlmConnection(connectionSlug, DEFAULT_LOCAL_SCOPE)
     if (!connection) {
       sessionLog.warn(`setSessionConnection: connection "${connectionSlug}" not found`)
       throw new Error(`LLM connection "${connectionSlug}" not found`)
@@ -4744,7 +4744,7 @@ export class SessionManager implements ISessionManager {
 
     if (!agent && managed.llmConnection) {
       try {
-        const connection = getLlmConnection(managed.llmConnection)
+        const connection = getLlmConnection(managed.llmConnection, DEFAULT_LOCAL_SCOPE)
         const resolvedMiniModel = connection ? (getMiniModel(connection) ?? connection.defaultModel) : undefined
 
         agent = createBackendFromConnection(managed.llmConnection, {
@@ -6480,7 +6480,7 @@ export class SessionManager implements ISessionManager {
     // If still no agent, create a temporary one using the session's connection
     if (!agent && managed.llmConnection) {
       try {
-        const connection = getLlmConnection(managed.llmConnection)
+        const connection = getLlmConnection(managed.llmConnection, DEFAULT_LOCAL_SCOPE)
 
         agent = createBackendFromConnection(managed.llmConnection, {
           workspace: managed.workspace,
@@ -7521,7 +7521,7 @@ export class SessionManager implements ISessionManager {
       throw new Error('Invalid session bundle')
     }
 
-    const workspace = getWorkspaceByNameOrId(workspaceId)
+    const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
     if (!workspace) {
       throw new Error(`Workspace ${workspaceId} not found`)
     }
@@ -7592,7 +7592,7 @@ export class SessionManager implements ISessionManager {
       // If found and the session has an sdkSessionId, preserve it for API-level resume.
       // If not, clear SDK state and fall back to transferred session summary.
       const sourceProviderType = header.llmConnection
-        ? getLlmConnection(header.llmConnection)?.providerType
+        ? getLlmConnection(header.llmConnection, DEFAULT_LOCAL_SCOPE)?.providerType
         : undefined
       const compatibleConnection = sourceProviderType
         ? this.findCompatibleLlmConnection(workspaceRootPath, sourceProviderType)
@@ -7698,11 +7698,11 @@ export class SessionManager implements ISessionManager {
     const wsConfig = loadWorkspaceConfig(workspaceRootPath)
     const defaultSlug = wsConfig?.defaults?.defaultLlmConnection
     if (defaultSlug) {
-      const conn = getLlmConnection(defaultSlug)
+      const conn = getLlmConnection(defaultSlug, DEFAULT_LOCAL_SCOPE)
       if (conn?.providerType === providerType) return defaultSlug
     }
     // Fall back: any connection with matching provider type
-    const connections = getLlmConnections()
+    const connections = getLlmConnections(DEFAULT_LOCAL_SCOPE)
     const match = connections.find(c => c.providerType === providerType)
     return match?.slug ?? null
   }
