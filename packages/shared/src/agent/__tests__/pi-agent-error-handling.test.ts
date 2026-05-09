@@ -51,12 +51,13 @@ describe('PiAgent subprocess error handling', () => {
     }
 
     let rejectedMessage = ''
-    ;(agent as any).pendingMiniCompletions.set('mini-1', {
-      resolve: () => {},
-      reject: (error: Error) => {
+    ;(agent as any).pendingMiniCompletions.register(
+      'mini-1',
+      () => {},
+      (error: Error) => {
         rejectedMessage = error.message
       },
-    })
+    )
 
     ;(agent as any).handleLine(JSON.stringify({
       type: 'error',

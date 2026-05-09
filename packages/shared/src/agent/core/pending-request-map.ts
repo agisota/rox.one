@@ -134,6 +134,25 @@ export class PendingRequestMap<T, M extends object = Record<string, never>> {
   }
 
   /**
+   * Resolve every outstanding entry with `value` and clear the map.
+   *
+   * Sibling of `rejectAll()` — used on bulk shutdown paths whose contract is
+   * "settle pending entries to a sentinel value" rather than "fail them".
+   * Pi's permission abort, for instance, settles every pending permission
+   * to `false` (denied) on user abort.
+   *
+   * Snapshot semantics match `rejectAll()`: re-entrant settle attempts during
+   * resolution see an empty map.
+   */
+  resolveAll(value: T): void {
+    const snapshot = Array.from(this.entries_.values());
+    this.entries_.clear();
+    for (const pending of snapshot) {
+      pending.resolve(value);
+    }
+  }
+
+  /**
    * Look up the metadata for `id` without settling the entry.
    *
    * Returns the per-entry metadata only (no `resolve`/`reject`). Useful for
