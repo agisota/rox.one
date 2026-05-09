@@ -1983,6 +1983,7 @@ export function FreeFormInput({
           skills={skills}
           sources={sources}
           workspaceId={workspaceSlug}
+          ariaLabel={compactMode ? t('workbench.composer.input.editLabel') : t('workbench.composer.input.label')}
           className="pl-5 pr-4 pt-4 pb-3 overflow-y-auto min-h-[88px]"
           style={{ maxHeight: inputMaxHeight }}
           data-tutorial="chat-input"
@@ -2871,6 +2872,7 @@ function WorkingDirectoryBadge({
                   </span>
                   <button
                     type="button"
+                    aria-label={t('workbench.composer.actions.removeRecentFolder')}
                     onClick={(e) => handleRemoveRecent(e, path)}
                     className="shrink-0 h-3 w-3 rounded-[3px] flex items-center justify-center opacity-0 group-hover/item:opacity-100 text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-all"
                   >
