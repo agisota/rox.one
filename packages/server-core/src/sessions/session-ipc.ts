@@ -46,6 +46,20 @@ export class SessionIPC {
   }
 
   /**
+   * Type-predicate boolean narrow for `browserPaneManager`.
+   *
+   * Returns `true` when a non-null `IBrowserPaneManager` is wired. Acts as a
+   * TypeScript type predicate so call sites can do:
+   *   `if (this.ipc.hasBrowserPaneManager()) { this.ipc.browserPaneManager.x() }`
+   * without needing a local capture or non-null assertion to satisfy the
+   * compiler. The field stays public for direct access where the surrounding
+   * code already narrows via capture-then-check.
+   */
+  hasBrowserPaneManager(): this is SessionIPC & { browserPaneManager: IBrowserPaneManager } {
+    return this.browserPaneManager !== null && this.browserPaneManager !== undefined
+  }
+
+  /**
    * Drop any in-flight delta state for a session (e.g., on session delete).
    * Mirrors the old inline cleanup in SessionManager.deleteSession.
    */
