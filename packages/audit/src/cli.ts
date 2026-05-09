@@ -8,6 +8,8 @@ import type { Finding, Probe, Surface } from "./probe.ts";
 import { staticTscProbe } from "./probes/static-tsc.ts";
 import { staticEslintProbe } from "./probes/static-eslint.ts";
 import { staticBundleProbe } from "./probes/static-bundle.ts";
+import { runtimeAxeProbe } from "./probes/runtime-axe.ts";
+import { createPlaywrightRunner } from "./runners/playwright-runner.ts";
 import { join } from "node:path";
 
 const HELP = `Usage:
@@ -93,9 +95,7 @@ async function main(): Promise<number> {
 
   // Discover probes by static import. Each probe module exports a default Probe.
   const registry = new ProbeRegistry();
-  const probeModules: Probe[] = [staticTscProbe, staticEslintProbe, staticBundleProbe];
-  // Static probes are appended here as they are implemented in later tasks.
-  // (T061 will add static-tsc, T062 static-eslint, T063 static-bundle.)
+  const probeModules: Probe[] = [staticTscProbe, staticEslintProbe, staticBundleProbe, runtimeAxeProbe];
   for (const p of probeModules) {
     if (probeMatches(p.name, parsed.probesGlob)) registry.register(p);
   }
@@ -110,6 +110,10 @@ async function main(): Promise<number> {
     marketing: join(workspaceRoot, "apps/marketing"),
   };
 
+  // Instantiate a shared Playwright runner when any registered probe is A.2+.
+  const needsPlaywright = registry.list().some((p) => p.phase !== "A.1");
+  const playwright = needsPlaywright ? await createPlaywrightRunner() : undefined;
+
   const start = Date.now();
   const result = await registry.run({
     surfaces: parsed.surfaces,
@@ -120,8 +124,10 @@ async function main(): Promise<number> {
       workspaceRoot,
       surfaceRoot: surfacePaths[surface],
       timeoutMs: 60_000,
+      playwright,
     }),
   });
+  if (playwright) await playwright.close();
   const ranked = rank(result.findings);
   const duration = Date.now() - start;
 

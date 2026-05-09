@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { PlaywrightRunner } from "./runners/playwright-runner.ts";
 
 export type Surface = "renderer" | "webui" | "viewer" | "marketing";
 export type Phase = "A.1" | "A.2" | "A.3" | "A.4";
@@ -12,6 +13,8 @@ export interface ProbeContext {
   surfaceRoot: string;
   buildOutputRoot?: string;
   timeoutMs: number;
+  // A.2+ probes that need a browser receive a shared runner via this field.
+  playwright?: PlaywrightRunner;
 }
 
 export interface Probe {
