@@ -23,6 +23,7 @@ import {
   buildLogoutCookie,
   rotateAccountSessionIfStale,
 } from './auth'
+import { maskEmail } from './logging-helpers'
 import { generateCallbackPage } from '@rox-agent/shared/auth'
 import type { PlatformServices } from '../runtime/platform'
 import type { AccountStore, PublicUser, SessionIdentity } from '../accounts'
@@ -389,7 +390,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         expiresAt: token.expiresAt,
       })
     } else {
-      logger.info(`[webui] Email verification link for ${user.email}: ${redactAuthUrl(url)}`)
+      logger.info(`[webui] Email verification link for user=${user.id} (${maskEmail(user.email)}): ${redactAuthUrl(url)}`)
     }
   }
 
@@ -405,7 +406,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         expiresAt: token.expiresAt,
       })
     } else {
-      logger.info(`[webui] Password reset link for ${user.email}: ${redactAuthUrl(url)}`)
+      logger.info(`[webui] Password reset link for user=${user.id} (${maskEmail(user.email)}): ${redactAuthUrl(url)}`)
     }
   }
 
@@ -679,7 +680,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         })
         await options.bootstrapAccount?.(user)
         await sendVerificationEmail(user, req)
-        logger.info(`[webui] Registered account ${user.email} from ${ip}`)
+        logger.info(`[webui] Registered account user=${user.id} (${maskEmail(user.email)}) from ${ip}`)
         return Response.json({
           ok: true,
           verificationRequired: true,
@@ -782,7 +783,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         return Response.json({ error: 'Email verification required', code: 'email_unverified' }, { status: 403 })
       }
 
-      logger.info(`[webui] Successful account login for ${user.email} from ${ip}`)
+      logger.info(`[webui] Successful account login for user=${user.id} (${maskEmail(user.email)}) from ${ip}`)
       return issueAccountCookie(user, req, useSecureCookies)
     }
 
