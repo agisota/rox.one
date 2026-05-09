@@ -13,6 +13,7 @@
 import type { ModelFetcherMap, ModelFetcherCredentials, FetchableProvider } from '@rox-agent/shared/config'
 import type { ModelDefinition } from '@rox-agent/shared/config'
 import {
+  DEFAULT_LOCAL_SCOPE,
   getLlmConnections,
   getLlmConnection,
   updateLlmConnection,
@@ -67,7 +68,7 @@ class ModelRefreshService {
    * Updates connection.models in storage on success.
    */
   private async _doRefresh(slug: string): Promise<void> {
-    const connection = getLlmConnection(slug)
+    const connection = getLlmConnection(slug, DEFAULT_LOCAL_SCOPE)
     if (!connection) {
       handlerLog.warn(`Model refresh: connection not found: ${slug}`)
       return
@@ -146,7 +147,7 @@ class ModelRefreshService {
     updateLlmConnection(slug, {
       models: newModels,
       ...(newDefault && !stillValid ? { defaultModel: newDefault } : {}),
-    })
+    }, DEFAULT_LOCAL_SCOPE)
   }
 
   /**
@@ -155,7 +156,7 @@ class ModelRefreshService {
    * Call on app startup after IPC handlers are registered.
    */
   startAll(): void {
-    const connections = getLlmConnections()
+    const connections = getLlmConnections(DEFAULT_LOCAL_SCOPE)
 
     for (const conn of connections) {
       if (isCompatProvider(conn.providerType)) continue
@@ -201,7 +202,7 @@ class ModelRefreshService {
     await this.refreshConnection(slug)
 
     // Ensure periodic timer is running
-    const connection = getLlmConnection(slug)
+    const connection = getLlmConnection(slug, DEFAULT_LOCAL_SCOPE)
     if (!connection || isCompatProvider(connection.providerType)) return
 
     const providerType = connection.providerType as FetchableProvider
