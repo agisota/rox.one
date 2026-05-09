@@ -2323,6 +2323,11 @@ export class PiAgent extends BaseAgent {
       setTimeout(() => {
         // resolve(null) drops the entry and settles the awaiting resultPromise
         // to null — matches the prior `delete + resolve(null)` semantics.
+        // Promise.race below masks the symmetry: either the inner
+        // pendingMiniCompletions.resolve(id, null) settles resultPromise first,
+        // or the outer resolve(null) below settles the timeout promise first —
+        // both paths produce null, so the redundancy is benign.
+        // (queryLlm's reject path at :2365-2369 is the structural mirror.)
         if (this.pendingMiniCompletions.resolve(id, null)) {
           this.debug(`[runMiniCompletion] Timed out after ${LLM_QUERY_TIMEOUT_MS / 1000}s`);
         }
