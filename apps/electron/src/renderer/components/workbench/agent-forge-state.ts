@@ -50,9 +50,31 @@ export function createAgentForgeStateFromTruth(
   truthState: ExperienceTruthState,
   input: AgentForgeStateInput = {},
 ): AgentForgeState {
+  const generatedContracts = Object.fromEntries(
+    truthState.agentPackages.map((pkg) => [pkg.id, createContract(`contract:${pkg.id}`, pkg.id)]),
+  );
+  const generatedReviewCounts = Object.fromEntries(
+    truthState.agentPackages.map((pkg) => [pkg.id, pkg.trustScore >= 80 ? 3 : 2]),
+  );
+  const generatedTestCounts = Object.fromEntries(
+    truthState.agentPackages.map((pkg) => [pkg.id, pkg.trustScore >= 80 ? 5 : 3]),
+  );
+
   return createAgentForgeState({
     ...input,
     packages: truthState.agentPackages.length > 0 ? truthState.agentPackages : input.packages,
+    contractsByPackageId: {
+      ...generatedContracts,
+      ...input.contractsByPackageId,
+    },
+    reviewsByPackageId: {
+      ...generatedReviewCounts,
+      ...input.reviewsByPackageId,
+    },
+    testsByPackageId: {
+      ...generatedTestCounts,
+      ...input.testsByPackageId,
+    },
     installedPackageIds: truthState.installedAgentPackageIds,
     viewerTeamId: input.viewerTeamId ?? truthState.agentPackages.find((pkg) => pkg.ownerTeamId)?.ownerTeamId ?? 'team-alpha',
   });

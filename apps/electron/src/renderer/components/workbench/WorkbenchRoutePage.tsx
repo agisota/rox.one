@@ -5,6 +5,7 @@ import type { WorkbenchScreen } from '../../../shared/types'
 import { AgentForgeTeamRegistry } from './AgentForgeTeamRegistry'
 import { ArenaBuilderScreen } from './ArenaBuilderScreen'
 import { DeepMissionsScreen } from './DeepMissionsScreen'
+import { ExperienceDemoConsole } from './ExperienceDemoConsole'
 import { MissionControlRunDetail } from './MissionControlRunDetail'
 import { ProgressionObservatory } from './ProgressionObservatory'
 import { QuestMapSkillTree } from './QuestMapSkillTree'
@@ -30,7 +31,7 @@ export function WorkbenchRoutePage({ screen }: WorkbenchRoutePageProps) {
   }, [screen])
 
   return (
-    <div className="h-full min-h-0" data-workbench-screen={screen}>
+    <div className="flex h-full min-h-0 flex-col" data-workbench-screen={screen}>
       <span className="sr-only">Слой опыта</span>
       <div className="border-b border-white/[0.08] bg-black/20 px-6 py-3">
         <div className="mb-2 flex items-center justify-between gap-4">
@@ -68,7 +69,19 @@ export function WorkbenchRoutePage({ screen }: WorkbenchRoutePageProps) {
           })}
         </div>
       </div>
-      {activeDemoSession ? renderWorkbenchScreen(screen, activeDemoSession) : null}
+      {activeDemoSession ? (
+        <>
+          <ExperienceDemoConsole
+            screen={screen}
+            sessions={screenSessions}
+            activeSession={activeDemoSession}
+            onSelectSession={selectDemoSession}
+          />
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {renderWorkbenchScreen(screen, activeDemoSession)}
+          </div>
+        </>
+      ) : null}
     </div>
   )
 }
