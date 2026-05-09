@@ -4,12 +4,14 @@
 **Run against:** `feat/audit-a4-e2e-flows` branch (full A.1-A.4 harness with discovery refactor)
 **Surfaces probed:** renderer, webui, viewer, marketing
 
+> **Note (architect-verified correction):** This document originally claimed the meta-viewport finding was "already fixed in PR #5". The fix exists ON PR #5's branch (`feat/d-a11y-perf-budgets`) but PR #5 has not been merged. The violation still exists on `main` until merge. Same applies to all 12 open PRs from this session — none are merged yet.
+
 ## TL;DR
 
 After all the audit-harness improvements landed (PRs #1-#11), running the full pipeline against real surfaces produces:
 
 - **Static probes (`tsc`, `eslint`, `bundle`):** **0 findings** across all 4 surfaces.
-- **Runtime probes (`axe-core` via Playwright):** **1 critical finding** (`axe:meta-viewport`), which **was already fixed** in PR #5 (sub-project D).
+- **Runtime probes (`axe-core` via Playwright):** **1 critical finding** (`axe:meta-viewport`). A fix is shipped in PR #5 (sub-project D, branch `feat/d-a11y-perf-budgets`) but is **pending merge** — the violation still exists on `main` until PR #5 lands.
 
 **The codebase is materially clean of the defects this audit can detect.**
 
