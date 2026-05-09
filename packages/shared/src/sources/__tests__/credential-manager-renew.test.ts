@@ -9,12 +9,14 @@ import { describe, test, expect, mock, beforeEach, afterEach } from 'bun:test';
 import { SourceCredentialManager } from '../credential-manager.ts';
 import type { FolderSourceConfig } from '../types.ts';
 
-// Mock storage module to prevent disk I/O
-mock.module('../storage.ts', () => ({
-  markSourceAuthenticated: mock(() => true),
-  loadSourceConfig: mock(() => null),
-  saveSourceConfig: mock(() => {}),
-}));
+// NOTE: We intentionally DO NOT mock '../storage.ts' here. Bun's `mock.module()`
+// is process-global and persists across test files, so replacing
+// `loadSourceConfig` / `saveSourceConfig` / `markSourceAuthenticated` here would
+// pollute downstream test files (e.g. workbench bundle tests that rely on real
+// `loadSourceConfig` to read source configs from a temp workspace). The fixtures
+// below use a non-existent `workspaceRootPath` (`/mock/workspace`), which makes
+// the real `loadSourceConfig` return `null` naturally — exactly the behavior the
+// previous mock provided — without any disk I/O or cross-file pollution.
 
 // Mock credentials module — track set() calls to verify saves
 let setCalls: unknown[][] = [];
