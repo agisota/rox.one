@@ -28,10 +28,11 @@ export const runtimeAxeProbe: Probe = {
     const now = new Date().toISOString();
 
     const targets = routes.length > 0
-      ? routes.map((r) => `file://${ctx.surfaceRoot}/src/pages${r === "/" ? "/index" : r}.html`)
-      : [`file://${indexFile}`];
+      ? routes.map((r) => ({ route: r, url: `file://${ctx.surfaceRoot}/src/pages${r === "/" ? "/index" : r}.html` }))
+      : [{ route: "/", url: `file://${indexFile}` }];
 
-    for (const url of targets) {
+    for (const target of targets) {
+      const { url, route } = target;
       const page = await ctx.playwright.newPage();
       try {
         await page.goto(url, { waitUntil: "networkidle" });
@@ -40,7 +41,7 @@ export const runtimeAxeProbe: Probe = {
           .analyze();
         for (const v of results.violations) {
           for (const node of v.nodes) {
-            const target = node.target.join(" ");
+            const nodeTarget = node.target.join(" ");
             const id = computeFindingId({
               probe: "runtime-axe",
               rule: `axe:${v.id}`,
@@ -55,7 +56,7 @@ export const runtimeAxeProbe: Probe = {
               phase: "A.2",
               severity: severityForImpact(v.impact),
               rule: `axe:${v.id}`,
-              location: { file: url, selector: target },
+              location: { file: url, selector: nodeTarget, route },
               message: v.description,
               evidence: { codeSnippet: node.html },
               suggestedFix: v.help,
