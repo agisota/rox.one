@@ -134,9 +134,9 @@ import {
   type ClaudeTurnAnchorsIndex,
   type ManagedSession,
   type OAuthTokenRefreshResult,
-  type PendingDelta,
   type PiTurnAnchorsIndex,
 } from './session-manager-helpers'
+import { SessionIPC } from './session-ipc'
 // Re-exports for callers that imported these symbols from SessionManager before the extraction.
 export { AGENT_FLAGS, createManagedSession }
 export type { ManagedSession, AgentInstance }
@@ -207,9 +207,13 @@ function buildBackendHostRuntimeContext(): BackendHostRuntimeContext {
 
 export class SessionManager implements ISessionManager {
   private sessions: Map<string, ManagedSession> = new Map()
-  // Delta batching for performance - reduces IPC events from 50+/sec to ~20/sec
-  private pendingDeltas: Map<string, PendingDelta> = new Map()
-  private deltaFlushTimers: Map<string, NodeJS.Timeout> = new Map()
+  // IPC concern (event sink, browser pane manager handle, batched deltas, broadcasts).
+  // Composed eagerly; leaf of the helper graph (no helper deps).
+  private ipc = new SessionIPC({
+    getLogger: () => sessionLog,
+    getUnreadSummary: () => this.getUnreadSummary(),
+    updateBadgeCount: (count) => sessionRuntimeHooks.updateBadgeCount(count),
+  })
   // Config watchers for live updates (sources, etc.) - one per workspace
   private configWatchers: Map<string, ConfigWatcher> = new Map()
   // Automation systems for workspace event automations - one per workspace (includes scheduler, diffing, and handlers)
@@ -299,15 +303,12 @@ export class SessionManager implements ISessionManager {
     this.automationBinder = fn
   }
 
-  private browserPaneManager: IBrowserPaneManager | null = null
-  private eventSink: EventSink | null = null
-
   setEventSink(sink: EventSink): void {
-    this.eventSink = sink
+    this.ipc.setEventSink(sink)
   }
 
   setBrowserPaneManager(bpm: IBrowserPaneManager): void {
-    this.browserPaneManager = bpm
+    this.ipc.setBrowserPaneManager(bpm)
     bpm.setSessionPathResolver((sessionId) => this.getSessionPath(sessionId))
   }
 
@@ -395,14 +396,14 @@ export class SessionManager implements ISessionManager {
     const newLabels = JSON.stringify(header.labels ?? [])
     if (oldLabels !== newLabels) {
       managed.labels = header.labels
-      this.sendEvent({ type: 'labels_changed', sessionId, labels: header.labels ?? [] }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'labels_changed', sessionId, labels: header.labels ?? [] }, managed.workspace.id)
       changed = true
     }
 
     // Flagged
     if ((managed.isFlagged ?? false) !== (header.isFlagged ?? false)) {
       managed.isFlagged = header.isFlagged ?? false
-      this.sendEvent(
+      this.ipc.sendEvent(
         { type: header.isFlagged ? 'session_flagged' : 'session_unflagged', sessionId },
         managed.workspace.id
       )
@@ -412,14 +413,14 @@ export class SessionManager implements ISessionManager {
     // Session status
     if (managed.sessionStatus !== header.sessionStatus) {
       managed.sessionStatus = header.sessionStatus
-      this.sendEvent({ type: 'session_status_changed', sessionId, sessionStatus: header.sessionStatus ?? '' }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'session_status_changed', sessionId, sessionStatus: header.sessionStatus ?? '' }, managed.workspace.id)
       changed = true
     }
 
     // Name
     if (managed.name !== header.name) {
       managed.name = header.name
-      this.sendEvent({ type: 'name_changed', sessionId, name: header.name }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'name_changed', sessionId, name: header.name }, managed.workspace.id)
       changed = true
     }
 
@@ -453,13 +454,13 @@ export class SessionManager implements ISessionManager {
     const callbacks: ConfigWatcherCallbacks = {
       onSourcesListChange: async (sources: LoadedSource[]) => {
         sessionLog.info(`Sources list changed in ${workspaceRootPath} (${sources.length} sources)`)
-        this.broadcastSourcesChanged(workspaceId, sources)
+        this.ipc.broadcastSourcesChanged(workspaceId, sources)
         await this.reloadSourcesForWorkspace(workspaceRootPath)
       },
       onSourceChange: async (slug: string, source: LoadedSource | null) => {
         sessionLog.info(`Source '${slug}' changed:`, source ? 'updated' : 'deleted')
         const sources = loadWorkspaceSources(workspaceRootPath)
-        this.broadcastSourcesChanged(workspaceId, sources)
+        this.ipc.broadcastSourcesChanged(workspaceId, sources)
         await this.reloadSourcesForWorkspace(workspaceRootPath)
       },
       onSourceGuideChange: (sourceSlug: string) => {
@@ -467,19 +468,19 @@ export class SessionManager implements ISessionManager {
         // Broadcast the updated sources list so sidebar picks up guide changes
         // Note: Guide changes don't require session source reload (no server changes)
         const sources = loadWorkspaceSources(workspaceRootPath)
-        this.broadcastSourcesChanged(workspaceId, sources)
+        this.ipc.broadcastSourcesChanged(workspaceId, sources)
       },
       onStatusConfigChange: () => {
         sessionLog.info(`Status config changed in ${workspaceId}`)
-        this.broadcastStatusesChanged(workspaceId)
+        this.ipc.broadcastStatusesChanged(workspaceId)
       },
       onStatusIconChange: (_workspaceId: string, iconFilename: string) => {
         sessionLog.info(`Status icon changed: ${iconFilename} in ${workspaceId}`)
-        this.broadcastStatusesChanged(workspaceId)
+        this.ipc.broadcastStatusesChanged(workspaceId)
       },
       onLabelConfigChange: () => {
         sessionLog.info(`Label config changed in ${workspaceId}`)
-        this.broadcastLabelsChanged(workspaceId)
+        this.ipc.broadcastLabelsChanged(workspaceId)
         // Emit LabelConfigChange event via AutomationSystem
         const automationSystem = this.automationSystems.get(workspaceRootPath)
         if (automationSystem) {
@@ -501,30 +502,30 @@ export class SessionManager implements ISessionManager {
           }
         }
         // Notify renderer to re-read automations.json
-        this.broadcastAutomationsChanged(workspaceId)
+        this.ipc.broadcastAutomationsChanged(workspaceId)
       },
       onLlmConnectionsChange: () => {
         sessionLog.info(`LLM connections changed in ${workspaceId}`)
-        this.broadcastLlmConnectionsChanged()
+        this.ipc.broadcastLlmConnectionsChanged()
       },
       onAppThemeChange: (theme) => {
         sessionLog.info(`App theme changed`)
-        this.broadcastAppThemeChanged(theme)
+        this.ipc.broadcastAppThemeChanged(theme)
       },
       onDefaultPermissionsChange: () => {
         sessionLog.info('Default permissions changed')
-        this.broadcastDefaultPermissionsChanged()
+        this.ipc.broadcastDefaultPermissionsChanged()
       },
       onSkillsListChange: async (skills) => {
         sessionLog.info(`Skills list changed in ${workspaceRootPath} (${skills.length} skills)`)
-        this.broadcastSkillsChanged(workspaceId, skills)
+        this.ipc.broadcastSkillsChanged(workspaceId, skills)
       },
       onSkillChange: async (slug, skill) => {
         sessionLog.info(`Skill '${slug}' changed:`, skill ? 'updated' : 'deleted')
         // Broadcast updated list to UI
         const { loadAllSkills } = await import('@rox-agent/shared/skills')
         const skills = loadAllSkills(workspaceRootPath)
-        this.broadcastSkillsChanged(workspaceId, skills)
+        this.ipc.broadcastSkillsChanged(workspaceId, skills)
       },
 
       // Session metadata changes (edits to session.jsonl headers).
@@ -662,53 +663,6 @@ export class SessionManager implements ISessionManager {
         await this.reloadSessionSources(managed)
       }
     }
-  }
-
-  private broadcastSourcesChanged(workspaceId: string, sources: LoadedSource[]): void {
-    if (!this.eventSink) return
-    this.eventSink(RPC_CHANNELS.sources.CHANGED, { to: 'workspace', workspaceId }, workspaceId, sources)
-  }
-
-  private broadcastStatusesChanged(workspaceId: string): void {
-    if (!this.eventSink) return
-    sessionLog.info(`Broadcasting statuses changed for ${workspaceId}`)
-    this.eventSink(RPC_CHANNELS.statuses.CHANGED, { to: 'workspace', workspaceId }, workspaceId)
-  }
-
-  private broadcastLabelsChanged(workspaceId: string): void {
-    if (!this.eventSink) return
-    sessionLog.info(`Broadcasting labels changed for ${workspaceId}`)
-    this.eventSink(RPC_CHANNELS.labels.CHANGED, { to: 'workspace', workspaceId }, workspaceId)
-  }
-
-  private broadcastAutomationsChanged(workspaceId: string): void {
-    if (!this.eventSink) return
-    sessionLog.info(`Broadcasting automations changed for ${workspaceId}`)
-    this.eventSink(RPC_CHANNELS.automations.CHANGED, { to: 'workspace', workspaceId }, workspaceId)
-  }
-
-  private broadcastAppThemeChanged(theme: import('@rox-agent/shared/config').ThemeOverrides | null): void {
-    if (!this.eventSink) return
-    sessionLog.info(`Broadcasting app theme changed`)
-    this.eventSink(RPC_CHANNELS.theme.APP_CHANGED, { to: 'all' }, theme)
-  }
-
-  private broadcastLlmConnectionsChanged(): void {
-    if (!this.eventSink) return
-    sessionLog.info('Broadcasting LLM connections changed')
-    this.eventSink(RPC_CHANNELS.llmConnections.CHANGED, { to: 'all' })
-  }
-
-  private broadcastSkillsChanged(workspaceId: string, skills: import('@rox-agent/shared/skills').LoadedSkill[]): void {
-    if (!this.eventSink) return
-    sessionLog.info(`Broadcasting skills changed (${skills.length} skills)`)
-    this.eventSink(RPC_CHANNELS.skills.CHANGED, { to: 'workspace', workspaceId }, workspaceId, skills)
-  }
-
-  private broadcastDefaultPermissionsChanged(): void {
-    if (!this.eventSink) return
-    sessionLog.info('Broadcasting default permissions changed')
-    this.eventSink(RPC_CHANNELS.permissions.DEFAULTS_CHANGED, { to: 'all' }, null)
   }
 
   /**
@@ -1095,7 +1049,7 @@ export class SessionManager implements ISessionManager {
     }
 
     // Emit auth_completed event to update UI
-    this.sendEvent({
+    this.ipc.sendEvent({
       type: 'auth_completed',
       sessionId,
       requestId: result.requestId,
@@ -1360,21 +1314,6 @@ export class SessionManager implements ISessionManager {
   refreshBadge(): void {
     const summary = this.getUnreadSummary()
     sessionRuntimeHooks.updateBadgeCount(summary.totalUnreadSessions)
-  }
-
-  /**
-   * Broadcast global unread summary to all workspace windows.
-   */
-  private emitUnreadSummaryChanged(): void {
-    const summary = this.getUnreadSummary()
-
-    // Update badge via runtime hook — host decides whether/how to render badges
-    sessionRuntimeHooks.updateBadgeCount(summary.totalUnreadSessions)
-
-    if (!this.eventSink) return
-
-    // Broadcast to renderers for UI updates (session list dots, etc.)
-    this.eventSink(RPC_CHANNELS.sessions.UNREAD_SUMMARY_CHANGED, { to: 'all' }, summary)
   }
 
   /**
@@ -2132,7 +2071,7 @@ export class SessionManager implements ISessionManager {
         this.persistSession(managed)
 
         // Keep renderer session capabilities in sync when auto-locking the connection.
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'connection_changed',
           sessionId: managed.id,
           connectionSlug: connection.slug,
@@ -2394,7 +2333,7 @@ export class SessionManager implements ISessionManager {
       // Unified auth callback — replaces per-backend onChatGptAuthRequired/onGithubAuthRequired
       managed.agent.onBackendAuthRequired = (reason: string) => {
         sessionLog.warn(`Backend auth required for session ${managed.id}: ${reason}`)
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'info',
           sessionId: managed.id,
           message: `Authentication required: ${reason}`,
@@ -2406,7 +2345,7 @@ export class SessionManager implements ISessionManager {
       const postInitResult = await managed.agent.postInit()
       if (postInitResult.authWarning) {
         sessionLog.warn(`Auth warning for session ${managed.id}: ${postInitResult.authWarning}`)
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'info',
           sessionId: managed.id,
           message: postInitResult.authWarning,
@@ -2421,8 +2360,9 @@ export class SessionManager implements ISessionManager {
 
       // Wire up browser pane tools — merge BrowserPaneFns into session callbacks
       // so browser_* tools can delegate to BrowserPaneManager
-      if (this.browserPaneManager) {
-        const bpm = this.browserPaneManager
+      if (this.ipc.browserPaneManager) {
+        // Capture as non-null so closures below don't have to re-narrow.
+        const bpm: IBrowserPaneManager = this.ipc.browserPaneManager
         const sid = managed.id
 
         const resolveSessionBrowserInstance = (toolName: string, options?: { show?: boolean }): string => {
@@ -2782,7 +2722,7 @@ export class SessionManager implements ISessionManager {
           sessionLog.warn(`Remember-window auto-approval skipped for ${request.requestId}: ${brokerResult.reason}`)
         }
 
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'permission_request',
           sessionId: managed.id,
           request: {
@@ -2814,7 +2754,7 @@ export class SessionManager implements ISessionManager {
           changedBy: diagnostics.lastChangedBy,
           changedAt: diagnostics.lastChangedAt,
         })
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'permission_mode_changed',
           sessionId: managed.id,
           permissionMode: managed.permissionMode,
@@ -2859,7 +2799,7 @@ export class SessionManager implements ISessionManager {
           managed.lastMessageRole = 'plan'
 
           // Send event to renderer
-          this.sendEvent({
+          this.ipc.sendEvent({
             type: 'plan_submitted',
             sessionId: managed.id,
             message: planMessage,
@@ -2874,10 +2814,10 @@ export class SessionManager implements ISessionManager {
 
             // Release browser overlay + session binding because the agent is no longer running.
             // Plan submission pauses execution until user review, so browser ownership should not remain locked.
-            await releaseBrowserOwnershipOnForcedStop(this.browserPaneManager, managed.id)
+            await releaseBrowserOwnershipOnForcedStop(this.ipc.browserPaneManager, managed.id)
 
             // Send complete event so renderer knows processing stopped (include tokenUsage for real-time updates)
-            this.sendEvent({ type: 'complete', sessionId: managed.id, tokenUsage: managed.tokenUsage }, managed.workspace.id)
+            this.ipc.sendEvent({ type: 'complete', sessionId: managed.id, tokenUsage: managed.tokenUsage }, managed.workspace.id)
 
             // Persist session state
             this.persistSession(managed)
@@ -2929,14 +2869,14 @@ export class SessionManager implements ISessionManager {
           this.setProcessing(managed, false)
 
           // Release browser overlay + session binding because the agent is paused awaiting user auth.
-          void releaseBrowserOwnershipOnForcedStop(this.browserPaneManager, managed.id)
+          void releaseBrowserOwnershipOnForcedStop(this.ipc.browserPaneManager, managed.id)
 
           // Send complete event so renderer knows processing stopped (include tokenUsage for real-time updates)
-          this.sendEvent({ type: 'complete', sessionId: managed.id, tokenUsage: managed.tokenUsage }, managed.workspace.id)
+          this.ipc.sendEvent({ type: 'complete', sessionId: managed.id, tokenUsage: managed.tokenUsage }, managed.workspace.id)
         }
 
         // Emit auth_request event to renderer
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'auth_request',
           sessionId: managed.id,
           message: authMessage,
@@ -2992,7 +2932,7 @@ export class SessionManager implements ISessionManager {
         // Notify renderer to hydrate full session metadata (including name)
         // before streaming events arrive. Without this, the renderer creates
         // a synthetic empty session and shows "New Chat" in the sidebar.
-        this.sendEvent({ type: 'session_created', sessionId: session.id }, managed.workspace.id)
+        this.ipc.sendEvent({ type: 'session_created', sessionId: session.id }, managed.workspace.id)
 
         // Fire and forget — send the message but don't await completion
         this.sendMessage(session.id, request.prompt, fileAttachments).catch(err => {
@@ -3226,7 +3166,7 @@ export class SessionManager implements ISessionManager {
         this.persistSession(managed)
 
         // Notify renderer of source change
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'sources_changed',
           sessionId: managed.id,
           enabledSourceSlugs: managed.enabledSourceSlugs || [],
@@ -3271,7 +3211,7 @@ export class SessionManager implements ISessionManager {
       this.persistSession(managed)
       await this.flushSession(managed.id)
       // Notify all windows for this workspace
-      this.sendEvent({ type: 'session_flagged', sessionId }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'session_flagged', sessionId }, managed.workspace.id)
       // Workaround: Bun's fs.watch({ recursive: true }) on Linux doesn't track
       // directories created after the watcher started.
       // https://github.com/oven-sh/bun/issues/15939
@@ -3288,7 +3228,7 @@ export class SessionManager implements ISessionManager {
       this.persistSession(managed)
       await this.flushSession(managed.id)
       // Notify all windows for this workspace
-      this.sendEvent({ type: 'session_unflagged', sessionId }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'session_unflagged', sessionId }, managed.workspace.id)
       // Workaround: Bun's fs.watch({ recursive: true }) on Linux doesn't track
       // directories created after the watcher started.
       // https://github.com/oven-sh/bun/issues/15939
@@ -3306,8 +3246,8 @@ export class SessionManager implements ISessionManager {
       this.persistSession(managed)
       await this.flushSession(managed.id)
       // Notify all windows for this workspace
-      this.sendEvent({ type: 'session_archived', sessionId }, managed.workspace.id)
-      this.emitUnreadSummaryChanged()
+      this.ipc.sendEvent({ type: 'session_archived', sessionId }, managed.workspace.id)
+      this.ipc.emitUnreadSummaryChanged()
     }
   }
 
@@ -3320,8 +3260,8 @@ export class SessionManager implements ISessionManager {
       this.persistSession(managed)
       await this.flushSession(managed.id)
       // Notify all windows for this workspace
-      this.sendEvent({ type: 'session_unarchived', sessionId }, managed.workspace.id)
-      this.emitUnreadSummaryChanged()
+      this.ipc.sendEvent({ type: 'session_unarchived', sessionId }, managed.workspace.id)
+      this.ipc.emitUnreadSummaryChanged()
     }
   }
 
@@ -3334,7 +3274,7 @@ export class SessionManager implements ISessionManager {
       this.persistSession(managed)
       await this.flushSession(managed.id)
       // Notify all windows for this workspace
-      this.sendEvent({ type: 'session_status_changed', sessionId, sessionStatus }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'session_status_changed', sessionId, sessionStatus }, managed.workspace.id)
       // Workaround: Bun's fs.watch({ recursive: true }) on Linux doesn't track
       // directories created after the watcher started.
       // https://github.com/oven-sh/bun/issues/15939
@@ -3376,7 +3316,7 @@ export class SessionManager implements ISessionManager {
     sessionLog.info(`Set LLM connection for session ${sessionId} to ${connectionSlug}`)
 
     // Notify UI that connection changed (triggers capabilities refresh)
-    this.sendEvent({
+    this.ipc.sendEvent({
       type: 'connection_changed',
       sessionId,
       connectionSlug,
@@ -3487,7 +3427,7 @@ export class SessionManager implements ISessionManager {
 
     // Signal async operation start for shimmer effect
     managed.isAsyncOperationOngoing = true
-    this.sendEvent({ type: 'async_operation', sessionId, isOngoing: true }, managed.workspace.id)
+    this.ipc.sendEvent({ type: 'async_operation', sessionId, isOngoing: true }, managed.workspace.id)
 
     try {
       // Load session directly from disk (already in correct format)
@@ -3527,7 +3467,7 @@ export class SessionManager implements ISessionManager {
 
       sessionLog.info(`Session ${sessionId} shared at ${shortlink.url}`)
       // Notify all windows for this workspace
-      this.sendEvent({ type: 'session_shared', sessionId, sharedUrl: shortlink.url }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'session_shared', sessionId, sharedUrl: shortlink.url }, managed.workspace.id)
       return { success: true, url: shortlink.url }
     } catch (error) {
       sessionLog.error('Share error:', error)
@@ -3535,7 +3475,7 @@ export class SessionManager implements ISessionManager {
     } finally {
       // Signal async operation end
       managed.isAsyncOperationOngoing = false
-      this.sendEvent({ type: 'async_operation', sessionId, isOngoing: false }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'async_operation', sessionId, isOngoing: false }, managed.workspace.id)
     }
   }
 
@@ -3554,7 +3494,7 @@ export class SessionManager implements ISessionManager {
 
     // Signal async operation start for shimmer effect
     managed.isAsyncOperationOngoing = true
-    this.sendEvent({ type: 'async_operation', sessionId, isOngoing: true }, managed.workspace.id)
+    this.ipc.sendEvent({ type: 'async_operation', sessionId, isOngoing: true }, managed.workspace.id)
 
     try {
       // Load session directly from disk (already in correct format)
@@ -3578,7 +3518,7 @@ export class SessionManager implements ISessionManager {
       if (update.url && update.url !== managed.sharedUrl) {
         managed.sharedUrl = update.url
         await updateSessionMetadata(managed.workspace.rootPath, sessionId, { sharedUrl: update.url })
-        this.sendEvent({ type: 'session_shared', sessionId, sharedUrl: update.url }, managed.workspace.id)
+        this.ipc.sendEvent({ type: 'session_shared', sessionId, sharedUrl: update.url }, managed.workspace.id)
       }
 
       sessionLog.info(`Session ${sessionId} share updated at ${managed.sharedUrl}`)
@@ -3589,7 +3529,7 @@ export class SessionManager implements ISessionManager {
     } finally {
       // Signal async operation end
       managed.isAsyncOperationOngoing = false
-      this.sendEvent({ type: 'async_operation', sessionId, isOngoing: false }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'async_operation', sessionId, isOngoing: false }, managed.workspace.id)
     }
   }
 
@@ -3634,7 +3574,7 @@ export class SessionManager implements ISessionManager {
 
     // Signal async operation start for shimmer effect
     managed.isAsyncOperationOngoing = true
-    this.sendEvent({ type: 'async_operation', sessionId, isOngoing: true }, managed.workspace.id)
+    this.ipc.sendEvent({ type: 'async_operation', sessionId, isOngoing: true }, managed.workspace.id)
 
     try {
       const revoke = await getSessionShareProvider().revokeShare({ sessionId, shareId: managed.sharedId })
@@ -3655,7 +3595,7 @@ export class SessionManager implements ISessionManager {
 
       sessionLog.info(`Session ${sessionId} share revoked`)
       // Notify all windows for this workspace
-      this.sendEvent({ type: 'session_unshared', sessionId }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'session_unshared', sessionId }, managed.workspace.id)
       return { success: true }
     } catch (error) {
       sessionLog.error('Revoke error:', error)
@@ -3663,7 +3603,7 @@ export class SessionManager implements ISessionManager {
     } finally {
       // Signal async operation end
       managed.isAsyncOperationOngoing = false
-      this.sendEvent({ type: 'async_operation', sessionId, isOngoing: false }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'async_operation', sessionId, isOngoing: false }, managed.workspace.id)
     }
   }
 
@@ -3731,7 +3671,7 @@ export class SessionManager implements ISessionManager {
     this.persistSession(managed)
 
     // Notify renderer of the source change
-    this.sendEvent({
+    this.ipc.sendEvent({
       type: 'sources_changed',
       sessionId,
       enabledSourceSlugs: sourceSlugs,
@@ -3835,7 +3775,7 @@ export class SessionManager implements ISessionManager {
     if (needsPersist) {
       const workspaceRootPath = managed.workspace.rootPath
       await updateSessionMetadata(workspaceRootPath, sessionId, updates)
-      this.emitUnreadSummaryChanged()
+      this.ipc.emitUnreadSummaryChanged()
     }
   }
 
@@ -3851,7 +3791,7 @@ export class SessionManager implements ISessionManager {
       // Persist to disk
       const workspaceRootPath = managed.workspace.rootPath
       await updateSessionMetadata(workspaceRootPath, sessionId, { hasUnread: true, lastReadMessageId: undefined })
-      this.emitUnreadSummaryChanged()
+      this.ipc.emitUnreadSummaryChanged()
     }
   }
 
@@ -3873,7 +3813,7 @@ export class SessionManager implements ISessionManager {
     }
     if (updates.length > 0) {
       await Promise.all(updates)
-      this.emitUnreadSummaryChanged()
+      this.ipc.emitUnreadSummaryChanged()
     }
   }
 
@@ -3883,7 +3823,7 @@ export class SessionManager implements ISessionManager {
       managed.name = name
       this.persistSession(managed)
       // Notify renderer of the name change
-      this.sendEvent({ type: 'title_generated', sessionId, title: name }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'title_generated', sessionId, title: name }, managed.workspace.id)
       // Workaround: Bun's fs.watch({ recursive: true }) on Linux doesn't track
       // directories created after the watcher started.
       // https://github.com/oven-sh/bun/issues/15939
@@ -3973,9 +3913,9 @@ export class SessionManager implements ISessionManager {
 
     // Notify renderer that title regeneration has started (for shimmer effect)
     managed.isAsyncOperationOngoing = true
-    this.sendEvent({ type: 'async_operation', sessionId, isOngoing: true }, managed.workspace.id)
+    this.ipc.sendEvent({ type: 'async_operation', sessionId, isOngoing: true }, managed.workspace.id)
     // Keep legacy event for backward compatibility
-    this.sendEvent({ type: 'title_regenerating', sessionId, isRegenerating: true }, managed.workspace.id)
+    this.ipc.sendEvent({ type: 'title_regenerating', sessionId, isRegenerating: true }, managed.workspace.id)
 
     try {
       const title = await agent.regenerateTitle(userMessages, assistantResponse, titleOptions)
@@ -3984,16 +3924,16 @@ export class SessionManager implements ISessionManager {
         managed.name = title
         this.persistSession(managed)
         // title_generated will also clear isRegeneratingTitle via the event handler
-        this.sendEvent({ type: 'title_generated', sessionId, title }, managed.workspace.id)
+        this.ipc.sendEvent({ type: 'title_generated', sessionId, title }, managed.workspace.id)
         sessionLog.info(`Refreshed title for session ${sessionId}: "${title}"`)
         return { success: true, title }
       }
       // Failed to generate - clear regenerating state
-      this.sendEvent({ type: 'title_regenerating', sessionId, isRegenerating: false }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'title_regenerating', sessionId, isRegenerating: false }, managed.workspace.id)
       return { success: false, error: 'Failed to generate title' }
     } catch (error) {
       // Error occurred - clear regenerating state
-      this.sendEvent({ type: 'title_regenerating', sessionId, isRegenerating: false }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'title_regenerating', sessionId, isRegenerating: false }, managed.workspace.id)
       const message = error instanceof Error ? error.message : 'Unknown error'
       sessionLog.error(`Failed to refresh title for session ${sessionId}:`, error)
       return { success: false, error: message }
@@ -4004,7 +3944,7 @@ export class SessionManager implements ISessionManager {
       }
       // Signal async operation end
       managed.isAsyncOperationOngoing = false
-      this.sendEvent({ type: 'async_operation', sessionId, isOngoing: false }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'async_operation', sessionId, isOngoing: false }, managed.workspace.id)
     }
   }
 
@@ -4022,7 +3962,7 @@ export class SessionManager implements ISessionManager {
       const validation = isValidWorkingDirectory(path)
       if (!validation.valid) {
         sessionLog.warn(`Session ${sessionId}: rejected working directory "${path}" — ${validation.reason}`)
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'working_directory_error',
           sessionId,
           error: validation.reason!,
@@ -4060,7 +4000,7 @@ export class SessionManager implements ISessionManager {
 
       this.persistSession(managed)
       // Notify renderer of the working directory change
-      this.sendEvent({ type: 'working_directory_changed', sessionId, workingDirectory: path }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'working_directory_changed', sessionId, workingDirectory: path }, managed.workspace.id)
     }
   }
 
@@ -4096,7 +4036,7 @@ export class SessionManager implements ISessionManager {
         sessionLog.info(`[updateSessionModel] No agent yet, model will apply on next agent creation`)
       }
       // Notify renderer of the model change
-      this.sendEvent({ type: 'session_model_changed', sessionId, model }, managed.workspace.id)
+      this.ipc.sendEvent({ type: 'session_model_changed', sessionId, model }, managed.workspace.id)
       sessionLog.info(`Session ${sessionId} model updated to: ${model ?? '(global config)'}`)
     }
   }
@@ -4183,7 +4123,7 @@ export class SessionManager implements ISessionManager {
 
     message.annotations = [...existing, safeAnnotation]
     this.persistSession(managed)
-    this.sendEvent({ type: 'message_annotations_updated', sessionId, messageId, annotations: message.annotations }, managed.workspace.id)
+    this.ipc.sendEvent({ type: 'message_annotations_updated', sessionId, messageId, annotations: message.annotations }, managed.workspace.id)
   }
 
   /**
@@ -4262,7 +4202,7 @@ export class SessionManager implements ISessionManager {
     next[idx] = updated
     message.annotations = next
     this.persistSession(managed)
-    this.sendEvent({ type: 'message_annotations_updated', sessionId, messageId, annotations: message.annotations }, managed.workspace.id)
+    this.ipc.sendEvent({ type: 'message_annotations_updated', sessionId, messageId, annotations: message.annotations }, managed.workspace.id)
   }
 
   /**
@@ -4289,7 +4229,7 @@ export class SessionManager implements ISessionManager {
 
     message.annotations = existing.filter(a => a.id !== annotationId)
     this.persistSession(managed)
-    this.sendEvent({ type: 'message_annotations_updated', sessionId, messageId, annotations: message.annotations }, managed.workspace.id)
+    this.ipc.sendEvent({ type: 'message_annotations_updated', sessionId, messageId, annotations: message.annotations }, managed.workspace.id)
   }
 
   async deleteSession(sessionId: string): Promise<void> {
@@ -4325,12 +4265,7 @@ export class SessionManager implements ISessionManager {
     }
 
     // Clean up delta flush timers to prevent orphaned timers
-    const timer = this.deltaFlushTimers.get(sessionId)
-    if (timer) {
-      clearTimeout(timer)
-      this.deltaFlushTimers.delete(sessionId)
-    }
-    this.pendingDeltas.delete(sessionId)
+    this.ipc.clearDeltaState(sessionId)
     this.clearAdminRememberApprovalsForSession(sessionId)
     this.clearPendingPermissionRequestsForSession(sessionId)
 
@@ -4341,8 +4276,8 @@ export class SessionManager implements ISessionManager {
     unregisterSessionScopedToolCallbacks(sessionId)
 
     // Destroy browser instances bound to this session
-    if (this.browserPaneManager) {
-      this.browserPaneManager.destroyForSession(sessionId)
+    if (this.ipc.browserPaneManager) {
+      this.ipc.browserPaneManager.destroyForSession(sessionId)
     }
 
     // Dispose agent to clean up ConfigWatchers, event listeners, MCP connections
@@ -4369,8 +4304,8 @@ export class SessionManager implements ISessionManager {
     deleteStoredSession(workspaceRootPath, sessionId)
 
     // Notify all windows for this workspace that the session was deleted
-    this.sendEvent({ type: 'session_deleted', sessionId }, managed.workspace.id)
-    this.emitUnreadSummaryChanged()
+    this.ipc.sendEvent({ type: 'session_deleted', sessionId }, managed.workspace.id)
+    this.ipc.emitUnreadSummaryChanged()
 
     // Clean up attachments directory (handled by deleteStoredSession for workspace-scoped storage)
     sessionLog.info(`Deleted session ${sessionId}`)
@@ -4452,7 +4387,7 @@ export class SessionManager implements ISessionManager {
 
       // Emit to UI — 'accepted' iff a steer succeeded; 'queued' otherwise
       // (covers both queue-direct and queue-after-abort paths).
-      this.sendEvent({
+      this.ipc.sendEvent({
         type: 'user_message',
         sessionId,
         message: userMessage,
@@ -4510,7 +4445,7 @@ export class SessionManager implements ISessionManager {
       onAck?.(userMessage.id)
 
       // Emit user_message event so UI can confirm the optimistic message
-      this.sendEvent({
+      this.ipc.sendEvent({
         type: 'user_message',
         sessionId,
         message: userMessage,
@@ -4540,7 +4475,7 @@ export class SessionManager implements ISessionManager {
         this.persistSession(managed)
         // Flush immediately so disk is authoritative before notifying renderer
         await this.flushSession(managed.id)
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'title_generated',
           sessionId,
           title: initialTitle,
@@ -4568,7 +4503,7 @@ export class SessionManager implements ISessionManager {
         if (newEntries.length > 0) {
           managed.labels = [...existingLabels, ...newEntries]
           this.persistSession(managed)
-          this.sendEvent({
+          this.ipc.sendEvent({
             type: 'labels_changed',
             sessionId,
             labels: managed.labels,
@@ -4651,7 +4586,7 @@ export class SessionManager implements ISessionManager {
             managed.enabledSourceSlugs = [...(managed.enabledSourceSlugs || []), ...toEnable]
             sessionLog.info(`Pre-enabled sources for skill invocation: ${toEnable.join(', ')}`)
             this.persistSession(managed)
-            this.sendEvent({
+            this.ipc.sendEvent({
               type: 'sources_changed',
               sessionId,
               enabledSourceSlugs: managed.enabledSourceSlugs,
@@ -4773,7 +4708,7 @@ export class SessionManager implements ISessionManager {
       if (modelInputAttachments.omittedImages.length > 0) {
         const omittedNames = modelInputAttachments.omittedImages.map(a => a.name).join(', ')
         sessionLog.info(`Omitting ${modelInputAttachments.omittedImages.length} image attachment(s) from model input for ${messageBackendContext.resolvedModel}: ${omittedNames}`)
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'info',
           sessionId,
           message: `Image attachment${modelInputAttachments.omittedImages.length === 1 ? '' : 's'} not sent because image input is disabled for ${messageBackendContext.resolvedModel}.`,
@@ -4877,7 +4812,7 @@ export class SessionManager implements ISessionManager {
                 errorCanRetry: false,
               }
               managed.messages.push(errorMessage)
-              this.sendEvent({
+              this.ipc.sendEvent({
                 type: 'typed_error',
                 sessionId,
                 error: {
@@ -4949,7 +4884,7 @@ export class SessionManager implements ISessionManager {
         sendSpan.mark('chat.error')
         sendSpan.setMetadata('error', error instanceof Error ? error.message : String(error))
         sendSpan.end()
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'error',
           sessionId,
           error: error instanceof Error ? error.message : 'Unknown error'
@@ -5018,7 +4953,7 @@ export class SessionManager implements ISessionManager {
         timestamp: this.monotonic(),
       }
       managed.messages.push(interruptedMessage)
-      this.sendEvent({
+      this.ipc.sendEvent({
         type: 'interrupted',
         sessionId,
         message: interruptedMessage,
@@ -5027,7 +4962,7 @@ export class SessionManager implements ISessionManager {
       }, managed.workspace.id)
     } else {
       // Still send interrupted event but without the message (for UI state update)
-      this.sendEvent({
+      this.ipc.sendEvent({
         type: 'interrupted',
         sessionId,
         // Include queued texts so the UI can restore them to the input field
@@ -5066,7 +5001,7 @@ export class SessionManager implements ISessionManager {
     managed.authRetryInProgress = true
 
     // Emit lightweight info so the user sees progress instead of a scary red error
-    this.sendEvent({
+    this.ipc.sendEvent({
       type: 'info',
       sessionId,
       message: 'Token expired, refreshing session…',
@@ -5127,7 +5062,7 @@ export class SessionManager implements ISessionManager {
           errorCode: failureErrorCode,
         }
         managed.messages.push(failedMessage)
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'error',
           sessionId,
           error: 'Authentication failed. Please check your credentials.',
@@ -5166,8 +5101,8 @@ export class SessionManager implements ISessionManager {
     // Clear agent control overlay between turns. The session keeps browser
     // ownership (boundSessionId) — only the visual overlay is removed.
     // Full unbind happens below when the queue is empty (session truly done).
-    if (this.browserPaneManager) {
-      await this.browserPaneManager.clearVisualsForSession(sessionId)
+    if (this.ipc.browserPaneManager) {
+      await this.ipc.browserPaneManager.clearVisualsForSession(sessionId)
     }
 
     // 2. Handle unread state based on whether user is viewing this session
@@ -5188,7 +5123,7 @@ export class SessionManager implements ISessionManager {
         if (!managed.hasUnread) {
           managed.hasUnread = true
           await updateSessionMetadata(managed.workspace.rootPath, sessionId, { hasUnread: true })
-          this.emitUnreadSummaryChanged()
+          this.ipc.emitUnreadSummaryChanged()
         }
       }
     }
@@ -5217,13 +5152,13 @@ export class SessionManager implements ISessionManager {
       // Session is truly done — release browser ownership.
       // The window stays alive (hidden) and becomes reusable by future sessions.
       // On the next turn, getOrCreateForSession() will re-bind it.
-      if (this.browserPaneManager) {
-        await this.browserPaneManager.clearVisualsForSession(sessionId)
-        this.browserPaneManager.unbindAllForSession(sessionId)
+      if (this.ipc.browserPaneManager) {
+        await this.ipc.browserPaneManager.clearVisualsForSession(sessionId)
+        this.ipc.browserPaneManager.unbindAllForSession(sessionId)
       }
 
       // No queue - emit complete to UI (include tokenUsage and hasUnread for state updates)
-      this.sendEvent({
+      this.ipc.sendEvent({
         type: 'complete',
         sessionId,
         tokenUsage: managed.tokenUsage,
@@ -5258,7 +5193,7 @@ export class SessionManager implements ISessionManager {
         existingMessage.isQueued = false
         this.persistSession(managed)
 
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'user_message',
           sessionId,
           message: existingMessage,
@@ -5287,7 +5222,7 @@ export class SessionManager implements ISessionManager {
         sessionRuntimeHooks.captureException(err, { errorSource: 'chat-queue', sessionId })
         // Surface a typed error so the UI can show a clear, actionable banner
         // instead of a generic "Unknown error" (#616).
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'typed_error',
           sessionId,
           error: {
@@ -5365,7 +5300,7 @@ export class SessionManager implements ISessionManager {
     }
 
     // Always emit shell_killed to remove from UI regardless of process kill success
-    this.sendEvent({
+    this.ipc.sendEvent({
       type: 'shell_killed',
       sessionId,
       shellId,
@@ -5536,7 +5471,7 @@ export class SessionManager implements ISessionManager {
         managed.agent.setPermissionMode(mode)
       }
 
-      this.sendEvent({
+      this.ipc.sendEvent({
         type: 'permission_mode_changed',
         sessionId: managed.id,
         permissionMode: mode,
@@ -5613,7 +5548,7 @@ export class SessionManager implements ISessionManager {
       managed.labels = labels
       this.setMetadataWriteGuard(managed)
 
-      this.sendEvent({
+      this.ipc.sendEvent({
         type: 'labels_changed',
         sessionId: managed.id,
         labels: managed.labels,
@@ -5715,7 +5650,7 @@ export class SessionManager implements ISessionManager {
         // (the persistence queue has a 500ms debounce).
         await this.flushSession(managed.id)
         // Now safe to notify renderer - disk is authoritative
-        this.sendEvent({ type: 'title_generated', sessionId: managed.id, title }, managed.workspace.id)
+        this.ipc.sendEvent({ type: 'title_generated', sessionId: managed.id, title }, managed.workspace.id)
         sessionLog.info(`Generated title for session ${managed.id}: "${title}"`)
       } else {
         sessionLog.warn(`Title generation returned null for session ${managed.id}`)
@@ -5726,7 +5661,7 @@ export class SessionManager implements ISessionManager {
       // Surface quota/auth errors to the user — these indicate the main chat call will also fail
       const errorMsg = error instanceof Error ? error.message : String(error)
       if (errorMsg.includes('quota') || errorMsg.includes('429') || errorMsg.includes('401') || errorMsg.includes('insufficient')) {
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'typed_error',
           sessionId: managed.id,
           error: {
@@ -5754,12 +5689,12 @@ export class SessionManager implements ISessionManager {
       case 'text_delta':
         managed.streamingText += event.text
         // Queue delta for batched sending (performance: reduces IPC from 50+/sec to ~20/sec)
-        this.queueDelta(sessionId, workspaceId, event.text, event.turnId)
+        this.ipc.queueDelta(sessionId, workspaceId, event.text, event.turnId)
         break
 
       case 'text_complete': {
         // Flush any pending deltas before sending complete (ensures renderer has all content)
-        this.flushDelta(sessionId, workspaceId)
+        this.ipc.flushDelta(sessionId, workspaceId)
 
         const assistantMessage: Message = {
           id: generateMessageId(),
@@ -5801,7 +5736,7 @@ export class SessionManager implements ISessionManager {
           }
         }
 
-        this.sendEvent({ type: 'text_complete', sessionId, text: event.text, isIntermediate: event.isIntermediate, turnId: event.turnId, parentToolUseId: event.parentToolUseId, timestamp: assistantMessage.timestamp, messageId: assistantMessage.id }, workspaceId)
+        this.ipc.sendEvent({ type: 'text_complete', sessionId, text: event.text, isIntermediate: event.isIntermediate, turnId: event.turnId, parentToolUseId: event.parentToolUseId, timestamp: assistantMessage.timestamp, messageId: assistantMessage.id }, workspaceId)
 
         // Persist session after complete message to prevent data loss on quit
         this.persistSession(managed)
@@ -5903,14 +5838,14 @@ export class SessionManager implements ISessionManager {
           formattedToolInput,
         )
 
-        if (this.browserPaneManager && shouldActivateOverlay) {
+        if (this.ipc.browserPaneManager && shouldActivateOverlay) {
           // Ensure first browser action in a turn gets an instance before overlay activation.
-          this.browserPaneManager.getOrCreateForSession(sessionId)
+          this.ipc.browserPaneManager.getOrCreateForSession(sessionId)
 
           const resolvedDisplayName = toolDisplayMeta?.displayName
             ?? event.displayName
             ?? event.toolName
-          this.browserPaneManager.setAgentControl(sessionId, {
+          this.ipc.browserPaneManager.setAgentControl(sessionId, {
             displayName: resolvedDisplayName,
             intent: event.intent,
           })
@@ -5919,7 +5854,7 @@ export class SessionManager implements ISessionManager {
         // Send event to renderer on first occurrence OR when input data is updated
         if (shouldSendEvent) {
           const timestamp = existingStartMsg?.timestamp ?? this.monotonic()
-          this.sendEvent({
+          this.ipc.sendEvent({
             type: 'tool_start',
             sessionId,
             toolName: event.toolName,
@@ -6004,7 +5939,7 @@ export class SessionManager implements ISessionManager {
         if (!wasAlreadyComplete || resultChanged) {
           // Use existing tool message timestamp, or fallback message timestamp for ordering
           const toolResultTimestamp = existingToolMsg?.timestamp ?? (managed.messages.find(m => m.toolUseId === event.toolUseId)?.timestamp)
-          this.sendEvent({
+          this.ipc.sendEvent({
             type: 'tool_result',
             sessionId,
             toolUseId: event.toolUseId,
@@ -6030,7 +5965,7 @@ export class SessionManager implements ISessionManager {
             child.toolStatus = 'completed'
             child.toolResult = child.toolResult || ''
             sessionLog.info(`CHILD AUTO-COMPLETED: toolUseId=${child.toolUseId}, toolName=${child.toolName} (parent ${toolName} completed)`)
-            this.sendEvent({
+            this.ipc.sendEvent({
               type: 'tool_result',
               sessionId,
               toolUseId: child.toolUseId!,
@@ -6048,7 +5983,7 @@ export class SessionManager implements ISessionManager {
       }
 
       case 'status':
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'status',
           sessionId,
           message: event.message,
@@ -6082,7 +6017,7 @@ export class SessionManager implements ISessionManager {
           // Emit usage_update so the context count badge refreshes immediately
           // after compaction, without waiting for the next message
           if (managed.tokenUsage) {
-            this.sendEvent({
+            this.ipc.sendEvent({
               type: 'usage_update',
               sessionId,
               tokenUsage: {
@@ -6093,7 +6028,7 @@ export class SessionManager implements ISessionManager {
           }
         }
 
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'info',
           sessionId,
           message: event.message,
@@ -6138,7 +6073,7 @@ export class SessionManager implements ISessionManager {
           timestamp: this.monotonic()
         }
         managed.messages.push(errorMessage)
-        this.sendEvent({ type: 'error', sessionId, error: event.message, timestamp: errorMessage.timestamp }, workspaceId)
+        this.ipc.sendEvent({ type: 'error', sessionId, error: event.message, timestamp: errorMessage.timestamp }, workspaceId)
         break
       }
 
@@ -6188,7 +6123,7 @@ export class SessionManager implements ISessionManager {
         }
         managed.messages.push(typedErrorMessage)
         // Send typed_error event with full structure for renderer to handle
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'typed_error',
           sessionId,
           error: {
@@ -6207,7 +6142,7 @@ export class SessionManager implements ISessionManager {
       case 'task_backgrounded':
       case 'task_progress':
         // Forward background task events directly to renderer
-        this.sendEvent({
+        this.ipc.sendEvent({
           ...event,
           sessionId,
         }, workspaceId)
@@ -6237,7 +6172,7 @@ export class SessionManager implements ISessionManager {
           }
         }
         // Forward to renderer for UI update
-        this.sendEvent({
+        this.ipc.sendEvent({
           ...event,
           sessionId,
         }, workspaceId)
@@ -6250,7 +6185,7 @@ export class SessionManager implements ISessionManager {
           sessionLog.info(`Stored command for shell ${event.shellId}: ${event.command.slice(0, 50)}...`)
         }
         // Forward to renderer
-        this.sendEvent({
+        this.ipc.sendEvent({
           ...event,
           sessionId,
         }, workspaceId)
@@ -6259,7 +6194,7 @@ export class SessionManager implements ISessionManager {
       case 'source_activated':
         // A source was auto-activated mid-turn, forward to renderer for auto-retry
         sessionLog.info(`Source "${event.sourceSlug}" activated, notifying renderer for auto-retry`)
-        this.sendEvent({
+        this.ipc.sendEvent({
           type: 'source_activated',
           sessionId,
           sourceSlug: event.sourceSlug,
@@ -6318,7 +6253,7 @@ export class SessionManager implements ISessionManager {
           }
 
           // Send to renderer for immediate UI update
-          this.sendEvent({
+          this.ipc.sendEvent({
             type: 'usage_update',
             sessionId: managed.id,
             tokenUsage: {
@@ -6339,70 +6274,6 @@ export class SessionManager implements ISessionManager {
 
       // Note: working_directory_changed is user-initiated only (via updateWorkingDirectory),
       // the agent no longer has a change_working_directory tool
-    }
-  }
-
-  private sendEvent(event: SessionEvent, workspaceId?: string): void {
-    if (!this.eventSink) {
-      sessionLog.warn('Cannot send event - no event sink')
-      return
-    }
-
-    if (!workspaceId) {
-      sessionLog.warn(`Cannot send ${event.type} event - no workspaceId`)
-      return
-    }
-
-    this.eventSink(RPC_CHANNELS.sessions.EVENT, { to: 'workspace', workspaceId }, event)
-  }
-
-  /**
-   * Queue a text delta for batched sending (performance optimization)
-   * Instead of sending 50+ IPC events per second, batches deltas and flushes every 50ms
-   */
-  private queueDelta(sessionId: string, workspaceId: string, delta: string, turnId?: string): void {
-    const existing = this.pendingDeltas.get(sessionId)
-    if (existing) {
-      // Append to existing batch
-      existing.delta += delta
-      // Keep the latest turnId (should be the same, but just in case)
-      if (turnId) existing.turnId = turnId
-    } else {
-      // Start new batch
-      this.pendingDeltas.set(sessionId, { delta, turnId })
-    }
-
-    // Schedule flush if not already scheduled
-    if (!this.deltaFlushTimers.has(sessionId)) {
-      const timer = setTimeout(() => {
-        this.flushDelta(sessionId, workspaceId)
-      }, DELTA_BATCH_INTERVAL_MS)
-      this.deltaFlushTimers.set(sessionId, timer)
-    }
-  }
-
-  /**
-   * Flush any pending deltas for a session (sends batched IPC event)
-   * Called on timer or when streaming ends (text_complete)
-   */
-  private flushDelta(sessionId: string, workspaceId: string): void {
-    // Clear the timer
-    const timer = this.deltaFlushTimers.get(sessionId)
-    if (timer) {
-      clearTimeout(timer)
-      this.deltaFlushTimers.delete(sessionId)
-    }
-
-    // Send batched delta if any
-    const pending = this.pendingDeltas.get(sessionId)
-    if (pending && pending.delta) {
-      this.sendEvent({
-        type: 'text_delta',
-        sessionId,
-        delta: pending.delta,
-        turnId: pending.turnId
-      }, workspaceId)
-      this.pendingDeltas.delete(sessionId)
     }
   }
 
@@ -6473,7 +6344,7 @@ export class SessionManager implements ISessionManager {
     // Notify renderer to hydrate full session metadata (including title)
     // before streaming events arrive. Without this, the renderer may create
     // a synthetic empty session and temporarily show "New chat".
-    this.sendEvent({ type: 'session_created', sessionId: session.id }, workspaceId)
+    this.ipc.sendEvent({ type: 'session_created', sessionId: session.id }, workspaceId)
 
     // Bind the new session to its Telegram forum topic if the matcher
     // declared `telegramTopic`. Done before `sendMessage` so the first
@@ -6879,7 +6750,7 @@ export class SessionManager implements ISessionManager {
     }
 
     // Emit session_created so renderer picks it up
-    this.sendEvent({ type: 'session_created', sessionId }, workspaceId)
+    this.ipc.sendEvent({ type: 'session_created', sessionId }, workspaceId)
 
     sessionLog.info(`[import] Complete: sessionId=${sessionId}, transferredSummary=${managed.transferredSessionSummary ? `${managed.transferredSessionSummary.length} chars` : 'none'}, applied=${managed.transferredSessionSummaryApplied}, warnings=${warnings.length > 0 ? warnings.join('; ') : 'none'}`)
     return { sessionId, warnings: warnings.length > 0 ? warnings : undefined }
@@ -6928,11 +6799,7 @@ export class SessionManager implements ISessionManager {
     this.automationSystems.clear()
 
     // Clear all pending delta flush timers
-    for (const [sessionId, timer] of this.deltaFlushTimers) {
-      clearTimeout(timer)
-    }
-    this.deltaFlushTimers.clear()
-    this.pendingDeltas.clear()
+    this.ipc.clearAllDeltaState()
 
     // Clear pending credential resolvers (they won't be resolved, but prevents memory leak)
     this.pendingCredentialResolvers.clear()
