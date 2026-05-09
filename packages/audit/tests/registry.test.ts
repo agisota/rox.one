@@ -39,7 +39,7 @@ describe("ProbeRegistry — basic", () => {
     reg.register(makeProbe("p1", [finding]));
     const result = await reg.run({ surfaces: ["renderer"], probes: ["p1"], workerCap: 1, contextFor: ctxFor });
     expect(result.findings).toHaveLength(1);
-    expect(result.findings[0].id).toBe("aaaa1111aaaa1111");
+    expect(result.findings[0]?.id).toBe("aaaa1111aaaa1111");
   });
 
   test("filters probes by --probes selection", async () => {
