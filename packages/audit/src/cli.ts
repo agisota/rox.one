@@ -4,6 +4,7 @@ import { rank } from "./ranker.ts";
 import { writeJsonQueue } from "./reporters/json-queue.ts";
 import { writeMarkdownSidecar } from "./reporters/markdown-sidecar.ts";
 import type { Probe, Surface } from "./probe.ts";
+import { staticTscProbe } from "./probes/static-tsc.ts";
 import { join } from "node:path";
 
 const HELP = `Usage:
@@ -79,7 +80,7 @@ async function main(): Promise<number> {
 
   // Discover probes by static import. Each probe module exports a default Probe.
   const registry = new ProbeRegistry();
-  const probeModules: Probe[] = [];
+  const probeModules: Probe[] = [staticTscProbe];
   // Static probes are appended here as they are implemented in later tasks.
   // (T061 will add static-tsc, T062 static-eslint, T063 static-bundle.)
   for (const p of probeModules) {
