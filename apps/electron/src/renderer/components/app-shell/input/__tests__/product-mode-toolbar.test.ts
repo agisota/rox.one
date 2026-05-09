@@ -31,6 +31,14 @@ describe('product mode toolbar contract', () => {
   test('renders the required composer action order', () => {
     expect([...COMPOSER_PRODUCT_MODE_ACTION_IDS]).toEqual(REQUIRED_ACTIONS.map(([actionId]) => actionId));
     expect(getComposerProductModeActions().map(action => action.id)).toEqual([...COMPOSER_PRODUCT_MODE_ACTION_IDS]);
+    expect(getComposerProductModeActions().map(action => action.descriptionKey)).toEqual([
+      'workbench.actions.improvePrompt.description',
+      'workbench.actions.runTddPlan.description',
+      'workbench.actions.verify.description',
+      'workbench.actions.tearDown.description',
+      'workbench.actions.buildSpec.description',
+      'workbench.actions.review.description',
+    ]);
   });
 
   test('maps every action to the expected product mode', () => {
@@ -93,6 +101,11 @@ describe('product mode toolbar contract', () => {
     expect(markup).toContain('data-testid="product-mode-toolbar"');
     expect(markup).toContain('data-testid="product-mode-picker"');
     expect(markup).toContain('aria-haspopup="listbox"');
+    expect(markup).toContain('aria-controls=');
+    expect(markup).toContain('data-state="closed"');
+    expect(markup).toContain('<svg');
+    expect(markup).toContain('title="workbench.actions.improvePrompt.description"');
+    expect(markup).not.toContain('>v</span>');
     expect(markup).not.toContain('data-testid="product-mode-select"');
     expect(markup).not.toContain('<select');
   });

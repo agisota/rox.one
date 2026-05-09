@@ -41,6 +41,7 @@ export type ProductModeIntent = {
 export type ComposerProductModeAction = {
   id: ComposerProductModeActionId;
   labelKey: string;
+  descriptionKey: string;
   ariaLabelKey: string;
   mode: ProductMode | 'selected';
 };
@@ -55,36 +56,42 @@ const COMPOSER_PRODUCT_MODE_ACTIONS: readonly ComposerProductModeAction[] = [
   {
     id: 'improve-prompt',
     labelKey: 'workbench.actions.improvePrompt',
+    descriptionKey: 'workbench.actions.improvePrompt.description',
     ariaLabelKey: 'workbench.actions.improvePrompt',
     mode: 'rewrite',
   },
   {
     id: 'run-tdd-plan',
     labelKey: 'workbench.actions.runTddPlan',
+    descriptionKey: 'workbench.actions.runTddPlan.description',
     ariaLabelKey: 'workbench.actions.runTddPlan',
     mode: 'tdd',
   },
   {
     id: 'verify',
     labelKey: 'workbench.actions.verify',
+    descriptionKey: 'workbench.actions.verify.description',
     ariaLabelKey: 'workbench.actions.verify',
     mode: 'verify',
   },
   {
     id: 'tear-down',
     labelKey: 'workbench.actions.tearDown',
+    descriptionKey: 'workbench.actions.tearDown.description',
     ariaLabelKey: 'workbench.actions.tearDown',
     mode: 'review',
   },
   {
     id: 'build-spec',
     labelKey: 'workbench.actions.buildSpec',
+    descriptionKey: 'workbench.actions.buildSpec.description',
     ariaLabelKey: 'workbench.actions.buildSpec',
     mode: 'spec',
   },
   {
     id: 'review',
     labelKey: 'workbench.actions.review',
+    descriptionKey: 'workbench.actions.review.description',
     ariaLabelKey: 'workbench.actions.review',
     mode: 'review',
   },
