@@ -211,6 +211,11 @@ export function loadWorkspace(rootPath: string): LoadedWorkspace | null {
     mkdirSync(skillsPath, { recursive: true });
   }
 
+  // Install Agent Workbench starter skills/statuses/labels/sources without
+  // overwriting user edits. This keeps existing workspaces aligned with the
+  // bundled default source presets after app upgrades.
+  installDefaultWorkbenchBundle(rootPath);
+
   return {
     config,
     sourceSlugs: listSubdirNames(getWorkspaceSourcesPath(rootPath)),

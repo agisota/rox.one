@@ -35,6 +35,7 @@ import {
   type Workspace,
   type WorkspaceInfo,
 } from '@craft-agent/shared/config'
+import { installDefaultWorkbenchBundle } from '@craft-agent/shared/workbench/default-workspace-bundle'
 import type { ActiveSessionInfo, SessionProcessingStatus } from '@craft-agent/core/types'
 import { loadWorkspaceConfig } from '@craft-agent/shared/workspaces'
 import {
@@ -100,6 +101,7 @@ import { ensureLabelsExist } from '@craft-agent/shared/labels/crud'
 import { loadStatusConfig } from '@craft-agent/shared/statuses/storage'
 import { AutomationSystem, createPromptHistoryEntry, appendAutomationHistoryEntry, type AutomationSystemMetadataSnapshot } from '@craft-agent/shared/automations'
 import { buildBackendRuntimeSignature, buildRestartRequiredSignature, filterAttachmentsForModelInput } from './runtime-config'
+import { importExternalAgentSessionIndex } from './external-agent-session-importer'
 
 // Import from server-core domain utilities
 import { sanitizeForTitle, shouldActivateBrowserOverlay, normalizeBrowserToolName, rollbackFailedBranchCreation, releaseBrowserOwnershipOnForcedStop } from '@craft-agent/server-core/domain'
@@ -1632,6 +1634,16 @@ export class SessionManager implements ISessionManager {
       // ever connect, yet scheduled/event-driven automations must still fire.
       const workspaces = getWorkspaces()
       for (const workspace of workspaces) {
+        const bundleResult = installDefaultWorkbenchBundle(workspace.rootPath)
+        if (bundleResult.createdSourceSlugs.length > 0) {
+          sessionLog.info(`Installed default MCP sources for workspace ${workspace.id}: ${bundleResult.createdSourceSlugs.join(', ')}`)
+        }
+
+        const importResult = importExternalAgentSessionIndex({ workspaceRootPath: workspace.rootPath })
+        if (importResult.importedSessionIds.length > 0) {
+          sessionLog.info(`Imported external agent sessions for workspace ${workspace.id}: ${importResult.importedSessionIds.length}`)
+        }
+
         this.setupConfigWatcher(workspace.rootPath, workspace.id)
       }
 

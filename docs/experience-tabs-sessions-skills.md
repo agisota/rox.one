@@ -38,6 +38,8 @@ Canonical code surfaces:
 | Demo sessions | `apps/electron/src/renderer/components/workbench/demo-experience-sessions.ts` | 30 sanitized demo sessions: 5 per Experience tab |
 | Route binding | `apps/electron/src/renderer/components/workbench/WorkbenchRoutePage.tsx` | Per-tab demo session switcher + truth-state injection |
 | Route tests | `apps/electron/src/renderer/components/workbench/__tests__/workbench-route-page.test.tsx` | Guards tab renderability and exactly 5 demos per tab |
+| External session import | `packages/server-core/src/sessions/external-agent-session-importer.ts` | Imports sanitized `~/.rox/session_index.jsonl` rows into workspace `session.jsonl` stubs |
+| Default MCP sources | `packages/shared/src/workbench/default-workspace-bundle.ts` | Installs Exa, ByteRover, Firecrawl, GitHub, Playwright, and Z.AI source presets |
 
 ## Product roles
 
@@ -132,10 +134,44 @@ Craft session row/log/skill file
 
 ## Current import stance
 
-The current change does not bulk-import raw Craft Agents sessions. It installs a safe demo layer first. A real importer should be a separate explicit step with:
+The app now imports the sanitized ROX external session index into the active
+workspace startup path. It creates normal workspace `session.jsonl` stubs from
+`~/.rox/session_index.jsonl` so indexed Craft Agent sessions appear in the app,
+while intentionally avoiding raw transcript ingestion.
+
+Current importer guarantees:
+
+- reads session IDs, titles, and timestamps from `~/.rox/session_index.jsonl`;
+- correlates optional hash/import metadata from
+  `~/.rox/external_agent_session_imports.json`;
+- strips markup and redacts secret-like title content;
+- does not embed raw external prompt bodies;
+- does not embed raw `source_path` values or local absolute transcript paths;
+- skips existing workspace sessions instead of overwriting user edits.
+
+Still out of scope: full raw transcript replay. That should remain a separate
+explicit importer with:
 
 1. source discovery (`~/.rox`, workspace folders, skill directories, session DB/log files);
 2. secret scanner/redactor;
 3. schema validator;
 4. dry-run diff;
 5. isolated import bundle under an artifact directory, not direct mutation of live app state.
+
+## Default MCP source presets
+
+New and migrated workspaces receive source presets for the active working MCP
+stack without broad filesystem access:
+
+| Source | Command | Auth expectation | Default role |
+|---|---|---|---|
+| Exa | `npx -y exa-mcp-server` | `EXA_API_KEY` in app process env | Research search and source discovery |
+| ByteRover | `npx -y byterover-mcp` | Local ByteRover/`brv` context | Project memory and decision context |
+| Firecrawl | `npx -y firecrawl-mcp` | `FIRECRAWL_API_KEY` in app process env | Targeted crawl/extraction |
+| GitHub | Docker GitHub MCP server | `GITHUB_PERSONAL_ACCESS_TOKEN` in app process env | Repo, issue, and PR context |
+| Playwright | `npx -y @playwright/mcp@latest --browser chrome --caps vision,pdf,devtools` | No default secret | Browser/UI evidence |
+| Z.AI | `npx -y @z_ai/mcp-server` | `Z_AI_API_KEY` in app process env | Opt-in Z.AI model/tool bridge |
+
+The default bundle writes `config.json`, `guide.md`, and `permissions.json` for
+each source and skips any existing source folder so user-edited configs survive
+upgrades.
