@@ -1472,6 +1472,7 @@
   "workbench.brand.productDescription": "{{productName}} / {{tagline}}",
   "workbench.brand.section": "Приложение",
   "workbench.brand.support": "Поддержка",
+  "workbench.composer.actions.removeRecentFolder": "Удалить последнюю папку",
   "workbench.composer.input.editLabel": "Редактирование сообщения",
   "workbench.composer.input.label": "Редактор сообщения",
   "workbench.modes.board.description": "Показывает reviewer cards, severity matrix, fix plan и статус готовности.",
