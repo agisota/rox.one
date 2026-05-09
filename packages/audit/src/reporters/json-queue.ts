@@ -10,6 +10,13 @@ export interface WriteJsonQueueInput {
   probes: string[];
   surfaces: Surface[];
   durationMs: number;
+  /**
+   * Optional partition of `findings` keyed by probe name. When provided,
+   * `<outDir>/per-probe/<probe>.json` is written for each entry per spec § 5.1.
+   * Each per-probe artifact uses the same Queue shape as `queue.json` but
+   * scoped to a single probe's findings.
+   */
+  perProbeFindings?: Record<string, Finding[]>;
 }
 
 function atomicWriteJson(path: string, data: unknown): void {
@@ -29,6 +36,24 @@ export async function writeJsonQueue(input: WriteJsonQueueInput): Promise<void> 
     findings: input.findings,
   };
   atomicWriteJson(join(input.outDir, "queue.json"), queue);
+
+  // Per-probe artifacts (spec § 5.1). Each <outDir>/per-probe/<probe>.json
+  // mirrors the queue.json shape but scoped to a single probe's findings.
+  if (input.perProbeFindings) {
+    const perProbeDir = join(input.outDir, "per-probe");
+    mkdirSync(perProbeDir, { recursive: true });
+    for (const [probeName, findings] of Object.entries(input.perProbeFindings)) {
+      const perProbe = {
+        schemaVersion: FINDING_SCHEMA_VERSION,
+        runId: input.runId,
+        probe: probeName,
+        generatedAt: new Date().toISOString(),
+        findingCount: findings.length,
+        findings,
+      };
+      atomicWriteJson(join(perProbeDir, `${probeName}.json`), perProbe);
+    }
+  }
 
   // manifest.json LAST — its existence signals the run is committed-to-disk.
   const manifest = {
