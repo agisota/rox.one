@@ -1257,11 +1257,7 @@ export class PiAgent extends BaseAgent {
         });
 
         const allowed = await permissionPromise;
-        // PendingRequestMap.resolve() already deleted the entry; the duplicate
-        // delete below is a no-op-safe legacy belt-and-suspenders if respondToPermission
-        // raced. PendingRequestMap.has() check is cheaper than a .delete on absent key.
-        // (Kept conservative: explicit no-op when entry already drained.)
-        // No action needed — settle path handles cleanup.
+        // PendingRequestMap.resolve() in respondToPermission() already drained the entry.
 
         if (!allowed) {
           this.send({ type: 'pre_tool_use_response', requestId, action: 'block', reason: 'Permission denied by user.' });
