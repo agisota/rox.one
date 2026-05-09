@@ -60,11 +60,13 @@ import {
   ShikiThemeProvider,
   PlatformProvider,
   ImagePreviewOverlay,
-  PDFPreviewOverlay,
   CodePreviewOverlay,
   DocumentFormattedMarkdownOverlay,
   JSONPreviewOverlay,
 } from '@rox-agent/ui'
+const PDFPreviewOverlay = React.lazy(() =>
+  import('../../../../packages/ui/src/components/overlay/PDFPreviewOverlay').then((m) => ({ default: m.PDFPreviewOverlay }))
+)
 import { useLinkInterceptor, type FilePreviewState } from '@/hooks/useLinkInterceptor'
 import { useTransportConnectionState } from '@/hooks/useTransportConnectionState'
 import { useStaleSessionRecovery } from '@/hooks/useStaleSessionRecovery'
@@ -2107,13 +2109,15 @@ function FilePreviewRenderer({
 
     case 'pdf':
       return (
-        <PDFPreviewOverlay
-          isOpen
-          onClose={onClose}
-          filePath={state.filePath}
-          loadPdfData={loadPdfData}
-          theme={theme}
-        />
+        <React.Suspense fallback={null}>
+          <PDFPreviewOverlay
+            isOpen
+            onClose={onClose}
+            filePath={state.filePath}
+            loadPdfData={loadPdfData}
+            theme={theme}
+          />
+        </React.Suspense>
       )
 
     case 'code':
