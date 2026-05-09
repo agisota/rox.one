@@ -29,11 +29,14 @@ interface ToolbarStatusSlotProps {
   showEscapeOverlay: boolean
   /** Session ID to find the bound browser instance */
   sessionId?: string
+  /** When true, render a transient pending shimmer (e.g. async data fetch in flight). */
+  pending?: boolean
 }
 
 export function ToolbarStatusSlot({
   showEscapeOverlay,
   sessionId,
+  pending = false,
 }: ToolbarStatusSlotProps) {
   const browserInstances = useAtomValue(browserInstancesAtom)
 
@@ -50,8 +53,9 @@ export function ToolbarStatusSlot({
     return visibleCandidates.at(-1) ?? null
   }, [browserInstances, sessionId])
 
-  // Priority resolution: escape interrupt > browser status
+  // Priority resolution: escape interrupt > browser status > pending shimmer
   const showBrowser = !showEscapeOverlay && browserInstance !== null
+  const showPending = !showEscapeOverlay && !showBrowser && pending
 
   const handleBrowserClick = React.useCallback((instanceId: string) => {
     window.electronAPI?.browserPane?.focus?.(instanceId)
@@ -94,6 +98,38 @@ export function ToolbarStatusSlot({
           instance={browserInstance}
           onClick={() => handleBrowserClick(browserInstance.id)}
         />
+      )}
+
+      {showPending && (
+        <motion.div
+          key="pending"
+          data-testid="toolbar-status-pending"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-0 z-10",
+            "rounded-b-[12px] overflow-hidden",
+            "pointer-events-none",
+          )}
+        >
+          {/* Shimmer line — must always animate so the loading affordance reads
+              even under prefers-reduced-motion (per T183 .always-animate opt-out). */}
+          <div className="absolute inset-x-0 top-0 h-[2px] z-10 overflow-hidden">
+            <div
+              className="h-full w-full animate-shimmer-loading always-animate"
+              style={{
+                background:
+                  'linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%)',
+              }}
+            />
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            <Spinner className="text-[10px] leading-none always-animate" />
+          </div>
+        </motion.div>
       )}
     </AnimatePresence>
   )
