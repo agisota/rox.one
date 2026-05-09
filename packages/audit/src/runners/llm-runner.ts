@@ -105,6 +105,7 @@ export function createLLMRunner(input: CreateLLMRunnerInput = {}): LLMClient {
         if (!Array.isArray(parsed)) return { findings: [] };
         return { findings: parsed as LLMTasteFinding[] };
       } catch {
+        process.stderr.write(`[taste-llm] malformed JSON ignored: ${JSON.stringify(text.slice(0, 200))}\n`);
         return { findings: [] }; // malformed response → empty (safer than crashing)
       }
     },

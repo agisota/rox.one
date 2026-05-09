@@ -67,4 +67,30 @@ describe("LLMRunner", () => {
     const runner = createLLMRunner({ client: mockClient });
     expect(typeof runner.analyzeScreenshot).toBe("function");
   });
+
+  test("malformed JSON returns empty findings and writes to stderr", async () => {
+    const mockClient = {
+      messages: {
+        create: async () => ({
+          content: [{ type: "text", text: "NOT VALID JSON {{" }],
+        }),
+      },
+    } as unknown as Anthropic;
+
+    const stderrChunks: string[] = [];
+    const originalWrite = process.stderr.write.bind(process.stderr);
+    process.stderr.write = (chunk: string | Uint8Array) => {
+      stderrChunks.push(typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk));
+      return true;
+    };
+
+    try {
+      const runner = createLLMRunner({ client: mockClient });
+      const result = await runner.analyzeScreenshot({ surface: "webui", route: "/", screenshotPng: new Uint8Array() });
+      expect(result.findings).toHaveLength(0);
+      expect(stderrChunks.join("")).toContain("[taste-llm] malformed JSON ignored:");
+    } finally {
+      process.stderr.write = originalWrite;
+    }
+  });
 });
