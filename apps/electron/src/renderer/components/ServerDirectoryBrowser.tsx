@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -294,6 +295,9 @@ export function ServerDirectoryBrowser({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("settings.server.selectDirectory")}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Выберите папку на сервере или введите путь вручную.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-2">
