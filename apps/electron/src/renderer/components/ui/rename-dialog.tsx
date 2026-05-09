@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -58,6 +59,9 @@ export function RenameDialog({
       <DialogContent className="sm:max-w-[400px]" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Введите новое название и сохраните изменение.
+          </DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <Input
