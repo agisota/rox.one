@@ -290,17 +290,22 @@ export interface RotatedAccountSession {
  * cookie TTL when the user is actively using the app. On every authenticated
  * request, the caller asks this helper whether to rotate. If the existing
  * session is younger than `rotationWindowMs`, the helper returns `null` and
- * nothing changes. Otherwise it mints a fresh DB session, revokes the old
- * one, and returns a new identity + `Set-Cookie` value.
+ * nothing changes. Otherwise it revokes the old session, mints a fresh DB
+ * session, and returns a new identity + `Set-Cookie` value.
  *
  * The cookie is regenerated via {@link buildSessionCookie} so it inherits
  * `HttpOnly`, `SameSite=Strict`, `Path=/`, and the (configurable) `Secure`
  * flag. The bearer envelope continues to be a short-lived signed JWT carrying
  * only server-controlled identifiers — never raw secret material.
  *
- * Race-safety: if the existing session is no longer present in the store
- * (e.g. revoked concurrently), this helper returns `null` rather than minting
- * a fresh session for an absent owner.
+ * Atomic rotation (Slice 4 hardening, finding #1): {@link AccountStore.revokeSession}
+ * is a compare-and-swap that returns `revoked: true` only on the call that
+ * transitions the row from active to revoked. We invoke `revokeSession` before
+ * `createSession` and bail out (returning `null`) whenever the CAS reports the
+ * row was already revoked or absent. Concurrent rotators therefore see at most
+ * one successful CAS per source session — preventing the orphaned-session
+ * pile-up that the previous read-then-write ordering allowed under React
+ * StrictMode + concurrent `/api/account/me` fetches.
  */
 export async function rotateAccountSessionIfStale(
   input: RotateAccountSessionInput,
@@ -321,15 +326,19 @@ export async function rotateAccountSessionIfStale(
   const ageMs = now - new Date(session.createdAt).getTime()
   if (ageMs < window) return null
 
+  // Compare-and-swap revoke FIRST. Only the caller that flips the row from
+  // active to revoked proceeds to mint a replacement. All other concurrent
+  // rotators see `revoked: false` and bail out without leaving an orphan.
+  const previousSessionId = current.sessionId
+  const revokeOutcome = await input.accountStore.revokeSession(previousSessionId)
+  if (!revokeOutcome.revoked) return null
+
   const fresh = await input.accountStore.createSession({
     userId: current.userId,
     userAgent: input.userAgent,
     ipAddress: input.ipAddress,
     authMethod: session.authMethod ?? 'password',
   })
-
-  const previousSessionId = current.sessionId
-  await input.accountStore.revokeSession(previousSessionId)
 
   const rotatedIdentity: SessionIdentity = {
     userId: current.userId,

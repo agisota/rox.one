@@ -26,6 +26,7 @@ import {
   type CreateUserInput,
   type EmailTokenPurpose,
   type PublicUser,
+  type RevokeSessionResult,
   type SessionIdentity,
 } from '../accounts'
 import { InMemoryObjectStorageAdapter, QuotaObjectStorageService, type ObjectStorageAdapter } from '../storage/object-storage'
@@ -215,9 +216,17 @@ export class InMemoryAccountStore implements AccountStore {
       .map(copyJson)
   }
 
-  async revokeSession(sessionId: string): Promise<void> {
+  async revokeSession(sessionId: string): Promise<RevokeSessionResult> {
     const session = this.sessions.get(sessionId)
-    if (session) this.sessions.set(sessionId, { ...session, revokedAt: new Date().toISOString() })
+    if (!session) return { revoked: false, sessionId: null }
+    if (session.revokedAt) return { revoked: false, sessionId }
+    // The Map mutation below is the in-memory equivalent of the SQL
+    // compare-and-swap in PostgresAccountStore.revokeSession: only the call
+    // that flips revokedAt from null to a timestamp returns `revoked: true`.
+    // Bun runs JS handlers single-threaded, so the read-then-write is atomic
+    // with respect to other store callers in the same process.
+    this.sessions.set(sessionId, { ...session, revokedAt: new Date().toISOString() })
+    return { revoked: true, sessionId }
   }
 
   async revokeUserSessions(userId: string): Promise<void> {
