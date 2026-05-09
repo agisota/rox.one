@@ -9,6 +9,7 @@ import { staticTscProbe } from "./probes/static-tsc.ts";
 import { staticEslintProbe } from "./probes/static-eslint.ts";
 import { staticBundleProbe } from "./probes/static-bundle.ts";
 import { runtimeAxeProbe } from "./probes/runtime-axe.ts";
+import { runtimeStatesProbe } from "./probes/runtime-states.ts";
 import { createPlaywrightRunner } from "./runners/playwright-runner.ts";
 import { join } from "node:path";
 
@@ -95,7 +96,7 @@ async function main(): Promise<number> {
 
   // Discover probes by static import. Each probe module exports a default Probe.
   const registry = new ProbeRegistry();
-  const probeModules: Probe[] = [staticTscProbe, staticEslintProbe, staticBundleProbe, runtimeAxeProbe];
+  const probeModules: Probe[] = [staticTscProbe, staticEslintProbe, staticBundleProbe, runtimeAxeProbe, runtimeStatesProbe];
   for (const p of probeModules) {
     if (probeMatches(p.name, parsed.probesGlob)) registry.register(p);
   }
