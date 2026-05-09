@@ -141,9 +141,10 @@ Required evidence:
 ## Tests
 
 Core commands:
+- `bun run test` — single CI gate (Slice 2). Wraps `test:units` plus the full `validate:ci` chain (typecheck:all, test:shared:all, test:doc-tools, validate:audit, lint:i18n:parity / sorted / coverage, contract validators).
+- `bun run test:units` — fast dev path: `bun test` over all `*.test.ts` plus `*.isolated.ts` files. Use for tight TDD loops.
 - `bun run validate:agent-contract` for T000 execution contract.
 - `bun run validate:architecture-docs` for T001 architecture docs.
-- `bun test` for full Bun tests when feature code changes.
 - `bun run typecheck`, `bun run typecheck:electron`, and package-specific typechecks for typed code changes.
 
 Use for:
@@ -155,10 +156,18 @@ Required evidence:
 - Green-phase output captured in worklog.
 - No real LLM, S3, or cloud calls in tests.
 
+## Shared fixtures
+
+Cross-package fixtures live in `@rox-agent/test-fixtures` (`packages/test-fixtures/`). Currently exports:
+
+- `TEST_MODE_CONFIG` — the canonical bash/MCP/API permission patterns used by mode-manager security tests. Mirrors `~/.rox/permissions/default.json`. Imported by `packages/shared/tests/mode-manager.test.ts` and `mode-manager-bash-validation.test.ts`.
+
+Add new fixtures by creating a module under `packages/test-fixtures/src/<name>.ts` and re-exporting from `src/index.ts`. The package is a graph leaf — it must not import from sibling workspace packages so tests can rely on it without circular workspace deps.
+
 ## Build
 
 Existing command surface:
-- `bun run validate:ci` for CI-grade validation.
+- `bun run test` — full validation gate (replaces standalone `validate:ci`; the latter still exists as the inner chain).
 - `bun run electron:build` for desktop build.
 - `bun run electron:dist:dev:mac` for dev macOS packaging.
 - `bun run webui:build` for web UI build.
