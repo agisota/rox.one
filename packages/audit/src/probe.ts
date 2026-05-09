@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { PlaywrightRunner } from "./runners/playwright-runner.ts";
+import type { LLMClient } from "./runners/llm-runner.ts";
 
 export type Surface = "renderer" | "webui" | "viewer" | "marketing";
 export type Phase = "A.1" | "A.2" | "A.3" | "A.4";
@@ -19,6 +20,8 @@ export interface ProbeContext {
   // When set together with `playwright`, runtime probes route-crawl the live
   // server instead of falling back to file-based discovery.
   devServerUrl?: string;
+  // A.3+: LLM client for taste probes. Optional — probe returns [] when absent.
+  llm?: LLMClient;
 }
 
 export interface Probe {
