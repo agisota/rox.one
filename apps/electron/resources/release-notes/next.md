@@ -4,6 +4,8 @@ This file accumulates release notes for the next unreleased version. PRs that ad
 
 ## Features
 
+- **Experience session sync and MCP defaults** — ROX.ONE now imports sanitized external Rox Agent session index entries into workspace sessions on startup and seeds new/migrated workspaces with Exa, ByteRover, Firecrawl, GitHub, Playwright, and Z.AI MCP source presets. The importer keeps raw transcripts, local source paths, and secret-like prompt fragments out of generated session stubs.
+
 ## Improvements
 
 ## Bug Fixes

@@ -8,11 +8,13 @@ import { loadStatusConfig } from '../../statuses/storage.ts';
 import { createWorkspaceAtPath } from '../../workspaces/storage.ts';
 import {
   WORKBENCH_BUNDLE_SKILL_SLUGS,
+  WORKBENCH_MCP_SOURCE_PRESET_SLUGS,
   WORKBENCH_REQUIRED_LABEL_ENTRIES,
   WORKBENCH_REQUIRED_STATUS_IDS,
   getDefaultWorkbenchBundleManifest,
   installDefaultWorkbenchBundle,
 } from '../default-workspace-bundle.ts';
+import { loadWorkspaceSources } from '../../sources/storage.ts';
 
 let tempDir: string;
 let workspaceRoot: string;
@@ -53,7 +55,10 @@ describe('default Agent Workbench workspace bundle', () => {
     expect(manifest.skills.map((skill) => skill.slug)).toEqual([...WORKBENCH_BUNDLE_SKILL_SLUGS]);
     expect(manifest.statuses.map((status) => status.id)).toEqual([...WORKBENCH_REQUIRED_STATUS_IDS]);
     expect(manifest.labelEntries).toEqual([...WORKBENCH_REQUIRED_LABEL_ENTRIES]);
+    expect(manifest.sourcePresets.map((source) => source.config.slug)).toEqual([...WORKBENCH_MCP_SOURCE_PRESET_SLUGS]);
     expect(manifest.skills).toHaveLength(10);
+    expect(manifest.sourcePresets).toHaveLength(6);
+    expect(manifest.sourcePresets.map((source) => source.config.slug as string)).not.toContain('filesystem');
 
     for (const skill of manifest.skills) {
       expect(skill.name.length).toBeGreaterThan(0);
@@ -67,7 +72,9 @@ describe('default Agent Workbench workspace bundle', () => {
     const result = installDefaultWorkbenchBundle(workspaceRoot);
 
     expect(result.createdSkillSlugs).toEqual([...WORKBENCH_BUNDLE_SKILL_SLUGS]);
+    expect(result.createdSourceSlugs).toEqual([...WORKBENCH_MCP_SOURCE_PRESET_SLUGS]);
     expect(result.skippedExistingSkillSlugs).toEqual([]);
+    expect(result.skippedExistingSourceSlugs).toEqual([]);
     expect(result.createdStatusIds).toEqual([...WORKBENCH_STATUSES_MISSING_FROM_REPO_DEFAULTS]);
     expect(result.createdLabelIds).toEqual(['mode', 'priority', 'artifact', 'validation', 'scope']);
     expect(skillCount()).toBe(10);
@@ -85,6 +92,14 @@ describe('default Agent Workbench workspace bundle', () => {
     expect(labelConfig.labels.some((label) => label.id === 'artifact' && label.valueType === 'string')).toBe(true);
     expect(labelConfig.labels.some((label) => label.id === 'validation' && label.valueType === 'string')).toBe(true);
     expect(labelConfig.labels.some((label) => label.id === 'scope' && label.valueType === 'string')).toBe(true);
+
+    const sources = loadWorkspaceSources(workspaceRoot);
+    expect(sources.map((source) => source.config.slug).sort()).toEqual([...WORKBENCH_MCP_SOURCE_PRESET_SLUGS].sort());
+    expect(sources.every((source) => source.config.type === 'mcp')).toBe(true);
+    expect(sources.every((source) => source.config.mcp?.transport === 'stdio')).toBe(true);
+    expect(sources.every((source) => !source.config.mcp?.env)).toBe(true);
+    expect(readFileSync(join(workspaceRoot, 'sources', 'exa', 'permissions.json'), 'utf8')).toContain('allowedMcpPatterns');
+    expect(readFileSync(join(workspaceRoot, 'sources', 'byterover', 'guide.md'), 'utf8')).toContain('ByteRover');
   });
 
   it('is idempotent when run twice', () => {
@@ -93,6 +108,8 @@ describe('default Agent Workbench workspace bundle', () => {
 
     expect(secondResult.createdSkillSlugs).toEqual([]);
     expect(secondResult.skippedExistingSkillSlugs).toEqual([...WORKBENCH_BUNDLE_SKILL_SLUGS]);
+    expect(secondResult.createdSourceSlugs).toEqual([]);
+    expect(secondResult.skippedExistingSourceSlugs).toEqual([...WORKBENCH_MCP_SOURCE_PRESET_SLUGS]);
     expect(secondResult.createdStatusIds).toEqual([]);
     expect(secondResult.createdLabelIds).toEqual([]);
     expect(skillCount()).toBe(10);
@@ -121,11 +138,39 @@ Preserve this custom instruction.
     expect(loadWorkspaceSkills(workspaceRoot).find((skill) => skill.slug === 'prompt-rewriter-pack')?.metadata.name).toBe('Custom Prompt Rewriter');
   });
 
+  it('does not overwrite existing user-edited MCP source presets', () => {
+    mkdirSync(join(workspaceRoot, 'sources', 'exa'), { recursive: true });
+    writeFileSync(join(workspaceRoot, 'sources', 'exa', 'config.json'), JSON.stringify({
+      id: 'source_custom_exa',
+      name: 'Custom Exa',
+      slug: 'exa',
+      enabled: false,
+      provider: 'exa',
+      type: 'mcp',
+      mcp: {
+        transport: 'stdio',
+        command: 'custom-exa',
+        args: ['--custom'],
+      },
+      isAuthenticated: false,
+      createdAt: 1,
+      updatedAt: 1,
+    }, null, 2));
+
+    const result = installDefaultWorkbenchBundle(workspaceRoot);
+
+    expect(result.skippedExistingSourceSlugs).toContain('exa');
+    const exaConfig = JSON.parse(readFileSync(join(workspaceRoot, 'sources', 'exa', 'config.json'), 'utf8'));
+    expect(exaConfig.name).toBe('Custom Exa');
+    expect(exaConfig.mcp.command).toBe('custom-exa');
+  });
+
   it('seeds the bundle during workspace creation', () => {
     createWorkspaceAtPath(workspaceRoot, 'Bundled Workspace');
 
     expect(skillCount()).toBe(10);
     expect(WORKBENCH_REQUIRED_STATUS_IDS.every((statusId) => loadStatusConfig(workspaceRoot).statuses.some((status) => status.id === statusId))).toBe(true);
     expect(loadLabelConfig(workspaceRoot).labels.some((label) => label.id === 'mode' && label.valueType === 'string')).toBe(true);
+    expect(loadWorkspaceSources(workspaceRoot).map((source) => source.config.slug).sort()).toEqual([...WORKBENCH_MCP_SOURCE_PRESET_SLUGS].sort());
   });
 });

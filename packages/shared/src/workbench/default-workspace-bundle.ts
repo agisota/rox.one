@@ -4,6 +4,8 @@ import { loadLabelConfig, saveLabelConfig } from '../labels/storage';
 import type { LabelConfig, WorkspaceLabelConfig } from '../labels/types';
 import { getDefaultStatusConfig, loadStatusConfig, saveStatusConfig } from '../statuses/storage';
 import type { StatusConfig, WorkspaceStatusConfig } from '../statuses/types';
+import type { EntityColor } from '../colors/types';
+import type { FolderSourceConfig } from '../sources/types';
 import { WORKBENCH_BUNDLE_SKILL_SLUGS, type WorkbenchBundleSkillSlug } from './bundle-types';
 
 export { WORKBENCH_BUNDLE_SKILL_SLUGS };
@@ -42,8 +44,18 @@ export const WORKBENCH_REQUIRED_LABEL_ENTRIES = [
   'scope::team',
 ] as const;
 
+export const WORKBENCH_MCP_SOURCE_PRESET_SLUGS = [
+  'exa',
+  'byterover',
+  'firecrawl',
+  'github',
+  'playwright',
+  'zai-mcp-server',
+] as const;
+
 export type WorkbenchRequiredStatusId = typeof WORKBENCH_REQUIRED_STATUS_IDS[number];
 export type WorkbenchRequiredLabelEntry = typeof WORKBENCH_REQUIRED_LABEL_ENTRIES[number];
+export type WorkbenchMcpSourcePresetSlug = typeof WORKBENCH_MCP_SOURCE_PRESET_SLUGS[number];
 
 export interface WorkbenchBundleSkill {
   slug: WorkbenchBundleSkillSlug;
@@ -59,15 +71,26 @@ export interface WorkbenchBundleManifest {
   statuses: StatusConfig[];
   labels: LabelConfig[];
   labelEntries: readonly WorkbenchRequiredLabelEntry[];
+  sourcePresets: WorkbenchMcpSourcePreset[];
 }
 
 export interface WorkbenchBundleInstallResult {
   createdSkillSlugs: WorkbenchBundleSkillSlug[];
   skippedExistingSkillSlugs: WorkbenchBundleSkillSlug[];
+  createdSourceSlugs: WorkbenchMcpSourcePresetSlug[];
+  skippedExistingSourceSlugs: WorkbenchMcpSourcePresetSlug[];
   createdStatusIds: WorkbenchRequiredStatusId[];
   skippedExistingStatusIds: WorkbenchRequiredStatusId[];
   createdLabelIds: string[];
   skippedExistingLabelIds: string[];
+}
+
+interface WorkbenchMcpSourcePreset {
+  config: FolderSourceConfig & { slug: WorkbenchMcpSourcePresetSlug };
+  guide: string;
+  permissions: {
+    allowedMcpPatterns: Array<{ pattern: string; comment: string }>;
+  };
 }
 
 const STRING_LABEL_VALUE_TYPE = 'string' as NonNullable<LabelConfig['valueType']>;
@@ -302,6 +325,230 @@ function buildLabels(): LabelConfig[] {
   ];
 }
 
+function makeStdioSourcePreset(
+  slug: WorkbenchMcpSourcePresetSlug,
+  name: string,
+  provider: string,
+  command: string,
+  args: string[],
+  guide: string,
+  patterns: Array<{ pattern: string; comment: string }>,
+  options?: {
+    icon?: string;
+    tagline?: string;
+    brandColor?: EntityColor;
+    needsAuth?: boolean;
+  },
+): WorkbenchMcpSourcePreset {
+  return {
+    config: {
+      id: `source_${slug}`,
+      name,
+      slug,
+      enabled: true,
+      provider,
+      type: 'mcp',
+      mcp: {
+        transport: 'stdio',
+        command,
+        args,
+      },
+      icon: options?.icon,
+      tagline: options?.tagline,
+      brand: options?.brandColor ? { color: options.brandColor } : undefined,
+      isAuthenticated: options?.needsAuth ? false : true,
+      connectionStatus: options?.needsAuth ? 'needs_auth' : 'untested',
+    },
+    guide,
+    permissions: {
+      allowedMcpPatterns: patterns,
+    },
+  };
+}
+
+function buildSourcePresets(): WorkbenchMcpSourcePreset[] {
+  return [
+    makeStdioSourcePreset(
+      'exa',
+      'Exa',
+      'exa',
+      'npx',
+      ['-y', 'exa-mcp-server'],
+      `# Exa
+
+Research search and web discovery through the Exa MCP server.
+
+## Scope
+- Use for web search, research discovery, source finding, and citation leads.
+- Requires \`EXA_API_KEY\` in the app process environment or source credential flow before live validation.
+
+## Guidelines
+- Prefer precise research queries and cite retrieved sources.
+- Do not use this source for local filesystem search.
+`,
+      [
+        { pattern: 'search*', comment: 'Read-only web and neural search.' },
+        { pattern: 'web_search*', comment: 'Read-only web search.' },
+        { pattern: 'get_contents*', comment: 'Fetch selected result contents.' },
+      ],
+      {
+        icon: 'EXA',
+        tagline: 'Research search and source discovery via Exa MCP.',
+        brandColor: { light: '#2563eb', dark: '#60a5fa' },
+        needsAuth: true,
+      },
+    ),
+    makeStdioSourcePreset(
+      'byterover',
+      'ByteRover',
+      'byterover',
+      'npx',
+      ['-y', 'byterover-mcp'],
+      `# ByteRover
+
+Knowledge memory layer for agent context and project decisions.
+
+## Scope
+- Use for querying curated context, project patterns, and prior decisions.
+- Local ByteRover CLI \`brv\` can manage the same context tree outside the app.
+
+## Guidelines
+- Query before broad architectural work.
+- Store only sanitized project knowledge; do not store secrets or raw credentials.
+`,
+      [
+        { pattern: 'search*', comment: 'Read-only memory/context search.' },
+        { pattern: 'query*', comment: 'Read-only context query.' },
+        { pattern: 'list*', comment: 'Read-only context inventory.' },
+      ],
+      {
+        icon: 'BR',
+        tagline: 'Project memory and context retrieval via ByteRover MCP.',
+        brandColor: { light: '#7c3aed', dark: '#a78bfa' },
+      },
+    ),
+    makeStdioSourcePreset(
+      'firecrawl',
+      'Firecrawl',
+      'firecrawl',
+      'npx',
+      ['-y', 'firecrawl-mcp'],
+      `# Firecrawl
+
+Web crawl, scrape, and extraction source for research workflows.
+
+## Scope
+- Use for targeted crawling, page extraction, and structured web snapshots.
+- Requires \`FIRECRAWL_API_KEY\` in the app process environment before live validation.
+
+## Guidelines
+- Keep crawls narrow and source-specific.
+- Respect robots, rate limits, and site terms.
+`,
+      [
+        { pattern: 'scrape*', comment: 'Fetch one selected page.' },
+        { pattern: 'crawl*', comment: 'Run bounded crawls only.' },
+        { pattern: 'map*', comment: 'Map site links for planning.' },
+      ],
+      {
+        icon: 'FC',
+        tagline: 'Targeted web crawl and extraction via Firecrawl MCP.',
+        brandColor: { light: '#ea580c', dark: '#fb923c' },
+        needsAuth: true,
+      },
+    ),
+    makeStdioSourcePreset(
+      'github',
+      'GitHub',
+      'github',
+      'docker',
+      ['run', '-i', '--rm', '-e', 'GITHUB_PERSONAL_ACCESS_TOKEN', 'ghcr.io/github/github-mcp-server'],
+      `# GitHub
+
+Repository, issue, pull request, and code-hosting context via GitHub MCP.
+
+## Scope
+- Use for repository lookup, issue/PR triage, and source-backed GitHub context.
+- Requires \`GITHUB_PERSONAL_ACCESS_TOKEN\` in the app process environment before live validation.
+
+## Guidelines
+- Treat write actions as explicit user intent only.
+- Prefer read-only lookup for default planning and review flows.
+`,
+      [
+        { pattern: 'search*', comment: 'Read-only repository and issue search.' },
+        { pattern: 'get*', comment: 'Read-only GitHub object retrieval.' },
+        { pattern: 'list*', comment: 'Read-only GitHub inventory.' },
+      ],
+      {
+        icon: 'GH',
+        tagline: 'GitHub repository, issue, and PR context.',
+        brandColor: { light: '#24292f', dark: '#f0f6fc' },
+        needsAuth: true,
+      },
+    ),
+    makeStdioSourcePreset(
+      'playwright',
+      'Playwright',
+      'playwright',
+      'npx',
+      ['-y', '@playwright/mcp@latest', '--browser', 'chrome', '--caps', 'vision,pdf,devtools'],
+      `# Playwright
+
+Browser automation and visual evidence source for local or remote UI checks.
+
+## Scope
+- Use for navigation, screenshots, UI smoke checks, PDF capture, and devtools-backed inspection.
+- Prefer bounded smoke evidence over open-ended browsing.
+
+## Guidelines
+- Capture screenshots or trace evidence for UI claims.
+- Do not use this source for credential entry unless the user explicitly directs it.
+`,
+      [
+        { pattern: 'browser_*', comment: 'Browser automation and inspection.' },
+        { pattern: 'page_*', comment: 'Page-level read/check operations.' },
+        { pattern: 'screenshot*', comment: 'Visual evidence capture.' },
+      ],
+      {
+        icon: 'PW',
+        tagline: 'Browser automation and UI evidence via Playwright MCP.',
+        brandColor: { light: '#16a34a', dark: '#4ade80' },
+      },
+    ),
+    makeStdioSourcePreset(
+      'zai-mcp-server',
+      'Z.AI',
+      'zai',
+      'npx',
+      ['-y', '@z_ai/mcp-server'],
+      `# Z.AI
+
+Z.AI model/tooling bridge through the local MCP server.
+
+## Scope
+- Use only when a workflow explicitly needs Z.AI-backed model/tool context.
+- Requires \`Z_AI_API_KEY\` in the app process environment before live validation.
+
+## Guidelines
+- Keep this source opt-in at the session/source selection layer.
+- Do not route sensitive prompts through it without explicit user intent.
+`,
+      [
+        { pattern: 'list*', comment: 'Read-only capability inventory.' },
+        { pattern: 'get*', comment: 'Read-only model/tool metadata.' },
+        { pattern: 'search*', comment: 'Read-only lookup operations.' },
+      ],
+      {
+        icon: 'Z',
+        tagline: 'Z.AI MCP bridge for opt-in model/tool workflows.',
+        brandColor: { light: '#0891b2', dark: '#67e8f9' },
+        needsAuth: true,
+      },
+    ),
+  ];
+}
+
 export function getDefaultWorkbenchBundleManifest(): WorkbenchBundleManifest {
   return {
     version: 1,
@@ -309,6 +556,7 @@ export function getDefaultWorkbenchBundleManifest(): WorkbenchBundleManifest {
     statuses: buildStatuses(),
     labels: buildLabels(),
     labelEntries: WORKBENCH_REQUIRED_LABEL_ENTRIES,
+    sourcePresets: buildSourcePresets(),
   };
 }
 
@@ -349,6 +597,22 @@ icon: ${quoteYaml(skill.icon)}
 ${skill.instructions}`;
 }
 
+function sourceExists(rootPath: string, slug: string): boolean {
+  return existsSync(join(rootPath, 'sources', slug, 'config.json'));
+}
+
+function installSourcePreset(rootPath: string, preset: WorkbenchMcpSourcePreset, now: number): void {
+  const sourceDir = join(rootPath, 'sources', preset.config.slug);
+  mkdirSync(sourceDir, { recursive: true });
+  writeFileSync(join(sourceDir, 'config.json'), JSON.stringify({
+    ...preset.config,
+    createdAt: preset.config.createdAt ?? now,
+    updatedAt: now,
+  }, null, 2));
+  writeFileSync(join(sourceDir, 'guide.md'), preset.guide);
+  writeFileSync(join(sourceDir, 'permissions.json'), JSON.stringify(preset.permissions, null, 2));
+}
+
 export function installDefaultWorkbenchBundle(rootPath: string): WorkbenchBundleInstallResult {
   const manifest = getDefaultWorkbenchBundleManifest();
   const skillsPath = join(rootPath, 'skills');
@@ -356,6 +620,8 @@ export function installDefaultWorkbenchBundle(rootPath: string): WorkbenchBundle
 
   const createdSkillSlugs: WorkbenchBundleSkillSlug[] = [];
   const skippedExistingSkillSlugs: WorkbenchBundleSkillSlug[] = [];
+  const createdSourceSlugs: WorkbenchMcpSourcePresetSlug[] = [];
+  const skippedExistingSourceSlugs: WorkbenchMcpSourcePresetSlug[] = [];
 
   for (const skill of manifest.skills) {
     const skillDir = join(skillsPath, skill.slug);
@@ -369,6 +635,19 @@ export function installDefaultWorkbenchBundle(rootPath: string): WorkbenchBundle
     mkdirSync(skillDir, { recursive: true });
     writeFileSync(skillPath, skillToMarkdown(skill));
     createdSkillSlugs.push(skill.slug);
+  }
+
+  const now = Date.now();
+  mkdirSync(join(rootPath, 'sources'), { recursive: true });
+  for (const sourcePreset of manifest.sourcePresets) {
+    const slug = sourcePreset.config.slug;
+    if (sourceExists(rootPath, slug)) {
+      skippedExistingSourceSlugs.push(slug);
+      continue;
+    }
+
+    installSourcePreset(rootPath, sourcePreset, now);
+    createdSourceSlugs.push(slug);
   }
 
   const statusConfig = loadExistingStatusConfig(rootPath);
@@ -415,6 +694,8 @@ export function installDefaultWorkbenchBundle(rootPath: string): WorkbenchBundle
   return {
     createdSkillSlugs,
     skippedExistingSkillSlugs,
+    createdSourceSlugs,
+    skippedExistingSourceSlugs,
     createdStatusIds,
     skippedExistingStatusIds,
     createdLabelIds,
