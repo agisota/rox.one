@@ -3,6 +3,7 @@ import { describe, expect, it } from 'bun:test'
 import { PiAgent } from '../pi-agent.ts'
 import {
   resolvePiProviderDependencyRiskMode,
+  resolvePiProviderDependencyRiskModeForHost,
 } from '../dependency-risk.ts'
 import { createMockBackendConfig } from './test-utils.ts'
 
@@ -25,11 +26,25 @@ describe('PI provider dependency risk mode', () => {
     ).toBe('public-untrusted')
   })
 
+  it('treats Electron desktop resources as private-local even when public app URL is set', () => {
+    expect(
+      resolvePiProviderDependencyRiskModeForHost(
+        {
+          appRootPath: '/Applications/ROX.ONE.app/Contents/Resources/app',
+          resourcesPath: '/Applications/ROX.ONE.app/Contents/Resources',
+        },
+        {
+          ROX_PUBLIC_APP_URL: 'https://rox.one',
+        },
+      ),
+    ).toBe('private-local')
+  })
+
   it('rejects public-untrusted startup before resolving subprocess path or credentials', async () => {
     const agent = new PiAgent(createMockBackendConfig({
       provider: 'pi',
-      envOverrides: {
-        ROX_PI_PROVIDER_DEPENDENCY_RISK_MODE: 'public-untrusted',
+      runtime: {
+        dependencyRiskMode: 'public-untrusted',
       },
     }))
 

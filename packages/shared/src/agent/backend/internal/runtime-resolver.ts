@@ -191,9 +191,15 @@ function resolveCopilotCliPath(hostRuntime: BackendHostRuntimeContext): string |
 
 function resolveServerPath(hostRuntime: BackendHostRuntimeContext, serverName: string): string | undefined {
   if (hostRuntime.isPackaged) {
+    const resourcesPath = hostRuntime.resourcesPath;
     return firstExistingPath([
       join(hostRuntime.appRootPath, 'resources', serverName, 'index.js'),
       join(hostRuntime.appRootPath, 'dist', 'resources', serverName, 'index.js'),
+      ...(resourcesPath ? [
+        join(resourcesPath, 'app', 'resources', serverName, 'index.js'),
+        join(resourcesPath, 'resources', serverName, 'index.js'),
+        join(resourcesPath, serverName, 'index.js'),
+      ] : []),
     ]);
   }
   return resolveUpwards(

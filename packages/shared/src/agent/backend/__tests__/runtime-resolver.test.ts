@@ -57,6 +57,23 @@ describe('resolveServerPath fallback', () => {
     const paths = resolveBackendRuntimePaths(hostRuntime);
     expect(paths.piServerPath).toBe(join(primaryDir, 'index.js'));
   });
+
+  it('finds packaged servers under Electron resourcesPath/app/resources', () => {
+    const appRoot = join(tmpBase, 'ROX.ONE.app', 'Contents', 'Resources', 'app');
+    const resourcesPath = join(tmpBase, 'ROX.ONE.app', 'Contents', 'Resources');
+    const serverDir = join(resourcesPath, 'app', 'resources', 'pi-agent-server');
+    mkdirSync(serverDir, { recursive: true });
+    writeFileSync(join(serverDir, 'index.js'), '// packaged resources');
+
+    const hostRuntime: BackendHostRuntimeContext = {
+      appRootPath: appRoot,
+      resourcesPath,
+      isPackaged: true,
+    };
+
+    const paths = resolveBackendRuntimePaths(hostRuntime);
+    expect(paths.piServerPath).toBe(join(serverDir, 'index.js'));
+  });
 });
 
 describe('resolveRipgrepPath', () => {
