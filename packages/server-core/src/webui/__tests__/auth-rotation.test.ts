@@ -21,6 +21,8 @@ import {
   ACCOUNT_SESSION_ROTATION_WINDOW_MS,
   rotateAccountSessionIfStale,
   ACCOUNT_SESSION_TTL_SECONDS,
+  __resetAccountRotationMutexForTest,
+  __accountRotationMutexSizeForTest,
 } from '../auth'
 import type {
   AccountSession,
@@ -308,5 +310,201 @@ describe('rotateAccountSessionIfStale — concurrent rotation', () => {
     const sourceRevoke = await store.revokeSession(baseline.id)
     // Already revoked by the winner, so a second CAS attempt must fail.
     expect(sourceRevoke.revoked).toBe(false)
+  })
+})
+
+describe('rotateAccountSessionIfStale — per-user rotation mutex (B2)', () => {
+  /**
+   * The CAS-on-revoke contract from PR #19 prevents orphaned sessions but
+   * does not *serialize* concurrent rotation attempts. Two rotators that
+   * race against the same userId still execute interleaved store calls,
+   * exposing a transient window in which a `PATCH /api/account/me` issued
+   * under the pre-rotation cookie can briefly observe a 401 between the
+   * `revokeSession` and the response carrying the new `Set-Cookie`.
+   *
+   * The mutex closes that window: while rotator A holds the per-user lock,
+   * rotator B waits. By the time B resumes, A has already revoked the
+   * source session and minted the replacement, so B's `getSessionIdentity`
+   * lookup of the (now-revoked) source returns `null` and B exits cleanly
+   * without performing any store mutation of its own.
+   */
+  it('serializes concurrent rotators against the same userId', async () => {
+    __resetAccountRotationMutexForTest()
+    const { InMemoryAccountStore } = await import('../../persistence/agent-workbench-persistence')
+    const store = new InMemoryAccountStore()
+    const user = await store.createUser({ email: 'mutex@example.com', password: 'pw-1234567890' })
+    const baseline = await store.createSession({ userId: user.id })
+
+    const identity: SessionIdentity = {
+      userId: user.id,
+      sessionId: baseline.id,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role,
+    }
+
+    // Instrument the store so we can prove the mutex serializes the
+    // critical section: rotator B's *first* call to getSessionIdentity
+    // must happen AFTER rotator A's revokeSession has completed.
+    const eventLog: string[] = []
+    const wrappedStore = new Proxy(store, {
+      get(target, prop, receiver) {
+        const original = Reflect.get(target, prop, receiver)
+        if (prop === 'getSessionIdentity' || prop === 'revokeSession' || prop === 'createSession') {
+          return async (...args: unknown[]) => {
+            eventLog.push(`enter:${String(prop)}`)
+            // Yield to give the other rotator a chance to interleave if
+            // serialization is broken.
+            await new Promise(resolve => setImmediate(resolve))
+            const result = await (original as (...inner: unknown[]) => Promise<unknown>).apply(target, args)
+            eventLog.push(`exit:${String(prop)}`)
+            return result
+          }
+        }
+        return original
+      },
+    })
+
+    const [a, b] = await Promise.all([
+      rotateAccountSessionIfStale({
+        identity,
+        accountStore: wrappedStore,
+        secret: SECRET,
+        secure: false,
+        userAgent: null,
+        ipAddress: null,
+        rotationWindowMs: 0,
+      }),
+      rotateAccountSessionIfStale({
+        identity,
+        accountStore: wrappedStore,
+        secret: SECRET,
+        secure: false,
+        userAgent: null,
+        ipAddress: null,
+        rotationWindowMs: 0,
+      }),
+    ])
+
+    // Exactly one rotation actually happened.
+    const winners = [a, b].filter((result): result is NonNullable<typeof result> => result !== null)
+    expect(winners).toHaveLength(1)
+
+    // Serialization proof: the mutex guarantees that rotator B does not
+    // even *enter* `getSessionIdentity` for the second time until after
+    // rotator A has fully exited `createSession`. Without the mutex the
+    // event log would interleave like
+    //   enter:getSessionIdentity, enter:getSessionIdentity, ...
+    // With the mutex we see one rotator's full critical section before
+    // the other starts.
+    const firstEnterIdx = eventLog.indexOf('enter:getSessionIdentity')
+    const firstCreateExitIdx = eventLog.indexOf('exit:createSession')
+    const secondEnterIdx = eventLog.indexOf('enter:getSessionIdentity', firstEnterIdx + 1)
+    expect(firstEnterIdx).toBeGreaterThanOrEqual(0)
+    expect(secondEnterIdx).toBeGreaterThan(firstCreateExitIdx)
+
+    // After the race, exactly one live session remains — the winner's.
+    const live = await store.listSessions(user.id)
+    expect(live).toHaveLength(1)
+    expect(live[0]!.id).toBe(winners[0]!.identity.sessionId)
+
+    // Mutex must have released for this user — no leaked entry.
+    expect(__accountRotationMutexSizeForTest()).toBe(0)
+  })
+
+  it('releases the mutex on error so subsequent rotations succeed', async () => {
+    __resetAccountRotationMutexForTest()
+    const { InMemoryAccountStore } = await import('../../persistence/agent-workbench-persistence')
+    const store = new InMemoryAccountStore()
+    const user = await store.createUser({ email: 'mutex-error@example.com', password: 'pw-1234567890' })
+    const baseline = await store.createSession({ userId: user.id })
+
+    const identity: SessionIdentity = {
+      userId: user.id,
+      sessionId: baseline.id,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role,
+    }
+
+    // First call: simulate a store fault inside the critical section.
+    const failingStore = new Proxy(store, {
+      get(target, prop, receiver) {
+        const original = Reflect.get(target, prop, receiver)
+        if (prop === 'createSession') {
+          return async () => {
+            throw new Error('simulated store fault')
+          }
+        }
+        return original
+      },
+    })
+
+    await expect(
+      rotateAccountSessionIfStale({
+        identity,
+        accountStore: failingStore,
+        secret: SECRET,
+        secure: false,
+        userAgent: null,
+        ipAddress: null,
+        rotationWindowMs: 0,
+      }),
+    ).rejects.toThrow('simulated store fault')
+
+    // The mutex MUST be released even after a thrown error.
+    expect(__accountRotationMutexSizeForTest()).toBe(0)
+
+    // The aborted rotation revoked the source session before the fault, so
+    // a brand-new session is needed to prove subsequent rotations succeed.
+    const fresh = await store.createSession({ userId: user.id })
+    const freshIdentity: SessionIdentity = { ...identity, sessionId: fresh.id }
+    const recovered = await rotateAccountSessionIfStale({
+      identity: freshIdentity,
+      accountStore: store,
+      secret: SECRET,
+      secure: false,
+      userAgent: null,
+      ipAddress: null,
+      rotationWindowMs: 0,
+    })
+    expect(recovered).not.toBeNull()
+    expect(__accountRotationMutexSizeForTest()).toBe(0)
+  })
+
+  it('does not block rotations for different userIds', async () => {
+    __resetAccountRotationMutexForTest()
+    const { InMemoryAccountStore } = await import('../../persistence/agent-workbench-persistence')
+    const store = new InMemoryAccountStore()
+    const userA = await store.createUser({ email: 'user-a@example.com', password: 'pw-1234567890' })
+    const userB = await store.createUser({ email: 'user-b@example.com', password: 'pw-1234567890' })
+    const sessionA = await store.createSession({ userId: userA.id })
+    const sessionB = await store.createSession({ userId: userB.id })
+
+    const idA: SessionIdentity = {
+      userId: userA.id, sessionId: sessionA.id,
+      email: userA.email, displayName: userA.displayName, role: userA.role,
+    }
+    const idB: SessionIdentity = {
+      userId: userB.id, sessionId: sessionB.id,
+      email: userB.email, displayName: userB.displayName, role: userB.role,
+    }
+
+    const [resA, resB] = await Promise.all([
+      rotateAccountSessionIfStale({
+        identity: idA, accountStore: store, secret: SECRET, secure: false,
+        userAgent: null, ipAddress: null, rotationWindowMs: 0,
+      }),
+      rotateAccountSessionIfStale({
+        identity: idB, accountStore: store, secret: SECRET, secure: false,
+        userAgent: null, ipAddress: null, rotationWindowMs: 0,
+      }),
+    ])
+
+    expect(resA).not.toBeNull()
+    expect(resB).not.toBeNull()
+    expect(resA!.identity.sessionId).not.toBe(resB!.identity.sessionId)
+    // Both mutex entries released after both rotations completed.
+    expect(__accountRotationMutexSizeForTest()).toBe(0)
   })
 })
