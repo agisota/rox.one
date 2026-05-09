@@ -1475,6 +1475,7 @@
   "workbench.composer.actions.removeRecentFolder": "Letzten Ordner entfernen",
   "workbench.composer.input.editLabel": "Nachricht bearbeiten",
   "workbench.composer.input.label": "Nachrichten-Editor",
+  "workbench.composer.permission.awaiting": "Warte auf Agent…",
   "workbench.modes.board.description": "Shows reviewer cards, severity matrix, fix plan, and readiness status.",
   "workbench.modes.board.label": "Board",
   "workbench.modes.build.description": "Guides implementation through a plan, tests, checks, and code artifacts.",

@@ -11,17 +11,24 @@ bun run test:rtl:coverage
 This prints a v8 coverage report covering files matched by the vitest config's
 include glob. Look for `FreeFormInput.tsx` in the output.
 
-## Current state (T187 + T188)
+## Current state (T187 + T188 + T197)
 
 | Metric | FreeFormInput.tsx | Target | Gap |
 |---|---|---|---|
-| Lines | 36.30% | 70% (aspirational) | model picker dropdown internals + WorkingDirectoryBadge sub-component (~510 uncovered LOC) |
-| Branches | 46.25% | — | — |
-| Functions | 23.40% | — | — |
+| Lines | 44.25% | 70% (aspirational) | model picker dropdown internals (~270 uncovered LOC) |
+| Branches | 50.18% | — | — |
+| Functions | 28.30% | — | — |
+
+### Change log
+
+| Ticket | Delta (Lines) | Notes |
+|---|---|---|
+| T187 + T188 | baseline 36.30% | initial RTL suite (send, attachments, mode-switching, thinking-level, slash-mention) |
+| T197 | +7.95% → 44.25% | WorkingDirectoryBadge coverage via `freeform-input.working-dir.rtl.test.tsx` |
 
 ## Why not 70%
 
-The two largest uncovered regions are:
+The remaining large uncovered region is:
 
 1. **Model picker dropdown** (~270 LOC): nested Radix `DropdownMenu` submenus,
    vision toggles, hierarchical connection groups. Opening this menu under
@@ -30,9 +37,11 @@ The two largest uncovered regions are:
    tests' mocked `<DropdownMenu>` consumes). T187 mocked the entire dropdown
    surface for 4 of 5 test files and stubbed it for the 5th (thinking-level).
 
-2. **WorkingDirectoryBadge** (~240 LOC): an embedded sub-component that
-   manages directory picker state. Independently testable only after a
-   FreeFormInput split (deferred per plan's "moderate refactor" policy).
+2. **WorkingDirectoryBadge** (~240 LOC) — now partially covered by T197 via
+   Popover stub (always-rendered children pattern). The badge trigger, "Choose
+   Folder" button, X-remove on recent folders, and a11y are exercised. Remaining
+   gap: cmdk filter input path (requires >5 recent dirs) and reset-to-session-root
+   path — both are minor and deferred to a follow-up FreeFormInput split.
 
 ## Plan to hit 70%
 

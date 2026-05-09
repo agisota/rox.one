@@ -1475,6 +1475,7 @@
   "workbench.composer.actions.removeRecentFolder": "移除最近文件夹",
   "workbench.composer.input.editLabel": "编辑消息",
   "workbench.composer.input.label": "消息编辑器",
+  "workbench.composer.permission.awaiting": "等待代理…",
   "workbench.modes.board.description": "Shows reviewer cards, severity matrix, fix plan, and readiness status.",
   "workbench.modes.board.label": "Board",
   "workbench.modes.build.description": "Guides implementation through a plan, tests, checks, and code artifacts.",
