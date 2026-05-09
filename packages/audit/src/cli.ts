@@ -115,53 +115,56 @@ async function main(): Promise<number> {
   const needsPlaywright = registry.list().some((p) => p.phase !== "A.1");
   const playwright = needsPlaywright ? await createPlaywrightRunner() : undefined;
 
-  const start = Date.now();
-  const result = await registry.run({
-    surfaces: parsed.surfaces,
-    probes: registry.list().map((p) => p.name),
-    workerCap: parsed.workerCap,
-    contextFor: (surface) => ({
-      surface,
-      workspaceRoot,
-      surfaceRoot: surfacePaths[surface],
-      timeoutMs: 60_000,
-      playwright,
-    }),
-  });
-  if (playwright) await playwright.close();
-  const ranked = rank(result.findings);
-  const duration = Date.now() - start;
+  try {
+    const start = Date.now();
+    const result = await registry.run({
+      surfaces: parsed.surfaces,
+      probes: registry.list().map((p) => p.name),
+      workerCap: parsed.workerCap,
+      contextFor: (surface) => ({
+        surface,
+        workspaceRoot,
+        surfaceRoot: surfacePaths[surface],
+        timeoutMs: 60_000,
+        playwright,
+      }),
+    });
+    const ranked = rank(result.findings);
+    const duration = Date.now() - start;
 
-  // Partition findings by probe for per-probe/<probe>.json artifacts (spec § 5.1).
-  // Initialise every registered probe to [] so probes that emitted nothing still
-  // produce an artifact — useful for downstream consumers checking probe coverage.
-  const perProbeFindings: Record<string, Finding[]> = {};
-  for (const probeName of result.runProbes) {
-    perProbeFindings[probeName] = [];
+    // Partition findings by probe for per-probe/<probe>.json artifacts (spec § 5.1).
+    // Initialise every registered probe to [] so probes that emitted nothing still
+    // produce an artifact — useful for downstream consumers checking probe coverage.
+    const perProbeFindings: Record<string, Finding[]> = {};
+    for (const probeName of result.runProbes) {
+      perProbeFindings[probeName] = [];
+    }
+    for (const finding of ranked) {
+      const bucket = perProbeFindings[finding.probe] ?? (perProbeFindings[finding.probe] = []);
+      bucket.push(finding);
+    }
+
+    await writeJsonQueue({
+      outDir,
+      findings: ranked,
+      runId,
+      probes: result.runProbes,
+      surfaces: parsed.surfaces,
+      durationMs: duration,
+      perProbeFindings,
+    });
+    await writeMarkdownSidecar({ outDir, runId, findings: ranked });
+
+    if (!parsed.noTickets) {
+      const tg = await generateTickets({ repoRoot: workspaceRoot, findings: ranked, topK: parsed.topK });
+      process.stdout.write(`tickets: ${tg.created} created, ${tg.updated} updated, ${tg.resolved} resolved\n`);
+    }
+
+    process.stdout.write(`audit run complete: ${ranked.length} findings, ${duration}ms\n  ${outDir}/queue.json\n  ${outDir}/queue.md\n`);
+    return 0;
+  } finally {
+    if (playwright) await playwright.close();
   }
-  for (const finding of ranked) {
-    const bucket = perProbeFindings[finding.probe] ?? (perProbeFindings[finding.probe] = []);
-    bucket.push(finding);
-  }
-
-  await writeJsonQueue({
-    outDir,
-    findings: ranked,
-    runId,
-    probes: result.runProbes,
-    surfaces: parsed.surfaces,
-    durationMs: duration,
-    perProbeFindings,
-  });
-  await writeMarkdownSidecar({ outDir, runId, findings: ranked });
-
-  if (!parsed.noTickets) {
-    const tg = await generateTickets({ repoRoot: workspaceRoot, findings: ranked, topK: parsed.topK });
-    process.stdout.write(`tickets: ${tg.created} created, ${tg.updated} updated, ${tg.resolved} resolved\n`);
-  }
-
-  process.stdout.write(`audit run complete: ${ranked.length} findings, ${duration}ms\n  ${outDir}/queue.json\n  ${outDir}/queue.md\n`);
-  return 0;
 }
 
 const code = await main();
