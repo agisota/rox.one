@@ -80,4 +80,5 @@ credentials.enc
 .actrc
 
 # Audit harness raw run artifacts (committed: docs/tickets, docs/audits/INDEX.md only)
-audits/
+/audits/
+!docs/audits/
