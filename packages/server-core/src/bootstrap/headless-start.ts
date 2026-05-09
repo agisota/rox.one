@@ -229,10 +229,7 @@ export function releaseServerLock(): void {
 // ---------------------------------------------------------------------------
 
 function bootstrapConfigArtifacts(platform: PlatformServices): void {
-  // Pass DEFAULT_LOCAL_SCOPE explicitly: the headless server bootstrap is the
-  // canonical "single-user, single config dir" entry point. Documenting the
-  // scope at the boundary makes it obvious where a future multi-tenant
-  // server bootstrap would route a different scope instead.
+  // canonical single-user scope; see ADR 0005
   ensureConfigDir(DEFAULT_LOCAL_SCOPE)
   platform.logger.info('[bootstrap] Config artifacts initialized')
 }
