@@ -11,7 +11,7 @@ import {
   type AgentBackend,
 } from '@craft-agent/shared/agent/backend'
 import { type AuthRequest, type PermissionMode } from '@craft-agent/shared/agent'
-import { type Workspace } from '@craft-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, getToolIconsDir, type Workspace } from '@craft-agent/shared/config'
 import {
   type LoadedSource,
   isSourceUsable,
@@ -40,7 +40,6 @@ import {
 } from '@craft-agent/shared/sessions'
 import { type Message, type StoredAttachment, type ToolDisplayMeta } from '@craft-agent/core/types'
 import { perf, encodeIconToDataUrlAsync, getEmojiIcon, resolveToolIcon } from '@craft-agent/shared/utils'
-import { getToolIconsDir } from '@craft-agent/shared/config'
 import { type ThinkingLevel, normalizeThinkingLevel } from '@craft-agent/shared/agent/thinking-levels'
 import { normalizeBrowserToolName } from '@craft-agent/server-core/domain'
 import { resizeIconBuffer } from '@craft-agent/server-core/services'
@@ -411,7 +410,7 @@ export async function getBrowserToolIconDataUrl(): Promise<string | undefined> {
 
   try {
     const iconCandidates = [
-      join(getToolIconsDir(), BROWSER_TOOL_ICON_FILENAME),
+      join(getToolIconsDir(DEFAULT_LOCAL_SCOPE), BROWSER_TOOL_ICON_FILENAME),
       // Dev fallback (before sync to ~/.rox/tool-icons)
       join(process.cwd(), 'apps', 'electron', 'resources', 'tool-icons', BROWSER_TOOL_ICON_FILENAME),
       // Packaged fallback (app resources)
@@ -548,7 +547,7 @@ export async function resolveToolDisplayMeta(
   // and resolves their brand icon from ~/.rox/tool-icons/
   if (toolName === 'Bash' && toolInput?.command) {
     try {
-      const toolIconsDir = getToolIconsDir()
+      const toolIconsDir = getToolIconsDir(DEFAULT_LOCAL_SCOPE)
       const match = resolveToolIcon(String(toolInput.command), toolIconsDir)
       if (match) {
         return {

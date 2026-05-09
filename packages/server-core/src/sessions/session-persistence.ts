@@ -3,7 +3,7 @@
  * Owns disk I/O, JSONL writes, message hydration, persist queue.
  * Sibling files: session-ipc.ts, session-manager-helpers.ts, SessionManager.ts.
  */
-import { getWorkspaces, type Workspace } from '@craft-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, getWorkspaces, type Workspace } from '@craft-agent/shared/config'
 import {
   listSessions as listStoredSessions,
   loadSession as loadStoredSession,
@@ -52,7 +52,7 @@ export class SessionPersistence {
 
   loadSessionsFromDisk(): void {
     try {
-      const workspaces = getWorkspaces()
+      const workspaces = getWorkspaces(DEFAULT_LOCAL_SCOPE)
       let totalSessions = 0
 
       // Iterate over each workspace and load its sessions
