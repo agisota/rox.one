@@ -20,16 +20,23 @@ export const runtimeAxeProbe: Probe = {
   applicableTo: () => true,
   async run(ctx: ProbeContext): Promise<Finding[]> {
     if (!ctx.playwright) return [];
-    const routes = discoverRoutes(ctx.surface, ctx.surfaceRoot);
+    const routes = await discoverRoutes(ctx.surface, ctx.surfaceRoot, ctx.devServerUrl, ctx.playwright);
     const indexFile = join(ctx.surfaceRoot, "index.html");
-    if (routes.length === 0 && !existsSync(indexFile)) return [];
+    if (routes.length === 0 && !ctx.devServerUrl && !existsSync(indexFile)) return [];
 
     const findings: Finding[] = [];
     const now = new Date().toISOString();
 
     const targets = routes.length > 0
-      ? routes.map((r) => ({ route: r, url: `file://${ctx.surfaceRoot}/src/pages${r === "/" ? "/index" : r}.html` }))
-      : [{ route: "/", url: `file://${indexFile}` }];
+      ? routes.map((r) => ({
+          route: r,
+          url: ctx.devServerUrl
+            ? new URL(r, ctx.devServerUrl).toString()
+            : `file://${ctx.surfaceRoot}/src/pages${r === "/" ? "/index" : r}.html`,
+        }))
+      : ctx.devServerUrl
+        ? [{ route: "/", url: ctx.devServerUrl }]
+        : [{ route: "/", url: `file://${indexFile}` }];
 
     for (const target of targets) {
       const { url, route } = target;

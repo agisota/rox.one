@@ -11,6 +11,7 @@ import { staticBundleProbe } from "./probes/static-bundle.ts";
 import { runtimeAxeProbe } from "./probes/runtime-axe.ts";
 import { runtimeStatesProbe } from "./probes/runtime-states.ts";
 import { createPlaywrightRunner } from "./runners/playwright-runner.ts";
+import { spawnDevServer, type DevServerHandle } from "./runners/dev-server-runner.ts";
 import { join } from "node:path";
 
 const HELP = `Usage:
@@ -115,7 +116,44 @@ async function main(): Promise<number> {
   const needsPlaywright = registry.list().some((p) => p.phase !== "A.1");
   const playwright = needsPlaywright ? await createPlaywrightRunner() : undefined;
 
+  // A.4: when any A.2+ probe is selected, spawn dev servers per surface so
+  // runtime probes can crawl the live SPA. Renderer is skipped (Electron app
+  // not yet wired) — deferred to A.5.
+  const devServers = new Map<Surface, DevServerHandle>();
+  const surfaceDevCommands: Partial<Record<Surface, { command: string; args: string[] }>> = {
+    webui: { command: "bun", args: ["run", "webui:dev"] },
+    viewer: { command: "bun", args: ["run", "viewer:dev"] },
+    marketing: { command: "bun", args: ["run", "marketing:dev"] },
+  };
+
   try {
+    if (needsPlaywright) {
+      const crawlable = parsed.surfaces.filter((s) => surfaceDevCommands[s] !== undefined);
+      if (crawlable.length > 0) {
+        process.stdout.write(`spawning dev servers for: ${crawlable.join(", ")}\n`);
+        const handles = await Promise.all(
+          crawlable.map(async (surface) => {
+            const spec = surfaceDevCommands[surface];
+            if (!spec) return null;
+            const handle = await spawnDevServer({
+              command: spec.command,
+              args: spec.args,
+              cwd: workspaceRoot,
+              readyPattern: /Local:\s+(http:\/\/[^\s]+)/,
+              timeoutMs: 45_000,
+            });
+            return [surface, handle] as const;
+          }),
+        );
+        for (const entry of handles) {
+          if (entry) devServers.set(entry[0], entry[1]);
+        }
+        for (const [surface, handle] of devServers) {
+          process.stdout.write(`  ${surface}: ${handle.url}\n`);
+        }
+      }
+    }
+
     const start = Date.now();
     const result = await registry.run({
       surfaces: parsed.surfaces,
@@ -127,6 +165,7 @@ async function main(): Promise<number> {
         surfaceRoot: surfacePaths[surface],
         timeoutMs: 60_000,
         playwright,
+        devServerUrl: devServers.get(surface)?.url,
       }),
     });
     const ranked = rank(result.findings);
@@ -164,6 +203,9 @@ async function main(): Promise<number> {
     return 0;
   } finally {
     if (playwright) await playwright.close();
+    if (devServers.size > 0) {
+      await Promise.all(Array.from(devServers.values()).map((h) => h.kill().catch(() => undefined)));
+    }
   }
 }
 

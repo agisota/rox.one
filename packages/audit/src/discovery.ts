@@ -1,6 +1,8 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Surface } from "./probe.ts";
+import { crawlRoutes } from "./route-crawler.ts";
+import type { PlaywrightRunner } from "./runners/playwright-runner.ts";
 
 const TSCONFIG_NAMES = ["tsconfig.json"];
 const ESLINT_FLAT = ["eslint.config.js", "eslint.config.mjs", "eslint.config.ts"];
@@ -58,9 +60,19 @@ export function findBudget(surfaceRoot: string): string | null {
   return existsSync(p) ? p : null;
 }
 
-export function discoverRoutes(_surface: Surface, surfaceRoot: string): string[] {
-  // Phase A.2 minimum: file-based routes from <surfaceRoot>/src/pages/*.html.
-  // Per-surface custom discovery extensions land in A.4.
+export async function discoverRoutes(
+  _surface: Surface,
+  surfaceRoot: string,
+  liveUrl?: string,
+  playwright?: PlaywrightRunner,
+): Promise<string[]> {
+  // A.4: when a live dev-server URL and a Playwright runner are both available,
+  // crawl the live SPA. This is the only way to enumerate routes for SPAs whose
+  // routing is defined in JS (e.g. React Router) rather than as static .html files.
+  if (liveUrl && playwright) {
+    return crawlRoutes({ baseUrl: liveUrl, playwright, maxDepth: 2, maxRoutes: 20 });
+  }
+  // A.2 fallback: file-based routes from <surfaceRoot>/src/pages/*.html.
   const pagesDir = join(surfaceRoot, "src", "pages");
   if (!existsSync(pagesDir)) return [];
   try {

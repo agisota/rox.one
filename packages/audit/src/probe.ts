@@ -15,6 +15,10 @@ export interface ProbeContext {
   timeoutMs: number;
   // A.2+ probes that need a browser receive a shared runner via this field.
   playwright?: PlaywrightRunner;
+  // A.4+: live dev-server URL for the surface (e.g. "http://localhost:5173").
+  // When set together with `playwright`, runtime probes route-crawl the live
+  // server instead of falling back to file-based discovery.
+  devServerUrl?: string;
 }
 
 export interface Probe {
