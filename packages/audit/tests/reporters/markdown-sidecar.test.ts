@@ -48,4 +48,24 @@ describe("writeMarkdownSidecar", () => {
     const md = readFileSync(join(dir, "queue.md"), "utf-8");
     expect(md).toContain("1 finding");
   });
+
+  test("handles empty findings gracefully", async () => {
+    await writeMarkdownSidecar({ outDir: dir, runId: "r1", findings: [] });
+    const md = readFileSync(join(dir, "queue.md"), "utf-8");
+    expect(md).toContain("0 findings");
+    expect(md).toContain("Audit Queue — r1");
+  });
+
+  test("escapes backticks in finding messages", async () => {
+    await writeMarkdownSidecar({
+      outDir: dir,
+      runId: "r1",
+      findings: [
+        baseFinding({ id: "1111", message: "use `foo` not `bar`" }),
+      ],
+    });
+    const md = readFileSync(join(dir, "queue.md"), "utf-8");
+    expect(md).toContain("\\`foo\\`");
+    expect(md).not.toContain("use `foo`");
+  });
 });
