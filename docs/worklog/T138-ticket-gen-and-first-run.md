@@ -109,6 +109,11 @@ bun run test:coverage:check → "Coverage OK"
 (98.89% funcs / 99.40% lines per bun coverage text output)
 ```
 
+> Post-merge fix-up adds:
+> - 1 per-probe artifact test (json-queue) and 1 backward-compat regression test → +2 in `tests/reporters/json-queue.test.ts`
+> - 3 skip-on-config-absent tests → +1 each in `tests/probes/static-tsc|eslint|bundle.test.ts`
+> Final count after fix-up commits: 48 pass, 0 fail.
+
 ## 9. Build output summary
 
 No build step. `bun run typecheck` exits 0. First real audit run:

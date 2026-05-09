@@ -94,7 +94,8 @@ No build step. `bun run typecheck` exits 0.
 | Rule is `bundle:over-budget` | ✅ | Asserted inline in "emits finding when bundle exceeds budget" |
 | Message includes actual/budget/overage bytes | ✅ | Asserted inline in "emits finding when bundle exceeds budget" |
 | Severity is `high` | ✅ | Asserted inline in "emits finding when bundle exceeds budget" |
-| `bun test static-bundle.test.ts` passes | ✅ | 3 pass, 0 fail |
+| Skip on missing budget.json | ✅ | Test "returns [] when surfaceRoot has no budget.json" passes (added in T138 fix-up commit) |
+| `bun test static-bundle.test.ts` passes | ✅ | 4 pass, 0 fail (3 original + 1 skip-on-absent added in T138 fix-up commit) |
 | Typecheck exits 0 | ✅ | `tsc --noEmit` exit 0 |
 | Worklog complete | ✅ | This document |
 | Commit created | ✅ | `e240209` |

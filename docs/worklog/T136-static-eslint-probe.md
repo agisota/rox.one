@@ -92,7 +92,8 @@ No build step. `bun run typecheck` exits 0.
 | Finding IDs stable across re-runs | ✅ | `computeFindingId` determinism; same probe/rule/file/line inputs |
 | ESLint error → high, warning → medium | ✅ | Asserted inline in "detects fixture violations" |
 | Flat config handled without extra CLI flags | ✅ | Fixture uses `eslint.config.js`; probe detects and invokes without `--no-eslintrc` |
-| `bun test static-eslint.test.ts` passes | ✅ | 2 pass, 0 fail |
+| Skip on missing eslint config | ✅ | Test "returns [] when surfaceRoot has no eslint config" passes (added in T138 fix-up commit) |
+| `bun test static-eslint.test.ts` passes | ✅ | 3 pass, 0 fail (2 original + 1 skip-on-absent added in T138 fix-up commit) |
 | Typecheck exits 0 | ✅ | `tsc --noEmit` exit 0 |
 | Worklog complete | ✅ | This document |
 | Commit created | ✅ | `43e1075` |
