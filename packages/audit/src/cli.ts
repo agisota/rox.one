@@ -13,6 +13,23 @@ import { runtimeStatesProbe } from "./probes/runtime-states.ts";
 import { createPlaywrightRunner } from "./runners/playwright-runner.ts";
 import { spawnDevServer, type DevServerHandle } from "./runners/dev-server-runner.ts";
 import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+
+/** Map of surface to the hardcoded port in each app's vite.config.ts. */
+const SURFACE_PORTS: Partial<Record<Surface, number>> = {
+  webui: 5175,
+  viewer: 5174,
+  marketing: 5176,
+};
+
+/**
+ * Returns true when the given TCP port is already bound by another process.
+ * Uses lsof which is available on Linux and macOS.
+ */
+function isPortInUse(port: number): boolean {
+  const result = spawnSync("lsof", ["-ti", `:${port}`], { encoding: "utf-8" });
+  return result.status === 0 && (result.stdout?.trim().length ?? 0) > 0;
+}
 
 const HELP = `Usage:
   audit run <surfaces> [--probes=<csv>] [--worker-cap=N] [--out=<path>] [--no-tickets] [--top-k=N]
@@ -138,6 +155,12 @@ async function main(): Promise<number> {
           crawlable.map(async (surface) => {
             const spec = surfaceDevCommands[surface];
             if (!spec) return null;
+            const port = SURFACE_PORTS[surface];
+            if (port !== undefined && isPortInUse(port)) {
+              throw new Error(
+                `Port ${port} is already in use (${surface}). Stop the running process before running audit, or it will be SIGKILL'd by the surface's dev script.`,
+              );
+            }
             const handle = await spawnDevServer({
               command: spec.command,
               args: spec.args,
@@ -157,6 +180,10 @@ async function main(): Promise<number> {
       }
     }
 
+    // One route cache per surface per run — shared across all probes so a live
+    // SPA is only crawled once even when runtime-axe and runtime-states both run.
+    const routeCache = new Map<Surface, string[]>();
+
     const start = Date.now();
     const result = await registry.run({
       surfaces: parsed.surfaces,
@@ -169,6 +196,7 @@ async function main(): Promise<number> {
         timeoutMs: 60_000,
         playwright,
         devServerUrl: devServers.get(surface)?.url,
+        routeCache,
       }),
     });
     const ranked = rank(result.findings);
