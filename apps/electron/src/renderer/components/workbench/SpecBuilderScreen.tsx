@@ -38,35 +38,35 @@ export function SpecBuilderScreen({
 
   return (
     <main className="flex h-full min-h-0 flex-col bg-background text-foreground" aria-label="Spec Builder">
-      <header className="border-b border-border px-6 py-5">
+      <header className="border-b border-border px-4 py-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Agent Workbench</p>
-            <h1 className="mt-2 text-2xl font-semibold">Spec Builder</h1>
-            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Select requirement cards, inspect the derived skills, agents, validation gates, and preview an executable spec before agent execution.
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Артефакт composer</p>
+            <h1 className="mt-1 text-xl font-semibold">Spec Builder</h1>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Выберите карточки требований, проверьте skills/agents/gates и подготовьте executable spec перед запуском агента.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" disabled={!state.canExport} onClick={() => onExport?.(state)}>
-              Export
+              Экспорт
             </Button>
             <Button variant="outline" onClick={() => onSavePreset?.(state)}>
-              Save Preset
+              Сохранить preset
             </Button>
             <Button disabled={!state.canStartAgentPlan} onClick={() => onStartAgentPlan?.(state)}>
-              Start Agent Plan
+              Подготовить agent plan
             </Button>
           </div>
         </div>
       </header>
 
       <div className="grid min-h-0 flex-1 gap-4 overflow-hidden p-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
-        <section className="min-h-0 overflow-y-auto rounded-2xl border border-border bg-muted/10 p-4">
+        <section className="min-h-0 overflow-y-auto rounded-lg border border-border bg-muted/10 p-4">
           <div className="rounded-xl border border-border bg-background p-4">
-            <h2 className="text-sm font-semibold">Input summary</h2>
+            <h2 className="text-sm font-semibold">Кратко по вводу</h2>
             <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">
-              {state.rawInput || 'No input yet. Open from Rewrite Prompt, Thinking Partner, or start manually.'}
+              {state.rawInput || 'Ввод еще не передан. Откройте из Prompt Lab / Thinking Partner или начните вручную.'}
             </p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span className="rounded-full border border-border px-2 py-1">source: {state.source}</span>
@@ -75,9 +75,9 @@ export function SpecBuilderScreen({
           </div>
 
           <div className="mt-4 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold">Option categories</h2>
+            <h2 className="text-sm font-semibold">Категории опций</h2>
             <Button variant="ghost" size="sm" onClick={() => setState((current) => clearSpecBuilderOptions(current))}>
-              Clear
+              Сбросить
             </Button>
           </div>
 
@@ -116,10 +116,10 @@ export function SpecBuilderScreen({
         </section>
 
         <aside className="min-h-0 space-y-4 overflow-y-auto">
-          <section className="rounded-2xl border border-border bg-background p-4">
-            <h2 className="text-sm font-semibold">Selected requirements</h2>
+          <section className="rounded-lg border border-border bg-background p-4">
+            <h2 className="text-sm font-semibold">Выбранные требования</h2>
             {state.selectedOptions.length === 0 ? (
-              <p className="mt-3 text-sm text-muted-foreground">No requirements selected yet.</p>
+              <p className="mt-3 text-sm text-muted-foreground">Требования пока не выбраны.</p>
             ) : (
               <ul className="mt-3 space-y-2">
                 {state.selectedOptions.map((option) => (
@@ -132,7 +132,7 @@ export function SpecBuilderScreen({
             )}
           </section>
 
-          <section className="rounded-2xl border border-border bg-background p-4">
+          <section className="rounded-lg border border-border bg-background p-4">
             <h2 className="text-sm font-semibold">Derived config</h2>
             <DerivedList title="Skills" values={state.derivedConfig?.skills ?? []} />
             <DerivedList title="Agents" values={state.derivedConfig?.agents ?? []} />
@@ -141,10 +141,10 @@ export function SpecBuilderScreen({
             <DerivedList title="Automation presets" values={state.automationPresetPlan?.presetIds ?? []} />
           </section>
 
-          <section className="rounded-2xl border border-border bg-background p-4">
+          <section className="rounded-lg border border-border bg-background p-4">
             <h2 className="text-sm font-semibold">Pipeline preview</h2>
             {!state.agentPlan ? (
-              <p className="mt-3 text-sm text-muted-foreground">Select input and requirements to generate a launcher-ready agent plan.</p>
+              <p className="mt-3 text-sm text-muted-foreground">Выберите ввод и требования, чтобы получить launcher-ready agent plan.</p>
             ) : (
               <ol className="mt-3 space-y-2">
                 {state.agentPlan.stages.map((stage) => (
@@ -162,7 +162,7 @@ export function SpecBuilderScreen({
             )}
           </section>
 
-          <section className="rounded-2xl border border-border bg-background p-4">
+          <section className="rounded-lg border border-border bg-background p-4">
             <h2 className="text-sm font-semibold">Spec preview</h2>
             <pre className="mt-3 max-h-[520px] overflow-auto whitespace-pre-wrap rounded-xl bg-muted/40 p-4 text-xs leading-5 text-muted-foreground">
               {state.preview}
@@ -179,7 +179,7 @@ function DerivedList({ title, values }: { title: string; values: readonly string
     <div className="mt-4">
       <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h3>
       {values.length === 0 ? (
-        <p className="mt-2 text-sm text-muted-foreground">Select options to derive {title.toLowerCase()}.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Выберите опции, чтобы собрать {title.toLowerCase()}.</p>
       ) : (
         <div className="mt-2 flex flex-wrap gap-2">
           {values.map((value) => (

@@ -21,21 +21,21 @@ export function TddPlanScreen({ state, onInsertPlan, onStartTdd }: TddPlanScreen
 
   return (
     <main className="flex h-full min-h-0 flex-col bg-background text-foreground" aria-label="TDD Plan">
-      <header className="border-b border-border px-6 py-5">
+      <header className="border-b border-border px-4 py-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Workbench Artifact</p>
-            <h1 className="mt-2 text-2xl font-semibold">TDD Plan</h1>
-            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Convert the composer prompt into red, green, verify, and worklog tasks before execution.
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Артефакт composer</p>
+            <h1 className="mt-1 text-xl font-semibold">TDD Plan</h1>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Разложите запрос на RED, GREEN, VERIFY и WORKLOG задачи до запуска агента.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" disabled={!state.canInsertPlan} onClick={() => onInsertPlan?.(renderTddTaskPackMarkdown(state.pack))}>
-              Insert Plan
+              Вставить план
             </Button>
             <Button type="button" disabled={!state.canInsertPlan} onClick={() => onStartTdd?.(state)}>
-              Start TDD
+              Подготовить запуск
             </Button>
           </div>
         </div>
@@ -43,7 +43,7 @@ export function TddPlanScreen({ state, onInsertPlan, onStartTdd }: TddPlanScreen
 
       <section className="border-b border-border p-4 text-sm text-muted-foreground">
         <div>Ticket: {state.pack.ticketId}</div>
-        <div>Validation gates: {state.pack.validationGates.join(', ')}</div>
+        <div>Проверки: {state.pack.validationGates.join(', ')}</div>
       </section>
 
       <div className="grid min-h-0 flex-1 gap-3 overflow-auto p-4 xl:grid-cols-4">
@@ -62,9 +62,9 @@ export function TddPlanScreen({ state, onInsertPlan, onStartTdd }: TddPlanScreen
       </div>
 
       <aside className="border-t border-border p-4">
-        <h2 className="text-sm font-semibold">Fake providers required</h2>
+        <h2 className="text-sm font-semibold">Нужные fake providers</h2>
         {state.pack.fakeProviderRequirements.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">No fake providers required for the selected surfaces.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Для выбранных поверхностей fake providers не требуются.</p>
         ) : (
           <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
             {state.pack.fakeProviderRequirements.map(requirement => <li key={requirement}>{requirement}</li>)}
