@@ -1,16 +1,17 @@
 /**
- * RTL coverage for FreeFormInput's attachment add/remove flow. [T187]
+ * RTL coverage for FreeFormInput's embedded WorkingDirectoryBadge. [T197]
  *
  * Cases covered:
- *   - Attachments prop renders the chip with the file name
- *   - Click the chip's remove button → onAttachmentsChange called with the
- *     remaining items (and onSubmit is not affected by the click)
- *   - Click the paperclip "Attach Files" button → opens the hidden file input
- *     (clicked via the file input ref; we observe the click is wired)
- *   - Empty + attachment + Enter → onSubmit is called with attachments only
- *   - a11y: no axe violations with attachments rendered
+ *   - Badge renders "Work in Folder" (placeholder) when no workingDirectory prop
+ *   - Badge renders the folder name when workingDirectory is provided
+ *   - Click the badge trigger → onWorkingDirectoryChange wiring (via "Choose Folder"
+ *     button which calls pickDirectory)
+ *   - The X-remove button on a recent folder item calls removeRecentWorkingDir
+ *   - a11y: no axe violations with the badge rendered
  *
- * Mocks: same pattern as freeform-input.send.rtl.test.tsx (self-contained).
+ * Mocks: same self-contained pattern as the rest of the T187/T197 suite.
+ * WorkingDirectoryBadge lives inside FreeFormInput; we test it through the
+ * rendered DOM (Popover stub always renders children, so PopoverContent is in DOM).
  */
 import * as React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -73,9 +74,12 @@ vi.mock('@/context/EscapeInterruptContext', () => ({
   }),
 }))
 
+// Track pickDirectory calls so we can assert it's wired to the "Choose Folder" button.
+const mockPickDirectory = vi.fn()
+
 vi.mock('@/hooks/useDirectoryPicker', () => ({
   useDirectoryPicker: () => ({
-    pickDirectory: () => undefined,
+    pickDirectory: mockPickDirectory,
     showServerBrowser: false,
     serverBrowserMode: 'browse' as const,
     cancelServerBrowser: () => undefined,
@@ -113,6 +117,9 @@ vi.mock('@/components/ui/styled-dropdown', () => ({
   StyledDropdownMenuSubContent: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }))
 
+// Popover stub always renders children — this is intentional: it means PopoverContent
+// is always in the DOM so we can assert on the badge's dropdown content without
+// needing to simulate a real Radix Popover open/close cycle in happy-dom.
 vi.mock('@/components/ui/popover', () => ({
   Popover: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   PopoverTrigger: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
@@ -123,16 +130,31 @@ vi.mock('@/components/ServerDirectoryBrowser', () => ({ ServerDirectoryBrowser: 
 vi.mock('@/components/ui/SourceSelectorPopover', () => ({ SourceSelectorPopover: () => null }))
 vi.mock('@/components/ui/EditPopover', () => ({ EditPopover: () => null, getEditConfig: () => ({}) }))
 
+// Mock working-directory-history so tests can inject recent folders without
+// touching localStorage. The real implementation is tested in its own unit file.
+const mockGetRecentWorkingDirs = vi.fn(() => [] as string[])
+const mockAddRecentWorkingDir = vi.fn((path: string) => [path])
+const mockRemoveRecentWorkingDir = vi.fn((path: string, _ws?: string) => [] as string[])
+
+vi.mock('../working-directory-history', () => ({
+  getRecentWorkingDirs: (...args: Parameters<typeof mockGetRecentWorkingDirs>) => mockGetRecentWorkingDirs(...args),
+  addRecentWorkingDir: (...args: Parameters<typeof mockAddRecentWorkingDir>) => mockAddRecentWorkingDir(...args),
+  removeRecentWorkingDir: (...args: Parameters<typeof mockRemoveRecentWorkingDir>) => mockRemoveRecentWorkingDir(...args),
+}))
+
 // ── Imports under test ───────────────────────────────────────────────────────
 import { render } from '../../../../../test-utils/render'
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { expectNoA11yViolations } from '../../../../../test-utils/a11y'
 import { FreeFormInput } from '../FreeFormInput'
-import type { FileAttachment } from '../../../../../shared/types'
 
 // ── Common test setup ────────────────────────────────────────────────────────
 beforeEach(() => {
+  mockPickDirectory.mockClear()
+  mockGetRecentWorkingDirs.mockReturnValue([])
+  mockAddRecentWorkingDir.mockImplementation((path: string) => [path])
+  mockRemoveRecentWorkingDir.mockImplementation(() => [])
+
   ;(window as unknown as { electronAPI: unknown }).electronAPI = {
     getRuntimeEnvironment: () => 'electron',
     getAutoCapitalisation: () => Promise.resolve(false),
@@ -159,17 +181,6 @@ afterEach(() => {
   cleanup()
 })
 
-function makeAttachment(name = 'note.txt'): FileAttachment {
-  return {
-    type: 'text',
-    path: `/tmp/${name}`,
-    name,
-    mimeType: 'text/plain',
-    size: 12,
-    text: 'hello world',
-  }
-}
-
 function baseProps(overrides: Partial<React.ComponentProps<typeof FreeFormInput>> = {}) {
   return {
     onSubmit: vi.fn(),
@@ -180,84 +191,85 @@ function baseProps(overrides: Partial<React.ComponentProps<typeof FreeFormInput>
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
-describe('FreeFormInput attachments [T187]', () => {
-  it('renders a chip with the attachment name', async () => {
-    const att = makeAttachment('readme.txt')
-    render(<FreeFormInput {...baseProps({ attachmentsValue: [att] })} />)
+describe('FreeFormInput WorkingDirectoryBadge [T197]', () => {
+  it('renders the placeholder label when no workingDirectory is provided', async () => {
+    const onWorkingDirectoryChange = vi.fn()
+    render(<FreeFormInput {...baseProps({ onWorkingDirectoryChange })} />)
 
-    // The chip renders the file name as text inside a span with title attribute.
-    const chip = await screen.findByTitle('readme.txt')
-    expect(chip).toBeTruthy()
-    expect(chip.textContent).toContain('readme.txt')
+    // i18n returns the key; the badge trigger aria-label is the folderName which
+    // defaults to "Work in Folder" (hardcoded string, not i18n key).
+    const trigger = await screen.findByRole('button', { name: 'Work in Folder' })
+    expect(trigger).toBeTruthy()
   })
 
-  it('paperclip button is rendered with an accessible label', async () => {
-    render(<FreeFormInput {...baseProps()} />)
-    // i18n fallback returns the key, so chat.attachFiles is the literal label.
-    const attachBtn = await screen.findByRole('button', { name: 'chat.attachFiles' })
-    expect(attachBtn).toBeTruthy()
-  })
-
-  it('clicking the chip remove button drops one attachment and does NOT submit the form', async () => {
-    // T196 fix: AttachmentBubble's X button now has type="button", so clicking
-    // it no longer triggers form submission. We assert that onSubmit is NOT
-    // called, and that onAttachmentsChange is called with the remaining item.
-    const onSubmit = vi.fn()
-    const onAttachmentsChange = vi.fn()
-    const a = makeAttachment('one.txt')
-    const b = makeAttachment('two.txt')
+  it('renders the folder basename when workingDirectory is set', async () => {
+    const onWorkingDirectoryChange = vi.fn()
     render(<FreeFormInput {...baseProps({
-      attachmentsValue: [a, b],
-      onAttachmentsChange,
-      onSubmit,
+      workingDirectory: '/home/test/my-project',
+      onWorkingDirectoryChange,
     })} />)
 
-    await screen.findByTitle('one.txt')
-    await screen.findByTitle('two.txt')
+    // The badge label is the last path segment (basename) of the directory.
+    // FreeFormInput uses getPathBasename from @/lib/platform.
+    const trigger = await screen.findByRole('button', { name: 'my-project' })
+    expect(trigger).toBeTruthy()
+  })
 
-    const firstChipName = screen.getByTitle('one.txt')
-    const firstBubble = firstChipName.closest('.relative.group') as HTMLElement | null
-    expect(firstBubble).toBeTruthy()
-    const removeButton = firstBubble!.querySelector<HTMLButtonElement>('button.absolute')
-    expect(removeButton).toBeTruthy()
-    fireEvent.click(removeButton!)
+  it('clicking "Choose Folder" button delegates to pickDirectory', async () => {
+    const onWorkingDirectoryChange = vi.fn()
+    render(<FreeFormInput {...baseProps({ onWorkingDirectoryChange })} />)
 
-    // onAttachmentsChange is called with the one remaining attachment (index 0 removed).
+    // The "Choose Folder" button is inside PopoverContent (always rendered via
+    // our Popover stub). i18n returns the key as the text content.
+    const chooseFolderBtn = await screen.findByRole('button', { name: 'chat.chooseFolder' })
+    fireEvent.click(chooseFolderBtn)
+
     await waitFor(() => {
-      expect(onAttachmentsChange).toHaveBeenCalled()
-      const lastCall = onAttachmentsChange.mock.calls[onAttachmentsChange.mock.calls.length - 1]
-      expect(lastCall[0].map((x: FileAttachment) => x.name)).toEqual(['two.txt'])
+      expect(mockPickDirectory).toHaveBeenCalledTimes(1)
     })
-
-    // The form must NOT have been submitted — type="button" prevents default submit.
-    expect(onSubmit).not.toHaveBeenCalled()
+    // The parent prop should NOT be called directly by this button — pickDirectory
+    // triggers a native OS dialog; onWorkingDirectoryChange fires after selection.
+    expect(onWorkingDirectoryChange).not.toHaveBeenCalled()
   })
 
-  it('Enter with only an attachment (no text) submits the attachment via onSubmit', async () => {
-    const onSubmit = vi.fn()
-    const att = makeAttachment('only.txt')
-    render(<FreeFormInput {...baseProps({ onSubmit, attachmentsValue: [att] })} />)
+  it('clicking the X on a recent folder removes it via removeRecentWorkingDir', async () => {
+    // Seed one recent dir so the X button appears in the popover.
+    mockGetRecentWorkingDirs.mockReturnValue(['/home/test/old-project'])
+    const onWorkingDirectoryChange = vi.fn()
 
-    await screen.findByTitle('only.txt')
-    const textarea = await screen.findByTestId('rich-text-input')
-    fireEvent.keyDown(textarea, { key: 'Enter', code: 'Enter' })
+    render(<FreeFormInput {...baseProps({
+      workingDirectory: '/home/test/my-project',
+      onWorkingDirectoryChange,
+    })} />)
 
-    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
-    const [text, attachments] = onSubmit.mock.calls[0]
-    expect(text).toBe('')
-    expect(attachments).toHaveLength(1)
-    expect(attachments[0].name).toBe('only.txt')
+    // The remove button has aria-label from the i18n key (key returned as label).
+    const removeBtn = await screen.findByRole('button', {
+      name: 'workbench.composer.actions.removeRecentFolder',
+    })
+    fireEvent.click(removeBtn)
+
+    await waitFor(() => {
+      expect(mockRemoveRecentWorkingDir).toHaveBeenCalledWith(
+        '/home/test/old-project',
+        undefined, // workspaceId not provided in baseProps
+      )
+    })
+    // Removing from list should NOT trigger onWorkingDirectoryChange.
+    expect(onWorkingDirectoryChange).not.toHaveBeenCalled()
   })
 
-  it('a11y: no axe violations with attachments rendered', async () => {
-    const att = makeAttachment('a11y.txt')
-    const { container } = render(<FreeFormInput {...baseProps({ attachmentsValue: [att] })} />)
-    await screen.findByTitle('a11y.txt')
-    // The hidden file input lacks a <label>, and the per-chip remove button
-    // (an X icon) doesn't have an accessible name. These are existing a11y
-    // gaps in AttachmentBubble & the file input — out of scope for T187, which
-    // is test coverage. We disable just those two rules so the rest of the
-    // composer surface still gets axe-checked.
+  it('a11y: no violations with the badge rendered', async () => {
+    const onWorkingDirectoryChange = vi.fn()
+    const { container } = render(<FreeFormInput {...baseProps({
+      workingDirectory: '/home/test/my-project',
+      onWorkingDirectoryChange,
+    })} />)
+
+    // Wait for async effects (getHomeDir, getGitBranch) to settle.
+    await screen.findByRole('button', { name: 'my-project' })
+
+    // Disable `label` (hidden file input) and `button-name` (icon-only X on
+    // attachment bubbles) — known pre-existing gaps out of scope for T197.
     await expectNoA11yViolations(container, {
       rules: {
         label: { enabled: false },

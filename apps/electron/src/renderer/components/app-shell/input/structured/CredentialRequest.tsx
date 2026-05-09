@@ -180,7 +180,7 @@ export function CredentialRequest({ request, onResponse, unstyled = false }: Cre
                       onChange={(e) => setUsername(e.target.value)}
                       onBlur={() => setTouchedUsername(true)}
                       onKeyDown={handleKeyDown}
-                      className="pl-9"
+                      className="pl-9 aria-invalid:border-destructive aria-invalid:bg-destructive/5 aria-invalid:focus-visible:ring-destructive/20"
                       placeholder={`Enter ${usernameLabel.toLowerCase()}`}
                       autoFocus
                       aria-invalid={usernameInvalid || undefined}
@@ -207,7 +207,7 @@ export function CredentialRequest({ request, onResponse, unstyled = false }: Cre
                       onChange={(e) => setPassword(e.target.value)}
                       onBlur={() => setTouchedPassword(true)}
                       onKeyDown={handleKeyDown}
-                      className="pl-9 pr-9"
+                      className="pl-9 pr-9 aria-invalid:border-destructive aria-invalid:bg-destructive/5 aria-invalid:focus-visible:ring-destructive/20"
                       placeholder={passwordPlaceholder}
                       aria-invalid={passwordInvalid || undefined}
                       aria-errormessage={passwordInvalid ? passwordErrorId : undefined}
@@ -251,7 +251,7 @@ export function CredentialRequest({ request, onResponse, unstyled = false }: Cre
                           }))}
                           onBlur={() => setTouchedHeaders(prev => ({ ...prev, [headerName]: true }))}
                           onKeyDown={handleKeyDown}
-                          className="pl-9 pr-9"
+                          className="pl-9 pr-9 aria-invalid:border-destructive aria-invalid:bg-destructive/5 aria-invalid:focus-visible:ring-destructive/20"
                           placeholder={`Enter ${headerName}`}
                           autoFocus={index === 0}
                           aria-invalid={isHeaderInvalid || undefined}
@@ -295,7 +295,7 @@ export function CredentialRequest({ request, onResponse, unstyled = false }: Cre
                     onChange={(e) => setValue(e.target.value)}
                     onBlur={() => setTouchedValue(true)}
                     onKeyDown={handleKeyDown}
-                    className="pl-9 pr-9"
+                    className="pl-9 pr-9 aria-invalid:border-destructive aria-invalid:bg-destructive/5 aria-invalid:focus-visible:ring-destructive/20"
                     placeholder={`Enter ${credentialLabel.toLowerCase()}`}
                     autoFocus
                     aria-invalid={valueInvalid || undefined}

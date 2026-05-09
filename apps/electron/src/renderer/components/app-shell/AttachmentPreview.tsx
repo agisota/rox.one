@@ -1,7 +1,9 @@
 import * as React from "react"
 import { X, Image as ImageIcon } from "lucide-react"
+import { AnimatePresence, LayoutGroup, motion } from "motion/react"
 import { Spinner, FileTypeIcon, getFileTypeLabel } from "@rox-agent/ui"
 import { cn } from "@/lib/utils"
+import { useReducedMotionPreference } from "@/context/ReducedMotionContext"
 import type { FileAttachment } from "../../../shared/types"
 
 // Re-export for backward compatibility
@@ -25,22 +27,37 @@ interface AttachmentPreviewProps {
  * - Loading placeholders while files are being read
  */
 export function AttachmentPreview({ attachments, onRemove, disabled, loadingCount = 0 }: AttachmentPreviewProps) {
+  const reduced = useReducedMotionPreference()
+  const transition = reduced ? { duration: 0 } : { duration: 0.15 }
+
   if (attachments.length === 0 && loadingCount === 0) return null
 
   return (
     <div className="flex gap-2 px-4 py-3 border-b border-border/50 overflow-x-auto">
-      {attachments.map((attachment, index) => (
-        <AttachmentBubble
-          key={`${attachment.path}-${index}`}
-          attachment={attachment}
-          onRemove={() => onRemove(index)}
-          disabled={disabled}
-        />
-      ))}
-      {/* Loading placeholders */}
-      {Array.from({ length: loadingCount }).map((_, i) => (
-        <LoadingBubble key={`loading-${i}`} />
-      ))}
+      <LayoutGroup>
+        <AnimatePresence initial={false}>
+          {attachments.map((attachment, index) => (
+            <motion.div
+              key={attachment.path}
+              layout
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={transition}
+            >
+              <AttachmentBubble
+                attachment={attachment}
+                onRemove={() => onRemove(index)}
+                disabled={disabled}
+              />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        {/* Loading placeholders */}
+        {Array.from({ length: loadingCount }).map((_, i) => (
+          <LoadingBubble key={`loading-${i}`} />
+        ))}
+      </LayoutGroup>
     </div>
   )
 }
@@ -76,6 +93,7 @@ function AttachmentBubble({ attachment, onRemove, disabled }: AttachmentBubblePr
       {/* Remove button - appears on hover */}
       {!disabled && (
         <button
+          type="button"
           onClick={onRemove}
           className={cn(
             "absolute -top-1.5 -right-1.5 z-10",
