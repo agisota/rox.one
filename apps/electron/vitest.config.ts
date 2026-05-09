@@ -14,7 +14,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src/renderer'),
+      // Mirror vite.config.ts aliases so renderer source compiles under vitest.
+      '@config': resolve(__dirname, '../../packages/shared/src/config'),
+      // Force a single React copy (deduped at the root) — same reason as
+      // vite.config.ts: '@rox-agent/ui' otherwise pulls in a second copy.
+      'react': resolve(__dirname, '../../node_modules/react'),
+      'react-dom': resolve(__dirname, '../../node_modules/react-dom'),
     },
+    dedupe: ['react', 'react-dom'],
   },
   test: {
     include: ['src/**/*.rtl.test.tsx'],
