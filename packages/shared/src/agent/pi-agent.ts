@@ -197,13 +197,6 @@ export class PiAgent extends BaseAgent {
   // Pending permission requests (used by handlePreToolUseRequest for ask-mode prompting)
   private pendingPermissions = new PendingRequestMap<boolean, { toolName: string }>();
 
-  // Pending tool executions (correlation map for subprocess tool_execute_request -> main process -> tool_execute_response)
-  // NOTE: this map is currently never written from the main-process side; the
-  // subprocess (`pi-agent-server/src/index.ts`) owns the symmetric one. Kept
-  // here so the bulk-reject paths on subprocess exit / forceAbort remain
-  // wired in case future code starts populating it.
-  private pendingToolExecutions = new PendingRequestMap<{ content: string; isError: boolean }>();
-
   // Pending mini completions (correlation map for subprocess mini_completion_result)
   private pendingMiniCompletions = new PendingRequestMap<string | null>();
 
@@ -1622,9 +1615,6 @@ export class PiAgent extends BaseAgent {
     this.pendingAutoCompactionToggles.rejectAll(exitError);
     this.pendingRuntimeConfigUpdates.rejectAll(exitError);
 
-    // Reject all pending tool executions
-    this.pendingToolExecutions.rejectAll(new Error('Pi subprocess exited'));
-
     // Drop any cached pre-tool metadata for the dead subprocess.
     this.preToolMetadataByCallId.clear();
   }
@@ -2112,9 +2102,6 @@ export class PiAgent extends BaseAgent {
 
     // Deny all pending permissions (sentinel-resolve, not reject)
     this.pendingPermissions.resolveAll(false);
-
-    // Reject all pending tool executions
-    this.pendingToolExecutions.rejectAll(new Error(`Force aborted: ${reason}`));
 
     // Signal turn complete to wake up any waiting consumers
     this.eventQueue.complete();
