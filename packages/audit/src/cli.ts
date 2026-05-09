@@ -4,7 +4,7 @@ import { rank } from "./ranker.ts";
 import { writeJsonQueue } from "./reporters/json-queue.ts";
 import { writeMarkdownSidecar } from "./reporters/markdown-sidecar.ts";
 import { generateTickets } from "./ticket-gen.ts";
-import type { Probe, Surface } from "./probe.ts";
+import type { Finding, Probe, Surface } from "./probe.ts";
 import { staticTscProbe } from "./probes/static-tsc.ts";
 import { staticEslintProbe } from "./probes/static-eslint.ts";
 import { staticBundleProbe } from "./probes/static-bundle.ts";
@@ -125,7 +125,27 @@ async function main(): Promise<number> {
   const ranked = rank(result.findings);
   const duration = Date.now() - start;
 
-  await writeJsonQueue({ outDir, findings: ranked, runId, probes: result.runProbes, surfaces: parsed.surfaces, durationMs: duration });
+  // Partition findings by probe for per-probe/<probe>.json artifacts (spec § 5.1).
+  // Initialise every registered probe to [] so probes that emitted nothing still
+  // produce an artifact — useful for downstream consumers checking probe coverage.
+  const perProbeFindings: Record<string, Finding[]> = {};
+  for (const probeName of result.runProbes) {
+    perProbeFindings[probeName] = [];
+  }
+  for (const finding of ranked) {
+    const bucket = perProbeFindings[finding.probe] ?? (perProbeFindings[finding.probe] = []);
+    bucket.push(finding);
+  }
+
+  await writeJsonQueue({
+    outDir,
+    findings: ranked,
+    runId,
+    probes: result.runProbes,
+    surfaces: parsed.surfaces,
+    durationMs: duration,
+    perProbeFindings,
+  });
   await writeMarkdownSidecar({ outDir, runId, findings: ranked });
 
   if (!parsed.noTickets) {
