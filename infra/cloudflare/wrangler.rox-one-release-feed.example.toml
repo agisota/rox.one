@@ -1,0 +1,12 @@
+name = "rox-one-release-feed"
+main = "./rox-one-release-feed.worker.ts"
+compatibility_date = "2026-04-28"
+
+routes = [
+  { pattern = "app.rox.one/electron/*", zone_name = "rox.one" },
+  { pattern = "app.rox.one/install-app.sh", zone_name = "rox.one" },
+  { pattern = "app.rox.one/install-app.ps1", zone_name = "rox.one" }
+]
+
+# Required secret:
+# GITHUB_RELEASE_TOKEN - read access to private agisota/rox-one-terminal release assets.
