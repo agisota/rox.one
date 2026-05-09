@@ -63,6 +63,10 @@ primitives.
 | Long-lived bearer reuse (cookie exfiltration) | Cookie envelope TTL shortened from 24h → 1h. Underlying DB session id rotates on a 15-min sliding window so even an active stolen cookie ages out within ~15 min of the next legitimate request. |
 | Concurrent first-admin race | Postgres advisory transaction lock serialises the count→insert critical section. |
 | Cross-user session enumeration | Session ids are UUID v4 (`randomUUID`); the store never accepts a client-supplied id; lookup is by id only. |
+| Concurrent rotation orphans (StrictMode race) | `revokeSession` is a compare-and-swap (`UPDATE … WHERE revoked_at IS NULL RETURNING id` on Postgres; equivalent Map guard in-memory). The rotation site revokes BEFORE creating the replacement and bails out unless the CAS reports `revoked: true`. Concurrent rotators therefore see at most one CAS hit per source session. Regression covered by `auth-rotation.test.ts → "exposes exactly one new session when two rotators race the same source"`. |
+| Cookie binding to client fingerprint (UA pinning) | **Deferred to anomaly detection.** We do not bind the cookie to the originating User-Agent or IP because legitimate clients change networks (mobile handoff, VPN toggle) and minor UA strings (browser auto-update). Anomaly detection (impossible-travel, UA-shift) will surface suspicious reuse instead. A stolen cookie remains usable from a different fingerprint until the 15-minute rotation window elapses or the user explicitly revokes; this is the explicit slice-4 trade-off. |
+| JWT clock-skew tolerance | The `jose` library defaults `clockTolerance` to **0 seconds**. We do not override it: a cookie whose `exp` claim is in the past is rejected immediately, with no grace window for a desynchronised client clock. Servers run NTP; client-skew complaints are user-visible re-login, which is the safer failure mode. |
+| Post-XSS residual risk | `HttpOnly` prevents `document.cookie` exfiltration by injected script, but it does **not** defend against a same-origin fetch driven by injected script — the browser still attaches the session cookie, so an XSS payload can call any authenticated endpoint as the victim. The mitigation surface for this is upstream: strict CSP without `unsafe-inline`, input/output sanitisation, and dependency-supply-chain review. The Slice 4 cookie hardening reduces the *exfiltration* blast radius, not the *in-page authority* blast radius. |
 
 ### Token model — explicit choice
 
@@ -107,8 +111,10 @@ expand the slice 4 surface:
 
 ## Verification gates
 
-- Bun test suite (`bun test packages/server-core`) at 248 pass / 0 fail
-  including five new rotation tests + five new timing-audit tests.
+- Bun test suite (`bun test packages/server-core`) at 251 pass / 0 fail
+  including six rotation tests (five baseline + one concurrent-race
+  regression) and seven AST-based timing-audit tests (replacing the
+  earlier regex-based audit, which was bypassable).
 - Type check (`bunx tsc --noEmit` from `packages/server-core`) clean.
 - `auth-timing.test.ts` mechanically guards the no-JS-byte-equality property.
 - ADR + plan doc landed in the same PR; PR body marked
