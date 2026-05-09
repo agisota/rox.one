@@ -12,4 +12,21 @@ else
 fi
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-exec "$BUN" run "$REPO_ROOT/packages/audit/src/cli.ts" run renderer --probes=static-tsc --out="$REPO_ROOT/audits/_smoke"
+OUT="$REPO_ROOT/audits/_smoke"
+rm -rf "$OUT"
+
+echo "=== static-tsc on renderer ==="
+"$BUN" run "$REPO_ROOT/packages/audit/src/cli.ts" run renderer --probes=static-tsc --no-tickets --out="$OUT/static-tsc"
+
+echo "=== static-bundle on webui ==="
+"$BUN" run "$REPO_ROOT/packages/audit/src/cli.ts" run webui --probes=static-bundle --no-tickets --out="$OUT/static-bundle"
+
+# Check both probes produced 0 findings
+for d in "$OUT/static-tsc" "$OUT/static-bundle"; do
+  count=$(python3 -c "import json,sys; print(json.load(open('$d/queue.json'))['findingCount'])" 2>/dev/null || jq '.findingCount' "$d/queue.json" 2>/dev/null || echo "error")
+  if [ "$count" != "0" ]; then
+    echo "FAIL: audit smoke found $count findings in $d"
+    exit 1
+  fi
+done
+echo "OK: audit smoke clean"
