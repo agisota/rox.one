@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "audit/queue.schema.json",
+  "title": "AuditQueue",
+  "type": "object",
+  "required": ["schemaVersion", "runId", "generatedAt", "findingCount", "findings"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "runId": { "type": "string" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "findingCount": { "type": "integer", "minimum": 0 },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "./finding.schema.json" }
+    }
+  }
+}
