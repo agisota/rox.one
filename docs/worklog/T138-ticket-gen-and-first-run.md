@@ -1,4 +1,4 @@
-# T064 - Ticket-gen, idempotency, CLI wiring, first end-to-end run
+# T138 - Ticket-gen, idempotency, CLI wiring, first end-to-end run
 
 ## 1. Task summary
 
@@ -6,7 +6,7 @@ Close Phase A.1 by wiring `ticket-gen` into the CLI, enforcing idempotency invar
 
 ## 2. Repo context discovered
 
-- `docs/tickets/` already contained T060–T128 (pre-existing backlog). The ticket allocator correctly scanned for the highest `T<N>-*.md` and would allocate T129+ for any new findings. First run produced 0 findings, so no new ticket stubs were allocated.
+- `docs/tickets/` already contained T000–T128 (pre-existing backlog) plus this branch's audit tickets at T134–T138. The ticket allocator correctly scans for the highest `T<N>-*.md` and would allocate T134+ for any new findings. First run produced 0 findings, so no new ticket stubs were allocated.
 - First full run produced 0 findings across all four surfaces (renderer, webui, viewer, marketing) with `--probes=static-*`. Root cause: `static-tsc` found no tsconfig at the expected path for the renderer surface (`apps/electron/src/renderer` does not exist as a flat directory at that exact path in the workspace — the surface root resolution needs tuning). `static-eslint` found no violations because the probe's `src/` glob does not match real surface entry-point layouts. `static-bundle` found no violations because no `budget.json` files exist on real surfaces. 0 findings is technically correct behavior (probe returned `[]`) but provides no signal. Documented as a known limitation for Phase A.2.
 - `js-yaml` (`yaml.load`, `yaml.dump`) is already a repo dep in root `package.json` and is used in other packages. The audit package's own `js-yaml` dep is exact-pinned (`4.1.1`) per engineering rules.
 - Task 21 (idempotency tests) was committed in the same file as Task 20 basic tests (`tests/ticket-gen.test.ts`) — 7 tests total in one file. The Task 21 commit (`506b791`) used `--allow-empty` as a structural marker because no source file changed between Task 20 and 21 source commits. The marker commit is in history as `test(audit): ticket-gen idempotency invariants`.
@@ -72,7 +72,7 @@ expect(received).toBe(expected)
 - `docs/audits/INDEX.md` (created) — append-only header + first run row:
   `2026-05-09T09-41-31-836Z | static-* | renderer,webui,viewer,marketing | 0 | 0 | 0 | 0 | 0 | audits/2026-05-09T09-41-31-836Z/queue.json | 0`
 
-Commits (T064 scope, `d8e9a2e`..`91b105e`):
+Commits (T138 scope, `d8e9a2e`..`91b105e`):
 - `d8e9a2e` feat(audit): ticket-gen creates AGENTS.md ticket stubs from findings
 - `506b791` test(audit): ticket-gen idempotency invariants
 - `70b0561` feat(audit): wire ticket-gen into CLI with --no-tickets and --top-k flags

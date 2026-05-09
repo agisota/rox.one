@@ -1,10 +1,10 @@
-# T060 - Bootstrap audit package
+# T134 - Bootstrap audit package
 
 Status: complete
 
 ## Context
 
-Phase A.1 of the audit harness. Bootstrap the `packages/audit/` Bun workspace with all shared infrastructure: `Probe` interface, `Finding` type, `ProbeRegistry`, pure `rank()` function, JSON queue reporter, Markdown sidecar reporter, and CLI entrypoint. Subsequent tickets (T061–T064) build on this foundation.
+Phase A.1 of the audit harness. Bootstrap the `packages/audit/` Bun workspace with all shared infrastructure: `Probe` interface, `Finding` type, `ProbeRegistry`, pure `rank()` function, JSON queue reporter, Markdown sidecar reporter, and CLI entrypoint. Subsequent tickets (T135–T138) build on this foundation.
 
 ## Summary
 
@@ -23,7 +23,7 @@ Create the `@rox-agent/audit` package from scratch. Scope the package name to th
 - [x] CLI parses `--probes`, `--worker-cap`, `--out`, `--no-tickets`, `--top-k`, `--help`.
 - [x] `bun test packages/audit` — all tests pass.
 - [x] `cd packages/audit && bun run typecheck` exits 0.
-- [x] Worklog `docs/worklog/T060-bootstrap-audit-package.md` complete.
+- [x] Worklog `docs/worklog/T134-bootstrap-audit-package.md` complete.
 - [x] Commit created.
 
 ## TDD Test Shape
@@ -71,4 +71,4 @@ bun pm ls --workspaces | grep audit
 
 ## Worklog
 
-`docs/worklog/T060-bootstrap-audit-package.md`
+`docs/worklog/T134-bootstrap-audit-package.md`

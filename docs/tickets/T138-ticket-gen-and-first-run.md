@@ -1,4 +1,4 @@
-# T064 - Ticket-gen, idempotency, CLI wiring, first end-to-end run
+# T138 - Ticket-gen, idempotency, CLI wiring, first end-to-end run
 
 Status: complete
 
@@ -23,7 +23,7 @@ Implement `packages/audit/src/ticket-gen.ts`: finding → AGENTS.md-format ticke
 - [x] Root `README.md` has `## Audit harness` section.
 - [x] `bun run test:coverage:check` from `packages/audit` prints "Coverage OK".
 - [x] `bun test packages/audit` — all tests pass.
-- [x] Worklog `docs/worklog/T064-ticket-gen-and-first-run.md` complete.
+- [x] Worklog `docs/worklog/T138-ticket-gen-and-first-run.md` complete.
 - [x] Commit created.
 
 ## TDD Test Shape
@@ -64,4 +64,4 @@ bun run audit run renderer,webui,viewer,marketing --probes=static-*
 
 ## Worklog
 
-`docs/worklog/T064-ticket-gen-and-first-run.md`
+`docs/worklog/T138-ticket-gen-and-first-run.md`

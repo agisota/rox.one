@@ -1,4 +1,4 @@
-# T062 - static-eslint probe
+# T136 - static-eslint probe
 
 Status: complete
 
@@ -19,7 +19,7 @@ Create `packages/audit/src/probes/static-eslint.ts`. The probe checks for `eslin
 - [x] Probe handles flat config (`eslint.config.js`) without `--no-eslintrc` flag.
 - [x] `bun test packages/audit/tests/probes/static-eslint.test.ts` passes.
 - [x] `cd packages/audit && bun run typecheck` exits 0.
-- [x] Worklog `docs/worklog/T062-static-eslint-probe.md` complete.
+- [x] Worklog `docs/worklog/T136-static-eslint-probe.md` complete.
 - [x] Commit created.
 
 ## TDD Test Shape
@@ -52,4 +52,4 @@ cd packages/audit && bun run typecheck
 
 ## Worklog
 
-`docs/worklog/T062-static-eslint-probe.md`
+`docs/worklog/T136-static-eslint-probe.md`

@@ -1,4 +1,4 @@
-# T060 - Bootstrap audit package
+# T134 - Bootstrap audit package
 
 ## 1. Task summary
 
@@ -44,7 +44,7 @@ Registry tests similarly failed with `Cannot find module '../src/registry.ts'`. 
 
 ## 6. Implementation changes
 
-- `packages/audit/package.json` — `@rox-agent/audit@0.9.1`, exact-pinned deps (`js-yaml@4.1.1`, `typescript@5.9.3`), `test:coverage` and `test:coverage:check` scripts added in T064.
+- `packages/audit/package.json` — `@rox-agent/audit@0.9.1`, exact-pinned deps (`js-yaml@4.1.1`, `typescript@5.9.3`), `test:coverage` and `test:coverage:check` scripts added in T138.
 - `packages/audit/tsconfig.json` — extends `../../tsconfig.base.json`, strict, `moduleResolution: bundler`, includes `src/**/*` and `tests/**/*`, excludes `tests/fixtures/**`.
 - `packages/audit/src/probe.ts` — exports `Surface`, `Phase`, `FindingSeverity`, `ProbeContext`, `Probe`, `FindingLocation`, `FindingEvidence`, `VdiImpact`, `Finding`, `FINDING_SCHEMA_VERSION = 1`, `computeFindingId()` (SHA-256 over `probe+rule+file+line`, first 16 hex chars).
 - `packages/audit/src/registry.ts` — `ProbeRegistry` class: `register()`, serial `run()` (Tasks 3–4), then worker-pool `run()` (Task 5) with configurable `workerCap`, `withTimeout()` helper, crash isolation via `try/catch` producing `_probe.crash` meta-findings with `confidence: 0`.
@@ -56,7 +56,7 @@ Registry tests similarly failed with `Cannot find module '../src/registry.ts'`. 
 - `packages/audit/README.md` — usage, phase roadmap, output artifact description.
 - `.gitignore` (root) — added `audits/` block.
 
-Commits in T060 scope (16 commits, `2670a46`..`e8cb690`):
+Commits in T134 scope (16 commits, `2670a46`..`e8cb690`):
 - `2670a46` feat(audit): bootstrap packages/audit workspace
 - `b23df27` chore(audit): pin exact dep versions per engineering rules
 - `cbb33c8` fix(audit): scope package name to @rox-agent/audit per monorepo convention
@@ -95,7 +95,7 @@ bun test v1.3.13
  27 pass, 0 fail
 ```
 
-(Total across all packages/audit tests at end of T060 scope.)
+(Total across all packages/audit tests at end of T134 scope.)
 
 ## 9. Build output summary
 
@@ -105,7 +105,7 @@ No separate build step. `cd packages/audit && bun run typecheck` (`tsc --noEmit`
 
 - Worker pool `pending` queue uses `Array.shift()` — O(n). Negligible at A.1 scale (≤12 probe-surface pairs). Refactor to a proper FIFO if A.2+ probe count grows past ~20.
 - `src/index.ts` placeholder was created early, removed after `src/probe.ts` was committed. Any future clean-workspace checkout that runs `tsc --noEmit` before source files exist will hit TS18003 again — acceptable given the include glob catches all `src/**/*`.
-- 5 separate fix commits within T060 (incremental review feedback). The commit history is auditable but dense; a future rebase pass could consolidate for readability (do not squash before Phase A.1 acceptance gate).
+- 5 separate fix commits within T134 (incremental review feedback). The commit history is auditable but dense; a future rebase pass could consolidate for readability (do not squash before Phase A.1 acceptance gate).
 - CLI `--out` flag writes to a caller-supplied path with no path-traversal validation. Acceptable for an internal dev tool; would need sanitization if ever exposed to untrusted input.
 
 ## 11. Acceptance criteria matrix
@@ -123,4 +123,4 @@ No separate build step. `cd packages/audit && bun run typecheck` (`tsc --noEmit`
 | CLI flag parsing | ✅ | `cli.test.ts` 2 tests pass |
 | `bun run typecheck` exits 0 | ✅ | `tsc --noEmit` exit 0 |
 | Worklog complete | ✅ | This document |
-| Commit created | ✅ | `e8cb690` (last T060 commit) |
+| Commit created | ✅ | `e8cb690` (last T134 commit) |
