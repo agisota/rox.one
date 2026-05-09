@@ -19,9 +19,9 @@ describe('Spec Builder screen', () => {
 
     expect(markup).toContain('Spec Builder');
     expect(markup).toContain('Research depth');
-    expect(markup).toContain('Selected requirements');
+    expect(markup).toContain('Выбранные требования');
     expect(markup).toContain('Spec preview');
-    expect(markup).toContain('Start Agent Plan');
+    expect(markup).toContain('Подготовить agent plan');
   });
 
   test('selecting an option updates selected requirements and derived config', () => {

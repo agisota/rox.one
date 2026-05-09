@@ -14,15 +14,15 @@ describe('Workbench artifact screens', () => {
   test('Prompt Lab renders empty and error states without provider execution', () => {
     const empty = renderToStaticMarkup(<PromptLabScreen state={createPromptLabState({ rawInput: '' })} />);
     expect(empty).toContain('Prompt Lab');
-    expect(empty).toContain('No prompt yet');
-    expect(empty).toContain('Replace Input');
+    expect(empty).toContain('Запрос еще не введен');
+    expect(empty).toContain('Заменить ввод');
     expect(empty).toContain('disabled=""');
 
     const error = renderToStaticMarkup(
       <PromptLabScreen state={createPromptLabState({ rawInput: '   ', status: 'error', error: 'empty prompt' })} />,
     );
     expect(error).toContain('empty prompt');
-    expect(error).not.toContain('provider call');
+    expect(error).not.toContain('provider call.');
   });
 
   test('Prompt Lab renders original, improved prompt, and handoff actions', () => {
@@ -33,12 +33,12 @@ describe('Workbench artifact screens', () => {
     });
     const markup = renderToStaticMarkup(<PromptLabScreen state={state} />);
 
-    expect(markup).toContain('Original prompt');
-    expect(markup).toContain('Improved prompt');
+    expect(markup).toContain('Исходный запрос');
+    expect(markup).toContain('Улучшенный запрос');
     expect(markup).toContain('Build teams and account UX');
     expect(markup).toContain('Use an in-app account cabinet');
-    expect(markup).toContain('Send to TDD Plan');
-    expect(markup).toContain('Send to Spec');
+    expect(markup).toContain('В TDD Plan');
+    expect(markup).toContain('В ТЗ');
   });
 
   test('TDD Plan renders red-green-verify-worklog columns and fake providers', () => {
@@ -57,8 +57,8 @@ describe('Workbench artifact screens', () => {
     expect(markup).toContain('WORKLOG');
     expect(markup).toContain('fake team/RBAC');
     expect(markup).toContain('fake S3/storage');
-    expect(markup).toContain('Insert Plan');
-    expect(markup).toContain('Start TDD');
+    expect(markup).toContain('Вставить план');
+    expect(markup).toContain('Подготовить запуск');
   });
 
   test('Review Gate renders check and tear-down tabs with findings', () => {
@@ -74,7 +74,7 @@ describe('Workbench artifact screens', () => {
     expect(markup).toContain('Разъебать');
     expect(markup).toContain('Secret-like content appears in review artifact');
     expect(markup).toContain('Fact-check gate lacks source evidence');
-    expect(markup).toContain('Apply Notes');
+    expect(markup).toContain('Вставить замечания');
   });
 
   test('Review Gate renders validation evidence findings with severity, evidence, and fix plan labels', () => {

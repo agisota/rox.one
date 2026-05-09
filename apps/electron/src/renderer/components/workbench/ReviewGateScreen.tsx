@@ -11,18 +11,18 @@ export interface ReviewGateScreenProps {
 export function ReviewGateScreen({ state, onApplyNotes, onRunCheck }: ReviewGateScreenProps) {
   return (
     <main className="flex h-full min-h-0 flex-col bg-background text-foreground" aria-label="Review Gate">
-      <header className="border-b border-border px-6 py-5">
+      <header className="border-b border-border px-4 py-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Workbench Artifact</p>
-            <h1 className="mt-2 text-2xl font-semibold">Review Gate</h1>
-            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Inspect factual, logical, security, and adversarial critique findings before execution.
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Артефакт composer</p>
+            <h1 className="mt-1 text-xl font-semibold">Review Gate</h1>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Проверьте факты, логику, security gates и adversarial critique до запуска.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => onRunCheck?.(state)}>Run Check</Button>
-            <Button type="button" disabled={!state.canApplyNotes} onClick={() => onApplyNotes?.(state)}>Apply Notes</Button>
+            <Button type="button" variant="outline" onClick={() => onRunCheck?.(state)}>Пересчитать</Button>
+            <Button type="button" disabled={!state.canApplyNotes} onClick={() => onApplyNotes?.(state)}>Вставить замечания</Button>
           </div>
         </div>
       </header>
@@ -31,18 +31,18 @@ export function ReviewGateScreen({ state, onApplyNotes, onRunCheck }: ReviewGate
         <span className={tabClass(state.activeTab === 'check')}>Проверка</span>
         <span className={tabClass(state.activeTab === 'tear-down')}>Разъебать</span>
         <span className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground">Риски</span>
-        <span className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground">Acceptance</span>
+        <span className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground">Приемка</span>
       </nav>
 
       <section className="border-b border-border p-4 text-sm text-muted-foreground">
-        Verdict: {state.result.verdict}. Findings: {state.result.findings.length}. Prompt: {state.rawInput || 'No prompt provided.'}
+        Вердикт: {state.result.verdict}. Замечаний: {state.result.findings.length}. Запрос: {state.rawInput || 'Запрос не передан.'}
       </section>
 
       <div className="grid min-h-0 flex-1 gap-4 overflow-auto p-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.7fr)]">
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold">Findings</h2>
+          <h2 className="text-sm font-semibold">Замечания</h2>
           {state.result.findings.length === 0 ? (
-            <p className="rounded-lg border border-border bg-muted/10 p-4 text-sm text-muted-foreground">No findings yet.</p>
+            <p className="rounded-lg border border-border bg-muted/10 p-4 text-sm text-muted-foreground">Замечаний пока нет.</p>
           ) : (
             state.result.findings.map(finding => (
               <article key={finding.id} className="rounded-lg border border-border bg-background p-4">
@@ -75,7 +75,7 @@ export function ReviewGateScreen({ state, onApplyNotes, onRunCheck }: ReviewGate
         </section>
 
         <aside className="space-y-3">
-          <h2 className="text-sm font-semibold">Checks</h2>
+          <h2 className="text-sm font-semibold">Проверки</h2>
           {state.result.checks.map(check => (
             <section key={check.gateId} className="rounded-lg border border-border bg-muted/10 p-3">
               <div className="text-sm font-medium">{check.gateId}</div>

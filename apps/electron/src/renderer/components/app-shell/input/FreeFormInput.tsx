@@ -601,7 +601,7 @@ export function FreeFormInput({
   const [loadingCount, setLoadingCount] = React.useState(0)
   const [sourceDropdownOpen, setSourceDropdownOpen] = React.useState(false)
   const [isFocused, setIsFocused] = React.useState(false)
-  const [inputMaxHeight, setInputMaxHeight] = React.useState(540)
+  const [inputMaxHeight, setInputMaxHeight] = React.useState(320)
   const [modelDropdownOpen, setModelDropdownOpen] = React.useState(false)
 
   // Input settings (loaded from config)
@@ -632,11 +632,11 @@ export function FreeFormInput({
   // Double-Esc interrupt: show warning overlay on first Esc, interrupt on second
   const { showEscapeOverlay } = useEscapeInterrupt()
 
-  // Calculate max height: min(66% of window height, 540px)
+  // Keep generated plans/specs scrollable inside the editor so composer actions stay reachable.
   React.useEffect(() => {
     const updateMaxHeight = () => {
-      const maxFromWindow = Math.floor(window.innerHeight * 0.66)
-      setInputMaxHeight(Math.min(maxFromWindow, 540))
+      const maxFromWindow = Math.floor(window.innerHeight * 0.36)
+      setInputMaxHeight(Math.min(maxFromWindow, 320))
     }
     updateMaxHeight()
     window.addEventListener('resize', updateMaxHeight)
