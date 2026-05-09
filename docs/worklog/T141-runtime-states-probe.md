@@ -97,6 +97,7 @@ No separate build. Real audit run on marketing surface (fixture):
 ## 10. Remaining risks
 
 - Heuristic probe may produce false positives. Example: component with programmatic `:disabled` behavior (not CSS-bound) would fail the check even if the state is correctly implemented. Confidence=0.7 + ranker downweighting mitigates impact. Refinement in A.4.
+- **[T144 update — 2026-05-09]** Architect review (A.2 phase verification) identified the stylesheet substring-matching heuristic as a source of false positives. The lighter fix was applied: confidence downgraded from **0.7 → 0.5** across all three Finding emissions in `src/probes/runtime-states.ts` (interactive-states, empty-state, error-state checks). The ranker already downweights low-confidence findings, so this change reduces noise without altering probe logic. Full heuristic tightening deferred to A.4.
 - Heuristic checks do not account for Tailwind or CSS-in-JS frameworks. Regex matching for class names may miss namespaced or minified output. Phase A.4 should add framework-specific detectors.
 - Empty-state sibling check is simplistic. Real empty-state patterns vary widely (dedicated div with class, text node, separate component). Phase A.4 should add configurable patterns per surface.
 - Real surfaces return 0 findings because heuristic probe runs the SPA entry page (e.g., `file://` to index.html), which doesn't load React/Vue/etc. JavaScript. The component states never render. This is correct behavior (A.4 will solve it by running the dev server), but users unfamiliar with the architecture may see 0 findings and assume all is well. Documented in T143.
@@ -110,7 +111,7 @@ No separate build. Real audit run on marketing surface (fixture):
 | run() checks interactive elements for :hover/:focus/:disabled | ✅ | Implementation iterates interactive selectors |
 | run() checks lists for children or empty-state sibling | ✅ | Implementation queries empty lists |
 | run() checks forms for error-state markup | ✅ | Implementation scans for [aria-invalid], [role=alert], error class |
-| Findings have confidence 0.7 | ✅ | confidence: 0.7 in Finding |
+| Findings have confidence 0.5 (downgraded from 0.7 in T144) | ✅ | confidence: 0.5 in Finding — architect followup, T144 |
 | Severity = medium (heuristic) | ✅ | severity: "medium" mapping in implementation |
 | Fixture has ≥3 violations | ✅ | states-broken/index.html: button no :disabled, list no empty-state, form no error |
 | Tests pass (metadata, fixture violations) | ✅ | 2 pass, 0 fail |
