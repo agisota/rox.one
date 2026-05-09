@@ -6,7 +6,18 @@ import { findTsconfig, findEslintConfig, findBudget, discoverRoutes } from "../s
 
 function withScratch<T>(fn: (dir: string) => T): T {
   const dir = mkdtempSync(join(tmpdir(), "audit-disc-"));
-  try { return fn(dir); } finally { rmSync(dir, { recursive: true, force: true }); }
+  try {
+    const result = fn(dir);
+    // If fn is async, defer cleanup until the promise settles.
+    if (result instanceof Promise) {
+      return result.finally(() => rmSync(dir, { recursive: true, force: true })) as T;
+    }
+    rmSync(dir, { recursive: true, force: true });
+    return result;
+  } catch (e) {
+    rmSync(dir, { recursive: true, force: true });
+    throw e;
+  }
 }
 
 describe("findTsconfig", () => {
@@ -79,15 +90,15 @@ describe("findBudget", () => {
 });
 
 describe("discoverRoutes", () => {
-  test("returns empty array for unknown surface", () => {
-    expect(discoverRoutes("renderer", "/nonexistent")).toEqual([]);
+  test("returns empty array for unknown surface", async () => {
+    expect(await discoverRoutes("renderer", "/nonexistent")).toEqual([]);
   });
-  test("returns array of route URLs for marketing (file-based routing)", () => {
-    withScratch((dir) => {
+  test("returns array of route URLs for marketing (file-based routing)", async () => {
+    await withScratch(async (dir) => {
       mkdirSync(join(dir, "src", "pages"), { recursive: true });
       writeFileSync(join(dir, "src", "pages", "index.html"), "<html></html>");
       writeFileSync(join(dir, "src", "pages", "about.html"), "<html></html>");
-      const routes = discoverRoutes("marketing", dir);
+      const routes = await discoverRoutes("marketing", dir);
       expect(routes.length).toBeGreaterThanOrEqual(2);
     });
   });

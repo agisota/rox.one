@@ -10,16 +10,22 @@ export const runtimeStatesProbe: Probe = {
   applicableTo: () => true,
   async run(ctx: ProbeContext): Promise<Finding[]> {
     if (!ctx.playwright) return [];
-    const routes = discoverRoutes(ctx.surface, ctx.surfaceRoot);
+    const routes = await discoverRoutes(ctx.surface, ctx.surfaceRoot, ctx.devServerUrl, ctx.playwright);
     const indexFile = join(ctx.surfaceRoot, "index.html");
-    if (routes.length === 0 && !existsSync(indexFile)) return [];
+    if (routes.length === 0 && !ctx.devServerUrl && !existsSync(indexFile)) return [];
 
     const findings: Finding[] = [];
     const now = new Date().toISOString();
 
     const targets = routes.length > 0
-      ? routes.map((r) => `file://${ctx.surfaceRoot}/src/pages${r === "/" ? "/index" : r}.html`)
-      : [`file://${indexFile}`];
+      ? routes.map((r) =>
+          ctx.devServerUrl
+            ? new URL(r, ctx.devServerUrl).toString()
+            : `file://${ctx.surfaceRoot}/src/pages${r === "/" ? "/index" : r}.html`,
+        )
+      : ctx.devServerUrl
+        ? [ctx.devServerUrl]
+        : [`file://${indexFile}`];
 
     for (const url of targets) {
       const page = await ctx.playwright.newPage();
