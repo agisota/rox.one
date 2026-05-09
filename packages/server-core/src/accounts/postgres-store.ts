@@ -12,6 +12,7 @@ import type {
   CreateUserInput,
   EmailTokenPurpose,
   PublicUser,
+  RevokeSessionResult,
   SessionIdentity,
 } from './types'
 import { AccountAuthError, AccountConflictError } from './types'
@@ -268,11 +269,28 @@ export class PostgresAccountStore implements AccountStore {
     return result.rows.map(toAccountSession)
   }
 
-  async revokeSession(sessionId: string): Promise<void> {
-    await this.pool.query(
-      `UPDATE craft_account_sessions SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL`,
+  async revokeSession(sessionId: string): Promise<RevokeSessionResult> {
+    // Compare-and-swap: only the call that transitions the row from
+    // `revoked_at IS NULL` to `revoked_at = now()` gets the RETURNING row.
+    // Concurrent callers see `revoked: false`, which the rotation site uses
+    // as a gate to avoid minting orphaned replacement sessions.
+    const result = await this.pool.query<{ id: string }>(
+      `UPDATE craft_account_sessions
+       SET revoked_at = now()
+       WHERE id = $1 AND revoked_at IS NULL
+       RETURNING id`,
       [sessionId],
     )
+    if (result.rows[0]) {
+      return { revoked: true, sessionId: result.rows[0].id }
+    }
+    // Distinguish "row exists but already revoked" from "row never existed"
+    // so callers can log usefully without a second query in the hot path.
+    const existed = await this.pool.query<{ id: string }>(
+      `SELECT id FROM craft_account_sessions WHERE id = $1 LIMIT 1`,
+      [sessionId],
+    )
+    return { revoked: false, sessionId: existed.rows[0]?.id ?? null }
   }
 
   async revokeUserSessions(userId: string): Promise<void> {
