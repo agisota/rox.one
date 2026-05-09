@@ -1,6 +1,8 @@
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useReducedMotionPreference } from '@/context/ReducedMotionContext'
 
 export interface ImageSupportWarningBannerProps {
   /** Display name of the active model — interpolated into the message. */
@@ -23,19 +25,31 @@ export function ImageSupportWarningBanner({
   onEnable,
 }: ImageSupportWarningBannerProps) {
   const { t } = useTranslation()
+  const reduced = useReducedMotionPreference()
+  const transition = reduced ? { duration: 0 } : { duration: 0.2 }
+
   return (
-    <div className="flex items-center gap-2 px-3 py-2 mx-2 mt-2 rounded-md bg-amber-500/10 text-foreground/70 text-xs">
-      <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-      <span className="flex-1 min-w-0">
-        {t('chat.imageWarning.title', { modelName })}
-      </span>
-      <button
-        type="button"
-        onClick={onEnable}
-        className="shrink-0 underline underline-offset-2 hover:text-foreground"
+    <AnimatePresence>
+      <motion.div
+        key="image-support-warning"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={transition}
+        className="flex items-center gap-2 px-3 py-2 mx-2 mt-2 rounded-md bg-amber-500/10 text-foreground/70 text-xs"
       >
-        {t('chat.imageWarning.action')}
-      </button>
-    </div>
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+        <span className="flex-1 min-w-0">
+          {t('chat.imageWarning.title', { modelName })}
+        </span>
+        <button
+          type="button"
+          onClick={onEnable}
+          className="shrink-0 underline underline-offset-2 hover:text-foreground"
+        >
+          {t('chat.imageWarning.action')}
+        </button>
+      </motion.div>
+    </AnimatePresence>
   )
 }
