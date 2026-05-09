@@ -93,7 +93,8 @@ No build step. `bun run typecheck` (`tsc --noEmit`) exits 0.
 | Finding IDs stable; location.file/line populated | ✅ | Test "each finding has stable id, location.file, line" passes |
 | TS7006 → medium, TS2345/TS2322 → high | ✅ | Severity asserted inside "detects all 3 errors" test |
 | `confidence = 1` | ✅ | Verified inline in fixture-detection test assertions |
-| `bun test static-tsc.test.ts` passes | ✅ | 4 pass, 0 fail |
+| Skip on missing tsconfig.json | ✅ | Test "returns [] when surfaceRoot has no tsconfig.json" passes (added in T138 fix-up commit) |
+| `bun test static-tsc.test.ts` passes | ✅ | 5 pass, 0 fail (4 original + 1 skip-on-absent added in T138 fix-up commit) |
 | Typecheck exits 0 | ✅ | `tsc --noEmit` exit 0 |
 | Worklog complete | ✅ | This document |
 | Commit created | ✅ | `0c3ebac` |
