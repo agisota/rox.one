@@ -9,7 +9,7 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: 'hidden',
   },
   server: {
     port: 5176,
