@@ -119,11 +119,14 @@ async function main(): Promise<number> {
   // A.4: when any A.2+ probe is selected, spawn dev servers per surface so
   // runtime probes can crawl the live SPA. Renderer is skipped (Electron app
   // not yet wired) — deferred to A.5.
+  // Use process.execPath so the spawned process locates the bun binary even
+  // when bun isn't on PATH (e.g. installed under ~/.bun/bin without PATH export).
+  const bunBin = process.execPath;
   const devServers = new Map<Surface, DevServerHandle>();
   const surfaceDevCommands: Partial<Record<Surface, { command: string; args: string[] }>> = {
-    webui: { command: "bun", args: ["run", "webui:dev"] },
-    viewer: { command: "bun", args: ["run", "viewer:dev"] },
-    marketing: { command: "bun", args: ["run", "marketing:dev"] },
+    webui: { command: bunBin, args: ["run", "webui:dev"] },
+    viewer: { command: bunBin, args: ["run", "viewer:dev"] },
+    marketing: { command: bunBin, args: ["run", "marketing:dev"] },
   };
 
   try {
