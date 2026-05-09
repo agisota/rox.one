@@ -6,6 +6,7 @@ import { captureConsoleIntegration } from '@sentry/react'
 import { Provider as JotaiProvider, useAtomValue } from 'jotai'
 import App from './App'
 import { ThemeProvider } from './context/ThemeContext'
+import { ReducedMotionProvider } from './context/ReducedMotionContext'
 import { windowWorkspaceIdAtom } from './atoms/sessions'
 import { Toaster } from '@/components/ui/sonner'
 import { setupI18n } from '@craft-agent/shared/i18n'
@@ -100,10 +101,12 @@ function Root() {
   const workspaceId = useAtomValue(windowWorkspaceIdAtom)
 
   return (
-    <ThemeProvider activeWorkspaceId={workspaceId}>
-      <App />
-      <Toaster />
-    </ThemeProvider>
+    <ReducedMotionProvider>
+      <ThemeProvider activeWorkspaceId={workspaceId}>
+        <App />
+        <Toaster />
+      </ThemeProvider>
+    </ReducedMotionProvider>
   )
 }
 

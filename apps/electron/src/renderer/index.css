@@ -19,6 +19,24 @@
    to avoid LightningCSS warnings (::highlight is not yet recognized by the optimizer) */
 
 /* =============================================================================
+   ACCESSIBILITY
+
+   Honor user's prefers-reduced-motion preference (T183).
+   ReducedMotionProvider (context/ReducedMotionContext.tsx) sets
+   data-reduced-motion="true" on <html> when the OS preference is active.
+   Components that genuinely need animation (loading shimmer, etc.) can
+   opt out by adding the `always-animate` class.
+   Using 0.001ms instead of `none` so transitionend events still fire.
+============================================================================= */
+
+[data-reduced-motion='true'] *:not(.always-animate):not(.always-animate *) {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* =============================================================================
    ANIMATABLE CSS CUSTOM PROPERTIES
 
    Register theme color variables as animatable using @property.

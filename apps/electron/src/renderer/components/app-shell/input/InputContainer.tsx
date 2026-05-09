@@ -5,6 +5,7 @@ import { FreeFormInput, type FreeFormInputProps } from './FreeFormInput'
 import { StructuredInput } from './StructuredInput'
 import type { RichTextInputHandle } from '@/components/ui/rich-text-input'
 import { useOptionalAppShellContext } from '@/context/AppShellContext'
+import { useReducedMotionPreference } from '@/context/ReducedMotionContext'
 import type { StructuredInputState, StructuredResponse, InputMode } from './structured/types'
 import { getStructuredInputMaxHeight } from './structured-height'
 
@@ -176,19 +177,23 @@ export function InputContainer({
     }
   })
 
+  // Honor user's prefers-reduced-motion (T183). When reduced, skip motion/react
+  // animation entirely and snap to the target height instead.
+  const reducedMotion = useReducedMotionPreference()
+
   // Animate height changes using motion value
   React.useEffect(() => {
-    if (shouldAnimateHeight) {
+    if (shouldAnimateHeight && !reducedMotion) {
       animate(heightMotionValue, targetHeight, {
         duration: TRANSITION_DURATION,
         ease: TRANSITION_EASE
       })
     } else {
-      // Instant update - no animation
+      // Instant update - no animation (initial render OR reduced motion)
       heightMotionValue.set(targetHeight)
       prevAnimatedHeightRef.current = targetHeight
     }
-  }, [targetHeight, shouldAnimateHeight, heightMotionValue])
+  }, [targetHeight, shouldAnimateHeight, reducedMotion, heightMotionValue])
 
   const handleStructuredResponse = (response: StructuredResponse) => {
     onStructuredResponse?.(response)
@@ -245,7 +250,8 @@ export function InputContainer({
           ...(mode !== 'freeform' ? { maxHeight: structuredMaxHeight } : {}),
         }}
       >
-        {/* Crossfading content - freeform anchored to bottom (for auto-grow), others fill */}
+        {/* Crossfading content - freeform anchored to bottom (for auto-grow), others fill.
+         * T183: when prefers-reduced-motion is active, skip the crossfade transition. */}
         <AnimatePresence mode="sync" initial={false}>
           <motion.div
             key={contentKey}
@@ -253,7 +259,11 @@ export function InputContainer({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: TRANSITION_DURATION, ease: TRANSITION_EASE }}
+            transition={
+              reducedMotion
+                ? { duration: 0 }
+                : { duration: TRANSITION_DURATION, ease: TRANSITION_EASE }
+            }
           >
             {renderContent(false)}
           </motion.div>
