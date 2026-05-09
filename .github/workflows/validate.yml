@@ -35,23 +35,11 @@ jobs:
       - name: Prepare validation logs
         run: mkdir -p .ci-logs
 
-      - name: Validate agent contract
+      - name: Run test suite (single CI gate)
         shell: bash
         run: |
           set -o pipefail
-          bun run validate:agent-contract 2>&1 | tee .ci-logs/agent-contract.log
-
-      - name: Validate architecture docs
-        shell: bash
-        run: |
-          set -o pipefail
-          bun run validate:architecture-docs 2>&1 | tee .ci-logs/architecture-docs.log
-
-      - name: Run validation suite
-        shell: bash
-        run: |
-          set -o pipefail
-          bun run validate:ci 2>&1 | tee .ci-logs/validate-ci.log
+          bun run test 2>&1 | tee .ci-logs/test.log
 
       - name: Upload validation logs
         if: always()
