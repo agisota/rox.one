@@ -4,6 +4,7 @@
  * into concern-scoped sub-modules. This barrel preserves the original public
  * API exactly — callers continue to import from './config/storage'.
  */
+export * from './storage-scope.ts';
 export * from './storage-io.ts';
 export * from './storage-settings.ts';
 export * from './storage-workspaces.ts';
