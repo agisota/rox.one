@@ -12,6 +12,7 @@ import { Provider as JotaiProvider, createStore } from 'jotai'
 import { I18nextProvider } from 'react-i18next'
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { TooltipProvider } from '@craft-agent/ui'
 import { ReducedMotionProvider } from '@/context/ReducedMotionContext'
 
 // Initialize a minimal i18n instance for tests. Real translations are not
@@ -38,6 +39,7 @@ interface ComposerHarnessProps {
  * - Jotai (atoms used by FreeFormInput, ChatInputZone, etc.)
  * - i18n (t() returns the key as fallback)
  * - ReducedMotionProvider (so motion/react integration paths run)
+ * - TooltipProvider (every Radix Tooltip in the composer requires it)
  *
  * Add other providers (ThemeProvider, AppShellContext) here as needed when
  * specific tests require them. Default minimal harness keeps each test fast.
@@ -47,7 +49,9 @@ export function TestComposerHarness({ children, store }: ComposerHarnessProps): 
   return (
     <JotaiProvider store={jotaiStore}>
       <I18nextProvider i18n={i18n}>
-        <ReducedMotionProvider>{children}</ReducedMotionProvider>
+        <ReducedMotionProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </ReducedMotionProvider>
       </I18nextProvider>
     </JotaiProvider>
   )
