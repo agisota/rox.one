@@ -118,6 +118,31 @@ apps/{webui,viewer}/dist/assets/pdf.worker.min-iDqQPrd3.mjs   1,232,303 B
 
 **Estimated savings:** webui −1.2 MB on initial load (only loads on first PDF open). viewer keeps it eager (justified).
 
+### CORRECTION (2026-05-09 later — partial overstatement)
+
+Looking at the actual webui dist more carefully: `pdf.worker.min-iDqQPrd3.mjs` (1.2 MB) **is already a separate chunk**, not part of `main-*.js`. The Vite `?url` import pattern at `packages/ui/src/components/{markdown/MarkdownPdfBlock,overlay/PDFPreviewOverlay}.tsx` only writes a URL string into the main bundle; the worker file itself is fetched on-demand by pdfjs at runtime.
+
+So Fix #2's "1.2MB savings on initial load" claim was **partially wrong** — the worker IS already lazy.
+
+**The real Fix #2 savings come from lazy-loading the `react-pdf` and `pdfjs-dist` JS code itself** (which IS in `main-*.js` because `MarkdownPdfBlock.tsx` and `PDFPreviewOverlay.tsx` top-level-import them). To move that out of main:
+
+```typescript
+// In Markdown.tsx or App.tsx, change:
+import { MarkdownPdfBlock } from './MarkdownPdfBlock'
+
+// To:
+const MarkdownPdfBlock = React.lazy(() => import('./MarkdownPdfBlock'))
+// + wrap usage in <Suspense fallback={...}>
+```
+
+Same for `PDFPreviewOverlay` in `App.tsx`.
+
+**Estimated savings (revised):** ~500 KB-1 MB from main bundle, depending on react-pdf/pdfjs-dist tree-shaking efficiency. Worker file (1.2 MB) was already saving its own bytes from main; this gets the wrapper code out too.
+
+**Effort revised:** Small → **Small-Medium (~1-2 days)**. Need to wrap consumer call sites in `<Suspense>`. Risk: some consumers may render synchronously (e.g. inside a memoized component); audit each call site.
+
+**Recommendation:** Combine with Fix #1's shiki refactor into sub-project **F (footprint)**. Both follow the same pattern: lazy-load heavy library code that isn't needed on initial paint. Brainstorm them together to ensure consistent Suspense boundaries.
+
 ## Root cause #3 — pzdrk.png 1.44 MB (saves ~1.4 MB)
 
 **Smoking gun:**
