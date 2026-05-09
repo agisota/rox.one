@@ -9,6 +9,7 @@ import type {
 import type { LlmConnection } from '../../../config/storage.ts';
 import type { ModelFetchResult } from '../../../config/model-fetcher.ts';
 import type { CredentialManager } from '../../../credentials/manager.ts';
+import type { ProviderDependencyRiskMode } from '../../dependency-risk.ts';
 import type { ResolvedBackendRuntimePaths } from './runtime-resolver.ts';
 
 export interface BackendRuntimePaths {
@@ -29,6 +30,8 @@ export interface BackendRuntimePayload extends Record<string, unknown> {
   customEndpoint?: { api: string; supportsImages?: boolean };
   /** Models registered for a custom endpoint. Strings default to 128K context; objects allow overrides. */
   customModels?: Array<string | { id: string; contextWindow?: number; supportsImages?: boolean }>;
+  /** Resolved dependency-risk decision for provider runtimes that need host-context awareness. */
+  dependencyRiskMode?: ProviderDependencyRiskMode;
 }
 
 export interface BackendResolutionContext {

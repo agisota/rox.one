@@ -2,7 +2,7 @@ import type { ProviderDriver, DriverTestConnectionArgs } from '../driver-types.t
 import type { ModelDefinition } from '../../../../config/models.ts';
 import {
   assertPiProviderDependencyRiskAllowed,
-  resolvePiProviderDependencyRiskMode,
+  resolvePiProviderDependencyRiskModeForHost,
 } from '../../../dependency-risk.ts';
 
 // ── Copilot model types ────────────────────────────────────────────────
@@ -233,12 +233,17 @@ async function testAnthropicCompatible(
 
 export const piDriver: ProviderDriver = {
   provider: 'pi',
-  buildRuntime: ({ context, providerOptions, resolvedPaths }) => ({
+  buildRuntime: ({ context, providerOptions, resolvedPaths, hostRuntime, coreConfig }) => ({
     paths: {
       piServer: resolvedPaths.piServerPath,
       interceptor: resolvedPaths.interceptorBundlePath,
       node: resolvedPaths.nodeRuntimePath,
     },
+    dependencyRiskMode: resolvePiProviderDependencyRiskModeForHost(
+      hostRuntime,
+      process.env,
+      coreConfig.envOverrides,
+    ),
     piAuthProvider: providerOptions?.piAuthProvider || context.connection?.piAuthProvider,
     baseUrl: context.connection?.baseUrl,
     customEndpoint: context.connection?.customEndpoint,
@@ -257,8 +262,8 @@ export const piDriver: ProviderDriver = {
       return m.id;
     }),
   }),
-  fetchModels: async ({ connection, credentials, timeoutMs }) => {
-    assertPiProviderDependencyRiskAllowed(resolvePiProviderDependencyRiskMode());
+  fetchModels: async ({ connection, credentials, timeoutMs, hostRuntime }) => {
+    assertPiProviderDependencyRiskAllowed(resolvePiProviderDependencyRiskModeForHost(hostRuntime));
 
     // Copilot OAuth: fetch models directly from the Copilot API via HTTP.
     // Uses the GitHub OAuth token (our refreshToken) to exchange for a
@@ -289,7 +294,7 @@ export const piDriver: ProviderDriver = {
       // No provider hint — fall back to generic subprocess path
       return null;
     }
-    assertPiProviderDependencyRiskAllowed(resolvePiProviderDependencyRiskMode());
+    assertPiProviderDependencyRiskAllowed(resolvePiProviderDependencyRiskModeForHost(args.hostRuntime));
 
     // Resolve the model's API type from the Pi SDK registry.
     // For anthropic-messages providers, do a lightweight direct HTTP test

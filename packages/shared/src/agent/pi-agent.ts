@@ -356,11 +356,12 @@ export class PiAgent extends BaseAgent {
    * Spawn the pi-agent-server subprocess and set up JSONL communication.
    */
   private async spawnSubprocess(): Promise<void> {
+    const runtime = getBackendRuntime(this.config);
     assertPiProviderDependencyRiskAllowed(
-      resolvePiProviderDependencyRiskMode(process.env, this.config.envOverrides),
+      runtime.dependencyRiskMode
+        ?? resolvePiProviderDependencyRiskMode(process.env, this.config.envOverrides),
     );
 
-    const runtime = getBackendRuntime(this.config);
     const piServerPath = runtime.paths?.piServer;
     if (!piServerPath) {
       throw new Error('piServerPath not configured. Cannot spawn Pi subprocess.');

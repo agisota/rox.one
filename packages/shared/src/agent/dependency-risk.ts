@@ -8,6 +8,11 @@ export const PI_PROVIDER_DEPENDENCY_RISK_ENV = 'CRAFT_PI_PROVIDER_DEPENDENCY_RIS
 export const PROVIDER_DEPENDENCY_RISK_ENV = 'CRAFT_PROVIDER_DEPENDENCY_RISK_MODE'
 export const PUBLIC_APP_URL_ENV = 'CRAFT_PUBLIC_APP_URL'
 
+type ProviderHostRuntime = {
+  appRootPath?: string
+  resourcesPath?: string
+}
+
 const VALID_PROVIDER_DEPENDENCY_RISK_MODES: ReadonlySet<string> = new Set([
   'private-local',
   'public-untrusted',
@@ -47,6 +52,28 @@ export function resolvePiProviderDependencyRiskMode(
 
   const publicAppUrl = overrides[PUBLIC_APP_URL_ENV] ?? env[PUBLIC_APP_URL_ENV]
   return publicAppUrl?.trim() ? 'public-untrusted' : 'private-local'
+}
+
+export function resolvePiProviderDependencyRiskModeForHost(
+  hostRuntime: ProviderHostRuntime | undefined,
+  env: Record<string, string | undefined> = process.env,
+  overrides: Record<string, string | undefined> = {},
+): ProviderDependencyRiskMode {
+  const piSpecific = parseProviderDependencyRiskMode(
+    overrides[PI_PROVIDER_DEPENDENCY_RISK_ENV] ?? env[PI_PROVIDER_DEPENDENCY_RISK_ENV],
+    PI_PROVIDER_DEPENDENCY_RISK_ENV,
+  )
+  if (piSpecific) return piSpecific
+
+  const generic = parseProviderDependencyRiskMode(
+    overrides[PROVIDER_DEPENDENCY_RISK_ENV] ?? env[PROVIDER_DEPENDENCY_RISK_ENV],
+    PROVIDER_DEPENDENCY_RISK_ENV,
+  )
+  if (generic) return generic
+
+  if (hostRuntime?.resourcesPath) return 'private-local'
+
+  return resolvePiProviderDependencyRiskMode(env, overrides)
 }
 
 export function assertPiProviderDependencyRiskAllowed(mode: ProviderDependencyRiskMode): void {

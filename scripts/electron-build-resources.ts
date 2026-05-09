@@ -6,7 +6,10 @@ import { cpSync, existsSync } from "fs";
 import { join } from "path";
 import {
   copySDK,
+  copyPiAgentServer,
+  copySessionServer,
   verifySDKCopy,
+  verifyMcpServersExist,
   type Arch,
   type BuildConfig,
   type Platform,
@@ -38,13 +41,6 @@ function resolveArch(): Arch {
   }
 }
 
-if (existsSync(srcDir)) {
-  cpSync(srcDir, destDir, { recursive: true, force: true });
-  console.log("📦 Copied resources to dist");
-} else {
-  console.log("⚠️ No resources directory found");
-}
-
 const config: BuildConfig = {
   platform: resolvePlatform(),
   arch: resolveArch(),
@@ -54,6 +50,17 @@ const config: BuildConfig = {
   rootDir: ROOT_DIR,
   electronDir: ELECTRON_DIR,
 };
+
+copySessionServer(config);
+copyPiAgentServer(config);
+verifyMcpServersExist(config);
+
+if (existsSync(srcDir)) {
+  cpSync(srcDir, destDir, { recursive: true, force: true });
+  console.log("📦 Copied resources to dist");
+} else {
+  console.log("⚠️ No resources directory found");
+}
 
 copySDK(config);
 verifySDKCopy(config);
