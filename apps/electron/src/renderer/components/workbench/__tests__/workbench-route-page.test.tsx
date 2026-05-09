@@ -18,8 +18,8 @@ describe('WorkbenchRoutePage', () => {
 
     expect(markup).toContain(expectedTitle)
     expect(markup).toContain('Слой опыта')
-    expect(markup).toContain('5 sanitized сценариев')
-    expect(markup).toContain('sessions → truth → tab → skills')
+    expect(markup).toContain('5 демо-сценариев в средней панели')
+    expect(markup).toContain('Сегодня · truth → вкладка → журнал')
   })
 
   test('ships five sanitized demo sessions per Experience tab', () => {

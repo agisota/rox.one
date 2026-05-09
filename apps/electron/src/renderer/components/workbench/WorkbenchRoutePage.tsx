@@ -78,7 +78,7 @@ export function WorkbenchRoutePage({ screen }: WorkbenchRoutePageProps) {
         </div>
       </div>
       {activeDemoSession ? (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(300px,380px)_minmax(0,1fr)]">
           <ExperienceDemoConsole
             screen={screen}
             activeSession={activeDemoSession}
@@ -86,8 +86,9 @@ export function WorkbenchRoutePage({ screen }: WorkbenchRoutePageProps) {
             eventCount={activeRuntime?.eventCount ?? 0}
             lastActionId={activeRuntime?.lastActionId}
             onRunAction={runDemoAction}
+            layout="sidebar"
           />
-          <div className="min-h-0 flex-1 overflow-hidden">
+          <div className="min-h-0 overflow-y-auto overflow-x-hidden" data-experience-workbench-scroll="true">
             {renderWorkbenchScreen(screen, activeDemoSession, activeRuntime?.revision ?? 0)}
           </div>
         </div>

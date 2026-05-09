@@ -28,6 +28,7 @@ type ExperienceDemoConsoleProps = {
   eventCount: number
   lastActionId?: DemoExperienceAction['id']
   onRunAction: (action: DemoExperienceAction) => void
+  layout?: 'stacked' | 'sidebar'
 }
 
 const ACTION_ICONS: Record<DemoExperienceAction['id'], React.ComponentType<{ className?: string }>> = {
@@ -45,6 +46,7 @@ export function ExperienceDemoConsole({
   eventCount,
   lastActionId,
   onRunAction,
+  layout = 'stacked',
 }: ExperienceDemoConsoleProps) {
   const visibleActionResult = actionResult ?? `Готово к демо: ${activeSession.sourceSessionLabel}`
   const metricSnapshot = activeSession.truthState.metricSnapshots[0]
@@ -53,9 +55,16 @@ export function ExperienceDemoConsole({
   return (
     <section
       aria-label={`Демо-контур ${EXPERIENCE_SCREEN_LABELS[screen]}`}
-      className="shrink-0 border-b border-white/[0.08] bg-[#07090d] px-4 py-3 sm:px-6"
+      className={
+        layout === 'sidebar'
+          ? 'min-h-0 overflow-y-auto border-r border-white/[0.08] bg-[#07090d] px-4 py-4'
+          : 'shrink-0 border-b border-white/[0.08] bg-[#07090d] px-4 py-3 sm:px-6'
+      }
     >
-      <div className="grid gap-3 2xl:grid-cols-[minmax(260px,0.8fr)_minmax(520px,1.55fr)_minmax(260px,0.8fr)]">
+      <div className={layout === 'sidebar'
+        ? 'grid gap-3'
+        : 'grid gap-3 2xl:grid-cols-[minmax(260px,0.8fr)_minmax(520px,1.55fr)_minmax(260px,0.8fr)]'
+      }>
         <ExperiencePanel
           title="Демо-контур"
           subtitle={`${activeSession.sourceSessionLabel} · ${EXPERIENCE_SCREEN_LABELS[screen]}`}
@@ -77,7 +86,7 @@ export function ExperienceDemoConsole({
           subtitle="Эти кнопки меняют видимый статус демо и показывают, что именно ожидать от сценария."
           tone="neutral"
         >
-          <div className="mt-3 grid gap-3 xl:grid-cols-3">
+          <div className={layout === 'sidebar' ? 'mt-3 grid gap-3' : 'mt-3 grid gap-3 xl:grid-cols-3'}>
             <StepList title="Как пользоваться" steps={activeSession.usageSteps} />
             <StepList title="Как настраивать" steps={activeSession.setupSteps} />
             <StepList title="Что ожидать" steps={activeSession.expectedOutcomes} />
