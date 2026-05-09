@@ -93,9 +93,12 @@ function buildStubStore(initial: { identity: SessionIdentity; createdAt: string 
       return [...sessions.values()].filter(session => session.userId === userId && !session.revokedAt)
     },
     async revokeSession(sessionId: string) {
-      revoked.push(sessionId)
       const existing = sessions.get(sessionId)
-      if (existing) sessions.set(sessionId, { ...existing, revokedAt: new Date().toISOString() })
+      if (!existing) return { revoked: false, sessionId: null }
+      if (existing.revokedAt) return { revoked: false, sessionId }
+      revoked.push(sessionId)
+      sessions.set(sessionId, { ...existing, revokedAt: new Date().toISOString() })
+      return { revoked: true, sessionId }
     },
     async revokeUserSessions() {},
     async revokeOtherSessions() {},
