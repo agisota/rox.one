@@ -2,7 +2,7 @@ import { writeFileSync, readFileSync, unlinkSync, existsSync } from 'node:fs'
 import { uptime as osUptime } from 'node:os'
 import { join } from 'node:path'
 import { OAuthFlowStore } from '@craft-agent/shared/auth'
-import { ensureConfigDir, loadStoredConfig, saveConfig } from '@craft-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, ensureConfigDir, loadStoredConfig, saveConfig } from '@craft-agent/shared/config'
 import { CONFIG_DIR } from '@craft-agent/shared/config/paths'
 import { setBundledAssetsRoot } from '@craft-agent/shared/utils'
 import { WsRpcServer, type WsRpcTlsOptions } from '../transport/server'
@@ -229,22 +229,29 @@ export function releaseServerLock(): void {
 // ---------------------------------------------------------------------------
 
 function bootstrapConfigArtifacts(platform: PlatformServices): void {
-  ensureConfigDir()
+  // Pass DEFAULT_LOCAL_SCOPE explicitly: the headless server bootstrap is the
+  // canonical "single-user, single config dir" entry point. Documenting the
+  // scope at the boundary makes it obvious where a future multi-tenant
+  // server bootstrap would route a different scope instead.
+  ensureConfigDir(DEFAULT_LOCAL_SCOPE)
   platform.logger.info('[bootstrap] Config artifacts initialized')
 }
 
 function ensureGlobalConfigExists(platform: PlatformServices): void {
-  const config = loadStoredConfig()
+  const config = loadStoredConfig(DEFAULT_LOCAL_SCOPE)
   if (config) {
     platform.logger.info('[bootstrap] Global config found')
     return
   }
 
-  saveConfig({
-    workspaces: [],
-    activeWorkspaceId: null,
-    activeSessionId: null,
-  })
+  saveConfig(
+    {
+      workspaces: [],
+      activeWorkspaceId: null,
+      activeSessionId: null,
+    },
+    DEFAULT_LOCAL_SCOPE,
+  )
   platform.logger.info('[bootstrap] Initialized missing global config')
 }
 
