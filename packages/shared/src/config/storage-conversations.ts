@@ -11,6 +11,7 @@ import { readJsonFileSync } from '../utils/files.ts';
 import type { StoredAttachment, StoredMessage } from '@craft-agent/core/types';
 import type { Plan } from '../agent/plan-types.ts';
 import { getWorkspacesDir, ensureWorkspaceDir } from './storage-internal.ts';
+import { DEFAULT_LOCAL_SCOPE, type WorkspaceScope } from './storage-scope.ts';
 
 // Re-export types from core for convenience
 export type { StoredAttachment, StoredMessage } from '@craft-agent/core/types';
@@ -33,7 +34,8 @@ export interface WorkspaceConversation {
 export function saveWorkspaceConversation(
   workspaceId: string,
   messages: StoredMessage[],
-  tokenUsage: WorkspaceConversation['tokenUsage']
+  tokenUsage: WorkspaceConversation['tokenUsage'],
+  _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE,
 ): void {
   const dir = ensureWorkspaceDir(workspaceId);
   const filePath = join(dir, 'conversation.json');
@@ -78,7 +80,7 @@ export function saveWorkspaceConversation(
 }
 
 // Load workspace conversation
-export function loadWorkspaceConversation(workspaceId: string): WorkspaceConversation | null {
+export function loadWorkspaceConversation(workspaceId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): WorkspaceConversation | null {
   const filePath = join(getWorkspacesDir(), workspaceId, 'conversation.json');
 
   try {
@@ -92,12 +94,12 @@ export function loadWorkspaceConversation(workspaceId: string): WorkspaceConvers
 }
 
 // Get workspace data directory path
-export function getWorkspaceDataPath(workspaceId: string): string {
+export function getWorkspaceDataPath(workspaceId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): string {
   return join(getWorkspacesDir(), workspaceId);
 }
 
 // Clear workspace conversation
-export function clearWorkspaceConversation(workspaceId: string): void {
+export function clearWorkspaceConversation(workspaceId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
   const filePath = join(getWorkspacesDir(), workspaceId, 'conversation.json');
   if (existsSync(filePath)) {
     writeFileSync(filePath, '{}', 'utf-8');
@@ -117,7 +119,7 @@ export function clearWorkspaceConversation(workspaceId: string): void {
  * Plans are session-scoped - they persist during the session but are
  * cleared when the user runs /clear or starts a new session.
  */
-export function saveWorkspacePlan(workspaceId: string, plan: Plan): void {
+export function saveWorkspacePlan(workspaceId: string, plan: Plan, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
   const dir = ensureWorkspaceDir(workspaceId);
   const filePath = join(dir, 'plan.json');
   writeFileSync(filePath, JSON.stringify(plan, null, 2), 'utf-8');
@@ -127,7 +129,7 @@ export function saveWorkspacePlan(workspaceId: string, plan: Plan): void {
  * Load the current plan for a workspace.
  * Returns null if no plan exists.
  */
-export function loadWorkspacePlan(workspaceId: string): Plan | null {
+export function loadWorkspacePlan(workspaceId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): Plan | null {
   const filePath = join(getWorkspacesDir(), workspaceId, 'plan.json');
 
   try {
@@ -144,7 +146,7 @@ export function loadWorkspacePlan(workspaceId: string): Plan | null {
  * Clear the plan for a workspace.
  * Called when user runs /clear or cancels a plan.
  */
-export function clearWorkspacePlan(workspaceId: string): void {
+export function clearWorkspacePlan(workspaceId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
   const filePath = join(getWorkspacesDir(), workspaceId, 'plan.json');
   if (existsSync(filePath)) {
     rmSync(filePath);

@@ -11,6 +11,7 @@ import { join } from 'path';
 import { readJsonFileSync } from '../utils/files.ts';
 import { getConfigDir } from './paths.ts';
 import { ensureConfigDir } from './storage-io.ts';
+import { DEFAULT_LOCAL_SCOPE, type WorkspaceScope } from './storage-scope.ts';
 
 function getDraftsFile(): string {
   return join(getConfigDir(), 'drafts.json');
@@ -122,7 +123,7 @@ function saveDraftsData(data: DraftsData): void {
 /**
  * Get the persisted draft for a session (text + attachment refs).
  */
-export function getSessionDraft(sessionId: string): SessionDraft | null {
+export function getSessionDraft(sessionId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): SessionDraft | null {
   const data = loadDraftsData();
   return data.drafts[sessionId] ?? null;
 }
@@ -131,7 +132,7 @@ export function getSessionDraft(sessionId: string): SessionDraft | null {
  * Set the draft for a session. Empty drafts (no text and no attachments)
  * are removed from disk.
  */
-export function setSessionDraft(sessionId: string, draft: SessionDraft): void {
+export function setSessionDraft(sessionId: string, draft: SessionDraft, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
   const data = loadDraftsData();
   if (isEmptyDraft(draft)) {
     delete data.drafts[sessionId];
@@ -162,7 +163,7 @@ function normalizeDraftAttachment(ref: DraftAttachmentRef): DraftAttachmentRef {
   return base;
 }
 
-export function deleteSessionDraft(sessionId: string): void {
+export function deleteSessionDraft(sessionId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
   const data = loadDraftsData();
   delete data.drafts[sessionId];
   saveDraftsData(data);
@@ -171,7 +172,7 @@ export function deleteSessionDraft(sessionId: string): void {
 /**
  * Get all drafts as a record keyed by sessionId.
  */
-export function getAllSessionDrafts(): Record<string, SessionDraft> {
+export function getAllSessionDrafts(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): Record<string, SessionDraft> {
   const data = loadDraftsData();
   return data.drafts;
 }

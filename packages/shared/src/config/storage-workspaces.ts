@@ -20,12 +20,13 @@ import { extractWorkspaceSlugFromPath } from '../utils/workspace-slug.ts';
 import type { Workspace } from '@craft-agent/core/types';
 import { loadStoredConfig, saveConfig } from './storage-io.ts';
 import { getWorkspacesDir } from './storage-internal.ts';
+import { DEFAULT_LOCAL_SCOPE, type WorkspaceScope } from './storage-scope.ts';
 
 /**
  * Generate a unique workspace ID.
  * Uses a random UUID-like format.
  */
-export function generateWorkspaceId(): string {
+export function generateWorkspaceId(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): string {
   // Generate random bytes and format as UUID-like string (8-4-4-4-12)
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
@@ -37,11 +38,11 @@ export function generateWorkspaceId(): string {
  * Find workspace icon file at workspace_root/icon.*
  * Returns absolute path to icon file if found, null otherwise
  */
-export function findWorkspaceIcon(rootPath: string): string | null {
+export function findWorkspaceIcon(rootPath: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): string | null {
   return findIconFile(rootPath) ?? null;
 }
 
-export function getWorkspaces(): Workspace[] {
+export function getWorkspaces(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): Workspace[] {
   const config = loadStoredConfig();
   const workspaces = config?.workspaces || [];
 
@@ -73,7 +74,7 @@ export function getWorkspaces(): Workspace[] {
   });
 }
 
-export function getActiveWorkspace(): Workspace | null {
+export function getActiveWorkspace(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): Workspace | null {
   const config = loadStoredConfig();
   if (!config || !config.activeWorkspaceId) {
     return config?.workspaces[0] || null;
@@ -85,7 +86,7 @@ export function getActiveWorkspace(): Workspace | null {
  * Find a workspace by name (case-insensitive) or ID.
  * Useful for CLI -w flag to specify workspace.
  */
-export function getWorkspaceByNameOrId(nameOrId: string): Workspace | null {
+export function getWorkspaceByNameOrId(nameOrId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): Workspace | null {
   const workspaces = getWorkspaces();
   return workspaces.find(w =>
     w.id === nameOrId ||
@@ -96,6 +97,7 @@ export function getWorkspaceByNameOrId(nameOrId: string): Workspace | null {
 export function updateWorkspaceRemoteServer(
   workspaceId: string,
   remoteServer: { url: string; token: string; remoteWorkspaceId: string },
+  _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE,
 ): void {
   const config = loadStoredConfig();
   if (!config) return;
@@ -105,7 +107,7 @@ export function updateWorkspaceRemoteServer(
   saveConfig(config);
 }
 
-export function setActiveWorkspace(workspaceId: string): void {
+export function setActiveWorkspace(workspaceId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
   const config = loadStoredConfig();
   if (!config) return;
 
@@ -123,7 +125,7 @@ export function setActiveWorkspace(workspaceId: string): void {
  * @param workspaceId The ID of the workspace to switch to
  * @returns The workspace and session, or null if workspace not found
  */
-export async function switchWorkspaceAtomic(workspaceId: string): Promise<{ workspace: Workspace; session: SessionConfig } | null> {
+export async function switchWorkspaceAtomic(workspaceId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): Promise<{ workspace: Workspace; session: SessionConfig } | null> {
   const config = loadStoredConfig();
   if (!config) return null;
 
@@ -145,7 +147,7 @@ export async function switchWorkspaceAtomic(workspaceId: string): Promise<{ work
  * Add a workspace to the global config.
  * @param workspace - Workspace data (must include rootPath)
  */
-export function addWorkspace(workspace: Omit<Workspace, 'id' | 'createdAt' | 'slug'>): Workspace {
+export function addWorkspace(workspace: Omit<Workspace, 'id' | 'createdAt' | 'slug'>, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): Workspace {
   const config = loadStoredConfig();
   if (!config) {
     throw new Error('No config found');
@@ -198,7 +200,7 @@ export function addWorkspace(workspace: Omit<Workspace, 'id' | 'createdAt' | 'sl
  * that aren't already tracked in the global config.
  * Call this on app startup.
  */
-export function syncWorkspaces(): void {
+export function syncWorkspaces(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
   const config = loadStoredConfig();
   if (!config) return;
 
@@ -234,7 +236,7 @@ export function syncWorkspaces(): void {
   }
 }
 
-export async function removeWorkspace(workspaceId: string): Promise<boolean> {
+export async function removeWorkspace(workspaceId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): Promise<boolean> {
   const config = loadStoredConfig();
   if (!config) return false;
 
