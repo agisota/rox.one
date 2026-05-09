@@ -1,10 +1,10 @@
-# T061 - static-tsc probe
+# T135 - static-tsc probe
 
 Status: complete
 
 ## Context
 
-Phase A.1. Third ticket after T060 infrastructure is in place. Implement the `static-tsc` probe: wrap `tsc --noEmit -p <surfaceRoot>/tsconfig.json`, parse the default diagnostic output format, and emit `Finding[]` with stable IDs. Includes hermetic `tsc-broken/` fixture with three known TS errors (TS2345, TS2322, TS7006).
+Phase A.1. Third ticket after T134 infrastructure is in place. Implement the `static-tsc` probe: wrap `tsc --noEmit -p <surfaceRoot>/tsconfig.json`, parse the default diagnostic output format, and emit `Finding[]` with stable IDs. Includes hermetic `tsc-broken/` fixture with three known TS errors (TS2345, TS2322, TS7006).
 
 ## Summary
 
@@ -19,7 +19,7 @@ Create `packages/audit/src/probes/static-tsc.ts` and its fixture + test. The pro
 - [x] `confidence = 1` for all tsc findings.
 - [x] `bun test packages/audit/tests/probes/static-tsc.test.ts` passes.
 - [x] `cd packages/audit && bun run typecheck` exits 0.
-- [x] Worklog `docs/worklog/T061-static-tsc-probe.md` complete.
+- [x] Worklog `docs/worklog/T135-static-tsc-probe.md` complete.
 - [x] Commit created.
 
 ## TDD Test Shape
@@ -54,4 +54,4 @@ cd packages/audit && bun run typecheck
 
 ## Worklog
 
-`docs/worklog/T061-static-tsc-probe.md`
+`docs/worklog/T135-static-tsc-probe.md`

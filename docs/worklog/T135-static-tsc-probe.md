@@ -1,4 +1,4 @@
-# T061 - static-tsc probe
+# T135 - static-tsc probe
 
 ## 1. Task summary
 
@@ -71,7 +71,7 @@ bun test v1.3.13
  packages/audit/tests/probes/static-tsc.test.ts: 4 pass, 0 fail
 ```
 
-Full suite (from T060 base + T061): 27 + 4 = 31 pass, 0 fail.
+Full suite (from T134 base + T135): 27 + 4 = 31 pass, 0 fail.
 
 ## 9. Build output summary
 
@@ -87,11 +87,12 @@ No build step. `bun run typecheck` (`tsc --noEmit`) exits 0.
 
 | Criterion | Status | Evidence |
 |---|---|---|
-| Probe skips surface with no tsconfig.json | ✅ | Test "skips surface with no tsconfig.json" passes |
-| Parses 3 findings from tsc-broken fixture | ✅ | Test "returns 3 findings for tsc-broken fixture" passes |
-| Finding IDs stable across re-runs | ✅ | Test "finding IDs are stable across calls" passes |
-| TS7006 → medium, TS2345 → high | ✅ | Test "severity mapping" passes |
-| `confidence = 1` | ✅ | Verified in test assertions |
+| Probe name + phase metadata correct | ✅ | Test "name and phase" passes |
+| Probe applies to all four surfaces | ✅ | Test "applicableTo returns true for all surfaces" passes |
+| Parses 3 findings from tsc-broken fixture | ✅ | Test "detects all 3 errors in tsc-broken fixture" passes |
+| Finding IDs stable; location.file/line populated | ✅ | Test "each finding has stable id, location.file, line" passes |
+| TS7006 → medium, TS2345/TS2322 → high | ✅ | Severity asserted inside "detects all 3 errors" test |
+| `confidence = 1` | ✅ | Verified inline in fixture-detection test assertions |
 | `bun test static-tsc.test.ts` passes | ✅ | 4 pass, 0 fail |
 | Typecheck exits 0 | ✅ | `tsc --noEmit` exit 0 |
 | Worklog complete | ✅ | This document |

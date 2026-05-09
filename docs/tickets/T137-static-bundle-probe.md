@@ -1,4 +1,4 @@
-# T063 - static-bundle probe
+# T137 - static-bundle probe
 
 Status: complete
 
@@ -19,7 +19,7 @@ Create `packages/audit/src/probes/static-bundle.ts`. The probe reads `budget.jso
 - [x] Finding severity is `high`.
 - [x] `bun test packages/audit/tests/probes/static-bundle.test.ts` passes.
 - [x] `cd packages/audit && bun run typecheck` exits 0.
-- [x] Worklog `docs/worklog/T063-static-bundle-probe.md` complete.
+- [x] Worklog `docs/worklog/T137-static-bundle-probe.md` complete.
 - [x] Commit created.
 
 ## TDD Test Shape
@@ -53,4 +53,4 @@ cd packages/audit && bun run typecheck
 
 ## Worklog
 
-`docs/worklog/T063-static-bundle-probe.md`
+`docs/worklog/T137-static-bundle-probe.md`
