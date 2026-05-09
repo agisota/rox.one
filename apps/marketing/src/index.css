@@ -223,6 +223,43 @@ p {
   background: #fff;
 }
 
+.live-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.live-signal {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(17, 20, 15, 0.11);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 10px 30px rgba(17, 20, 15, 0.07);
+}
+
+.live-signal span,
+.live-signal strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-signal span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.live-signal strong {
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: 15px;
+}
+
 .demo-shell {
   position: absolute;
   inset: 46px 24px 34px auto;
@@ -818,6 +855,53 @@ p {
   color: var(--green);
 }
 
+.adoption-section {
+  border-top: 1px solid rgba(17, 20, 15, 0.08);
+}
+
+.adoption-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgba(17, 20, 15, 0.1);
+  border-radius: 8px;
+  background: rgba(17, 20, 15, 0.08);
+}
+
+.adoption-card {
+  min-width: 0;
+  min-height: 280px;
+  padding: 22px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.adoption-card span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: #fff;
+  background: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.adoption-card h3 {
+  margin-top: 28px;
+  font-size: 21px;
+  line-height: 1.16;
+}
+
+.adoption-card p {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.52;
+}
+
 .experience-section {
   border-top: 1px solid rgba(17, 20, 15, 0.08);
 }
@@ -1003,6 +1087,40 @@ p {
   width: 100%;
 }
 
+.trust-card {
+  grid-column: 1 / -1;
+}
+
+.trust-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 22px 0;
+}
+
+.trust-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 9px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid rgba(17, 20, 15, 0.08);
+  border-radius: 8px;
+  background: #f7faf6;
+  color: #334032;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.trust-row svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: var(--green);
+}
+
 .install-section {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(380px, 500px);
@@ -1163,6 +1281,7 @@ p {
   .proof-band,
   .pillar-grid,
   .feature-grid,
+  .adoption-grid,
   .experience-grid,
   .use-case-band,
   .download-layout,
@@ -1173,6 +1292,10 @@ p {
 
   .download-intro {
     position: static;
+  }
+
+  .trust-list {
+    grid-template-columns: 1fr;
   }
 
   .section-heading {
@@ -1297,6 +1420,10 @@ p {
     padding: 0 18px;
   }
 
+  .live-strip {
+    grid-template-columns: 1fr;
+  }
+
   .section,
   .use-case-band,
   .download-section,
@@ -1314,6 +1441,7 @@ p {
 
   .pillar-card,
   .feature-card,
+  .adoption-card,
   .experience-card {
     min-height: 0;
   }

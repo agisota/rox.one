@@ -46,6 +46,13 @@ const proofs = [
   'Локальный контроль, self-host сценарии и корпоративные контуры',
 ]
 
+const liveSignals = [
+  { label: 'Desktop feed', value: 'v0.9.1 live' },
+  { label: 'Download host', value: 'app.rox.one' },
+  { label: 'Runtime language', value: 'RU first' },
+  { label: 'Distribution', value: 'Cloudflare' },
+]
+
 const productPillars = [
   {
     icon: <DatabaseZap aria-hidden="true" />,
@@ -68,6 +75,25 @@ const useCases = [
   'Поддержка и back-office: разбор заявок, поиск контекста, подготовка ответов',
   'Product ops: исследования, changelog, спецификации, QA и релизные чек-листы',
   'Интеграционные команды: безопасное подключение API, MCP и внутренних знаний',
+]
+
+const adoptionSteps = [
+  {
+    title: 'Подключите источники',
+    body: 'Начните с API, MCP, папок и рабочих документов. ROX ONE держит источники рядом с сессиями, а не в отдельной интеграционной свалке.',
+  },
+  {
+    title: 'Запустите управляемые сессии',
+    body: 'Каждая задача получает статус, журнал, артефакты, evidence и следующий шаг. Это снижает риск потерять решение в истории чата.',
+  },
+  {
+    title: 'Упакуйте повторяемое',
+    body: 'Удачные промпты, проверки и agent packages становятся навыками, которые можно запускать повторно и улучшать по фактам.',
+  },
+  {
+    title: 'Проверяйте перед передачей',
+    body: 'Readiness, VDI, risk gates и журнал действий показывают, что именно готово, что заблокировано и где нужен человек.',
+  },
 ]
 
 const experienceTiles = [
@@ -138,6 +164,13 @@ const releaseFacts = [
   'Публичный feed: app.rox.one/electron/latest',
   'Актуальная сборка: macOS arm64 v0.9.1',
   'Installer scripts: shell + PowerShell',
+]
+
+const trustChecks = [
+  'download URLs не завязаны на private GitHub cookies',
+  'manifest.json доступен как машинно-проверяемый источник версии',
+  'SHA-256 опубликованы рядом с download CTA',
+  'переходы /login и /account остаются на продуктовой зоне app.rox.one',
 ]
 
 function ProductDemo() {
@@ -286,6 +319,14 @@ export function App() {
                 <span>Скачать терминал</span>
               </a>
             </div>
+            <div className="live-strip" aria-label="Текущий статус ROX ONE">
+              {liveSignals.map((signal) => (
+                <div className="live-signal" key={signal.label}>
+                  <span>{signal.label}</span>
+                  <strong>{signal.value}</strong>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
@@ -341,6 +382,22 @@ export function App() {
                 <CheckCircle2 aria-hidden="true" />
                 <span>{useCase}</span>
               </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="section adoption-section" id="workflow" aria-labelledby="workflow-title">
+          <div className="section-heading">
+            <span>Как внедрять</span>
+            <h2 id="workflow-title">ROX ONE закрывает путь от источника до проверенного результата без ручной пересборки контекста.</h2>
+          </div>
+          <div className="adoption-grid">
+            {adoptionSteps.map((step, index) => (
+              <article className="adoption-card" key={step.title}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <h3>{step.title}</h3>
+                <p>{step.body}</p>
+              </article>
             ))}
           </div>
         </section>
@@ -419,6 +476,29 @@ export function App() {
                   </a>
                 </article>
               ))}
+              <article className="download-card trust-card">
+                <div className="download-card-header">
+                  <div className="feature-icon">
+                    <ShieldCheck aria-hidden="true" />
+                  </div>
+                  <div>
+                    <h3>Проверяемая поставка</h3>
+                    <p>Сайт показывает то, что реально отдаёт release feed.</p>
+                  </div>
+                </div>
+                <div className="trust-list">
+                  {trustChecks.map((check) => (
+                    <div className="trust-row" key={check}>
+                      <CheckCircle2 aria-hidden="true" />
+                      <span>{check}</span>
+                    </div>
+                  ))}
+                </div>
+                <a className="button secondary download-button" href={terminalRelease.manifestUrl}>
+                  <GitBranch aria-hidden="true" />
+                  <span>Открыть manifest</span>
+                </a>
+              </article>
             </div>
           </div>
         </section>
