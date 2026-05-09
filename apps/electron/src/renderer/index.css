@@ -37,6 +37,62 @@
 }
 
 /* =============================================================================
+   HIGH CONTRAST SUPPORT (T184)
+
+   - Windows High Contrast triggers (forced-colors: active). The OS overrides
+     most colors with a system palette; we ensure focus rings and intentional
+     accents (active mode pill in ProductModeToolbar, etc.) survive via
+     CanvasText-based outlines and forced-color-adjust hints.
+
+   - macOS Increase Contrast triggers (prefers-contrast: more). The OS does
+     NOT override colors; we strengthen our own design tokens to meet WCAG
+     AAA contrast targets.
+============================================================================= */
+
+@media (forced-colors: active) {
+  /* Focus rings must use CanvasText so they're visible under any system theme. */
+  :focus-visible {
+    outline: 2px solid CanvasText !important;
+    outline-offset: 2px;
+  }
+
+  /* Buttons, links, and form controls let the OS pick semantic colors. */
+  button,
+  [role='button'],
+  a,
+  input,
+  select,
+  textarea {
+    forced-color-adjust: auto;
+  }
+
+  /* Intentional brand accents survive forced-colors stripping. Apply
+     forced-color-adjust: none sparingly — only where the design language
+     genuinely depends on the chromatic accent. */
+  .composer-mode-active,
+  .composer-permission-active {
+    forced-color-adjust: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  /* macOS Increase Contrast — strengthen our own foreground/background
+     contrast and thicken focus rings. Light/dark are independent because
+     the user might have one or the other set in Increase Contrast. */
+  :root {
+    --foreground: oklch(0.10 0 0);
+    --background: oklch(1 0 0);
+  }
+  .dark {
+    --foreground: oklch(0.98 0 0);
+    --background: oklch(0.06 0 0);
+  }
+  :focus-visible {
+    outline-width: 3px !important;
+  }
+}
+
+/* =============================================================================
    ANIMATABLE CSS CUSTOM PROPERTIES
 
    Register theme color variables as animatable using @property.
