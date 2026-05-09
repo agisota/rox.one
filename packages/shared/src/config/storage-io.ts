@@ -22,6 +22,7 @@ import {
 } from '../workspaces/storage.ts';
 import { ensureToolIcons } from './storage-tool-icons.ts';
 import { getConfigFile, getConfigDefaultsFile } from './storage-internal.ts';
+import { DEFAULT_LOCAL_SCOPE, type WorkspaceScope } from './storage-scope.ts';
 
 // Re-export base types from core (single source of truth)
 export type {
@@ -147,7 +148,7 @@ function syncConfigDefaults(): void {
  * Load config defaults from ~/.rox/config-defaults.json
  * This file is synced from bundled assets on every launch.
  */
-export function loadConfigDefaults(): ConfigDefaults {
+export function loadConfigDefaults(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): ConfigDefaults {
   if (!existsSync(getConfigDefaultsFile())) {
     if (!existsSync(getConfigDir())) {
       mkdirSync(getConfigDir(), { recursive: true });
@@ -187,13 +188,13 @@ export function loadConfigDefaults(): ConfigDefaults {
  * Ensure config-defaults.json exists and is up-to-date.
  * Syncs from bundled assets on every launch (like docs, themes, permissions).
  */
-export function ensureConfigDefaults(): void {
+export function ensureConfigDefaults(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
   syncConfigDefaults();
 }
 
 let initializedConfigDir: string | null = null;
 
-export function ensureConfigDir(): void {
+export function ensureConfigDir(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
   const configDir = getConfigDir();
   if (initializedConfigDir === configDir) return;
 
@@ -212,7 +213,7 @@ export function ensureConfigDir(): void {
   initializedConfigDir = configDir;
 }
 
-export function loadStoredConfig(): StoredConfig | null {
+export function loadStoredConfig(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): StoredConfig | null {
   try {
     if (!existsSync(getConfigFile())) {
       return null;
@@ -259,7 +260,7 @@ export function loadStoredConfig(): StoredConfig | null {
 // - getAnthropicApiKey() → credentialManager.getLlmApiKey(connectionSlug)
 // - getClaudeOAuthToken() → credentialManager.getLlmOAuth(connectionSlug)
 
-export function saveConfig(config: StoredConfig): void {
+export function saveConfig(config: StoredConfig, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
   ensureConfigDir();
 
   // Convert paths to portable form (~ prefix) for cross-machine compatibility
