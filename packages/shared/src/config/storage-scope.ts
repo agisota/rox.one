@@ -57,6 +57,7 @@ export const DEFAULT_LOCAL_SCOPE: WorkspaceScope = Object.freeze({
  * still take `workspaceId: string` separately — that's the *content* address,
  * not the *tenant* address.
  */
+// reserved for kind: 'workspace' arm — see ADR 0005 (currently unused; do not delete as dead code)
 export function workspaceIdFromScope(scope: WorkspaceScope): string | undefined {
   return scope.kind === 'workspace' ? scope.workspaceId : undefined;
 }
