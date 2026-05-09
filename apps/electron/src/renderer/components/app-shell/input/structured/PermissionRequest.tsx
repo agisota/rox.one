@@ -1,3 +1,4 @@
+import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { ShieldAlert, Check, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -21,19 +22,24 @@ interface PermissionRequestProps {
  * - Description of what the tool wants to do
  * - Command preview (scrollable)
  * - Action buttons: Allow, Always Allow, Deny
+ * - After submit: confirmation card with "Awaiting agent…" copy
  */
 export function PermissionRequest({ request, onResponse, unstyled = false }: PermissionRequestProps) {
   const { t } = useTranslation()
+  const [submitted, setSubmitted] = React.useState(false)
 
   const handleAllow = () => {
+    setSubmitted(true)
     onResponse({ type: 'permission', allowed: true, alwaysAllow: false })
   }
 
   const handleAlwaysAllow = () => {
+    setSubmitted(true)
     onResponse({ type: 'permission', allowed: true, alwaysAllow: true })
   }
 
   const handleDeny = () => {
+    setSubmitted(true)
     onResponse({ type: 'permission', allowed: false, alwaysAllow: false })
   }
 
@@ -69,41 +75,50 @@ export function PermissionRequest({ request, onResponse, unstyled = false }: Per
         )}
       </div>
 
-      {/* Action buttons */}
+      {/* Action buttons / Submitted confirmation */}
       <div className="shrink-0 flex flex-wrap items-center gap-2 px-3 py-2 border-t border-border/50">
-        <Button
-          size="sm"
-          variant="default"
-          className="h-7 gap-1.5"
-          onClick={handleAllow}
-          data-tutorial="permission-allow-button"
-        >
-          <Check className="h-3.5 w-3.5" />
-          Allow
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 gap-1.5 border border-foreground/10 hover:bg-foreground/5 active:bg-foreground/10"
-          onClick={handleAlwaysAllow}
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Always Allow
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 gap-1.5 text-destructive hover:text-destructive border border-dashed border-destructive/50 hover:bg-destructive/10 hover:border-destructive/70 active:bg-destructive/20"
-          onClick={handleDeny}
-        >
-          <X className="h-3.5 w-3.5" />
-          Deny
-        </Button>
+        {submitted ? (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Check className="h-3.5 w-3.5 text-success shrink-0" />
+            <span>{t('workbench.composer.permission.awaiting')}</span>
+          </div>
+        ) : (
+          <>
+            <Button
+              size="sm"
+              variant="default"
+              className="h-7 gap-1.5"
+              onClick={handleAllow}
+              data-tutorial="permission-allow-button"
+            >
+              <Check className="h-3.5 w-3.5" />
+              Allow
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1.5 border border-foreground/10 hover:bg-foreground/5 active:bg-foreground/10"
+              onClick={handleAlwaysAllow}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Always Allow
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1.5 text-destructive hover:text-destructive border border-dashed border-destructive/50 hover:bg-destructive/10 hover:border-destructive/70 active:bg-destructive/20"
+              onClick={handleDeny}
+            >
+              <X className="h-3.5 w-3.5" />
+              Deny
+            </Button>
 
-        {/* Tip text */}
-        <span className="min-w-0 flex-1 basis-full text-[10px] text-muted-foreground sm:basis-auto sm:text-right">
-          "Always Allow" remembers this command for the session
-        </span>
+            {/* Tip text */}
+            <span className="min-w-0 flex-1 basis-full text-[10px] text-muted-foreground sm:basis-auto sm:text-right">
+              "Always Allow" remembers this command for the session
+            </span>
+          </>
+        )}
       </div>
     </div>
   )
