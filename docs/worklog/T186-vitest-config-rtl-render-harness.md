@@ -118,7 +118,7 @@ No production bundle change. The vitest config is a dev-time artifact only.
 
 - **bun:test discovers `*.rtl.test.tsx` files and fails them.** ~~bun:test's glob pattern matches `*.test.tsx`, which includes the new RTL files. These files import JSX + Vitest globals that bun:test cannot process, producing 3 parse failures (net: -3 errors against the bun:test suite). Fix: add a `--exclude '*.rtl.test.tsx'` filter to the bun:test invocation, or add an exclusion in `bunfig.toml`. Slated for the next session.~~
 
-  **RESOLVED** in commit `<SHA-PLACEHOLDER>` (updated after §11 fix).
+  **RESOLVED** in commit `eb5b4a0` (updated after §11 fix).
 
   **Corrected delta** — The original T186 claim of "-3 errors" was inaccurate. Architect verification of PR #24 (sub-project B Pillar 2) performed empirical measurement showing the actual pre-fix impact was **+8 fails / +7 errors / -18 passes** relative to the B1 baseline. The RTL files crash at `import`-time under bun:test (Vitest globals are undefined; happy-dom APIs not available), and that import-time crash leaks state into subsequent files in the same bun:test run, contaminating cross-file results — notably `composer-artifact-panel.test.tsx` which passed on B1 but failed on B2.
 
@@ -140,4 +140,4 @@ No production bundle change. The vitest config is a dev-time artifact only.
 | Typecheck passes | PASS | `bun run typecheck:electron` |
 | Lint passes | PASS | `bun run lint:electron` |
 | Commit created | PASS | `3e81c39` — `chore(composer): adopt scoped Vitest + RTL render harness for *.rtl.test.tsx [T186]` |
-| `bun test` unaffected by RTL files | ~~CLAIMED PASS~~ **FAIL → FIXED** | Original claim was "-3 errors"; empirical measurement by architect showed +8f/+7e/-18p regression. Fixed in `<SHA-PLACEHOLDER>` by adding `*.rtl.test.tsx` and `*.rtl.test.ts` to `bunfig.toml` `pathIgnorePatterns`. Post-fix: 17f/1e (vs B1's 28f/8e), 411 files run (7 RTL excluded). |
+| `bun test` unaffected by RTL files | ~~CLAIMED PASS~~ **FAIL → FIXED** | Original claim was "-3 errors"; empirical measurement by architect showed +8f/+7e/-18p regression. Fixed in `eb5b4a0` by adding `*.rtl.test.tsx` and `*.rtl.test.ts` to `bunfig.toml` `pathIgnorePatterns`. Post-fix: 17f/1e (vs B1's 28f/8e), 411 files run (7 RTL excluded). |
