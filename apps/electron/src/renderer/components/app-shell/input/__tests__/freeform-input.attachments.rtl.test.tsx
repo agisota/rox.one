@@ -198,12 +198,10 @@ describe('FreeFormInput attachments [T187]', () => {
     expect(attachBtn).toBeTruthy()
   })
 
-  it('clicking the chip remove button drops one attachment from the local state', async () => {
-    // NOTE: AttachmentBubble's X button lacks `type="button"`, so clicking it
-    // also triggers form submission. We assert the observable end-state: the
-    // remaining attachment chip is gone after the click + submit cycle, and
-    // onSubmit fires with both attachments (the pre-clear snapshot). This
-    // exercises handleRemoveAttachment(index) AND submitMessage() in one flow.
+  it('clicking the chip remove button drops one attachment and does NOT submit the form', async () => {
+    // T196 fix: AttachmentBubble's X button now has type="button", so clicking
+    // it no longer triggers form submission. We assert that onSubmit is NOT
+    // called, and that onAttachmentsChange is called with the remaining item.
     const onSubmit = vi.fn()
     const onAttachmentsChange = vi.fn()
     const a = makeAttachment('one.txt')
@@ -224,20 +222,15 @@ describe('FreeFormInput attachments [T187]', () => {
     expect(removeButton).toBeTruthy()
     fireEvent.click(removeButton!)
 
-    // After click, submitMessage runs, calling onSubmit with the pre-clear
-    // attachments snapshot (still includes both items because the
-    // setAttachments inside handleRemoveAttachment hasn't flushed yet).
-    await waitFor(() => expect(onSubmit).toHaveBeenCalled())
-    const [text, submittedAttachments] = onSubmit.mock.calls[0]
-    expect(text).toBe('')
-    expect(submittedAttachments).toBeTruthy()
-    expect(submittedAttachments.map((x: FileAttachment) => x.name)).toEqual(['one.txt', 'two.txt'])
-
-    // onAttachmentsChange is fired with the cleared array post-submit.
+    // onAttachmentsChange is called with the one remaining attachment (index 0 removed).
     await waitFor(() => {
-      const sawCleared = onAttachmentsChange.mock.calls.some((args) => args[0].length === 0)
-      expect(sawCleared).toBe(true)
+      expect(onAttachmentsChange).toHaveBeenCalled()
+      const lastCall = onAttachmentsChange.mock.calls[onAttachmentsChange.mock.calls.length - 1]
+      expect(lastCall[0].map((x: FileAttachment) => x.name)).toEqual(['two.txt'])
     })
+
+    // The form must NOT have been submitted — type="button" prevents default submit.
+    expect(onSubmit).not.toHaveBeenCalled()
   })
 
   it('Enter with only an attachment (no text) submits the attachment via onSubmit', async () => {
