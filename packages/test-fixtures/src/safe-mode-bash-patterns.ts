@@ -2,8 +2,10 @@
 // Mirrors the runtime patterns from ~/.rox/permissions/default.json so unit
 // tests can validate bash command gating without touching the filesystem.
 // Do NOT alter regex patterns, comments, or field names — pure test fixture.
-
-import type { CompiledBashPattern } from '@rox-agent/shared/agent/modes';
+//
+// This module is a graph leaf: it must not import from any sibling workspace
+// package, so consumers infer pattern types from the literal rather than
+// referencing CompiledBashPattern from @rox-agent/shared.
 
 export const TEST_MODE_CONFIG = {
   blockedTools: new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']),
@@ -171,7 +173,7 @@ export const TEST_MODE_CONFIG = {
     { regex: /^man\b/, source: '^man\\b', comment: 'Display manual pages' },
     { regex: /--help\b/, source: '--help\\b', comment: 'Display command help' },
     { regex: /-h\b$/, source: '-h\\b$', comment: 'Display command help (short)' },
-  ] as CompiledBashPattern[],
+  ],
   readOnlyMcpPatterns: [
     /blocks_read/, /blocks_list/, /blocks_get/,
     /document_get/, /document_list/, /spaces_list/, /folders_list/,
