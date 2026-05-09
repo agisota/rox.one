@@ -1,8 +1,13 @@
 preload = ["./packages/shared/src/unified-network-interceptor.ts"]
 
 [test]
+# Exclude scoped Vitest tests (run via `bun run test:rtl`); they require DOM
+# (happy-dom + RTL) and crash at import-time under bun:test.
+# Note: bun:test uses pathIgnorePatterns for exclusion (no 'exclude' key exists).
 pathIgnorePatterns = [
   "apps/electron/release/**",
+  "**/*.rtl.test.tsx",
+  "**/*.rtl.test.ts",
 ]
 
 # Use the hoisted linker so transitive deps resolve at top-level node_modules.
