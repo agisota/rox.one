@@ -48,4 +48,26 @@ describe("writeJsonQueue", () => {
     const tmps = readdirSync(dir).filter((n) => n.endsWith(".tmp"));
     expect(tmps).toEqual([]);
   });
+
+  test("writes per-probe/<probe>.json for each probe in perProbeFindings", async () => {
+    await writeJsonQueue({
+      outDir: dir,
+      findings: [f],
+      runId: "r1",
+      probes: ["p"],
+      surfaces: ["renderer"],
+      durationMs: 100,
+      perProbeFindings: { p: [f] },
+    });
+    expect(existsSync(join(dir, "per-probe", "p.json"))).toBe(true);
+    const content = JSON.parse(readFileSync(join(dir, "per-probe", "p.json"), "utf-8"));
+    expect(content.findings).toHaveLength(1);
+    expect(content.probe).toBe("p");
+    expect(content.schemaVersion).toBe(1);
+  });
+
+  test("does NOT create per-probe/ directory when perProbeFindings is omitted", async () => {
+    await writeJsonQueue({ outDir: dir, findings: [f], runId: "r1", probes: ["p"], surfaces: ["renderer"], durationMs: 100 });
+    expect(existsSync(join(dir, "per-probe"))).toBe(false);
+  });
 });
