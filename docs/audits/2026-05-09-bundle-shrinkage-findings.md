@@ -63,6 +63,46 @@ async function ensureLang(lang: BundledLanguage) {
 
 **Risk:** First-render of a syntax-highlighted block in a non-default language now triggers a network fetch for the grammar chunk. Mitigation: prefetch the user's project's primary languages on session start.
 
+### CORRECTION (2026-05-09 later — empirical)
+
+A first-pass attempt at this fix on `fix/shiki-dynamic-langs` branch (now deleted) tried only **removing the `bundledLanguages` value-import** + replacing the validation check with a regex heuristic across all 4 importing files. **This did not shrink the bundle.** Empirical webui rebuild result: `main-*.js` stayed at 5.27 MB (delta: <2 KB).
+
+**Root cause of failed shortcut:** `codeToHtml` imported from the `'shiki'` package (the bundled entry point) statically references all bundled language packs in its own source. Vite's tree-shaker can't eliminate them via consumer code alone.
+
+**The actual fix path requires migrating to the `'shiki/core'` API** (deeper refactor):
+
+```typescript
+// Real "after" — the core API:
+import { createHighlighter } from 'shiki/core'
+import { createOnigurumaEngine } from 'shiki/engine/oniguruma'
+import javascript from 'shiki/langs/javascript.mjs'
+import typescript from 'shiki/langs/typescript.mjs'
+// ... only languages you eagerly need
+
+const highlighter = await createHighlighter({
+  themes: ['github-dark', 'github-light'],
+  langs: [javascript, typescript /* + N more */],
+  engine: createOnigurumaEngine(import('shiki/wasm')),
+})
+const html = highlighter.codeToHtml(code, { lang, theme })
+
+async function ensureLang(lang: BundledLanguage) {
+  if (!highlighter.getLoadedLanguages().includes(lang)) {
+    await highlighter.loadLanguage(lang)
+  }
+}
+```
+
+**Affected files (all 4 must migrate together to actually shrink the bundle):**
+- `apps/electron/src/renderer/components/shiki/ShikiCodeEditor.tsx`
+- `packages/ui/src/components/markdown/CodeBlock.tsx`
+- `packages/ui/src/components/code-viewer/ShikiCodeViewer.tsx`
+- `packages/ui/src/components/markdown/TiptapCodeBlockView.tsx`
+
+**Effort revised:** Medium → **Large (~1 week)**. The `createHighlighter` API is async and returns a singleton; all four consumers need to coordinate via a shared highlighter instance (probably a `useShikiHighlighter()` React hook or context provider). The `tiptap-extension-code-block-shiki` integration in `TiptapCodeBlockView` also needs verification — that extension may or may not work with the core API.
+
+**Recommendation:** Treat as its own sub-project (call it **F.1 — shiki shrinkage**). Brainstorm + plan covering: singleton pattern, eager-load language list, TipTap integration check, before implementing. Don't ship the shortcut version — it's a no-op.
+
 ## Root cause #2 — pdf.worker eager copy (saves ~1.2 MB on viewer first paint)
 
 **Smoking gun:**
