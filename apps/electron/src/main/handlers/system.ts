@@ -3,7 +3,7 @@ import { join } from 'path'
 import { homedir } from 'os'
 import { execSync } from 'child_process'
 import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
-import { getGitBashPath, setGitBashPath, clearGitBashPath } from '@rox-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, getGitBashPath, setGitBashPath, clearGitBashPath } from '@rox-agent/shared/config'
 import { isSafeExternalUrl } from '@rox-agent/shared/utils/url-safety'
 import { isUsableGitBashPath, validateGitBashPath } from '@rox-agent/server-core/services'
 import { validateFilePath, getWorkspaceAllowedDirs } from '@rox-agent/server-core/handlers'
@@ -135,19 +135,19 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       join(process.env.PROGRAMFILES || '', 'Git', 'bin', 'bash.exe'),
     ]
 
-    const persistedPath = getGitBashPath()
+    const persistedPath = getGitBashPath(DEFAULT_LOCAL_SCOPE)
     if (persistedPath) {
       if (await isUsableGitBashPath(persistedPath)) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH = persistedPath.trim()
         return { found: true, path: persistedPath, platform }
       }
-      clearGitBashPath()
+      clearGitBashPath(DEFAULT_LOCAL_SCOPE)
     }
 
     for (const bashPath of commonPaths) {
       if (await isUsableGitBashPath(bashPath)) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH = bashPath
-        setGitBashPath(bashPath)
+        setGitBashPath(bashPath, DEFAULT_LOCAL_SCOPE)
         return { found: true, path: bashPath, platform }
       }
     }
@@ -161,7 +161,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       const firstPath = result.split('\n')[0]?.trim()
       if (firstPath && firstPath.toLowerCase().includes('git') && await isUsableGitBashPath(firstPath)) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH = firstPath
-        setGitBashPath(firstPath)
+        setGitBashPath(firstPath, DEFAULT_LOCAL_SCOPE)
         return { found: true, path: firstPath, platform }
       }
     } catch {
@@ -193,7 +193,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       return { success: false, error: validation.error }
     }
 
-    setGitBashPath(validation.path)
+    setGitBashPath(validation.path, DEFAULT_LOCAL_SCOPE)
     process.env.CLAUDE_CODE_GIT_BASH_PATH = validation.path
     return { success: true }
   })
@@ -288,12 +288,12 @@ export function registerSystemGuiHandlers(server: RpcServer, deps: HandlerDeps):
 
   server.handle(RPC_CHANNELS.update.DISMISS, async (_ctx, version: string) => {
     const { setDismissedUpdateVersion } = await import('@rox-agent/shared/config')
-    setDismissedUpdateVersion(version)
+    setDismissedUpdateVersion(version, DEFAULT_LOCAL_SCOPE)
   })
 
   server.handle(RPC_CHANNELS.update.GET_DISMISSED, async () => {
     const { getDismissedUpdateVersion } = await import('@rox-agent/shared/config')
-    return getDismissedUpdateVersion()
+    return getDismissedUpdateVersion(DEFAULT_LOCAL_SCOPE)
   })
 
   // Menu actions from renderer (for the unified app menu)
@@ -401,12 +401,12 @@ export function registerSystemGuiHandlers(server: RpcServer, deps: HandlerDeps):
 
   server.handle(RPC_CHANNELS.notification.GET_ENABLED, async () => {
     const { getNotificationsEnabled } = await import('@rox-agent/shared/config/storage')
-    return getNotificationsEnabled()
+    return getNotificationsEnabled(DEFAULT_LOCAL_SCOPE)
   })
 
   server.handle(RPC_CHANNELS.notification.SET_ENABLED, async (_ctx, enabled: boolean) => {
     const { setNotificationsEnabled } = await import('@rox-agent/shared/config/storage')
-    setNotificationsEnabled(enabled)
+    setNotificationsEnabled(enabled, DEFAULT_LOCAL_SCOPE)
 
     if (enabled) {
       const { showNotification } = await import('../notifications')
