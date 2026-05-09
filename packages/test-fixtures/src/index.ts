@@ -5,4 +5,4 @@
 // and prevents the same fake/config from being re-derived in multiple places.
 //
 // Each fixture lives in its own module; this barrel re-exports them.
-export {};
+export { TEST_MODE_CONFIG, type TestModeConfig } from "./safe-mode-bash-patterns.ts";
