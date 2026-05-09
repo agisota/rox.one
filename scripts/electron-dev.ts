@@ -347,6 +347,7 @@ function getElectronEnv(): Record<string, string> {
     ROX_APP_NAME: process.env.ROX_APP_NAME || BRAND_NAME,
     ROX_DEEPLINK_SCHEME: process.env.ROX_DEEPLINK_SCHEME || "rox",
     ROX_INSTANCE_NUMBER: process.env.ROX_INSTANCE_NUMBER || "",
+    ROX_ELECTRON_DEV_RUNTIME: "1",
   };
 }
 
