@@ -1,4 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { staticTscProbe } from "../../src/probes/static-tsc.ts";
 import type { ProbeContext } from "../../src/probe.ts";
@@ -47,5 +49,22 @@ describe("static-tsc probe", () => {
       expect(f.location.line).toBeGreaterThan(0);
       expect(f.confidence).toBe(1);
     }
+  });
+
+  describe("graceful skip", () => {
+    let scratchDir: string;
+    beforeEach(() => { scratchDir = mkdtempSync(join(tmpdir(), "audit-tsc-skip-")); });
+    afterEach(() => { rmSync(scratchDir, { recursive: true, force: true }); });
+
+    test("returns [] when surfaceRoot has no tsconfig.json", async () => {
+      const ctx: ProbeContext = {
+        surface: "renderer",
+        workspaceRoot: scratchDir,
+        surfaceRoot: scratchDir,
+        timeoutMs: 30_000,
+      };
+      const findings = await staticTscProbe.run(ctx);
+      expect(findings).toEqual([]);
+    });
   });
 });
