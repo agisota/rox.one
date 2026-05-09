@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useId } from 'react'
 import { Key, User, Lock, Eye, EyeOff, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,6 +39,19 @@ export function CredentialRequest({ request, onResponse, unstyled = false }: Cre
     return initial
   })
 
+  // Touched state — per-field, set on blur so errors only appear after interaction
+  const [touchedUsername, setTouchedUsername] = useState(false)
+  const [touchedPassword, setTouchedPassword] = useState(false)
+  const [touchedValue, setTouchedValue] = useState(false)
+  const [touchedHeaders, setTouchedHeaders] = useState<Record<string, boolean>>({})
+
+  // Stable IDs for aria-errormessage linkage
+  const baseId = useId()
+  const usernameErrorId = `${baseId}-username-error`
+  const passwordErrorId = `${baseId}-password-error`
+  const valueErrorId = `${baseId}-value-error`
+  const headerErrorId = (index: number) => `${baseId}-header-${index}-error`
+
   const isBasicAuth = request.mode === 'basic'
   const isMultiHeader = request.mode === 'multi-header'
   const passwordRequired = request.passwordRequired ?? true  // default true for backward compatibility
@@ -49,6 +62,13 @@ export function CredentialRequest({ request, onResponse, unstyled = false }: Cre
     : isMultiHeader
     ? request.headerNames?.every(name => headerValues[name]?.trim().length > 0) ?? false
     : value.trim().length > 0
+
+  // Per-field invalid flags (only shown after the field has been touched)
+  const usernameInvalid = touchedUsername && username.trim().length === 0
+  const passwordInvalid = touchedPassword && passwordRequired && password.trim().length === 0
+  const valueInvalid = touchedValue && value.trim().length === 0
+  const headerInvalid = (headerName: string) =>
+    !!(touchedHeaders[headerName] ?? false) && (headerValues[headerName]?.trim().length === 0)
 
   const handleSubmit = useCallback(() => {
     if (!isValid) return
@@ -158,11 +178,17 @@ export function CredentialRequest({ request, onResponse, unstyled = false }: Cre
                       type="text"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
+                      onBlur={() => setTouchedUsername(true)}
                       onKeyDown={handleKeyDown}
                       className="pl-9"
                       placeholder={`Enter ${usernameLabel.toLowerCase()}`}
                       autoFocus
+                      aria-invalid={usernameInvalid || undefined}
+                      aria-errormessage={usernameInvalid ? usernameErrorId : undefined}
                     />
+                  </div>
+                  <div id={usernameErrorId} role="status" aria-live="polite" className="text-[11px] text-destructive">
+                    {usernameInvalid ? `${usernameLabel} is required` : ''}
                   </div>
                 </div>
                 {/* Password field */}
@@ -179,9 +205,12 @@ export function CredentialRequest({ request, onResponse, unstyled = false }: Cre
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      onBlur={() => setTouchedPassword(true)}
                       onKeyDown={handleKeyDown}
                       className="pl-9 pr-9"
                       placeholder={passwordPlaceholder}
+                      aria-invalid={passwordInvalid || undefined}
+                      aria-errormessage={passwordInvalid ? passwordErrorId : undefined}
                     />
                     <button
                       type="button"
@@ -192,44 +221,57 @@ export function CredentialRequest({ request, onResponse, unstyled = false }: Cre
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                  <div id={passwordErrorId} role="status" aria-live="polite" className="text-[11px] text-destructive">
+                    {passwordInvalid ? `${passwordLabel} is required` : ''}
+                  </div>
                 </div>
               </>
             ) : isMultiHeader && request.headerNames ? (
               /* Multi-header fields (e.g., Datadog DD-API-KEY + DD-APPLICATION-KEY) */
               <>
-                {request.headerNames.map((headerName, index) => (
-                  <div key={headerName} className="space-y-1.5">
-                    <Label htmlFor={`credential-header-${index}`} className="text-xs">
-                      {headerName}
-                    </Label>
-                    <div className="relative">
-                      <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id={`credential-header-${index}`}
-                        name={headerName}
-                        autoComplete="off"
-                        type={showPassword ? 'text' : 'password'}
-                        value={headerValues[headerName] || ''}
-                        onChange={(e) => setHeaderValues(prev => ({
-                          ...prev,
-                          [headerName]: e.target.value
-                        }))}
-                        onKeyDown={handleKeyDown}
-                        className="pl-9 pr-9"
-                        placeholder={`Enter ${headerName}`}
-                        autoFocus={index === 0}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        tabIndex={-1}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
+                {request.headerNames.map((headerName, index) => {
+                  const isHeaderInvalid = headerInvalid(headerName)
+                  const errId = headerErrorId(index)
+                  return (
+                    <div key={headerName} className="space-y-1.5">
+                      <Label htmlFor={`credential-header-${index}`} className="text-xs">
+                        {headerName}
+                      </Label>
+                      <div className="relative">
+                        <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id={`credential-header-${index}`}
+                          name={headerName}
+                          autoComplete="off"
+                          type={showPassword ? 'text' : 'password'}
+                          value={headerValues[headerName] || ''}
+                          onChange={(e) => setHeaderValues(prev => ({
+                            ...prev,
+                            [headerName]: e.target.value
+                          }))}
+                          onBlur={() => setTouchedHeaders(prev => ({ ...prev, [headerName]: true }))}
+                          onKeyDown={handleKeyDown}
+                          className="pl-9 pr-9"
+                          placeholder={`Enter ${headerName}`}
+                          autoFocus={index === 0}
+                          aria-invalid={isHeaderInvalid || undefined}
+                          aria-errormessage={isHeaderInvalid ? errId : undefined}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      <div id={errId} role="status" aria-live="polite" className="text-[11px] text-destructive">
+                        {isHeaderInvalid ? `${headerName} is required` : ''}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </>
             ) : (
               /* Single credential field (API key, bearer token) */
@@ -251,10 +293,13 @@ export function CredentialRequest({ request, onResponse, unstyled = false }: Cre
                     type={showPassword ? 'text' : 'password'}
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
+                    onBlur={() => setTouchedValue(true)}
                     onKeyDown={handleKeyDown}
                     className="pl-9 pr-9"
                     placeholder={`Enter ${credentialLabel.toLowerCase()}`}
                     autoFocus
+                    aria-invalid={valueInvalid || undefined}
+                    aria-errormessage={valueInvalid ? valueErrorId : undefined}
                   />
                   <button
                     type="button"
@@ -264,6 +309,9 @@ export function CredentialRequest({ request, onResponse, unstyled = false }: Cre
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
+                </div>
+                <div id={valueErrorId} role="status" aria-live="polite" className="text-[11px] text-destructive">
+                  {valueInvalid ? `${credentialLabel} is required` : ''}
                 </div>
               </div>
             )}

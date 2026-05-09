@@ -63,6 +63,8 @@ export interface RichTextInputProps extends Omit<React.HTMLAttributes<HTMLDivEle
   onPaste?: (e: React.ClipboardEvent) => void
   /** Called when pasted text exceeds line threshold - should create file attachment */
   onLongTextPaste?: (text: string) => void
+  /** Accessible label for the contenteditable region */
+  ariaLabel?: string
 }
 
 export interface RichTextInputHandle {
@@ -455,12 +457,15 @@ interface RotatingPlaceholderProps {
   intervalMs?: number
   /** Additional className for styling */
   className?: string
+  /** Called whenever the visible placeholder index changes */
+  onIndexChange?: (index: number) => void
 }
 
 function RotatingPlaceholder({
   placeholders,
   intervalMs = 5000,
   className,
+  onIndexChange,
 }: RotatingPlaceholderProps) {
   const [currentIndex, setCurrentIndex] = React.useState(0)
   const [opacity, setOpacity] = React.useState(1)
@@ -475,13 +480,17 @@ function RotatingPlaceholder({
 
       // After fade out (300ms), swap text and fade back in
       setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % placeholders.length)
+        setCurrentIndex((prev) => {
+          const next = (prev + 1) % placeholders.length
+          onIndexChange?.(next)
+          return next
+        })
         setOpacity(1)
       }, 300)
     }, intervalMs)
 
     return () => clearInterval(interval)
-  }, [placeholders.length, intervalMs])
+  }, [placeholders.length, intervalMs, onIndexChange])
 
   return (
     <div
@@ -514,11 +523,14 @@ export const RichTextInput = React.forwardRef<RichTextInputHandle, RichTextInput
       onInput,
       onPaste,
       onLongTextPaste,
+      ariaLabel,
       ...restProps
     },
     forwardedRef
   ) {
     const { t } = useTranslation()
+    const placeholderDescId = React.useId()
+    const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = React.useState(0)
     const safeValue = React.useMemo(() => coerceInputText(value), [value])
     const divRef = React.useRef<HTMLDivElement>(null)
     const [isFocused, setIsFocused] = React.useState(false)
@@ -774,6 +786,10 @@ export const RichTextInput = React.forwardRef<RichTextInputHandle, RichTextInput
 
     return (
       <div className="relative">
+        {/* Visually-hidden span with current rotating placeholder text for aria-describedby */}
+        <span id={placeholderDescId} className="sr-only" aria-hidden="true">
+          {placeholderArray[currentPlaceholderIndex]}
+        </span>
         <div
           ref={divRef}
           contentEditable={!disabled}
@@ -797,6 +813,8 @@ export const RichTextInput = React.forwardRef<RichTextInputHandle, RichTextInput
           onCompositionStart={handleCompositionStart}
           onCompositionEnd={handleCompositionEnd}
           aria-disabled={disabled}
+          aria-label={ariaLabel}
+          aria-describedby={placeholderDescId}
           aria-placeholder={Array.isArray(placeholder) ? placeholder[0] : placeholder}
           role="textbox"
           aria-multiline="true"
@@ -807,6 +825,7 @@ export const RichTextInput = React.forwardRef<RichTextInputHandle, RichTextInput
           <RotatingPlaceholder
             placeholders={placeholderArray}
             intervalMs={5000}
+            onIndexChange={setCurrentPlaceholderIndex}
             className={cn(
               'absolute inset-0 text-sm text-muted-foreground pointer-events-none select-none',
               className
