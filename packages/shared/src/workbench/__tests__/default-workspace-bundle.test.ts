@@ -63,6 +63,7 @@ describe('default Agent Workbench workspace bundle', () => {
     for (const skill of manifest.skills) {
       expect(skill.name.length).toBeGreaterThan(0);
       expect(skill.description.length).toBeGreaterThan(0);
+      expect(skill.icon).toMatch(/\p{Emoji}/u);
       expect(skill.instructions).toContain('Input contract');
       expect(skill.instructions).toContain('Output contract');
     }
@@ -82,6 +83,7 @@ describe('default Agent Workbench workspace bundle', () => {
     const skills = loadWorkspaceSkills(workspaceRoot);
     expect(skills.map((skill) => skill.slug).sort()).toEqual([...WORKBENCH_BUNDLE_SKILL_SLUGS].sort());
     expect(skills.every((skill) => skill.metadata.name && skill.metadata.description)).toBe(true);
+    expect(skills.every((skill) => skill.metadata.icon)).toBe(true);
 
     const statusConfig = loadStatusConfig(workspaceRoot);
     expect(WORKBENCH_REQUIRED_STATUS_IDS.every((statusId) => statusConfig.statuses.some((status) => status.id === statusId))).toBe(true);
@@ -136,6 +138,22 @@ Preserve this custom instruction.
     expect(result.skippedExistingSkillSlugs).toContain('prompt-rewriter-pack');
     expect(readSkill('prompt-rewriter-pack')).toContain('Preserve this custom instruction.');
     expect(loadWorkspaceSkills(workspaceRoot).find((skill) => skill.slug === 'prompt-rewriter-pack')?.metadata.name).toBe('Custom Prompt Rewriter');
+  });
+
+  it('normalizes legacy generated lucide icon tokens when loading workspace skills', () => {
+    mkdirSync(join(workspaceRoot, 'skills', 'prompt-rewriter-pack'), { recursive: true });
+    writeFileSync(join(workspaceRoot, 'skills', 'prompt-rewriter-pack', 'SKILL.md'), `---
+name: "Prompt Rewriter Pack"
+description: "Generated legacy skill"
+icon: "wand"
+---
+
+Legacy generated content.
+`);
+
+    const skill = loadWorkspaceSkills(workspaceRoot).find((entry) => entry.slug === 'prompt-rewriter-pack');
+
+    expect(skill?.metadata.icon).toBe('🪄');
   });
 
   it('does not overwrite existing user-edited MCP source presets', () => {

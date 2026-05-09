@@ -25,6 +25,28 @@ import {
   isIconUrl,
 } from '../utils/icon.ts';
 
+const SKILL_ICON_ALIASES: Record<string, string> = {
+  'brain': '🧠',
+  'list-checks': '✅',
+  'lock': '🔒',
+  'network': '🕸️',
+  'palette': '🎨',
+  'rocket': '🚀',
+  'search': '🔎',
+  'shield-check': '🛡️',
+  'test-tube': '🧪',
+  'wand': '🪄',
+};
+
+function normalizeSkillIconValue(icon: unknown): unknown {
+  if (typeof icon !== 'string') {
+    return icon;
+  }
+
+  const trimmed = icon.trim();
+  return SKILL_ICON_ALIASES[trimmed] ?? icon;
+}
+
 // ============================================================
 // Agent Skills Paths (Issue #171)
 // ============================================================
@@ -76,7 +98,7 @@ function parseSkillFile(content: string): { metadata: SkillMetadata; body: strin
 
     // Validate and extract optional icon field
     // Only accepts emoji or URL - rejects inline SVG and relative paths
-    const icon = validateIconValue(parsed.data.icon, 'Skills');
+    const icon = validateIconValue(normalizeSkillIconValue(parsed.data.icon), 'Skills');
 
     return {
       metadata: {

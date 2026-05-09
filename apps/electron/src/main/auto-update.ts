@@ -67,6 +67,10 @@ let eventSink: EventSink | null = null
 // Flag to indicate update is in progress — used to prevent force exit during quitAndInstall
 let __isUpdating = false
 
+function isDevRuntimeUpdateDisabled(): boolean {
+  return process.env.CRAFT_ELECTRON_DEV_RUNTIME === '1'
+}
+
 /**
  * Check if an update installation is in progress.
  * Used by main process to avoid force-quitting during update.
@@ -315,6 +319,17 @@ function checkForExistingDownload(): { exists: boolean; version?: string } {
  */
 export async function checkForUpdates(options: CheckOptions = {}): Promise<UpdateInfo> {
   const { autoDownload = true } = options
+
+  if (isDevRuntimeUpdateDisabled()) {
+    mainLog.info('[auto-update] Skipping update check in Electron dev runtime')
+    updateInfo = {
+      ...updateInfo,
+      available: false,
+      downloadState: 'idle',
+      error: undefined,
+    }
+    return getUpdateInfo()
+  }
 
   // Temporarily override autoDownload for this check if needed
   // (e.g., manual check from settings shouldn't auto-download on metered connections)
