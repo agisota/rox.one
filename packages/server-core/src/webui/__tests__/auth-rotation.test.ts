@@ -236,3 +236,77 @@ describe('ACCOUNT_SESSION_TTL_SECONDS', () => {
     expect(ACCOUNT_SESSION_TTL_SECONDS).toBeGreaterThanOrEqual(15 * 60)
   })
 })
+
+describe('rotateAccountSessionIfStale — concurrent rotation', () => {
+  /**
+   * Regression test for finding #1 on PR #19: with the previous read→
+   * createSession→revokeSession ordering, two concurrent rotators against
+   * the same source session each minted their own replacement, leaving an
+   * orphan. The CAS-on-revoke contract guarantees that at most one rotator
+   * succeeds and the losers return `null` without creating a session.
+   */
+  it('exposes exactly one new session when two rotators race the same source', async () => {
+    // Use the actual InMemoryAccountStore (not the per-test stub) so we
+    // exercise the production CAS implementation end-to-end.
+    const { InMemoryAccountStore } = await import('../../persistence/agent-workbench-persistence')
+    const store = new InMemoryAccountStore()
+    const user = await store.createUser({ email: 'race@example.com', password: 'pw-1234567890' })
+    const baseline = await store.createSession({ userId: user.id })
+
+    // Force the source session past the rotation window without waiting in
+    // real time: replace the persisted createdAt with a synthetic timestamp.
+    const aged = new Date(Date.now() - (ACCOUNT_SESSION_ROTATION_WINDOW_MS + 5_000)).toISOString()
+    // The InMemoryAccountStore does not expose internal mutation, but it
+    // backs sessions on a private Map; use the sliding-window override
+    // instead so rotation considers the session stale on the next call.
+    void aged
+
+    const identity: SessionIdentity = {
+      userId: user.id,
+      sessionId: baseline.id,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role,
+    }
+
+    // Both rotators fire against the same source identity in parallel.
+    const [a, b] = await Promise.all([
+      rotateAccountSessionIfStale({
+        identity,
+        accountStore: store,
+        secret: SECRET,
+        secure: false,
+        userAgent: null,
+        ipAddress: null,
+        rotationWindowMs: 0, // force "stale" without time travel
+      }),
+      rotateAccountSessionIfStale({
+        identity,
+        accountStore: store,
+        secret: SECRET,
+        secure: false,
+        userAgent: null,
+        ipAddress: null,
+        rotationWindowMs: 0,
+      }),
+    ])
+
+    // Exactly one rotator should have observed the CAS hit. The other
+    // received `null` without creating a replacement session.
+    const winners = [a, b].filter((result): result is NonNullable<typeof result> => result !== null)
+    expect(winners).toHaveLength(1)
+    const winner = winners[0]!
+    expect(winner.previousSessionId).toBe(baseline.id)
+
+    // After the race, the user has at most ONE live session — the winner's.
+    const live = await store.listSessions(user.id)
+    expect(live).toHaveLength(1)
+    expect(live[0]!.id).toBe(winner.identity.sessionId)
+    expect(live[0]!.id).not.toBe(baseline.id)
+
+    // And the source session is revoked exactly once.
+    const sourceRevoke = await store.revokeSession(baseline.id)
+    // Already revoked by the winner, so a second CAS attempt must fail.
+    expect(sourceRevoke.revoked).toBe(false)
+  })
+})
