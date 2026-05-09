@@ -917,6 +917,23 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       // window (default 15 min) so a stolen cookie ages out even when the
       // legitimate user is active. `me` is called regularly by the UI shell,
       // making it the natural rotation trigger.
+      //
+      // Race envelope (PR #19 review finding #3): rotation only fires for
+      // idempotent reads — specifically, this `GET /api/account/me` handler.
+      // The CAS in `rotateAccountSessionIfStale` (revoke FIRST, then create)
+      // guarantees at most one orphan-free rotation per source session. But
+      // any concurrent in-flight `PATCH`/`POST`/`DELETE` issued under the
+      // PRE-rotation cookie can briefly see a 401 if its identity check runs
+      // after the revoke and before the client has received the new
+      // `Set-Cookie`. The mitigations are:
+      //   1) Mutating endpoints re-validate the JWT on each request, so once
+      //      the browser sends the new cookie the request resolves normally.
+      //   2) Mutations are short-lived (sub-second), bounding the race window
+      //      to request RTT.
+      //   3) Idempotency-Key on side-effecting POSTs (per repo convention)
+      //      makes a retry-after-401 safe.
+      // A per-user mutex around rotation is the cleaner long-term fix and is
+      // tracked as a Slice 4 follow-up.
       const rotated = await rotateAccountSessionIfStale({
         identity: session.identity,
         accountStore: accountStore!,
