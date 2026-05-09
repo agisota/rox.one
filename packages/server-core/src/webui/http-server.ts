@@ -21,6 +21,7 @@ import {
   validateAccountSession,
   buildSessionCookie,
   buildLogoutCookie,
+  rotateAccountSessionIfStale,
 } from './auth'
 import { generateCallbackPage } from '@craft-agent/shared/auth'
 import type { PlatformServices } from '../runtime/platform'
@@ -912,14 +913,30 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
           sessionBoundary: createLocalSessionBoundary(),
         })
       }
-      const user = await accountStore!.getUser(session.identity.userId)
-      const workspaceIds = await listAccessibleWorkspaceIds(session.identity.userId)
+      // Slice 4 hardening: rotate the underlying DB session id on a sliding
+      // window (default 15 min) so a stolen cookie ages out even when the
+      // legitimate user is active. `me` is called regularly by the UI shell,
+      // making it the natural rotation trigger.
+      const rotated = await rotateAccountSessionIfStale({
+        identity: session.identity,
+        accountStore: accountStore!,
+        secret,
+        secure: useSecureCookies,
+        userAgent: req.headers.get('user-agent'),
+        ipAddress: getClientIp(req),
+      })
+      const activeIdentity = rotated?.identity ?? session.identity
+      const user = await accountStore!.getUser(activeIdentity.userId)
+      const workspaceIds = await listAccessibleWorkspaceIds(activeIdentity.userId)
+      const responseInit: ResponseInit = rotated
+        ? { headers: { 'Set-Cookie': rotated.cookie } }
+        : {}
       return Response.json({
         mode: 'account',
         user,
-        currentSessionId: session.identity.sessionId,
-        sessionBoundary: createCloudSessionBoundary(session.identity, workspaceIds),
-      })
+        currentSessionId: activeIdentity.sessionId,
+        sessionBoundary: createCloudSessionBoundary(activeIdentity, workspaceIds),
+      }, responseInit)
     }
 
     if (path === '/api/account/me' && req.method === 'PATCH') {
