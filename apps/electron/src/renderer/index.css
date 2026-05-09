@@ -1439,6 +1439,26 @@ html.dark[data-scenic] .fullscreen-overlay-background {
   }
 }
 
+/* ==========================================================================
+   WCAG 2.5.5 — Touch targets ≥44×44 CSS px at narrow (mobile) widths.
+   Composer icon buttons are bumped from the 36px intermediate (768px block
+   above) to 44px when the shell container is at mobile width (≤480px).
+   Desktop layout is unchanged — this only fires inside the container query.
+   ========================================================================== */
+@container shell (max-width: 480px) {
+  /* Input toolbar badges: attach, sources, working dir, model picker */
+  .input-toolbar-btn {
+    height: 44px;
+    min-width: 44px;
+  }
+
+  /* Send / Stop button */
+  .send-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 /* TurnCard action buttons (Copy, Markdown) — outside @container/shell,
    scaled via data-compact attribute passed from the renderer */
 [data-compact] .turn-action-btn {
