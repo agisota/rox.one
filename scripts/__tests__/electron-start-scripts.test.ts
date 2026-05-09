@@ -18,4 +18,12 @@ describe('Electron start script aliases', () => {
     expect(electronPackage.scripts?.start).toBe('cd ../.. && bun run electron:dev');
     expect(electronPackage.scripts?.['start:win']).toBe('cd ../.. && bun run electron:dev');
   });
+
+  it('stages packaged resources into the branded macOS dev runtime', () => {
+    const devScript = readFileSync(join(rootDir, 'scripts/electron-dev.ts'), 'utf8');
+
+    expect(devScript).toContain('const sourceResources = join(ELECTRON_DIR, "dist", "resources")');
+    expect(devScript).toContain('const packagedResources = join(brandedAppDir, "Contents", "Resources", "app", "resources")');
+    expect(devScript).toContain('cpSync(sourceResources, packagedResources, { recursive: true, force: true })');
+  });
 });

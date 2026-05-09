@@ -244,6 +244,12 @@ function prepareBrandedElectronLauncher(): string {
     copyFileSync(sourceIcon, targetIcon);
   }
 
+  const sourceResources = join(ELECTRON_DIR, "dist", "resources");
+  const packagedResources = join(brandedAppDir, "Contents", "Resources", "app", "resources");
+  if (existsSync(sourceResources)) {
+    cpSync(sourceResources, packagedResources, { recursive: true, force: true });
+  }
+
   return brandedExecutable;
 }
 
