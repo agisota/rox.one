@@ -37,4 +37,42 @@ describe('WorkbenchRoutePage', () => {
       }
     }
   })
+
+  test('ships visible demo guidance and action metadata for every Experience tab', () => {
+    for (const screen of WORKBENCH_SCREENS) {
+      const sessions = getDemoSessionsForScreen(screen)
+      for (const session of sessions) {
+        expect(session.sourceSessionLabel.length).toBeGreaterThan(8)
+        expect(session.usageSteps.length).toBeGreaterThanOrEqual(3)
+        expect(session.setupSteps.length).toBeGreaterThanOrEqual(3)
+        expect(session.expectedOutcomes.length).toBeGreaterThanOrEqual(3)
+        expect(session.mcpPresetIds.length).toBeGreaterThanOrEqual(2)
+        expect(session.demoActions.map((action) => action.label)).toEqual([
+          'Настроить',
+          'Запустить демо',
+          'Ожидания',
+          'Evidence',
+          'Сбросить',
+        ])
+      }
+    }
+  })
+
+  test.each(WORKBENCH_SCREENS.map((screen) => [screen] as const))('renders actionable demo console on %s', (screen) => {
+    const sessions = getDemoSessionsForScreen(screen)
+    const markup = renderToStaticMarkup(<WorkbenchRoutePage screen={screen} />)
+
+    expect(markup).toContain('Демо-контур')
+    expect(markup).toContain('Как пользоваться')
+    expect(markup).toContain('Как настраивать')
+    expect(markup).toContain('Что ожидать')
+    expect(markup).toContain('MCP presets')
+    expect(markup).toContain('Настроить')
+    expect(markup).toContain('Запустить демо')
+    expect(markup).toContain('Evidence')
+    expect(markup).toContain(sessions[0].sourceSessionLabel)
+    expect(markup).toContain('Откройте демо')
+    expect(markup).toContain('Agent package:')
+    expect(markup).toContain('Понятно, какие действия доступны')
+  })
 })

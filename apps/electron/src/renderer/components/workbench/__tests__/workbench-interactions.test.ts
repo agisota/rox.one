@@ -11,13 +11,16 @@ import {
   createFakeDeepMissionSchedulerAdapter,
 } from '../deep-missions-state'
 import {
+  createAgentForgeStateFromTruth,
   createAgentForgeState,
+  getPackageTrustScore,
   installAgentPackage,
   publishAgentPackage,
 } from '../agent-forge-state'
 import {
   completeQuestAndEvaluateUnlocks,
   createQuestMapState,
+  createQuestMapStateFromTruth,
 } from '../quest-map-state'
 import {
   createArenaBuilderState,
@@ -35,6 +38,7 @@ import {
   finalizeMissionFromControlAction,
   transitionMissionCheckpoint,
 } from '../mission-control-state'
+import { DEMO_EXPERIENCE_SESSIONS } from '../demo-experience-sessions'
 
 describe('Workbench interactive state mutations', () => {
   test('launches a deep mission through runtime store and fake scheduler', async () => {
@@ -202,6 +206,18 @@ describe('Workbench interactive state mutations', () => {
     expect(() => publishAgentPackage(state, 'pkg-injection-risk', 'public')).toThrow()
   })
 
+  test('truth-derived forge demos include installable contracts and publishable trust evidence', () => {
+    const session = DEMO_EXPERIENCE_SESSIONS.find((candidate) => candidate.screen === 'agent-forge')
+    expect(session).toBeDefined()
+    const state = createAgentForgeStateFromTruth(session!.truthState)
+    const packageId = session!.truthState.agentPackages[0]!.id
+    const published = publishAgentPackage(state, packageId, 'public')
+
+    expect(state.contractsByPackageId[packageId]).toBeDefined()
+    expect(getPackageTrustScore(state, packageId)).toBeGreaterThanOrEqual(80)
+    expect(published.packages.find((pkg) => pkg.id === packageId)?.visibility).toBe('public')
+  })
+
   test('completes quest, evaluates unlocks, and rejects locked quest completion', () => {
     const initial = createQuestMapState()
     const completed = completeQuestAndEvaluateUnlocks(initial, 'quest-frame-raw-prompt', ['artifact:quest-frame-raw-prompt:evidence'])
@@ -210,6 +226,16 @@ describe('Workbench interactive state mutations', () => {
     expect(completed.progressByQuestId['quest-rewrite-prompt'].status).toBe('available')
     expect(completed.unlockedRewardIds).toContain('skill:spec-builder')
     expect(() => completeQuestAndEvaluateUnlocks(initial, 'quest-rewrite-prompt', ['artifact:locked:evidence'])).toThrow('Locked quests')
+  })
+
+  test('truth-derived quest demos land on visible quest graph nodes', () => {
+    const session = DEMO_EXPERIENCE_SESSIONS.find((candidate) => candidate.screen === 'quest-map')
+    expect(session).toBeDefined()
+    const state = createQuestMapStateFromTruth(session!.truthState)
+    const questId = session!.truthState.questProgress[0]!.questId
+
+    expect(state.quests.some((quest) => quest.id === questId)).toBe(true)
+    expect(state.progressByQuestId[questId]?.status).not.toBe('locked')
   })
 
   test('records progression ledger entries from evidence actions', () => {

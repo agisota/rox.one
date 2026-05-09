@@ -39,6 +39,44 @@ type DemoSpec = {
   reward: string
 }
 
+export type DemoExperienceActionId = 'configure' | 'run' | 'expectations' | 'evidence' | 'reset'
+
+export type DemoExperienceAction = {
+  id: DemoExperienceActionId
+  label: string
+  result: string
+}
+
+const QUEST_ID_BY_LANE: Record<DemoSpec['questLane'], string> = {
+  formulate: 'quest-frame-raw-prompt',
+  specify: 'quest-build-executable-spec',
+  execute: 'quest-launch-first-deep-mission',
+  verify: 'quest-run-review-gate',
+  marketplace: 'quest-install-trusted-agent-package',
+  team: 'quest-fork-package-team-registry',
+  arena: 'quest-launch-swarm-arena',
+}
+
+const MCP_PRESETS_BY_SCREEN: Record<WorkbenchScreen, string[]> = {
+  'deep-missions': ['exa', 'byterover', 'playwright', 'github'],
+  'arena-builder': ['exa', 'playwright', 'github', 'firecrawl'],
+  'mission-control': ['github', 'playwright', 'byterover', 'zai-mcp-server'],
+  progression: ['byterover', 'exa', 'github'],
+  'quest-map': ['exa', 'firecrawl', 'byterover'],
+  'agent-forge': ['github', 'byterover', 'playwright', 'zai-mcp-server'],
+}
+
+const STATUS_LABELS: Record<DemoSpec['status'], string> = {
+  draft: 'черновик',
+  queued: 'в очереди',
+  running: 'в работе',
+  waiting_for_approval: 'ждет согласования',
+  paused: 'пауза',
+  completed: 'завершено',
+  failed: 'ошибка',
+  cancelled: 'отменено',
+}
+
 const DEMO_SPECS: DemoSpec[] = [
   // Долгие миссии — long-running autonomous work from real operator patterns.
   { screen: 'deep-missions', id: 'deep-rox-production-rc', title: 'ROX.ONE Production RC Hardening', objective: 'Fix Electron naming, package ROX.ONE.app, smoke-test desktop flows, and collect UI evidence.', mode: 'deep_run', layer: 'command', status: 'running', vdi: 92, quality: 88, readiness: 85, risk: 10, agent: 'Desktop Release Captain', packageType: 'persona', questLane: 'execute', reward: 'desktop-release-trust' },
@@ -89,6 +127,12 @@ export interface DemoExperienceSession {
   label: string
   title: string
   description: string
+  sourceSessionLabel: string
+  usageSteps: string[]
+  setupSteps: string[]
+  expectedOutcomes: string[]
+  mcpPresetIds: string[]
+  demoActions: DemoExperienceAction[]
   truthState: ExperienceTruthState
 }
 
@@ -98,7 +142,7 @@ export const DEMO_EXPERIENCE_SESSIONS: DemoExperienceSession[] = DEMO_SPECS.map(
   const artifactId = `artifact:${spec.id}:evidence-pack`
   const gateId = `gate:${spec.id}:schema-pass`
   const agentPackageId = `pkg:${spec.id}`
-  const questId = `quest:${spec.id}`
+  const questId = QUEST_ID_BY_LANE[spec.questLane]
   const hasStarted = spec.status !== 'draft' && spec.status !== 'queued'
   const isCompleted = spec.status === 'completed'
 
@@ -108,6 +152,12 @@ export const DEMO_EXPERIENCE_SESSIONS: DemoExperienceSession[] = DEMO_SPECS.map(
     label: `${screenOrdinal}. ${spec.title}`,
     title: spec.title,
     description: spec.objective,
+    sourceSessionLabel: `Сессия-пример ${screenOrdinal}: ${spec.title}`,
+    usageSteps: buildUsageSteps(spec),
+    setupSteps: buildSetupSteps(spec),
+    expectedOutcomes: buildExpectedOutcomes(spec),
+    mcpPresetIds: MCP_PRESETS_BY_SCREEN[spec.screen],
+    demoActions: buildDemoActions(spec, artifactId, gateId),
     truthState: createExperienceTruthState({
       mission: {
         id: missionId,
@@ -215,4 +265,59 @@ export const DEMO_EXPERIENCE_SESSIONS: DemoExperienceSession[] = DEMO_SPECS.map(
 
 export function getDemoSessionsForScreen(screen: WorkbenchScreen): DemoExperienceSession[] {
   return DEMO_EXPERIENCE_SESSIONS.filter((session) => session.screen === screen)
+}
+
+function buildUsageSteps(spec: DemoSpec): string[] {
+  const screenLabel = EXPERIENCE_SCREEN_LABELS[spec.screen]
+  return [
+    `Откройте демо "${spec.title}" во вкладке "${screenLabel}" и проверьте заполненный objective, статус и risk.`,
+    `Используйте кнопки панели, чтобы увидеть setup, запуск, ожидания и evidence без внешнего продакшен-сайд-эффекта.`,
+    `Дальше переходите в рабочий экран ниже: он получает тот же truth state, что и демо-панель.`,
+  ]
+}
+
+function buildSetupSteps(spec: DemoSpec): string[] {
+  return [
+    `Agent package: ${spec.agent}; режим: ${spec.mode}; слой: ${spec.layer}.`,
+    `Цель качества: VDI ${spec.vdi}, readiness ${spec.readiness}, quality ${spec.quality}.`,
+    `Ограничение риска: open risk ${spec.risk}; статус старта: ${STATUS_LABELS[spec.status]}.`,
+  ]
+}
+
+function buildExpectedOutcomes(spec: DemoSpec): string[] {
+  return [
+    `Понятно, какие действия доступны в "${EXPERIENCE_SCREEN_LABELS[spec.screen]}" и почему они включены или заблокированы.`,
+    `Пользователь видит expected result: ${spec.reward}, связанный с sanitized session example.`,
+    `Evidence chain остается локальным: artifact, gate, ledger, quest progress и agent package не требуют секретов.`,
+  ]
+}
+
+function buildDemoActions(spec: DemoSpec, artifactId: string, gateId: string): DemoExperienceAction[] {
+  return [
+    {
+      id: 'configure',
+      label: 'Настроить',
+      result: `Шаг: настройка. Выбран ${spec.agent}, цель VDI ${spec.vdi}, пакет ${spec.packageType}, MCP: ${MCP_PRESETS_BY_SCREEN[spec.screen].join(', ')}.`,
+    },
+    {
+      id: 'run',
+      label: 'Запустить демо',
+      result: `Шаг: запуск. ${spec.mode} переводит сценарий "${spec.title}" в состояние "${STATUS_LABELS[spec.status]}" без внешних side effects.`,
+    },
+    {
+      id: 'expectations',
+      label: 'Ожидания',
+      result: `Шаг: ожидания. Должны появиться ${spec.reward}, verified deliverable index ${spec.vdi} и понятные blocking reasons при риске ${spec.risk}.`,
+    },
+    {
+      id: 'evidence',
+      label: 'Evidence',
+      result: `Шаг: evidence. Используются ${artifactId}, ${gateId}, ledger:${spec.id}:xp и quest progress для ${QUEST_ID_BY_LANE[spec.questLane]}.`,
+    },
+    {
+      id: 'reset',
+      label: 'Сбросить',
+      result: `Шаг: сброс. Демо возвращено к исходной sanitized сессии "${spec.title}".`,
+    },
+  ]
 }

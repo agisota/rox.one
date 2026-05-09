@@ -47,6 +47,7 @@ export function DeepMissionsScreen({
     initialState ?? (truthState ? createDeepMissionEntryStateFromTruth(truthState) : createDeepMissionEntryState(initialInput)),
   );
   const [launchStatus, setLaunchStatus] = React.useState<string>('Ожидает запуска');
+  const [draftStatus, setDraftStatus] = React.useState<string>('Черновик не сохранен');
 
   const launchMission = React.useCallback(() => {
     if (!state.canLaunch) return;
@@ -65,6 +66,10 @@ export function DeepMissionsScreen({
       .then((plan) => setLaunchStatus(`Запущено: ${plan.mission.id} / checkpoints ${plan.checkpoints.length}`))
       .catch((error) => setLaunchStatus(error instanceof Error ? error.message : 'Запуск миссии не удался'));
   }, [onLaunchMission, state]);
+  const saveDraft = React.useCallback(() => {
+    onSaveDraft?.(state);
+    setDraftStatus(`Черновик сохранен: ${state.title || 'без названия'} / ${state.durationHours}ч`);
+  }, [onSaveDraft, state]);
 
   return (
     <ExperienceShell
@@ -75,7 +80,7 @@ export function DeepMissionsScreen({
       description="Настройте 6/24/72-часовой прогон с бюджетом, чекпоинтами, лимитами агентов и целевым индексом проверенного результата перед запуском."
       actions={(
         <>
-          <Button className="rounded-full border-white/10" variant="outline" onClick={() => onSaveDraft?.(state)}>
+          <Button className="rounded-full border-white/10" variant="outline" onClick={saveDraft}>
             Сохранить черновик
           </Button>
           <Button className="rounded-full" disabled={!state.canLaunch} onClick={launchMission}>
@@ -148,6 +153,9 @@ export function DeepMissionsScreen({
       <ExperiencePanel className="mt-4" title="Бриф миссии" subtitle="То, что увидит планировщик перед стартом длительного прогона.">
         <div className="mb-4 rounded-[16px] border border-cyan-300/20 bg-cyan-400/[0.06] p-3 text-sm text-cyan-100">
           Runtime launch: {launchStatus}
+        </div>
+        <div className="mb-4 rounded-[16px] border border-violet-300/20 bg-violet-400/[0.06] p-3 text-sm text-violet-100">
+          Draft action: {draftStatus}
         </div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground" aria-label="Режимы миссий">
           {['Deep Run', 'Deep Reasoning Lab', 'Agenda Carnage', 'Swarm Arena', 'Proactive Watchtower'].map((modeLabel) => (

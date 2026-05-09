@@ -68,6 +68,10 @@ export function MissionControlRunDetail({ initialState, truthState, runtimeStore
       setLastAction(nextState.mission.status === 'completed' ? 'Mission finalized through runtime' : 'Mission finalization blocked by evidence gate');
     });
   }, [now, runtimeStore, state]);
+  const approveBranch = React.useCallback((approvalId: string) => {
+    setState((current) => approveMissionBranch(current, approvalId));
+    setLastAction(`Approval granted locally: ${approvalId}`);
+  }, []);
 
   return (
     <ExperienceShell
@@ -107,7 +111,7 @@ export function MissionControlRunDetail({ initialState, truthState, runtimeStore
                   <Button
                     className="mt-4 rounded-full"
                     variant="outline"
-                    onClick={() => setState((current) => approveMissionBranch(current, approval.id))}
+                    onClick={() => approveBranch(approval.id)}
                   >
                     Одобрить ветку
                   </Button>
