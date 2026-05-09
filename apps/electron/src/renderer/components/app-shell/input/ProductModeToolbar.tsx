@@ -212,7 +212,7 @@ export function ProductModeToolbar({
                 key={option.id}
                 id={`${pickerListboxId}-option-${option.id}`}
                 aria-selected={option.id === selectedMode}
-                className={`flex w-full flex-col rounded-sm px-2 py-1.5 text-left text-xs outline-none transition-colors hover:bg-accent focus-visible:bg-accent ${option.id === activeMode ? 'bg-accent ring-1 ring-ring' : ''}`}
+                className={`flex w-full flex-col rounded-sm px-2 py-1.5 text-left text-xs outline-none transition-colors hover:bg-accent focus-visible:bg-accent ${option.id === activeMode ? 'bg-accent ring-1 ring-ring composer-mode-active' : ''}`}
                 data-active={option.id === activeMode}
                 data-product-mode-option={option.id}
                 role="option"
