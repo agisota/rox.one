@@ -12,6 +12,7 @@ import {
   type CredentialAuthRequest,
 } from '@rox-agent/shared/agent'
 import {
+  DEFAULT_LOCAL_SCOPE,
   getLlmConnection,
   getDefaultLlmConnection,
   resetManagedAnthropicAuthEnvVars,
@@ -212,7 +213,7 @@ export class SessionAuth {
       const manager = getCredentialManager()
 
       // Get the connection to use (explicit parameter or default)
-      const slug = connectionSlug || getDefaultLlmConnection()
+      const slug = connectionSlug || getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE)
 
       // Restore managed auth env vars to their baseline before applying this connection.
       resetManagedAnthropicAuthEnvVars()
@@ -223,7 +224,7 @@ export class SessionAuth {
         return
       }
 
-      const connection = getLlmConnection(slug)
+      const connection = getLlmConnection(slug, DEFAULT_LOCAL_SCOPE)
 
       if (!connection) {
         log.error(`No LLM connection found for slug: ${slug}`)
