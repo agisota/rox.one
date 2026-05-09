@@ -1983,6 +1983,7 @@ export function FreeFormInput({
           skills={skills}
           sources={sources}
           workspaceId={workspaceSlug}
+          ariaLabel={compactMode ? t('workbench.composer.input.editLabel') : t('workbench.composer.input.label')}
           className="pl-5 pr-4 pt-4 pb-3 overflow-y-auto min-h-[88px]"
           style={{ maxHeight: inputMaxHeight }}
           data-tutorial="chat-input"

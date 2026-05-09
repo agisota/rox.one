@@ -1472,6 +1472,8 @@
   "workbench.brand.productDescription": "{{productName}} / {{tagline}}",
   "workbench.brand.section": "Application",
   "workbench.brand.support": "Support",
+  "workbench.composer.input.editLabel": "Editar mensaje",
+  "workbench.composer.input.label": "Editor de mensajes",
   "workbench.modes.board.description": "Shows reviewer cards, severity matrix, fix plan, and readiness status.",
   "workbench.modes.board.label": "Board",
   "workbench.modes.build.description": "Guides implementation through a plan, tests, checks, and code artifacts.",
