@@ -9,7 +9,7 @@ The agent runtime contract is not re-architected — it is *named in core's voca
 
 ```text
 405ec74  chore(core)    AgentRuntime type anchor in @craft-agent/core/runtime
-b02162b  feat(shared)   PendingRequestMap<T, M> generic + 9 unit tests
+b02162b  feat(shared)   PendingRequestMap<T, M> generic + 10 unit tests
 bb11af1  refactor(pi)   migrate Pi's 8 RPC pending maps to PendingRequestMap
 b8aa45b  refactor(base) centralize source-activation auto-restart sequencing in BaseAgent
 ```
