@@ -48,16 +48,16 @@
 | `packages/audit/tests/fixtures/eslint-broken/` | Hermetic fixture: 2 known eslint violations |
 | `packages/audit/tests/fixtures/bundle-bloated/` | Hermetic fixture: pre-built dist exceeding 200KB |
 | `packages/audit/README.md` | Package README — usage, probe contract, extension guide |
-| `docs/tickets/T060-bootstrap-audit-package.md` | Ticket file (AGENTS.md format) |
-| `docs/tickets/T061-static-tsc-probe.md` | Ticket file |
-| `docs/tickets/T062-static-eslint-probe.md` | Ticket file |
-| `docs/tickets/T063-static-bundle-probe.md` | Ticket file |
-| `docs/tickets/T064-ticket-gen-and-first-run.md` | Ticket file |
-| `docs/worklog/T060-bootstrap-audit-package.md` | Worklog (11-section AGENTS.md format) |
-| `docs/worklog/T061-static-tsc-probe.md` | Worklog |
-| `docs/worklog/T062-static-eslint-probe.md` | Worklog |
-| `docs/worklog/T063-static-bundle-probe.md` | Worklog |
-| `docs/worklog/T064-ticket-gen-and-first-run.md` | Worklog |
+| `docs/tickets/T134-bootstrap-audit-package.md` | Ticket file (AGENTS.md format) |
+| `docs/tickets/T135-static-tsc-probe.md` | Ticket file |
+| `docs/tickets/T136-static-eslint-probe.md` | Ticket file |
+| `docs/tickets/T137-static-bundle-probe.md` | Ticket file |
+| `docs/tickets/T138-ticket-gen-and-first-run.md` | Ticket file |
+| `docs/worklog/T134-bootstrap-audit-package.md` | Worklog (11-section AGENTS.md format) |
+| `docs/worklog/T135-static-tsc-probe.md` | Worklog |
+| `docs/worklog/T136-static-eslint-probe.md` | Worklog |
+| `docs/worklog/T137-static-bundle-probe.md` | Worklog |
+| `docs/worklog/T138-ticket-gen-and-first-run.md` | Worklog |
 | `docs/audits/INDEX.md` | Append-only audit log (created on first run) |
 | `audits/` | Created by first run (gitignored) |
 
@@ -191,7 +191,7 @@ audits/
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/package.json packages/audit/tsconfig.json packages/audit/README.md .gitignore
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): bootstrap packages/audit workspace [T060]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): bootstrap packages/audit workspace [T134]"
 ```
 
 ---
@@ -352,7 +352,7 @@ Expected: 4 pass, 0 fail.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/probe.ts packages/audit/tests/probe.test.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): Probe interface + Finding type with stable id [T060]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): Probe interface + Finding type with stable id [T134]"
 ```
 
 ---
@@ -519,7 +519,7 @@ Expected: 3 pass, 0 fail.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/registry.ts packages/audit/tests/registry.test.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): ProbeRegistry register + serial run [T060]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): ProbeRegistry register + serial run [T134]"
 ```
 
 ---
@@ -626,7 +626,7 @@ Expected: 5 pass, 0 fail.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/registry.ts packages/audit/tests/registry.test.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): ProbeRegistry worker-pool parallelism [T060]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): ProbeRegistry worker-pool parallelism [T134]"
 ```
 
 ---
@@ -777,7 +777,7 @@ Expected: 7 pass, 0 fail.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/registry.ts packages/audit/tests/registry.test.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): per-probe timeout + crash isolation with zero-confidence findings [T060]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): per-probe timeout + crash isolation with zero-confidence findings [T134]"
 ```
 
 ---
@@ -942,7 +942,7 @@ Expected: 6 pass, 0 fail.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/ranker.ts packages/audit/src/ranker.config.ts packages/audit/tests/ranker.test.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): pure ranker with severity/surface/confidence/VDI weights [T060]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): pure ranker with severity/surface/confidence/VDI weights [T134]"
 ```
 
 ---
@@ -1077,7 +1077,7 @@ Expected: 3 pass, 0 fail.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/reporters/json-queue.ts packages/audit/tests/reporters/json-queue.test.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): JSON queue reporter with atomic write + manifest-last [T060]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): JSON queue reporter with atomic write + manifest-last [T134]"
 ```
 
 ---
@@ -1211,7 +1211,7 @@ Expected: 2 pass, 0 fail.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/reporters/markdown-sidecar.ts packages/audit/tests/reporters/markdown-sidecar.test.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): Markdown sidecar reporter, severity-grouped [T060]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): Markdown sidecar reporter, severity-grouped [T134]"
 ```
 
 ---
@@ -1342,7 +1342,7 @@ async function main(): Promise<number> {
   const registry = new ProbeRegistry();
   const probeModules: Probe[] = [];
   // Static probes are appended here as they are implemented in later tasks.
-  // (T061 will add static-tsc, T062 static-eslint, T063 static-bundle.)
+  // (T135 will add static-tsc, T136 static-eslint, T137 static-bundle.)
   for (const p of probeModules) {
     if (probeMatches(p.name, parsed.probesGlob)) registry.register(p);
   }
@@ -1393,27 +1393,27 @@ Expected: 2 pass.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/cli.ts packages/audit/tests/cli.test.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): CLI entrypoint with --help, --probes, --worker-cap, --out [T060]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): CLI entrypoint with --help, --probes, --worker-cap, --out [T134]"
 ```
 
 ---
 
-## Task 10: T060 ticket + worklog files (AGENTS.md compliance)
+## Task 10: T134 ticket + worklog files (AGENTS.md compliance)
 
 **Files:**
-- Create: `docs/tickets/T060-bootstrap-audit-package.md`
-- Create: `docs/worklog/T060-bootstrap-audit-package.md`
+- Create: `docs/tickets/T134-bootstrap-audit-package.md`
+- Create: `docs/worklog/T134-bootstrap-audit-package.md`
 
-- [ ] **Step 1: Write the T060 ticket file**
+- [ ] **Step 1: Write the T134 ticket file**
 
-Create `docs/tickets/T060-bootstrap-audit-package.md`:
+Create `docs/tickets/T134-bootstrap-audit-package.md`:
 
 ```markdown
-# T060 — Bootstrap audit package
+# T134 — Bootstrap audit package
 
 ## Summary
 
-Create the `packages/audit/` Bun workspace member with `Probe` interface, `ProbeRegistry`, `ranker`, JSON+Markdown reporters, and a `cli.ts` entrypoint. No probes ship in this ticket — T061-T063 add the three static probes; T064 adds ticket-gen and the first end-to-end run.
+Create the `packages/audit/` Bun workspace member with `Probe` interface, `ProbeRegistry`, `ranker`, JSON+Markdown reporters, and a `cli.ts` entrypoint. No probes ship in this ticket — T135-T137 add the three static probes; T138 adds ticket-gen and the first end-to-end run.
 
 ## Acceptance Criteria
 
@@ -1456,12 +1456,12 @@ Modify:
 - `.gitignore` (add `audits/`)
 ```
 
-- [ ] **Step 2: Write the T060 worklog file**
+- [ ] **Step 2: Write the T134 worklog file**
 
-Create `docs/worklog/T060-bootstrap-audit-package.md`:
+Create `docs/worklog/T134-bootstrap-audit-package.md`:
 
 ```markdown
-# T060 — Bootstrap audit package — worklog
+# T134 — Bootstrap audit package — worklog
 
 ## 1. Task summary
 Bootstrap `packages/audit/` workspace with Probe interface, ProbeRegistry, ranker, reporters, CLI. Per-commit conventional commits, no production deps beyond `js-yaml` (already in repo).
@@ -1502,12 +1502,12 @@ See ticket file. Files created listed there. Highlights: schemaVersion=1 frozen 
 24 tests pass across the 6 test files.
 
 ## 9. Build output summary
-N/A — no build step in T060 (probes are run as TypeScript directly via Bun).
+N/A — no build step in T134 (probes are run as TypeScript directly via Bun).
 
 ## 10. Remaining risks
 - Worker pool implementation uses `Array.shift()` which is O(n); fine for ≤100 probes but document.
 - Timeout helper races a `setTimeout` against the probe — long-running probes leak the inner timer until completion; acceptable at A.1 scale.
-- `cli.ts` has no probes wired in yet — T061-T063 register them.
+- `cli.ts` has no probes wired in yet — T135-T137 register them.
 
 ## 11. Acceptance criteria matrix
 
@@ -1527,8 +1527,8 @@ N/A — no build step in T060 (probes are run as TypeScript directly via Bun).
 
 ```bash
 cd /home/dev/rox/rox-one-terminal
-git add docs/tickets/T060-bootstrap-audit-package.md docs/worklog/T060-bootstrap-audit-package.md
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "docs(audit): T060 ticket + worklog scaffolding"
+git add docs/tickets/T134-bootstrap-audit-package.md docs/worklog/T134-bootstrap-audit-package.md
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "docs(audit): T134 ticket + worklog scaffolding"
 ```
 
 ---
@@ -1614,7 +1614,7 @@ Expected: 3 (one for each fixture file).
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/tests/fixtures/tsc-broken/
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "test(audit): tsc-broken fixture with TS2345/TS2322/TS7006 [T061]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "test(audit): tsc-broken fixture with TS2345/TS2322/TS7006 [T135]"
 ```
 
 ---
@@ -1800,23 +1800,23 @@ Expected: 28 tests pass (24 from prior tasks + 4 new).
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/probes/static-tsc.ts packages/audit/tests/probes/static-tsc.test.ts packages/audit/src/cli.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): static-tsc probe wraps tsc --noEmit, parses diagnostics [T061]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): static-tsc probe wraps tsc --noEmit, parses diagnostics [T135]"
 ```
 
 ---
 
-## Task 13: T061 ticket + worklog
+## Task 13: T135 ticket + worklog
 
 **Files:**
-- Create: `docs/tickets/T061-static-tsc-probe.md`
-- Create: `docs/worklog/T061-static-tsc-probe.md`
+- Create: `docs/tickets/T135-static-tsc-probe.md`
+- Create: `docs/worklog/T135-static-tsc-probe.md`
 
-- [ ] **Step 1: Write T061 ticket**
+- [ ] **Step 1: Write T135 ticket**
 
-Create `docs/tickets/T061-static-tsc-probe.md`:
+Create `docs/tickets/T135-static-tsc-probe.md`:
 
 ```markdown
-# T061 — static-tsc probe
+# T135 — static-tsc probe
 
 ## Summary
 
@@ -1848,12 +1848,12 @@ Modify:
 - `packages/audit/src/cli.ts` (register probe)
 ```
 
-- [ ] **Step 2: Write T061 worklog**
+- [ ] **Step 2: Write T135 worklog**
 
-Create `docs/worklog/T061-static-tsc-probe.md` with the 11 AGENTS.md sections, mirroring T060's format. Specifically: the worklog should record: tsc output format, regex used, severity mapping rationale, fixture verification steps.
+Create `docs/worklog/T135-static-tsc-probe.md` with the 11 AGENTS.md sections, mirroring T134's format. Specifically: the worklog should record: tsc output format, regex used, severity mapping rationale, fixture verification steps.
 
 ```markdown
-# T061 — static-tsc probe — worklog
+# T135 — static-tsc probe — worklog
 
 ## 1. Task summary
 Wrap `tsc --noEmit` per surface, parse diagnostics → Finding[].
@@ -1867,7 +1867,7 @@ Wrap `tsc --noEmit` per surface, parse diagnostics → Finding[].
 - `apps/webui/tsconfig.json`
 - `apps/viewer/tsconfig.json`
 - `apps/marketing/tsconfig.json` (verify exists)
-- `tests/fixtures/tsc-broken/tsconfig.json` (created in T061 prereqs)
+- `tests/fixtures/tsc-broken/tsconfig.json` (created in T135 prereqs)
 
 ## 4. Tests added first
 - `tests/probes/static-tsc.test.ts` — 4 cases.
@@ -1911,8 +1911,8 @@ N/A.
 
 ```bash
 cd /home/dev/rox/rox-one-terminal
-git add docs/tickets/T061-static-tsc-probe.md docs/worklog/T061-static-tsc-probe.md
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "docs(audit): T061 ticket + worklog"
+git add docs/tickets/T135-static-tsc-probe.md docs/worklog/T135-static-tsc-probe.md
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "docs(audit): T135 ticket + worklog"
 ```
 
 ---
@@ -1979,7 +1979,7 @@ Expected: ≥2.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/tests/fixtures/eslint-broken/
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "test(audit): eslint-broken fixture (no-unused-vars, no-console) [T062]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "test(audit): eslint-broken fixture (no-unused-vars, no-console) [T136]"
 ```
 
 ---
@@ -2136,21 +2136,21 @@ Expected: 30 pass.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/probes/static-eslint.ts packages/audit/tests/probes/static-eslint.test.ts packages/audit/src/cli.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): static-eslint probe parses eslint --format=json [T062]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): static-eslint probe parses eslint --format=json [T136]"
 ```
 
 ---
 
-## Task 16: T062 ticket + worklog
+## Task 16: T136 ticket + worklog
 
-Same shape as T061. Create `docs/tickets/T062-static-eslint-probe.md` and `docs/worklog/T062-static-eslint-probe.md` with content matching the actual implementation. Required sections per AGENTS.md (11 worklog sections, ticket has summary/acceptance/TDD/files).
+Same shape as T135. Create `docs/tickets/T136-static-eslint-probe.md` and `docs/worklog/T136-static-eslint-probe.md` with content matching the actual implementation. Required sections per AGENTS.md (11 worklog sections, ticket has summary/acceptance/TDD/files).
 
 - [ ] **Step 1: Write ticket file**
 
-Create `docs/tickets/T062-static-eslint-probe.md`:
+Create `docs/tickets/T136-static-eslint-probe.md`:
 
 ```markdown
-# T062 — static-eslint probe
+# T136 — static-eslint probe
 
 ## Summary
 Implement `static-eslint` probe: runs `eslint --format=json` per surface root, parses JSON output into `Finding[]`. Severity mapping: error → high, warning → medium.
@@ -2170,16 +2170,16 @@ Create: `src/probes/static-eslint.ts`, `tests/probes/static-eslint.test.ts`.
 Modify: `src/cli.ts`.
 ```
 
-- [ ] **Step 2: Write worklog (mirror T061 worklog structure with eslint specifics)**
+- [ ] **Step 2: Write worklog (mirror T135 worklog structure with eslint specifics)**
 
-Create `docs/worklog/T062-static-eslint-probe.md` following the 11-section AGENTS.md format. Replace tsc-specific content with eslint specifics: discovery of eslint configs across surfaces, JSON output schema, severity mapping rationale, fixture verification, validation commands run, etc.
+Create `docs/worklog/T136-static-eslint-probe.md` following the 11-section AGENTS.md format. Replace tsc-specific content with eslint specifics: discovery of eslint configs across surfaces, JSON output schema, severity mapping rationale, fixture verification, validation commands run, etc.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 cd /home/dev/rox/rox-one-terminal
-git add docs/tickets/T062-static-eslint-probe.md docs/worklog/T062-static-eslint-probe.md
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "docs(audit): T062 ticket + worklog"
+git add docs/tickets/T136-static-eslint-probe.md docs/worklog/T136-static-eslint-probe.md
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "docs(audit): T136 ticket + worklog"
 ```
 
 ---
@@ -2262,7 +2262,7 @@ git add packages/audit/tests/fixtures/bundle-bloated/package.json \
        packages/audit/tests/fixtures/bundle-bloated/budget.json \
        packages/audit/tests/fixtures/bundle-bloated/build-fixture.ts \
        packages/audit/tests/fixtures/bundle-bloated/.gitignore
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "test(audit): bundle-bloated fixture with budget.json [T063]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "test(audit): bundle-bloated fixture with budget.json [T137]"
 ```
 
 ---
@@ -2415,23 +2415,23 @@ Expected: 33 pass.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/probes/static-bundle.ts packages/audit/tests/probes/static-bundle.test.ts packages/audit/src/cli.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): static-bundle probe checks dist/ against budget.json [T063]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): static-bundle probe checks dist/ against budget.json [T137]"
 ```
 
 ---
 
-## Task 19: T063 ticket + worklog
+## Task 19: T137 ticket + worklog
 
-- [ ] **Step 1: Write ticket** — `docs/tickets/T063-static-bundle-probe.md` matching T061/T062 shape; specify: probe metadata, budget.json schema, fixture detection, ≥1 over-budget finding for the fixture.
+- [ ] **Step 1: Write ticket** — `docs/tickets/T137-static-bundle-probe.md` matching T135/T136 shape; specify: probe metadata, budget.json schema, fixture detection, ≥1 over-budget finding for the fixture.
 
-- [ ] **Step 2: Write worklog** — `docs/worklog/T063-static-bundle-probe.md` with 11 AGENTS.md sections covering: budget.json discovery rationale, why the fixture is built at test time vs checked in, behavior when budget.json or dist/ is missing.
+- [ ] **Step 2: Write worklog** — `docs/worklog/T137-static-bundle-probe.md` with 11 AGENTS.md sections covering: budget.json discovery rationale, why the fixture is built at test time vs checked in, behavior when budget.json or dist/ is missing.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 cd /home/dev/rox/rox-one-terminal
-git add docs/tickets/T063-static-bundle-probe.md docs/worklog/T063-static-bundle-probe.md
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "docs(audit): T063 ticket + worklog"
+git add docs/tickets/T137-static-bundle-probe.md docs/worklog/T137-static-bundle-probe.md
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "docs(audit): T137 ticket + worklog"
 ```
 
 ---
@@ -2514,16 +2514,16 @@ describe("generateTickets — basic", () => {
 
   test("next ticket number increments from existing T<N>", async () => {
     writeFileSync(join(dir, "docs/tickets", "T059-prior.md"), "# prior");
-    writeFileSync(join(dir, "docs/tickets", "T060-also-prior.md"), "# prior");
+    writeFileSync(join(dir, "docs/tickets", "T134-also-prior.md"), "# prior");
     await generateTickets({
       repoRoot: dir,
       findings: [baseFinding({ id: "aaaa", rule: "tsc:TS2345" })],
       topK: 50,
     });
     const files = readdirSync(join(dir, "docs/tickets"));
-    const newest = files.find((f) => !f.startsWith("T059") && !f.startsWith("T060-also"));
+    const newest = files.find((f) => !f.startsWith("T059") && !f.startsWith("T134-also"));
     expect(newest).toBeDefined();
-    expect(newest!.startsWith("T061-")).toBe(true);
+    expect(newest!.startsWith("T135-")).toBe(true);
   });
 });
 ```
@@ -2695,7 +2695,7 @@ Expected: 4 pass.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/ticket-gen.ts packages/audit/tests/ticket-gen.test.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): ticket-gen creates AGENTS.md ticket stubs from findings [T064]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): ticket-gen creates AGENTS.md ticket stubs from findings [T138]"
 ```
 
 ---
@@ -2764,7 +2764,7 @@ Expected: 7 pass (4 prior + 3 new).
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/tests/ticket-gen.test.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "test(audit): ticket-gen idempotency invariants [T064]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "test(audit): ticket-gen idempotency invariants [T138]"
 ```
 
 ---
@@ -2824,7 +2824,7 @@ Expected: 36 pass.
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/src/cli.ts
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): wire ticket-gen into CLI with --no-tickets and --top-k flags [T064]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): wire ticket-gen into CLI with --no-tickets and --top-k flags [T138]"
 ```
 
 ---
@@ -2897,25 +2897,25 @@ cd /home/dev/rox/rox-one-terminal
 git status --short
 # expect: ?? docs/audits/INDEX.md, ?? docs/tickets/T*.md, M package.json
 git add package.json docs/audits/INDEX.md docs/tickets/T*.md
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): wire audit:smoke into validate:ci, first end-to-end run [T064]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "feat(audit): wire audit:smoke into validate:ci, first end-to-end run [T138]"
 ```
 
 Note: `audits/<timestamp>/` is gitignored (per Task 1 Step 7) so it stays local.
 
 ---
 
-## Task 24: T064 ticket + worklog (final phase ticket)
+## Task 24: T138 ticket + worklog (final phase ticket)
 
-- [ ] **Step 1: Write T064 ticket** — `docs/tickets/T064-ticket-gen-and-first-run.md` covering: ticket-gen module, idempotency invariants, CLI wiring, first end-to-end run, INDEX.md format, validate:ci integration.
+- [ ] **Step 1: Write T138 ticket** — `docs/tickets/T138-ticket-gen-and-first-run.md` covering: ticket-gen module, idempotency invariants, CLI wiring, first end-to-end run, INDEX.md format, validate:ci integration.
 
-- [ ] **Step 2: Write T064 worklog** — `docs/worklog/T064-ticket-gen-and-first-run.md` with 11 AGENTS.md sections including: actual finding count from the first real run, first ticket numbers minted, validate:ci pipeline timing impact.
+- [ ] **Step 2: Write T138 worklog** — `docs/worklog/T138-ticket-gen-and-first-run.md` with 11 AGENTS.md sections including: actual finding count from the first real run, first ticket numbers minted, validate:ci pipeline timing impact.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 cd /home/dev/rox/rox-one-terminal
-git add docs/tickets/T064-ticket-gen-and-first-run.md docs/worklog/T064-ticket-gen-and-first-run.md
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "docs(audit): T064 ticket + worklog with first-run results"
+git add docs/tickets/T138-ticket-gen-and-first-run.md docs/worklog/T138-ticket-gen-and-first-run.md
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "docs(audit): T138 ticket + worklog with first-run results"
 ```
 
 ---
@@ -2962,7 +2962,7 @@ bun run audit run renderer --probes=static-tsc
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add README.md
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "docs(audit): root README section [T064]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "docs(audit): root README section [T138]"
 ```
 
 ---
@@ -2992,7 +2992,7 @@ Expected: prints "Coverage OK" or fails with current numbers. If below 80%, iden
 ```bash
 cd /home/dev/rox/rox-one-terminal
 git add packages/audit/package.json
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "test(audit): coverage script with 80% gate [T064]"
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "test(audit): coverage script with 80% gate [T138]"
 ```
 
 ---
@@ -3036,7 +3036,7 @@ grep -c "static-\*" docs/audits/INDEX.md
 
 - [ ] **Step 2: List which spec criteria are green**
 
-Update `docs/worklog/T064-ticket-gen-and-first-run.md` § 11 acceptance criteria matrix to mark each item green/red with evidence.
+Update `docs/worklog/T138-ticket-gen-and-first-run.md` § 11 acceptance criteria matrix to mark each item green/red with evidence.
 
 - [ ] **Step 3: Hand off to architect agent for verification (per OMC verification protocol)**
 
@@ -3059,8 +3059,8 @@ If verification is green, append a `Phase A.1 verified` line to `docs/audits/IND
 
 ```bash
 cd /home/dev/rox/rox-one-terminal
-git add docs/audits/INDEX.md docs/worklog/T064-ticket-gen-and-first-run.md
-git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "chore(audit): Phase A.1 acceptance verified by architect [T060-T064]"
+git add docs/audits/INDEX.md docs/worklog/T138-ticket-gen-and-first-run.md
+git -c user.name="Mark Lindgreen" -c user.email="mark@agisota.com" commit -m "chore(audit): Phase A.1 acceptance verified by architect [T134-T138]"
 ```
 
 - [ ] **Step 5: Phase A.1 ships — handoff signal**
@@ -3083,7 +3083,7 @@ Reviewing this plan against the spec:
 - § 8 Error handling → Task 5 ✓
 - § 10 Testing strategy / TDD → Every task ✓
 - § 10.6 Coverage gate → Task 26 ✓
-- § 11.1 Phase A.1 tickets T060–T064 → Tasks 10, 13, 16, 19, 24 ✓
+- § 11.1 Phase A.1 tickets T134–T138 → Tasks 10, 13, 16, 19, 24 ✓
 - § 11.1 A.1 acceptance gate → Task 27 ✓
 - § 12 Worklog format → Tasks 10, 13, 16, 19, 24 ✓
 - § 13 Branching & commits → Plan-wide branch + per-task commits ✓
