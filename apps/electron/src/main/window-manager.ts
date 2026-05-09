@@ -8,6 +8,7 @@ import type { SavedWindow } from './window-state'
 
 // Vite dev server URL for hot reload
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
+export const DEFAULT_APP_ZOOM_FACTOR = 0.8
 
 /**
  * Get the appropriate background material for Windows transparency effects
@@ -229,6 +230,10 @@ export class WindowManager {
         sandbox: false,
         webviewTag: false // Browser integration uses WebContentsView, not <webview>
       }
+    })
+    window.webContents.setZoomFactor(DEFAULT_APP_ZOOM_FACTOR)
+    window.webContents.on('did-finish-load', () => {
+      window.webContents.setZoomFactor(DEFAULT_APP_ZOOM_FACTOR)
     })
 
     // Show window when first paint is ready. In packaged macOS launches,

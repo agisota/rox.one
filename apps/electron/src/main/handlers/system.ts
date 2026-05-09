@@ -9,6 +9,7 @@ import { isUsableGitBashPath, validateGitBashPath } from '@craft-agent/server-co
 import { validateFilePath, getWorkspaceAllowedDirs } from '@craft-agent/server-core/handlers'
 import type { RpcServer } from '@craft-agent/server-core/transport'
 import type { HandlerDeps } from './handler-deps'
+import { DEFAULT_APP_ZOOM_FACTOR } from '../window-manager'
 import {
   requestClientOpenExternal,
   requestClientOpenPath,
@@ -347,7 +348,7 @@ export function registerSystemGuiHandlers(server: RpcServer, deps: HandlerDeps):
   server.handle(RPC_CHANNELS.menu.ZOOM_RESET, async (ctx) => {
     if (!windowManager) return
     const win = windowManager.getWindowByWebContentsId(ctx.webContentsId!)
-    win?.webContents.setZoomFactor(1.0)
+    win?.webContents.setZoomFactor(DEFAULT_APP_ZOOM_FACTOR)
   })
 
   server.handle(RPC_CHANNELS.menu.TOGGLE_DEV_TOOLS, async (ctx) => {
