@@ -98,6 +98,7 @@ import { runPreToolUseChecks, type PreToolUseCheckResult } from './core/pre-tool
 
 // RPC pending-request bookkeeping (used for the 8 subprocess RPC correlation maps)
 import { PendingRequestMap } from './core/pending-request-map.ts';
+import { BackendStderrBuffer } from './core/backend-stderr-buffer.ts';
 
 // Workspace slug extraction for skill qualification
 import { extractWorkspaceSlug } from '../utils/workspace.ts';
@@ -156,13 +157,11 @@ export class PiAgent extends BaseAgent {
 
   // Error deduplication — suppress identical consecutive errors after a threshold
   // to prevent a broken subprocess from flooding the user's session.
-  private lastSubprocessError: string | null = null;
-  private subprocessErrorRepeatCount = 0;
-  private static readonly MAX_IDENTICAL_SUBPROCESS_ERRORS = 3;
+  // (Implementation lives in BackendStderrBuffer; Pi historically used 3.)
+  private subprocessErrorBuffer = new BackendStderrBuffer({ maxIdenticalRepeats: 3 });
 
   private resetSubprocessErrorDedup(): void {
-    this.lastSubprocessError = null;
-    this.subprocessErrorRepeatCount = 0;
+    this.subprocessErrorBuffer.reset();
   }
 
   // Ring buffer of recent subprocess stderr. Always on (independent of ROX_DEBUG)
@@ -948,15 +947,10 @@ export class PiAgent extends BaseAgent {
 
         // Suppress repeated identical errors to prevent a broken subprocess
         // from flooding the user's session (e.g. EFAULT loop).
-        if (rawMessage === this.lastSubprocessError) {
-          this.subprocessErrorRepeatCount++;
-          if (this.subprocessErrorRepeatCount > PiAgent.MAX_IDENTICAL_SUBPROCESS_ERRORS) {
-            this.debug(`Suppressing repeated subprocess error (${this.subprocessErrorRepeatCount}x): ${rawMessage}`);
-            break;
-          }
-        } else {
-          this.lastSubprocessError = rawMessage;
-          this.subprocessErrorRepeatCount = 1;
+        const dedupDecision = this.subprocessErrorBuffer.record(rawMessage);
+        if (dedupDecision.action === 'suppress') {
+          this.debug(`Suppressing repeated subprocess error (${dedupDecision.repeatCount}x): ${rawMessage}`);
+          break;
         }
 
         const parsed = parseError(new Error(rawMessage));
