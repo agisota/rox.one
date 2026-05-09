@@ -1,0 +1,65 @@
+import { describe, expect, test } from "bun:test";
+import { ProbeRegistry } from "../src/registry.ts";
+import type { Finding, Probe, ProbeContext, Surface } from "../src/probe.ts";
+
+function makeProbe(name: string, findings: Finding[]): Probe {
+  return {
+    name,
+    phase: "A.1",
+    applicableTo: () => true,
+    run: async () => findings,
+  };
+}
+
+const ctxFor = (surface: Surface): ProbeContext => ({
+  surface,
+  workspaceRoot: "/tmp/ws",
+  surfaceRoot: "/tmp/ws/x",
+  timeoutMs: 60_000,
+});
+
+describe("ProbeRegistry — basic", () => {
+  test("registered probe runs and returns its findings", async () => {
+    const reg = new ProbeRegistry();
+    const finding: Finding = {
+      schemaVersion: 1,
+      id: "aaaa1111aaaa1111",
+      probe: "p1",
+      surface: "renderer",
+      phase: "A.1",
+      severity: "high",
+      rule: "X",
+      location: { file: "f" },
+      message: "m",
+      confidence: 1,
+      vdiImpact: { quality: 0, risk: 0, readiness: 0 },
+      firstSeen: "2026-05-09T11:00:00Z",
+      lastSeen: "2026-05-09T11:00:00Z",
+    };
+    reg.register(makeProbe("p1", [finding]));
+    const result = await reg.run({ surfaces: ["renderer"], probes: ["p1"], workerCap: 1, contextFor: ctxFor });
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0].id).toBe("aaaa1111aaaa1111");
+  });
+
+  test("filters probes by --probes selection", async () => {
+    const reg = new ProbeRegistry();
+    reg.register(makeProbe("p1", []));
+    reg.register(makeProbe("p2", []));
+    const result = await reg.run({ surfaces: ["renderer"], probes: ["p1"], workerCap: 1, contextFor: ctxFor });
+    expect(result.runProbes).toEqual(["p1"]);
+  });
+
+  test("skips probes whose applicableTo() returns false for the surface", async () => {
+    const reg = new ProbeRegistry();
+    const onlyRenderer: Probe = {
+      name: "only-renderer",
+      phase: "A.1",
+      applicableTo: (s) => s === "renderer",
+      run: async () => [],
+    };
+    reg.register(onlyRenderer);
+    const result = await reg.run({ surfaces: ["webui"], probes: ["only-renderer"], workerCap: 1, contextFor: ctxFor });
+    expect(result.executedPairs).toEqual([]);
+  });
+});
