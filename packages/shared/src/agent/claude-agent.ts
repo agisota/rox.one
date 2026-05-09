@@ -1420,24 +1420,21 @@ This is a branched conversation. All prior messages in this conversation are par
           const events = await this.eventAdapter.adapt(message);
           for (const event of events) {
             // After source_test (or any session-scoped tool) successfully activates a
-            // new source, activateSourceInSessionFn stashes a restart descriptor on the
-            // agent. Consume it here — right after the source_test tool_result has
-            // landed — so the model sees "activated" in its prior turn, then the
-            // renderer auto-resends the user's original message with a
-            // "[{slug} activated]" suffix. Same machinery as the tool-call-error path.
-            if (event.type === 'tool_result') {
-              const pendingRestart = this.consumePendingSourceActivationRestart();
-              if (pendingRestart) {
-                yield event;
-                this.onDebug?.(`source_test activated "${pendingRestart.sourceSlug}", interrupting turn for auto-retry`);
-                yield {
-                  type: 'source_activated' as const,
-                  sourceSlug: pendingRestart.sourceSlug,
-                  originalMessage: pendingRestart.userMessage,
-                };
-                this.forceAbort(AbortReason.SourceActivated);
-                return;
-              }
+            // new source, activateSourceInSessionFn stashes a restart descriptor on
+            // the agent. Yield the tool_result first so the model sees "activated"
+            // in its prior turn, then delegate the source_activated + forceAbort
+            // handshake to BaseAgent.maybeYieldSourceActivationRestart. The renderer's
+            // auto_retry effect re-sends the user's original message with a
+            // "[{slug} activated]" suffix — same machinery as the tool-call-error
+            // path below.
+            //
+            // When there is no pending restart we MUST NOT yield here — the
+            // tool_result still has to flow through the inactive-source guard,
+            // guardLargeResult, the Read-error hint, etc. below.
+            if (event.type === 'tool_result' && this._pendingSourceActivationRestart) {
+              yield event;
+              const sourceActivated = yield* this.maybeYieldSourceActivationRestart(event);
+              if (sourceActivated) return;
             }
 
             // Check for tool-not-found errors on inactive sources and attempt auto-activation
