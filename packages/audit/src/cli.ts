@@ -17,7 +17,7 @@ import { spawnDevServer, type DevServerHandle } from "./runners/dev-server-runne
 import { join } from "node:path";
 
 const HELP = `Usage:
-  audit run <surfaces> [--probes=<csv>] [--worker-cap=N] [--out=<path>] [--no-tickets] [--top-k=N]
+  audit run <surfaces> [--probes=<csv>] [--worker-cap=N] [--out=<path>] [--no-tickets] [--top-k=N] [--max-llm-calls=N]
 
   surfaces: comma-separated, one or more of: renderer, webui, viewer, marketing
   --probes: comma-separated probe names (supports * suffix glob)
@@ -25,12 +25,14 @@ const HELP = `Usage:
   --out: output dir override (default audits/<ISO timestamp>)
   --no-tickets: skip ticket generation in docs/tickets/
   --top-k=N: max tickets to create/update (default 50)
+  --max-llm-calls=N: cost gate; abort after N LLM calls (default 100)
 
 Examples:
   audit run renderer --probes=static-tsc
   audit run renderer,webui,viewer,marketing --probes=static-*
   audit run renderer --no-tickets
   audit run renderer,webui --top-k=20
+  audit run renderer,webui --max-llm-calls=20
 `;
 
 function parseArgs(argv: string[]): {
@@ -41,13 +43,14 @@ function parseArgs(argv: string[]): {
   outOverride?: string;
   noTickets: boolean;
   topK: number;
+  maxLlmCalls: number;
 } {
   const args = argv.slice(2);
   if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
-    return { command: "help", surfaces: [], probesGlob: "*", workerCap: 4, noTickets: false, topK: 50 };
+    return { command: "help", surfaces: [], probesGlob: "*", workerCap: 4, noTickets: false, topK: 50, maxLlmCalls: 100 };
   }
   if (args[0] !== "run") {
-    return { command: "help", surfaces: [], probesGlob: "*", workerCap: 4, noTickets: false, topK: 50 };
+    return { command: "help", surfaces: [], probesGlob: "*", workerCap: 4, noTickets: false, topK: 50, maxLlmCalls: 100 };
   }
   const surfacesArg = args[1];
   if (!surfacesArg || surfacesArg.startsWith("--")) {
@@ -63,14 +66,16 @@ function parseArgs(argv: string[]): {
   let outOverride: string | undefined;
   let noTickets = false;
   let topK = 50;
+  let maxLlmCalls = 100;
   for (const arg of args.slice(2)) {
     if (arg.startsWith("--probes=")) probesGlob = arg.slice("--probes=".length);
     else if (arg.startsWith("--worker-cap=")) workerCap = Math.max(1, parseInt(arg.slice("--worker-cap=".length), 10) || 4);
     else if (arg.startsWith("--out=")) outOverride = arg.slice("--out=".length);
     else if (arg === "--no-tickets") noTickets = true;
     else if (arg.startsWith("--top-k=")) topK = Math.max(1, parseInt(arg.slice("--top-k=".length), 10) || 50);
+    else if (arg.startsWith("--max-llm-calls=")) maxLlmCalls = Math.max(1, parseInt(arg.slice("--max-llm-calls=".length), 10) || 100);
   }
-  return { command: "run", surfaces, probesGlob, workerCap, outOverride, noTickets, topK };
+  return { command: "run", surfaces, probesGlob, workerCap, outOverride, noTickets, topK, maxLlmCalls };
 }
 
 function probeMatches(name: string, glob: string): boolean {
@@ -125,7 +130,7 @@ async function main(): Promise<number> {
   let llm: LLMClient | undefined;
   if (needsLLM) {
     try {
-      llm = createLLMRunner({});
+      llm = createLLMRunner({ maxCalls: parsed.maxLlmCalls });
     } catch (e) {
       process.stderr.write(`warning: LLM runner unavailable, A.3 probes will be skipped (${e instanceof Error ? e.message : String(e)})\n`);
     }

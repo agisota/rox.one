@@ -40,17 +40,34 @@ Return ONLY a JSON array. No prose. If the screenshot looks fine, return [].`;
 export interface CreateLLMRunnerInput {
   apiKey?: string; // falls back to ANTHROPIC_API_KEY env var
   model?: string; // default: claude-sonnet-4-6
+  maxCalls?: number; // cost gate: max LLM calls before aborting (default 100)
+  client?: Anthropic; // DI seam for testing; if unset, instantiated from apiKey
 }
 
 export function createLLMRunner(input: CreateLLMRunnerInput = {}): LLMClient {
-  const apiKey = input.apiKey ?? process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("LLM runner: ANTHROPIC_API_KEY not set");
+  const maxCalls = input.maxCalls ?? 100;
+  let callCount = 0;
 
-  const client = new Anthropic({ apiKey });
+  let client: Anthropic;
+  if (input.client) {
+    client = input.client;
+  } else {
+    const apiKey = input.apiKey ?? process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error("LLM runner: ANTHROPIC_API_KEY not set");
+    client = new Anthropic({ apiKey });
+  }
+
   const model = input.model ?? "claude-sonnet-4-6";
 
   return {
     async analyzeScreenshot({ surface, route, screenshotPng }) {
+      if (callCount >= maxCalls) {
+        throw new Error(
+          `LLM cost gate: exceeded --max-llm-calls=${maxCalls}. Increase the cap or scope the run more narrowly.`,
+        );
+      }
+      callCount++;
+
       const base64 = Buffer.from(screenshotPng).toString("base64");
       const response = await client.messages.create({
         model,
