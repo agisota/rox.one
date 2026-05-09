@@ -1832,7 +1832,7 @@ export class SessionManager implements ISessionManager {
 
       // Wire up browser pane tools — merge BrowserPaneFns into session callbacks
       // so browser_* tools can delegate to BrowserPaneManager
-      if (this.ipc.browserPaneManager) {
+      if (this.ipc.hasBrowserPaneManager()) {
         // Capture as non-null so closures below don't have to re-narrow.
         const bpm: IBrowserPaneManager = this.ipc.browserPaneManager
         const sid = managed.id
@@ -3748,7 +3748,7 @@ export class SessionManager implements ISessionManager {
     unregisterSessionScopedToolCallbacks(sessionId)
 
     // Destroy browser instances bound to this session
-    if (this.ipc.browserPaneManager) {
+    if (this.ipc.hasBrowserPaneManager()) {
       this.ipc.browserPaneManager.destroyForSession(sessionId)
     }
 
@@ -4481,7 +4481,7 @@ export class SessionManager implements ISessionManager {
     // Clear agent control overlay between turns. The session keeps browser
     // ownership (boundSessionId) — only the visual overlay is removed.
     // Full unbind happens below when the queue is empty (session truly done).
-    if (this.ipc.browserPaneManager) {
+    if (this.ipc.hasBrowserPaneManager()) {
       await this.ipc.browserPaneManager.clearVisualsForSession(sessionId)
     }
 
@@ -4532,7 +4532,7 @@ export class SessionManager implements ISessionManager {
       // Session is truly done — release browser ownership.
       // The window stays alive (hidden) and becomes reusable by future sessions.
       // On the next turn, getOrCreateForSession() will re-bind it.
-      if (this.ipc.browserPaneManager) {
+      if (this.ipc.hasBrowserPaneManager()) {
         await this.ipc.browserPaneManager.clearVisualsForSession(sessionId)
         this.ipc.browserPaneManager.unbindAllForSession(sessionId)
       }
@@ -5169,7 +5169,7 @@ export class SessionManager implements ISessionManager {
           formattedToolInput,
         )
 
-        if (this.ipc.browserPaneManager && shouldActivateOverlay) {
+        if (this.ipc.hasBrowserPaneManager() && shouldActivateOverlay) {
           // Ensure first browser action in a turn gets an instance before overlay activation.
           this.ipc.browserPaneManager.getOrCreateForSession(sessionId)
 
