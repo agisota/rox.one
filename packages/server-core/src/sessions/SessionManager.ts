@@ -741,14 +741,6 @@ export class SessionManager implements ISessionManager {
     return this.persistence.getSessionPath(sessionId)
   }
 
-  // Test-shim: cold-session-metadata.test.ts pokes this through a `(sm as unknown as ...).persistSession(...)`
-  // type-cast to exercise the cold-load codepath without going through public API. The
-  // body lives on SessionPersistence post-extraction; this private wrapper preserves the
-  // test's reach so we don't touch test files in this commit.
-  private persistSession(managed: ManagedSession): void {
-    this.persistence.persistSession(managed)
-  }
-
   // ============================================
   // Unified Auth Request Helpers
   // ============================================
