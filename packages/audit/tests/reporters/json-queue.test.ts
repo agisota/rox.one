@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, existsSync, readdirSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, existsSync, readdirSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { writeJsonQueue } from "../../src/reporters/json-queue.ts";
@@ -36,11 +36,22 @@ describe("writeJsonQueue", () => {
 
   test("manifest.json is written last (after queue.json exists)", async () => {
     await writeJsonQueue({ outDir: dir, findings: [f], runId: "r1", probes: ["p"], surfaces: ["renderer"], durationMs: 100 });
-    expect(existsSync(join(dir, "queue.json"))).toBe(true);
-    expect(existsSync(join(dir, "manifest.json"))).toBe(true);
-    const manifest = JSON.parse(readFileSync(join(dir, "manifest.json"), "utf-8"));
+    const queuePath = join(dir, "queue.json");
+    const manifestPath = join(dir, "manifest.json");
+    expect(existsSync(queuePath)).toBe(true);
+    expect(existsSync(manifestPath)).toBe(true);
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
     expect(manifest.runId).toBe("r1");
     expect(manifest.status).toBe("ok");
+    // Verify write ordering via mtime: manifest must be written at or after queue.json.
+    // On sub-millisecond filesystems mtimes may be equal (both written in the same tick);
+    // the assertion is skipped in that case to avoid flakiness — ordering is guaranteed
+    // by the synchronous source sequence in json-queue.ts.
+    const queueMtime = statSync(queuePath).mtimeMs;
+    const manifestMtime = statSync(manifestPath).mtimeMs;
+    if (manifestMtime !== queueMtime) {
+      expect(manifestMtime).toBeGreaterThan(queueMtime);
+    }
   });
 
   test("no .tmp files left behind after successful write", async () => {
