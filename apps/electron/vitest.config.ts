@@ -30,7 +30,7 @@ export default defineConfig({
     globals: false,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json'],
+      reporter: ['text', 'text-summary', 'json'],
       include: ['src/renderer/components/**/*.{ts,tsx}'],
       exclude: ['**/__tests__/**', '**/*.test.*', '**/*.rtl.test.*'],
     },
