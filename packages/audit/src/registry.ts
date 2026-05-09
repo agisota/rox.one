@@ -1,4 +1,38 @@
+import { computeFindingId, FINDING_SCHEMA_VERSION } from "./probe.ts";
 import type { Finding, Probe, ProbeContext, Surface } from "./probe.ts";
+
+function makeMetaFinding(
+  probe: string,
+  surface: Surface,
+  rule: "_probe.timeout" | "_probe.crash",
+  message: string,
+): Finding {
+  const now = new Date().toISOString();
+  return {
+    schemaVersion: FINDING_SCHEMA_VERSION,
+    id: computeFindingId({ probe, rule, file: `<probe:${probe}>`, line: 0 }),
+    probe,
+    surface,
+    phase: "A.1",
+    severity: "low",
+    rule,
+    location: { file: `<probe:${probe}>` },
+    message,
+    confidence: 0,
+    vdiImpact: { quality: 0, risk: 0, readiness: 0 },
+    firstSeen: now,
+    lastSeen: now,
+  };
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<{ ok: true; value: T } | { ok: false; reason: "timeout" }> {
+  return await Promise.race([
+    promise.then((value) => ({ ok: true as const, value })),
+    new Promise<{ ok: false; reason: "timeout" }>((resolve) =>
+      setTimeout(() => resolve({ ok: false, reason: "timeout" }), ms),
+    ),
+  ]);
+}
 
 export interface RegistryRunOptions {
   surfaces: Surface[];
@@ -49,12 +83,23 @@ export class ProbeRegistry {
       while (queue.length > 0) {
         const next = queue.shift();
         if (!next) return;
-        try {
-          const ctx = opts.contextFor(next.surface);
-          const findings = await next.probe.run(ctx);
-          allFindings.push(...findings);
-        } catch (e) {
-          crashed.push({ probe: next.probe.name, surface: next.surface, error: e instanceof Error ? e.message : String(e) });
+        const ctx = opts.contextFor(next.surface);
+        const outcome = await withTimeout(
+          (async () => next.probe.run(ctx))().catch((e) => {
+            throw e instanceof Error ? e : new Error(String(e));
+          }),
+          ctx.timeoutMs,
+        ).catch((e: Error) => ({ ok: false as const, reason: "crash" as const, err: e }));
+
+        if (outcome.ok === true) {
+          allFindings.push(...outcome.value);
+        } else if (outcome.reason === "timeout") {
+          allFindings.push(makeMetaFinding(next.probe.name, next.surface, "_probe.timeout", `probe exceeded ${ctx.timeoutMs}ms`));
+          crashed.push({ probe: next.probe.name, surface: next.surface, error: "timeout" });
+        } else {
+          const msg = (outcome as { err: Error }).err.message;
+          allFindings.push(makeMetaFinding(next.probe.name, next.surface, "_probe.crash", msg));
+          crashed.push({ probe: next.probe.name, surface: next.surface, error: msg });
         }
       }
     }

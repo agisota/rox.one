@@ -110,3 +110,52 @@ describe("ProbeRegistry — parallelism", () => {
     expect(p1StartIdx).toBeLessThan(p1EndIdx);
   });
 });
+
+describe("ProbeRegistry — error handling", () => {
+  test("crashed probe emits zero-confidence finding, sibling still runs", async () => {
+    const reg = new ProbeRegistry();
+    const crasher: Probe = {
+      name: "crasher",
+      phase: "A.1",
+      applicableTo: () => true,
+      run: async () => { throw new Error("boom"); },
+    };
+    const ok: Probe = {
+      name: "ok",
+      phase: "A.1",
+      applicableTo: () => true,
+      run: async () => [],
+    };
+    reg.register(crasher);
+    reg.register(ok);
+    const result = await reg.run({ surfaces: ["renderer"], probes: ["crasher", "ok"], workerCap: 2, contextFor: ctxFor });
+    const crashFinding = result.findings.find((f) => f.rule === "_probe.crash");
+    expect(crashFinding).toBeDefined();
+    expect(crashFinding?.confidence).toBe(0);
+    expect(crashFinding?.message).toContain("boom");
+    expect(result.crashed).toHaveLength(1);
+  });
+
+  test("probe timeout emits _probe.timeout finding", async () => {
+    const reg = new ProbeRegistry();
+    const slow: Probe = {
+      name: "slow",
+      phase: "A.1",
+      applicableTo: () => true,
+      run: async () => {
+        await new Promise((r) => setTimeout(r, 200));
+        return [];
+      },
+    };
+    reg.register(slow);
+    const result = await reg.run({
+      surfaces: ["renderer"],
+      probes: ["slow"],
+      workerCap: 1,
+      contextFor: (s) => ({ ...ctxFor(s), timeoutMs: 50 }),
+    });
+    const timeoutFinding = result.findings.find((f) => f.rule === "_probe.timeout");
+    expect(timeoutFinding).toBeDefined();
+    expect(timeoutFinding?.confidence).toBe(0);
+  });
+});
