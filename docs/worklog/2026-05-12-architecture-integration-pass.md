@@ -207,6 +207,32 @@ Additional account/security branch gate before fast-forward to `main`:
   - `/tmp/rox-exp-deep-missions.png`, `/tmp/rox-exp-arena-builder.png`, `/tmp/rox-exp-mission-control.png`, `/tmp/rox-exp-progression.png`, `/tmp/rox-exp-quest-map.png`, `/tmp/rox-exp-agent-forge.png`: six `Опыт` subroutes opened from the live sidebar.
   - `/tmp/rox-account-login.png`, `/tmp/rox-account-register-probe-1450.png`, `/tmp/rox-account-reset.png`: `Личный кабинет` rendered sign-in, registration, and password reset surfaces inside the packaged app.
 
+### Fresh recheck 2026-05-13
+
+Re-run after the operator requested another completion pass:
+
+- `bun install --frozen-lockfile`: passed.
+- `bun run typecheck:all`: passed.
+- `bun run test:rtl`: 8 files passed, 52 tests passed; only KaTeX quirks-mode/localstorage-file warnings.
+- `bun run build`: passed; retained existing Vite chunk-size warnings.
+- `bun run e2e:core`: passed across composer artifacts, Experience runtime journey, account/team/billing/storage, server smoke, and Electron startup smoke.
+- `bun run electron:smoke:packaged:mac`: passed with `ROX.ONE packaged headless startup passed`.
+- `bun test packages/audit/tests/probes/static-bundle.test.ts packages/audit/tests/cli.test.ts packages/audit/tests/reporters/json-queue.test.ts`: 16 tests passed, 0 failed.
+- `cd packages/audit && bun run tsc --noEmit`: passed.
+- `bun run audit:smoke`: passed with 0 findings across static-tsc, webui static-bundle, viewer static-bundle, and marketing static-bundle.
+- Packaged app process still live from `apps/electron/release/mac-arm64/ROX.ONE.app/Contents/MacOS/ROX.ONE`; helper GPU/network/renderer processes were present.
+- Fresh packaged UI screenshots/OCR:
+  - `/tmp/rox-recheck-start.png`: `Личный кабинет` and ROX ID auth surface visible; `Регистрация`, `Имя в профиле`, `Email`, `Пароль`, `Опыт`, and `ROX Experience` detected.
+  - `/tmp/rox-recheck-reset-clean.png`: composer toolbar visible with `Исследовать`, `Задачи`, `Улучшить prompt`, `TDD Plan`, `Проверить`, `Разъебать`, `Собрать ТЗ`, and `Ревью`.
+  - `/tmp/rox-recheck-action2-improve.png`: `Улучшить prompt` opened `Prompt Lab`.
+  - `/tmp/rox-recheck-action2-tdd.png`: `TDD Plan` opened the RED/GREEN/VERIFY/WORKLOG plan.
+  - `/tmp/rox-recheck-action2-verify.png`: `Проверить` opened `Review Gate` with pass checks.
+  - `/tmp/rox-recheck-action2-build-spec.png`: `Собрать ТЗ` opened `Spec Builder`.
+  - `/tmp/rox-recheck-action2-teardown.png`: review/tear-down route stayed inside `Review Gate`; exact button-id mapping is covered by `composer-artifact-flow.test.ts` and `product-mode-toolbar.test.ts`.
+  - `/tmp/rox-recheck-exp-deep-missions.png`, `/tmp/rox-recheck-exp-arena.png`, `/tmp/rox-recheck-exp-mission-control.png`, `/tmp/rox-recheck-exp-progression.png`, `/tmp/rox-recheck-exp-quest-map.png`, `/tmp/rox-recheck-exp-agent-forge.png`: all six `Опыт` subroutes opened in the running packaged app.
+  - `/tmp/rox-recheck-account-login.png`, `/tmp/rox-recheck-account-reset.png`: account cabinet sign-in/reset surfaces rendered in-app; registration surface was captured in `/tmp/rox-recheck-start.png`.
+- No real login/register/password-reset submission was sent; this avoids external account side effects and matches the integration-smoke scope.
+
 ## Remaining risks
 
 - The result is local only; no push or PR creation was performed.
