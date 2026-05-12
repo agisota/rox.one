@@ -235,7 +235,21 @@ describe('FreeFormInput slash + mention menus [T187]', () => {
     })
   })
 
-  it.todo('ArrowDown + Enter selects a slash menu item (deferred — InlineSlashCommand wires its keydown to `document`, and userEvent.type on a textarea does not propagate to the document keydown listener under happy-dom; out of T187 scope)')
+  it('ArrowDown + Enter selects a slash menu item and closes the menu', async () => {
+    render(<FreeFormInput {...baseProps()} />)
+    const textarea = await screen.findByTestId('rich-text-input')
+    await userEvent.type(textarea, '/')
+    await waitFor(() => {
+      expect(document.querySelector('[data-inline-menu]')).toBeTruthy()
+    })
+    // Listener is attached to `document` (slash-command-menu.tsx:397), so dispatch
+    // ArrowDown to advance selectedIndex, then Enter to select + close.
+    fireEvent.keyDown(document, { key: 'ArrowDown' })
+    fireEvent.keyDown(document, { key: 'Enter' })
+    await waitFor(() => {
+      expect(document.querySelector('[data-inline-menu]')).toBeNull()
+    })
+  })
 
   it('a11y: no axe violations with the slash menu open', async () => {
     const { container } = render(<FreeFormInput {...baseProps()} />)
