@@ -4,6 +4,7 @@
     "outDir": "./dist",
     "strict": true,
     "noImplicitAny": true,
+    "lib": ["ESNext", "DOM"],
     "moduleResolution": "bundler",
     "types": ["bun"]
   },

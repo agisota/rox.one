@@ -1527,6 +1527,8 @@
   "workbench.toolbar.actionsAriaLabel": "Prompt workflow actions",
   "workbench.toolbar.mode": "Workflow",
   "workbench.toolbar.modeAriaLabel": "Product workflow",
+  "workbench.toolbar.moreActions": "More",
+  "workbench.toolbar.moreActionsAriaLabel": "More prompt workflow actions",
   "workspace.addWorkspace": "Dodaj Workspace…",
   "workspace.addWorkspaceDesc": "Gdzie twoje pomysły spotykają narzędzia, które je urzeczywistniają.",
   "workspace.chooseExistingFolder": "Wybierz istniejący folder",

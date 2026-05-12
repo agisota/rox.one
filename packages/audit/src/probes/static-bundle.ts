@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { findBudget } from "../discovery.ts";
 import type { Finding, Probe, ProbeContext } from "../probe.ts";
 import { computeFindingId, FINDING_SCHEMA_VERSION } from "../probe.ts";
 
@@ -49,8 +50,8 @@ export const staticBundleProbe: Probe = {
   phase: "A.1",
   applicableTo: () => true,
   async run(ctx: ProbeContext): Promise<Finding[]> {
-    const budgetPath = join(ctx.surfaceRoot, "budget.json");
-    if (!existsSync(budgetPath)) return [];
+    const budgetPath = findBudget(ctx.surfaceRoot);
+    if (budgetPath === null) return [];
 
     let budget: Record<string, number>;
     try {

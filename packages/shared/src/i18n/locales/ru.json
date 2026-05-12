@@ -1527,6 +1527,8 @@
   "workbench.toolbar.actionsAriaLabel": "Действия prompt workflow",
   "workbench.toolbar.mode": "Сценарий",
   "workbench.toolbar.modeAriaLabel": "Продуктовый сценарий",
+  "workbench.toolbar.moreActions": "Ещё",
+  "workbench.toolbar.moreActionsAriaLabel": "Дополнительные действия prompt workflow",
   "workspace.addWorkspace": "Добавить рабочую область…",
   "workspace.addWorkspaceDesc": "Где ваши идеи встречаются с инструментами для их реализации.",
   "workspace.chooseExistingFolder": "Выбрать существующую папку",
