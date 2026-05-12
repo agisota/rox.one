@@ -392,6 +392,7 @@
         "shell-quote": "^1.8.3",
       },
       "devDependencies": {
+        "@craft-agent/test-fixtures": "workspace:*",
         "@types/shell-quote": "^1.7.5",
         "@types/uuid": "^11.0.0",
       },
@@ -399,6 +400,14 @@
         "@anthropic-ai/claude-agent-sdk": "0.2.123",
         "@modelcontextprotocol/sdk": ">=1.0.0",
         "zod": ">=3.0.0",
+      },
+    },
+    "packages/test-fixtures": {
+      "name": "@craft-agent/test-fixtures",
+      "version": "0.0.1",
+      "devDependencies": {
+        "@types/node": "25.6.0",
+        "typescript": "5.9.3",
       },
     },
     "packages/ui": {
@@ -680,6 +689,8 @@
     "@craft-agent/session-tools-core": ["@craft-agent/session-tools-core@workspace:packages/session-tools-core"],
 
     "@craft-agent/shared": ["@craft-agent/shared@workspace:packages/shared"],
+
+    "@craft-agent/test-fixtures": ["@craft-agent/test-fixtures@workspace:packages/test-fixtures"],
 
     "@craft-agent/ui": ["@craft-agent/ui@workspace:packages/ui"],
 
