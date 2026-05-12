@@ -11,14 +11,14 @@
     "test:coverage:check": "bun test --coverage --coverage-reporter=text 2>&1 | awk '/^All files/ {if ($4+0 < 80) {print \"Coverage below 80%\"; exit 1} else {print \"Coverage OK\"}}'"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.81.0",
+    "@anthropic-ai/sdk": "0.91.1",
     "@axe-core/playwright": "4.10.2",
     "js-yaml": "4.1.1"
   },
   "devDependencies": {
     "@types/js-yaml": "4.0.9",
     "@types/node": "25.6.0",
-    "playwright": "1.49.1",
+    "playwright": "1.55.1",
     "typescript": "5.9.3"
   }
 }
