@@ -392,6 +392,7 @@
         "shell-quote": "^1.8.3",
       },
       "devDependencies": {
+        "@rox-agent/test-fixtures": "workspace:*",
         "@types/shell-quote": "^1.7.5",
         "@types/uuid": "^11.0.0",
       },
@@ -399,6 +400,14 @@
         "@anthropic-ai/claude-agent-sdk": "0.2.123",
         "@modelcontextprotocol/sdk": ">=1.0.0",
         "zod": ">=3.0.0",
+      },
+    },
+    "packages/test-fixtures": {
+      "name": "@rox-agent/test-fixtures",
+      "version": "0.0.1",
+      "devDependencies": {
+        "@types/node": "25.6.0",
+        "typescript": "5.9.3",
       },
     },
     "packages/ui": {
@@ -680,6 +689,8 @@
     "@rox-agent/session-tools-core": ["@rox-agent/session-tools-core@workspace:packages/session-tools-core"],
 
     "@rox-agent/shared": ["@rox-agent/shared@workspace:packages/shared"],
+
+    "@rox-agent/test-fixtures": ["@rox-agent/test-fixtures@workspace:packages/test-fixtures"],
 
     "@rox-agent/ui": ["@rox-agent/ui@workspace:packages/ui"],
 

@@ -1,0 +1,15 @@
+{
+  "name": "@rox-agent/test-fixtures",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "25.6.0",
+    "typescript": "5.9.3"
+  }
+}
