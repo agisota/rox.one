@@ -155,6 +155,7 @@ Resolution:
 - `bun test packages/audit/tests/probes/static-bundle.test.ts packages/audit/tests/cli.test.ts packages/audit/tests/reporters/json-queue.test.ts`
 - `cd packages/audit && bun run tsc --noEmit`
 - `bun run audit:smoke`
+- Swift/AppKit + Vision OCR packaged UI smoke against the running `ROX.ONE.app` window.
 
 Targeted checks also run during integration:
 
@@ -170,6 +171,7 @@ Targeted checks also run during integration:
 - Audit/perf D clean-stack targeted tests: 16 pass across static-bundle, CLI, and JSON queue reporter tests.
 - Audit package typecheck: passed.
 - `audit:smoke`: passed; static-tsc plus webui/viewer/marketing static-bundle gates produced 0 findings after building each gated surface.
+- Packaged UI smoke: direct `AXUIElement`/CGEvent click path was used because the Computer Use/System Events bridge returned Apple Events `-1743`; the app itself had `AX trusted=true` and `com.rox.one` stayed active during the smoke.
 
 ## Passing output summary
 
@@ -196,12 +198,20 @@ Additional account/security branch gate before fast-forward to `main`:
 - `bun test packages/audit/tests/probes/static-bundle.test.ts packages/audit/tests/cli.test.ts packages/audit/tests/reporters/json-queue.test.ts`: 16 tests passed, 0 failed.
 - `cd packages/audit && bun run tsc --noEmit`: passed.
 - `bun run audit:smoke`: passed with 0 findings across static-tsc, webui static-bundle, viewer static-bundle, and marketing static-bundle.
+- Packaged UI smoke screenshots/OCR:
+  - `/tmp/rox-live-focused.png`: running app shell with `ROX Experience`, mode picker, and composer actions visible.
+  - `/tmp/rox-click-improve.png`: `Улучшить prompt` opened `Prompt Lab`.
+  - `/tmp/rox-click-tdd.png`: `TDD Plan` opened RED/GREEN/VERIFY/WORKLOG task layout.
+  - `/tmp/rox-click-verify.png` and `/tmp/rox-click-teardown.png`: review/tear-down route opened `Review Gate` with checks and no blocking findings.
+  - `/tmp/rox-click-build-spec.png`: `Собрать ТЗ` opened `Spec Builder`.
+  - `/tmp/rox-exp-deep-missions.png`, `/tmp/rox-exp-arena-builder.png`, `/tmp/rox-exp-mission-control.png`, `/tmp/rox-exp-progression.png`, `/tmp/rox-exp-quest-map.png`, `/tmp/rox-exp-agent-forge.png`: six `Опыт` subroutes opened from the live sidebar.
+  - `/tmp/rox-account-login.png`, `/tmp/rox-account-register-probe-1450.png`, `/tmp/rox-account-reset.png`: `Личный кабинет` rendered sign-in, registration, and password reset surfaces inside the packaged app.
 
 ## Remaining risks
 
 - The result is local only; no push or PR creation was performed.
 - Audit/perf runtime/route/LLM branches still need a separate clean stack; they are not safe for blind merge.
-- Live desktop click-through through `Computer Use` was blocked by macOS Apple Events/Accessibility error `-1743`; the packaged app did launch and visible UI surfaces were covered by targeted renderer tests, e2e core, Electron startup smoke, and packaged smoke.
+- Computer Use/System Events still returns Apple Events `-1743` in this host session, but direct Accessibility/CGEvent automation works (`AX trusted=true`) and was used for the packaged UI smoke. No real login/register/password-reset submission was sent; only in-app render and tab/action routing were verified to avoid external account side effects.
 
 ## Acceptance criteria matrix
 
@@ -215,5 +225,5 @@ Additional account/security branch gate before fast-forward to `main`:
 | Full quality gate | Pass | install, typecheck, RTL, build, e2e core, packaged smoke |
 | Keep old wrapper merges out | Pass | `67ca4a4e` and `69563ec5` skipped as old merge wrappers |
 | Port isolated audit/perf value | Pass | WebUI pinch-zoom fix cherry-picked and validated with test/typecheck/build |
-| Validate product UI surfaces | Partial | 61 targeted renderer tests passed and packaged app launched; desktop click automation blocked by macOS `-1743` |
+| Validate product UI surfaces | Pass | 61 targeted renderer tests passed; packaged app launched; direct Accessibility/CGEvent UI smoke clicked composer actions, six `Опыт` routes, and account auth tabs |
 | Rebuild D budget lane cleanly | Pass | Budget files, glob static-bundle, and build-before-bundle smoke gate validated |
