@@ -44,8 +44,11 @@ export const PATH_SEP = isWindows ? '\\' : '/'
 
 /**
  * Get the last segment of a path (folder/file name).
- * Handles both Unix (/) and Windows (\) separators based on current OS.
+ * Handles both Unix (/) and Windows (\) separators because renderer paths can
+ * come from local workspaces, remote servers, or test/runtime shims.
  */
 export function getPathBasename(path: string): string {
-  return path.split(PATH_SEP).pop() || ''
+  const withoutTrailingSeparators = path.replace(/[\\/]+$/, '')
+  if (/^[A-Za-z]:$/.test(withoutTrailingSeparators)) return ''
+  return withoutTrailingSeparators.split(/[\\/]/).pop() || ''
 }
