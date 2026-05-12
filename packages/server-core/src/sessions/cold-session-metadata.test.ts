@@ -201,7 +201,11 @@ describe('cold-session metadata persistence', () => {
     const managed = (sm as unknown as { sessions: Map<string, { sessionStatus?: string }> })
       .sessions.get(sessionId)!
     managed.sessionStatus = 'cancelled'
-    ;(sm as unknown as { persistSession: (m: unknown) => void }).persistSession(managed)
+    // Reach into the SessionPersistence helper directly post-Slice-3 composition
+    // refactor — equivalent to the old `(sm as ...).persistSession(managed)` shim,
+    // but goes through the extracted helper instead of an SM-level wrapper.
+    ;(sm as unknown as { persistence: { persistSession: (m: unknown) => void } })
+      .persistence.persistSession(managed)
     await sm.flushSession(sessionId)
 
     expect(readDiskHeader(sessionId).sessionStatus).toBe('cancelled')

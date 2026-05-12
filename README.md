@@ -604,6 +604,32 @@ Logs are written to:
 - **Windows:** `%APPDATA%\@rox-agent\electron\logs\main.log`
 - **Linux:** `~/.config/@rox-agent/electron/logs/main.log`
 
+## Audit harness
+
+A static + runtime + LLM-taste + E2E defect catalog for the four user-facing UIs. Findings rank into a prioritized queue and become AGENTS.md-format ticket stubs that team executor agents drain.
+
+```bash
+# Smoke (CI-safe, single probe + single surface)
+bun run audit:smoke
+
+# Full static run across all surfaces
+bun run audit run renderer,webui,viewer,marketing --probes=static-*
+
+# Filter to a single probe
+bun run audit run renderer --probes=static-tsc
+
+# Useful flags
+#   --top-k=50         max ticket stubs created per run (default 50)
+#   --no-tickets       run probes but skip ticket generation
+#   --worker-cap=4     parallel probe-surface pairs (default 4)
+#   --out=<dir>        output dir override
+```
+
+- Output (gitignored, raw): `audits/<timestamp>/queue.json` + `queue.md` + `manifest.json` + `per-probe/*`.
+- Output (committed, agent-facing): `docs/tickets/T<N>-*.md` + `docs/audits/INDEX.md`.
+- Spec: [`docs/superpowers/specs/2026-05-09-audit-harness-design.md`](docs/superpowers/specs/2026-05-09-audit-harness-design.md).
+- Phase A.1 (this release): static probes (`tsc`, `eslint`, `bundle`). Runtime + axe-core (A.2), LLM taste (A.3), E2E user flows (A.4) ship later.
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.

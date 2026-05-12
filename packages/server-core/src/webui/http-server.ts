@@ -21,7 +21,9 @@ import {
   validateAccountSession,
   buildSessionCookie,
   buildLogoutCookie,
+  rotateAccountSessionIfStale,
 } from './auth'
+import { maskEmail } from './logging-helpers'
 import { generateCallbackPage } from '@rox-agent/shared/auth'
 import type { PlatformServices } from '../runtime/platform'
 import type { AccountStore, PublicUser, SessionIdentity } from '../accounts'
@@ -388,7 +390,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         expiresAt: token.expiresAt,
       })
     } else {
-      logger.info(`[webui] Email verification link for ${user.email}: ${redactAuthUrl(url)}`)
+      logger.info(`[webui] Email verification link for user=${user.id} (${maskEmail(user.email)}): ${redactAuthUrl(url)}`)
     }
   }
 
@@ -404,7 +406,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         expiresAt: token.expiresAt,
       })
     } else {
-      logger.info(`[webui] Password reset link for ${user.email}: ${redactAuthUrl(url)}`)
+      logger.info(`[webui] Password reset link for user=${user.id} (${maskEmail(user.email)}): ${redactAuthUrl(url)}`)
     }
   }
 
@@ -678,7 +680,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         })
         await options.bootstrapAccount?.(user)
         await sendVerificationEmail(user, req)
-        logger.info(`[webui] Registered account ${user.email} from ${ip}`)
+        logger.info(`[webui] Registered account user=${user.id} (${maskEmail(user.email)}) from ${ip}`)
         return Response.json({
           ok: true,
           verificationRequired: true,
@@ -781,7 +783,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         return Response.json({ error: 'Email verification required', code: 'email_unverified' }, { status: 403 })
       }
 
-      logger.info(`[webui] Successful account login for ${user.email} from ${ip}`)
+      logger.info(`[webui] Successful account login for user=${user.id} (${maskEmail(user.email)}) from ${ip}`)
       return issueAccountCookie(user, req, useSecureCookies)
     }
 
@@ -912,14 +914,48 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
           sessionBoundary: createLocalSessionBoundary(),
         })
       }
-      const user = await accountStore!.getUser(session.identity.userId)
-      const workspaceIds = await listAccessibleWorkspaceIds(session.identity.userId)
+      // Slice 4 hardening: rotate the underlying DB session id on a sliding
+      // window (default 15 min) so a stolen cookie ages out even when the
+      // legitimate user is active. `me` is called regularly by the UI shell,
+      // making it the natural rotation trigger.
+      //
+      // Race serialization (Slice 4 follow-up B2 — implemented):
+      // `rotateAccountSessionIfStale` now takes a per-user mutex keyed on
+      // `userId` (`withAccountRotationMutex` in `auth.ts`). Concurrent
+      // rotators for the same user are queued, so by the time the second
+      // rotator runs the first has already revoked the source session and
+      // its `getSessionIdentity` lookup returns `null`, exiting cleanly
+      // without any store mutation. The CAS-on-revoke remains as
+      // belt-and-braces for any caller that bypasses the helper.
+      //
+      // The mitigations that protected the un-serialized window remain
+      // valid as defence-in-depth:
+      //   1) Mutating endpoints re-validate the JWT on each request, so once
+      //      the browser sends the new cookie the request resolves normally.
+      //   2) Mutations are short-lived (sub-second), bounding any residual
+      //      race window to request RTT.
+      //   3) Idempotency-Key on side-effecting POSTs (per repo convention)
+      //      makes a retry-after-401 safe.
+      const rotated = await rotateAccountSessionIfStale({
+        identity: session.identity,
+        accountStore: accountStore!,
+        secret,
+        secure: useSecureCookies,
+        userAgent: req.headers.get('user-agent'),
+        ipAddress: getClientIp(req),
+      })
+      const activeIdentity = rotated?.identity ?? session.identity
+      const user = await accountStore!.getUser(activeIdentity.userId)
+      const workspaceIds = await listAccessibleWorkspaceIds(activeIdentity.userId)
+      const responseInit: ResponseInit = rotated
+        ? { headers: { 'Set-Cookie': rotated.cookie } }
+        : {}
       return Response.json({
         mode: 'account',
         user,
-        currentSessionId: session.identity.sessionId,
-        sessionBoundary: createCloudSessionBoundary(session.identity, workspaceIds),
-      })
+        currentSessionId: activeIdentity.sessionId,
+        sessionBoundary: createCloudSessionBoundary(activeIdentity, workspaceIds),
+      }, responseInit)
     }
 
     if (path === '/api/account/me' && req.method === 'PATCH') {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import { randomUUID } from 'node:crypto'
 import { createWebuiHandler, type WebuiHandler } from '../http-server'
-import type { AccountSession, AccountStore, CreateAccountSessionInput, CreateEmailTokenInput, CreateUserInput, EmailTokenPurpose, PublicUser, SessionIdentity } from '../../accounts'
+import type { AccountSession, AccountStore, CreateAccountSessionInput, CreateEmailTokenInput, CreateUserInput, EmailTokenPurpose, PublicUser, RevokeSessionResult, SessionIdentity } from '../../accounts'
 import { AccountAuthError, AccountConflictError } from '../../accounts'
 import type { AccountEmailInput, AccountEmailService } from '../email'
 import { InMemoryAccountUsageLedger } from '../account-ledger'
@@ -89,9 +89,12 @@ class MemoryAccountStore implements AccountStore {
     )
   }
 
-  async revokeSession(sessionId: string): Promise<void> {
+  async revokeSession(sessionId: string): Promise<RevokeSessionResult> {
     const session = this.sessions.get(sessionId)
-    if (session) this.sessions.set(sessionId, { ...session, revokedAt: new Date().toISOString() })
+    if (!session) return { revoked: false, sessionId: null }
+    if (session.revokedAt) return { revoked: false, sessionId }
+    this.sessions.set(sessionId, { ...session, revokedAt: new Date().toISOString() })
+    return { revoked: true, sessionId }
   }
 
   async revokeUserSessions(userId: string): Promise<void> {

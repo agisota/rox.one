@@ -41,7 +41,15 @@ import 'react-pdf/dist/Page/TextLayer.css'
 
 // Configure pdf.js worker using Vite's ?url import for cross-platform dev/prod compatibility
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
-pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker
+// Worker is initialised inside the component to avoid a module-level side
+// effect that prevents tree-shaking / lazy-split of react-pdf.
+let _workerConfigured = false
+function ensurePdfjsWorker() {
+  if (!_workerConfigured) {
+    pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker
+    _workerConfigured = true
+  }
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -82,6 +90,7 @@ export interface MarkdownPdfBlockProps {
 }
 
 export function MarkdownPdfBlock({ code, className, onCreateRegionAnnotation: _onCreateRegionAnnotation }: MarkdownPdfBlockProps) {
+  ensurePdfjsWorker()
   const { t } = useTranslation()
   const { onReadFileBinary } = usePlatform()
 

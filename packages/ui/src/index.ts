@@ -205,7 +205,6 @@ export {
   DataTableOverlay,
   DocumentFormattedMarkdownOverlay,
   ImagePreviewOverlay,
-  PDFPreviewOverlay,
   detectLanguage,
   detectLanguageFromPath,
   type CodePreviewOverlayProps,
@@ -218,7 +217,6 @@ export {
   type DataTableOverlayProps,
   type DocumentFormattedMarkdownOverlayProps,
   type ImagePreviewOverlayProps,
-  type PDFPreviewOverlayProps,
   ActivityCardsOverlay,
   type ActivityCardsOverlayProps,
 } from './components/overlay'

@@ -2,7 +2,7 @@ import { writeFileSync, readFileSync, unlinkSync, existsSync } from 'node:fs'
 import { uptime as osUptime } from 'node:os'
 import { join } from 'node:path'
 import { OAuthFlowStore } from '@rox-agent/shared/auth'
-import { ensureConfigDir, loadStoredConfig, saveConfig } from '@rox-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, ensureConfigDir, loadStoredConfig, saveConfig } from '@rox-agent/shared/config'
 import { CONFIG_DIR } from '@rox-agent/shared/config/paths'
 import { setBundledAssetsRoot } from '@rox-agent/shared/utils'
 import { WsRpcServer, type WsRpcTlsOptions } from '../transport/server'
@@ -229,22 +229,26 @@ export function releaseServerLock(): void {
 // ---------------------------------------------------------------------------
 
 function bootstrapConfigArtifacts(platform: PlatformServices): void {
-  ensureConfigDir()
+  // canonical single-user scope; see ADR 0005
+  ensureConfigDir(DEFAULT_LOCAL_SCOPE)
   platform.logger.info('[bootstrap] Config artifacts initialized')
 }
 
 function ensureGlobalConfigExists(platform: PlatformServices): void {
-  const config = loadStoredConfig()
+  const config = loadStoredConfig(DEFAULT_LOCAL_SCOPE)
   if (config) {
     platform.logger.info('[bootstrap] Global config found')
     return
   }
 
-  saveConfig({
-    workspaces: [],
-    activeWorkspaceId: null,
-    activeSessionId: null,
-  })
+  saveConfig(
+    {
+      workspaces: [],
+      activeWorkspaceId: null,
+      activeSessionId: null,
+    },
+    DEFAULT_LOCAL_SCOPE,
+  )
   platform.logger.info('[bootstrap] Initialized missing global config')
 }
 

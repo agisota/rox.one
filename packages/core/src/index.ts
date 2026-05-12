@@ -13,3 +13,6 @@ export * from './types/index.ts';
 
 // Re-export utilities
 export * from './utils/index.ts';
+
+// Re-export runtime contract anchors
+export * from './runtime/index.ts';

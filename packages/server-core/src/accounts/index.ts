@@ -10,6 +10,7 @@ export type {
   CreateUserInput,
   EmailTokenPurpose,
   PublicUser,
+  RevokeSessionResult,
   SessionIdentity,
 } from './types'
 export { AccountAuthError, AccountConflictError } from './types'

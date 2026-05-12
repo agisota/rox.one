@@ -78,3 +78,7 @@ credentials.enc
 # act (local GitHub Actions runner)
 .secrets
 .actrc
+
+# Audit harness raw run artifacts (committed: docs/tickets, docs/audits/INDEX.md only)
+/audits/
+!docs/audits/

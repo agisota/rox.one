@@ -1,5 +1,5 @@
 import { RPC_CHANNELS, type LlmConnectionSetup } from '@rox-agent/shared/protocol'
-import { getLlmConnections, getLlmConnection, addLlmConnection, updateLlmConnection, deleteLlmConnection, getDefaultLlmConnection, setDefaultLlmConnection, touchLlmConnection, isCompatProvider, isAnthropicProvider, getDefaultModelsForConnection, getDefaultModelForConnection, type LlmConnection, type LlmConnectionWithStatus, toBedrockNativeId, deriveBedrockRegionPrefix } from '@rox-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, getLlmConnections, getLlmConnection, addLlmConnection, updateLlmConnection, deleteLlmConnection, getDefaultLlmConnection, setDefaultLlmConnection, touchLlmConnection, isCompatProvider, isAnthropicProvider, getDefaultModelsForConnection, getDefaultModelForConnection, type LlmConnection, type LlmConnectionWithStatus, toBedrockNativeId, deriveBedrockRegionPrefix } from '@rox-agent/shared/config'
 import { getCredentialManager } from '@rox-agent/shared/credentials'
 import { setSetupDeferred } from '@rox-agent/shared/config/storage'
 import {
@@ -63,7 +63,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
       }
 
       // Ensure connection exists in config
-      let connection = getLlmConnection(setup.slug)
+      let connection = getLlmConnection(setup.slug, DEFAULT_LOCAL_SCOPE)
       let isNewConnection = false
       if (!connection) {
         // Reauth guard: if updateOnly is set, the connection must already exist.
@@ -223,14 +223,14 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
       }
 
       if (isNewConnection) {
-        const added = addLlmConnection(pendingConnection)
+        const added = addLlmConnection(pendingConnection, DEFAULT_LOCAL_SCOPE)
         if (!added) {
           deps.platform.logger?.error(`Failed to persist LLM connection: ${setup.slug} (config may be inaccessible)`)
           return { success: false, error: 'Failed to save connection. Check server logs for details.' }
         }
         deps.platform.logger?.info(`Created LLM connection: ${setup.slug}`)
       } else if (Object.keys(updates).length > 0) {
-        const updated = updateLlmConnection(setup.slug, updates)
+        const updated = updateLlmConnection(setup.slug, updates, DEFAULT_LOCAL_SCOPE)
         if (!updated) {
           deps.platform.logger?.error(`Failed to update LLM connection: ${setup.slug}`)
           return { success: false, error: 'Failed to update connection. Check server logs for details.' }
@@ -261,8 +261,8 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
       }
 
       // Set as default only if no default exists yet (first connection)
-      if (!getDefaultLlmConnection()) {
-        setDefaultLlmConnection(setup.slug)
+      if (!getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE)) {
+        setDefaultLlmConnection(setup.slug, DEFAULT_LOCAL_SCOPE)
         deps.platform.logger?.info(`Set default LLM connection: ${setup.slug}`)
       }
 
@@ -288,7 +288,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
       deps.platform.logger?.info('Reinitialized auth after LLM connection setup')
 
       // Clear "Setup later" flag now that user has configured a provider
-      setSetupDeferred(false)
+      setSetupDeferred(false, DEFAULT_LOCAL_SCOPE)
 
       return { success: true }
     } catch (error) {
@@ -423,15 +423,15 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   // List all LLM connections (includes built-in and custom)
   server.handle(RPC_CHANNELS.llmConnections.LIST, async (ctx): Promise<LlmConnection[]> => {
     requireAdmin(deps, ctx)
-    return getLlmConnections()
+    return getLlmConnections(DEFAULT_LOCAL_SCOPE)
   })
 
   // List all LLM connections with authentication status
   server.handle(RPC_CHANNELS.llmConnections.LIST_WITH_STATUS, async (ctx): Promise<LlmConnectionWithStatus[]> => {
     requireAdmin(deps, ctx)
-    const connections = getLlmConnections()
+    const connections = getLlmConnections(DEFAULT_LOCAL_SCOPE)
     const credentialManager = getCredentialManager()
-    const defaultSlug = getDefaultLlmConnection()
+    const defaultSlug = getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE)
 
     return Promise.all(connections.map(async (conn): Promise<LlmConnectionWithStatus> => {
       // Check if credentials exist for this connection
@@ -447,7 +447,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   // Get a specific LLM connection by slug
   server.handle(RPC_CHANNELS.llmConnections.GET, async (ctx, slug: string): Promise<LlmConnection | null> => {
     requireAdmin(deps, ctx)
-    return getLlmConnection(slug)
+    return getLlmConnection(slug, DEFAULT_LOCAL_SCOPE)
   })
 
   // Get stored API key for an LLM connection (masked — for edit form display only)
@@ -477,17 +477,17 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
       }
 
       // Check if this is an update or create
-      const existing = getLlmConnection(connection.slug)
+      const existing = getLlmConnection(connection.slug, DEFAULT_LOCAL_SCOPE)
       if (existing) {
         // Update existing connection (can't change slug)
         const { slug: _slug, ...updates } = connection
-        const success = updateLlmConnection(connection.slug, updates)
+        const success = updateLlmConnection(connection.slug, updates, DEFAULT_LOCAL_SCOPE)
         if (!success) {
           return { success: false, error: 'Failed to update connection' }
         }
       } else {
         // Create new connection
-        const success = addLlmConnection(connection)
+        const success = addLlmConnection(connection, DEFAULT_LOCAL_SCOPE)
         if (!success) {
           return { success: false, error: 'Connection with this slug already exists' }
         }
@@ -506,7 +506,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
       })
       // Reinitialize auth if the saved connection is the current default
       // (updates env vars and summarization model override)
-      const defaultSlug = getDefaultLlmConnection()
+      const defaultSlug = getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE)
       if (defaultSlug === connection.slug) {
         await sessionManager.reinitializeAuth()
       }
@@ -521,12 +521,12 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   server.handle(RPC_CHANNELS.llmConnections.DELETE, async (ctx, slug: string): Promise<{ success: boolean; error?: string }> => {
     requireAdmin(deps, ctx)
     try {
-      const connection = getLlmConnection(slug)
+      const connection = getLlmConnection(slug, DEFAULT_LOCAL_SCOPE)
       if (!connection) {
         return { success: false, error: 'Connection not found' }
       }
       // deleteLlmConnection handles the "at least one must remain" check
-      const success = deleteLlmConnection(slug)
+      const success = deleteLlmConnection(slug, DEFAULT_LOCAL_SCOPE)
       if (success) {
         // Stop any periodic model refresh timer for this connection
         getModelRefreshService().stopConnection(slug)
@@ -555,7 +555,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
         return { success: false, error: result.error }
       }
 
-      touchLlmConnection(slug)
+      touchLlmConnection(slug, DEFAULT_LOCAL_SCOPE)
 
       if (result.shouldRefreshModels) {
         getModelRefreshService().refreshNow(slug).catch(err => {
@@ -577,7 +577,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   server.handle(RPC_CHANNELS.llmConnections.SET_DEFAULT, async (ctx, slug: string): Promise<{ success: boolean; error?: string }> => {
     requireAdmin(deps, ctx)
     try {
-      const success = setDefaultLlmConnection(slug)
+      const success = setDefaultLlmConnection(slug, DEFAULT_LOCAL_SCOPE)
       if (success) {
         deps.platform.logger?.info(`Global default LLM connection set to: ${slug}`)
         // Reinitialize auth so env vars and summarization model override match the new default
@@ -598,7 +598,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
 
       // Validate connection exists if setting (not clearing)
       if (slug) {
-        const connection = getLlmConnection(slug)
+        const connection = getLlmConnection(slug, DEFAULT_LOCAL_SCOPE)
         if (!connection) {
           return { success: false, error: 'Connection not found' }
         }
@@ -631,7 +631,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   server.handle(RPC_CHANNELS.llmConnections.REFRESH_MODELS, async (ctx, slug: string): Promise<{ success: boolean; error?: string }> => {
     requireAdmin(deps, ctx)
     try {
-      const connection = getLlmConnection(slug)
+      const connection = getLlmConnection(slug, DEFAULT_LOCAL_SCOPE)
       if (!connection) {
         return { success: false, error: 'Connection not found' }
       }
