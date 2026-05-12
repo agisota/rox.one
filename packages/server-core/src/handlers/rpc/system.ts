@@ -3,7 +3,7 @@ import { join } from 'path'
 import { homedir } from 'os'
 import { execSync } from 'child_process'
 import { RPC_CHANNELS } from '@craft-agent/shared/protocol'
-import { getWorkspaceByNameOrId, getGitBashPath, setGitBashPath, clearGitBashPath } from '@craft-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, getWorkspaceByNameOrId, getGitBashPath, setGitBashPath, clearGitBashPath } from '@craft-agent/shared/config'
 import { isSafeExternalUrl } from '@craft-agent/shared/utils/url-safety'
 import { isUsableGitBashPath, validateGitBashPath } from '@craft-agent/server-core/services'
 import { validateFilePath, getWorkspaceAllowedDirs } from '@craft-agent/server-core/handlers'
@@ -135,7 +135,7 @@ function parseInternalCraftAgentsDeepLink(parsed: URL): ParsedInternalDeepLink |
 
 /** Guard: reject filesystem-path actions on remote workspaces where local paths are meaningless. */
 function assertLocalWorkspace(ctx: { workspaceId: string | null }, action: string): void {
-  const ws = getWorkspaceByNameOrId(ctx.workspaceId ?? '')
+  const ws = getWorkspaceByNameOrId(ctx.workspaceId ?? '', DEFAULT_LOCAL_SCOPE)
   if (ws?.remoteServer) {
     throw new Error(`${action} is not available for remote workspaces`)
   }
@@ -209,19 +209,19 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       join(process.env.PROGRAMFILES || '', 'Git', 'bin', 'bash.exe'),
     ]
 
-    const persistedPath = getGitBashPath()
+    const persistedPath = getGitBashPath(DEFAULT_LOCAL_SCOPE)
     if (persistedPath) {
       if (await isUsableGitBashPath(persistedPath)) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH = persistedPath.trim()
         return { found: true, path: persistedPath, platform }
       }
-      clearGitBashPath()
+      clearGitBashPath(DEFAULT_LOCAL_SCOPE)
     }
 
     for (const bashPath of commonPaths) {
       if (await isUsableGitBashPath(bashPath)) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH = bashPath
-        setGitBashPath(bashPath)
+        setGitBashPath(bashPath, DEFAULT_LOCAL_SCOPE)
         return { found: true, path: bashPath, platform }
       }
     }
@@ -235,7 +235,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       const firstPath = result.split('\n')[0]?.trim()
       if (firstPath && firstPath.toLowerCase().includes('git') && await isUsableGitBashPath(firstPath)) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH = firstPath
-        setGitBashPath(firstPath)
+        setGitBashPath(firstPath, DEFAULT_LOCAL_SCOPE)
         return { found: true, path: firstPath, platform }
       }
     } catch {
@@ -267,7 +267,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       return { success: false, error: validation.error }
     }
 
-    setGitBashPath(validation.path)
+    setGitBashPath(validation.path, DEFAULT_LOCAL_SCOPE)
     process.env.CLAUDE_CODE_GIT_BASH_PATH = validation.path
     return { success: true }
   })

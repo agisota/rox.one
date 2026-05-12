@@ -96,3 +96,116 @@ No production build change. Test-only commit. No new production dependency added
 | Architect recommendation #4 from PR-B2 closed | PASS | `ecf7a9a` — `WorkingDirectoryBadge` now covered by RTL tests |
 | `bun run test:rtl` green (51 pass + 1 todo) | PASS | Test run output above |
 | Commit created | PASS | `ecf7a9a` — `test(composer): RTL coverage for WorkingDirectoryBadge in FreeFormInput [T197]` |
+
+## 2026-05-12 addendum - build unblock
+
+## 1. Task summary
+
+Unblock the current app build after `origin/main` fast-forward by fixing the T197 RTL regression where the working-directory badge exposed `/home/test/my-project` instead of `my-project`.
+
+## 2. Repo context discovered
+
+- `FreeFormInput.tsx` already passes `folderName` into `FreeFormInputContextBadge`.
+- `folderName` comes from `getPathBasename` in `apps/electron/src/renderer/lib/platform.ts`.
+- `getPathBasename` split paths only on the renderer platform separator (`PATH_SEP`). In the Vitest/happy-dom runtime this can treat a Unix path as a non-native path and return the full path.
+- Renderer working-directory paths can come from local workspaces, remote servers, and test/runtime shims, so basename extraction should tolerate both `/` and `\`.
+
+## 3. Files inspected
+
+- `apps/electron/src/renderer/components/app-shell/input/FreeFormInput.tsx`
+- `apps/electron/src/renderer/components/app-shell/input/FreeFormInputContextBadge.tsx`
+- `apps/electron/src/renderer/components/app-shell/input/__tests__/freeform-input.working-dir.rtl.test.tsx`
+- `apps/electron/src/renderer/lib/platform.ts`
+- `scripts/electron-dist-dev-mac-arm64.ts`
+- `scripts/validate-packaged-artifacts.ts`
+- `scripts/electron-smoke-packaged-mac.ts`
+
+## 4. Tests added first
+
+- Added `apps/electron/src/renderer/lib/__tests__/platform.test.ts`.
+- Covered Unix-style and Windows-style paths, including trailing separators.
+- Existing T197 RTL test was already failing first and reproduced the user-visible blocker.
+
+## 5. Expected failing test output
+
+Before the fix:
+
+```text
+FreeFormInput WorkingDirectoryBadge [T197] > renders the folder basename when workingDirectory is set
+Unable to find role="button" and name "my-project"
+actual aria-label="/home/test/my-project"
+```
+
+## 6. Implementation changes
+
+- Updated `getPathBasename` to split on both Unix and Windows separators.
+- Strips trailing separators before extracting the final segment.
+- Preserves root/drive-root fallback behavior by returning an empty basename for `C:`.
+
+## 7. Validation commands run
+
+```bash
+bun test apps/electron/src/renderer/lib/__tests__/platform.test.ts
+bun run test:rtl -- src/renderer/components/app-shell/input/__tests__/freeform-input.working-dir.rtl.test.tsx
+bun run test:rtl
+bun run typecheck:all
+bun run build
+bun run electron:dist:dev:mac:arm64
+bun run validate:packaged-artifacts
+bun run electron:smoke:packaged:mac
+```
+
+## 8. Passing test output summary
+
+```text
+bun test apps/electron/src/renderer/lib/__tests__/platform.test.ts
+2 pass, 0 fail
+
+bun run test:rtl -- src/renderer/components/app-shell/input/__tests__/freeform-input.working-dir.rtl.test.tsx
+Test Files 1 passed; Tests 5 passed
+
+bun run test:rtl
+Test Files 8 passed; Tests 52 passed
+
+bun run typecheck:all
+exit code 0
+```
+
+## 9. Build output summary
+
+```text
+bun run build
+main/preload/renderer/resources/assets built successfully
+
+bun run electron:dist:dev:mac:arm64
+release/ROX-ONE-arm64.dmg
+release/ROX-ONE-arm64.zip
+release/mac-arm64/ROX.ONE.app
+
+bun run validate:packaged-artifacts
+ROX-ONE-arm64.dmg :: 339058321 bytes
+ROX-ONE-arm64.zip :: 327511523 bytes
+latest-mac.yml artifact references verified
+
+bun run electron:smoke:packaged:mac
+[packaged-smoke] ROX.ONE packaged headless startup passed
+```
+
+## 10. Remaining risks
+
+- The packaged build is ad-hoc signed and not notarized because this was the dev Mac ARM artifact path with `CSC_IDENTITY_AUTO_DISCOVERY=false`.
+- Vite still reports large chunk warnings; they are pre-existing bundle-size warnings and did not fail the build.
+- The repository still has ignored build outputs under `apps/electron/dist/`, `apps/electron/release/`, `.build/`, and `.cache/`; they are intentionally not tracked in this source commit.
+
+## 11. Acceptance criteria matrix
+
+| Criterion | Status | Evidence |
+| --- | --- | --- |
+| T197 RTL regression fixed | PASS | `bun run test:rtl -- ...working-dir.rtl.test.tsx` -> 5 passed |
+| Cross-platform basename helper covered | PASS | `platform.test.ts` -> 2 passed |
+| Full RTL suite green | PASS | `bun run test:rtl` -> 52 passed |
+| Typecheck green | PASS | `bun run typecheck:all` -> exit 0 |
+| Electron build green | PASS | `bun run build` -> exit 0 |
+| Mac ARM artifacts rebuilt | PASS | `ROX-ONE-arm64.dmg` 339058321 bytes; `ROX-ONE-arm64.zip` 327511523 bytes |
+| Packaged artifact metadata valid | PASS | `bun run validate:packaged-artifacts` -> latest-mac.yml references verified |
+| Packaged app smoke tested | PASS | `bun run electron:smoke:packaged:mac` -> packaged headless startup passed |

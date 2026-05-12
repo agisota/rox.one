@@ -226,6 +226,49 @@ export abstract class BaseAgent implements AgentBackend {
     return pending;
   }
 
+  /**
+   * Source-activation auto-restart sequencer.
+   *
+   * Both ClaudeAgent and PiAgent need the exact same handshake after each
+   * `tool_result`: if a session-scoped tool (source_test) successfully
+   * activated a new source mid-turn, yield a `source_activated` event,
+   * forceAbort with `AbortReason.SourceActivated`, and stop the generator
+   * so the renderer's auto_retry effect resends the user's message.
+   *
+   * The duplicated block in each backend was identical except for which
+   * debug hook it called (`onDebug?.()` vs `debug()`). This helper unifies
+   * the sequencing and signals the caller via its return value:
+   *
+   *     for await (const event of stream) {
+   *       yield event;
+   *       const sourceActivated = yield* this.maybeYieldSourceActivationRestart(event);
+   *       if (sourceActivated) return;
+   *     }
+   *
+   * The helper is a delegating generator: callers must use `yield*` so the
+   * `source_activated` event reaches downstream consumers in turn order.
+   *
+   * Returns `true` when an activation was consumed and the caller MUST
+   * `return` to end the turn; `false` when there was no pending restart and
+   * the caller should keep iterating.
+   */
+  protected *maybeYieldSourceActivationRestart(event: AgentEvent): Generator<AgentEvent, boolean> {
+    if (event.type !== 'tool_result') return false;
+    const pendingRestart = this.consumePendingSourceActivationRestart();
+    if (!pendingRestart) return false;
+
+    this.onDebug?.(
+      `source_test activated "${pendingRestart.sourceSlug}", interrupting turn for auto-retry`,
+    );
+    yield {
+      type: 'source_activated' as const,
+      sourceSlug: pendingRestart.sourceSlug,
+      originalMessage: pendingRestart.userMessage,
+    };
+    this.forceAbort(AbortReason.SourceActivated);
+    return true;
+  }
+
   getCurrentTurnUserMessage(): string | null {
     return this._currentTurnUserMessage;
   }

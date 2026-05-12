@@ -1527,6 +1527,8 @@
   "workbench.toolbar.actionsAriaLabel": "Prompt workflow actions",
   "workbench.toolbar.mode": "Workflow",
   "workbench.toolbar.modeAriaLabel": "Product workflow",
+  "workbench.toolbar.moreActions": "More",
+  "workbench.toolbar.moreActionsAriaLabel": "More prompt workflow actions",
   "workspace.addWorkspace": "Munkaterület hozzáadása…",
   "workspace.addWorkspaceDesc": "Ahol az ötleteid találkoznak a megvalósításhoz szükséges eszközökkel.",
   "workspace.chooseExistingFolder": "Meglévő mappa kiválasztása",

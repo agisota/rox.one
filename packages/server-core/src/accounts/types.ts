@@ -58,6 +58,22 @@ export interface CreatedEmailToken {
   expiresAt: string
 }
 
+/**
+ * Outcome of a {@link AccountStore.revokeSession} call.
+ *
+ * `revoked` is `true` exactly when the call transitioned the row from active
+ * to revoked. Concurrent callers therefore see at most one `revoked: true`,
+ * making it safe to use as a compare-and-swap gate before minting a
+ * replacement session (Slice 4 atomic rotation).
+ *
+ * `sessionId` echoes the input session id when the row existed at all, and
+ * `null` when no such session was found (e.g. already deleted).
+ */
+export interface RevokeSessionResult {
+  revoked: boolean
+  sessionId: string | null
+}
+
 export interface AccountStore {
   migrate(): Promise<void>
   getUserCount(): Promise<number>
@@ -67,7 +83,13 @@ export interface AccountStore {
   createSession(input: CreateAccountSessionInput): Promise<AccountSession>
   getSessionIdentity(sessionId: string): Promise<SessionIdentity | null>
   listSessions(userId: string): Promise<AccountSession[]>
-  revokeSession(sessionId: string): Promise<void>
+  /**
+   * Revoke a session by compare-and-swap. Returns `{ revoked: true }` only on
+   * the call that actually transitions the row from active to revoked, so
+   * concurrent rotators can safely gate replacement-session creation on this
+   * boolean (Slice 4 atomic rotation).
+   */
+  revokeSession(sessionId: string): Promise<RevokeSessionResult>
   revokeUserSessions(userId: string): Promise<void>
   revokeOtherSessions(userId: string, currentSessionId: string): Promise<void>
   getUser(userId: string): Promise<PublicUser | null>

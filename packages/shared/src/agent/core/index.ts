@@ -146,3 +146,13 @@ export type {
 
 // Re-export skill plugin constant (used by renderer for mention qualification)
 export { AGENTS_PLUGIN_NAME } from '../../skills/types.ts';
+
+// Pending Request Map (RPC bookkeeping utility)
+export { PendingRequestMap } from './pending-request-map.ts';
+
+// Backend Stderr Buffer (consecutive-identical-error suppression)
+export {
+  BackendStderrBuffer,
+  type BackendStderrBufferOptions,
+  type StderrBufferDecision,
+} from './backend-stderr-buffer.ts';

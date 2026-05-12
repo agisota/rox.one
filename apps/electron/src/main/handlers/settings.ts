@@ -1,4 +1,5 @@
 import { RPC_CHANNELS } from '@craft-agent/shared/protocol'
+import { DEFAULT_LOCAL_SCOPE } from '@craft-agent/shared/config'
 import type { RpcServer } from '@craft-agent/server-core/transport'
 import type { HandlerDeps } from './handler-deps'
 
@@ -17,7 +18,7 @@ export function registerSettingsGuiHandlers(server: RpcServer, _deps: HandlerDep
     const { setKeepAwakeWhileRunning } = await import('@craft-agent/shared/config/storage')
     const { setKeepAwakeSetting } = await import('../power-manager')
     // Save to config
-    setKeepAwakeWhileRunning(enabled)
+    setKeepAwakeWhileRunning(enabled, DEFAULT_LOCAL_SCOPE)
     // Update the power manager's cached value and power state
     setKeepAwakeSetting(enabled)
   })

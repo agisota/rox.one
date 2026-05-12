@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "audit/finding.schema.json",
+  "title": "Finding",
+  "type": "object",
+  "required": ["schemaVersion", "id", "probe", "surface", "phase", "severity", "rule", "location", "message", "confidence", "vdiImpact", "firstSeen", "lastSeen"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+    "probe": { "type": "string", "minLength": 1 },
+    "surface": { "enum": ["renderer", "webui", "viewer", "marketing"] },
+    "phase": { "enum": ["A.1", "A.2", "A.3", "A.4"] },
+    "severity": { "enum": ["critical", "high", "medium", "low"] },
+    "rule": { "type": "string", "minLength": 1 },
+    "location": {
+      "type": "object",
+      "required": ["file"],
+      "properties": {
+        "file": { "type": "string" },
+        "line": { "type": "integer", "minimum": 0 },
+        "column": { "type": "integer", "minimum": 0 },
+        "selector": { "type": "string" },
+        "route": { "type": "string" }
+      }
+    },
+    "message": { "type": "string" },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "screenshot": { "type": "string" },
+        "codeSnippet": { "type": "string" },
+        "consoleLog": { "type": "string" }
+      }
+    },
+    "suggestedFix": { "type": "string" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "vdiImpact": {
+      "type": "object",
+      "required": ["quality", "risk", "readiness"],
+      "properties": {
+        "quality": { "type": "number", "minimum": 0, "maximum": 1 },
+        "risk": { "type": "number", "minimum": 0, "maximum": 1 },
+        "readiness": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "firstSeen": { "type": "string", "format": "date-time" },
+    "lastSeen": { "type": "string", "format": "date-time" }
+  }
+}
