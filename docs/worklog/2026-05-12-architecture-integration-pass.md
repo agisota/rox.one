@@ -12,6 +12,8 @@ Final local `main` after account/security landing: `83130f3d`
 
 Final code integration commit after the audit/perf extraction pass: `f6e7a343`
 
+Final audit/perf clean-stack branch: `integration/2026-05-12-audit-perf-clean-stack`
+
 ## Repo context discovered
 
 - Current `main` already contains the safe PR pack from the earlier integration pass.
@@ -23,6 +25,7 @@ Final code integration commit after the audit/perf extraction pass: `f6e7a343`
 - PR #19/#25 account/security chain was first held separate on `integration/2026-05-12-account-security-series`, then replayed onto the validated architecture `main` as `integration/2026-05-12-main-plus-account-security`.
 - Audit/perf PRs #2-#10/#23 remain conflicting or mixed and were not blind-merged.
 - The only audit/perf patch clean enough to port independently was the WCAG viewport fix from #5/#7 lineage commit `d565232d`.
+- After the first integration pass, the D budget lane was rebuilt as a clean stack from the conflicting audit/perf branches because it applied cleanly and could be validated without Playwright/LLM runtime dependencies.
 
 ## Integrated items
 
@@ -39,6 +42,13 @@ Final code integration commit after the audit/perf extraction pass: `f6e7a343`
 - #26: cherry-picked cleanly.
 - #19/#25: cherry-picked onto the validated architecture `main` through `integration/2026-05-12-main-plus-account-security`, then fast-forwarded into local `main` after targeted and full-gate checks passed.
 - #5/#7 lineage: cherry-picked only `d565232d` (`fix(webui): allow pinch-to-zoom`) because it was isolated, had a focused test, and did not depend on the dirty audit runtime stack.
+- D budget lane clean-stack:
+  - `a04fce29`: add `budget.json` files for user-facing surfaces.
+  - `5acdd8ac`: add glob pattern support to `static-bundle`.
+  - `8e6d262f`: make `audit:smoke` PATH-portable through `scripts/audit-smoke.sh`.
+  - `e8f575ce`: extend `audit-smoke.sh` with static-bundle gate.
+  - `928edb89`: build surfaces before bundle gates.
+  - `c836fc13`: extend bundle gates to viewer and marketing.
 
 ## Account/security follow-up
 
@@ -74,19 +84,26 @@ Findings:
 - #1 static audit package is already present from the safe integration pack.
 - #10's actual PNG optimization is already present: both `apps/electron/src/renderer/assets/pzdrk.png` and `apps/marketing/src/assets/pzdrk.png` are 146720 bytes, and build output reports the optimized `pzdrk` asset at 146.72 kB. The branch itself was not merged because it carries the dirty D/audit stack.
 - #2/#3/#4/#8/#9/#23 depend on audit runtime harness files that are not present in current `packages/audit`; these need a clean rebuild/rebase rather than cherry-picking into current `main`.
-- #5/#7 contain budget and smoke-script work coupled to missing `scripts/audit-smoke.sh` / budget infrastructure, so the branches were held.
+- #5/#7 originally contained budget and smoke-script work coupled to missing `scripts/audit-smoke.sh` / budget infrastructure; the D budget subset was later rebuilt as a clean stack and validated.
 - `d565232d` was cleanly cherry-picked because it only updates the WebUI viewport policy and adds a direct regression test.
 
 Cherry-picked audit/perf commit:
 
 - `d565232d`: `fix(webui): allow pinch-to-zoom (WCAG 2.2 1.4.4)` -> landed locally as `f6e7a343`.
 
+Clean-stack audit/perf subset:
+
+- Budget files and static-bundle glob support were ported from the D lineage.
+- `scripts/audit-smoke.sh` now runs static-tsc plus static-bundle gates for webui, viewer, and marketing after building each surface.
+- Electron budget remains a placeholder and is excluded from the smoke script because the current branch has no matching Vite dist bundle for `apps/electron/budget.json`.
+
 ## Rejected / held items
 
 - #14: do not merge; use #22 instead.
 - #15 as a whole branch: do not merge blindly; it carries unrelated audit/perf history and destructive deltas against safe-pack work.
 - #19/#25 old branch shape: do not merge the branch object directly; use the replayed `integration/2026-05-12-main-plus-account-security` shape already landed into local `main`.
-- #2/#3/#4/#5/#6/#7/#8/#9/#10/#23: conflicting audit/perf set; do not blind merge. Only the isolated WebUI viewport fix was ported; the remaining runtime/budget/LLM audit work needs a clean stack on top of current `main`.
+- #2/#3/#4/#6/#8/#9/#23: conflicting runtime/route/LLM audit set; do not blind merge. Remaining runtime audit work needs a clean stack on top of current `main`.
+- A.2/A.4/A.3 runtime/route/LLM branches: still held because they add Playwright lifecycle, route crawling, dev-server orchestration, and Anthropic SDK taste pass together with old-base history.
 
 ## Files inspected / touched by integration
 
@@ -100,6 +117,10 @@ Cherry-picked audit/perf commit:
 - `packages/server-core/src/webui/**`
 - `apps/webui/src/index.html`
 - `apps/webui/tests/index-html.test.ts`
+- `apps/*/budget.json`
+- `packages/audit/src/probes/static-bundle.ts`
+- `packages/audit/tests/probes/static-bundle.test.ts`
+- `scripts/audit-smoke.sh`
 - `apps/electron/src/main/**`
 - `docs/decision-records/audit-harness/**`
 
@@ -131,6 +152,9 @@ Resolution:
 - `bun test apps/electron/src/renderer/components/workbench/__tests__/workbench-route-page.test.tsx apps/electron/src/renderer/components/workbench/__tests__/experience-screens-localization.test.tsx apps/electron/src/renderer/components/workbench/__tests__/deep-missions-screen.test.tsx apps/electron/src/renderer/components/workbench/__tests__/mission-control-run-detail.test.tsx apps/electron/src/renderer/components/workbench/__tests__/arena-builder-screen.test.tsx apps/electron/src/renderer/components/workbench/__tests__/experience-real-state-binding.test.tsx apps/electron/src/renderer/components/workbench/__tests__/experience-global-hud.test.tsx apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-flow.test.ts apps/electron/src/renderer/pages/settings/__tests__/account-auth-panel.test.tsx`
 - `open apps/electron/release/mac-arm64/ROX.ONE.app`
 - `pgrep -fl 'ROX.ONE|Electron|Craft'`
+- `bun test packages/audit/tests/probes/static-bundle.test.ts packages/audit/tests/cli.test.ts packages/audit/tests/reporters/json-queue.test.ts`
+- `cd packages/audit && bun run tsc --noEmit`
+- `bun run audit:smoke`
 
 Targeted checks also run during integration:
 
@@ -143,6 +167,9 @@ Targeted checks also run during integration:
 - WebUI viewport regression test after audit/perf cherry-pick: 1 pass.
 - UI surface targeted test after final evidence commit: 61 pass across 10 files covering six Experience tabs, demo sessions/action metadata, account auth tabs, and composer artifact/quick-action routing.
 - Packaged app launch proof: `open apps/electron/release/mac-arm64/ROX.ONE.app` started `ROX.ONE` plus GPU/network/renderer helper processes.
+- Audit/perf D clean-stack targeted tests: 16 pass across static-bundle, CLI, and JSON queue reporter tests.
+- Audit package typecheck: passed.
+- `audit:smoke`: passed; static-tsc plus webui/viewer/marketing static-bundle gates produced 0 findings after building each gated surface.
 
 ## Passing output summary
 
@@ -166,11 +193,14 @@ Additional account/security branch gate before fast-forward to `main`:
 - `bun run webui:build`: passed; retained existing large chunk warnings and emitted the optimized `pzdrk` asset at 146.72 kB.
 - Targeted UI surface tests: 61 tests passed, 0 failed, 673 expectations across Experience, account auth, and composer artifact routing files.
 - Packaged `ROX.ONE.app`: process tree is running from `apps/electron/release/mac-arm64/ROX.ONE.app/Contents/MacOS/ROX.ONE`.
+- `bun test packages/audit/tests/probes/static-bundle.test.ts packages/audit/tests/cli.test.ts packages/audit/tests/reporters/json-queue.test.ts`: 16 tests passed, 0 failed.
+- `cd packages/audit && bun run tsc --noEmit`: passed.
+- `bun run audit:smoke`: passed with 0 findings across static-tsc, webui static-bundle, viewer static-bundle, and marketing static-bundle.
 
 ## Remaining risks
 
 - The result is local only; no push or PR creation was performed.
-- Audit/perf runtime/budget/LLM branches still need a separate clean stack; they are not safe for blind merge.
+- Audit/perf runtime/route/LLM branches still need a separate clean stack; they are not safe for blind merge.
 - Live desktop click-through through `Computer Use` was blocked by macOS Apple Events/Accessibility error `-1743`; the packaged app did launch and visible UI surfaces were covered by targeted renderer tests, e2e core, Electron startup smoke, and packaged smoke.
 
 ## Acceptance criteria matrix
@@ -186,3 +216,4 @@ Additional account/security branch gate before fast-forward to `main`:
 | Keep old wrapper merges out | Pass | `67ca4a4e` and `69563ec5` skipped as old merge wrappers |
 | Port isolated audit/perf value | Pass | WebUI pinch-zoom fix cherry-picked and validated with test/typecheck/build |
 | Validate product UI surfaces | Partial | 61 targeted renderer tests passed and packaged app launched; desktop click automation blocked by macOS `-1743` |
+| Rebuild D budget lane cleanly | Pass | Budget files, glob static-bundle, and build-before-bundle smoke gate validated |
