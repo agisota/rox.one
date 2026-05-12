@@ -82,6 +82,7 @@
     "@testing-library/user-event": "^14",
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^2",
+    "axe-core": "^4.11.4",
     "happy-dom": "^15",
     "vitest": "^2"
   }
