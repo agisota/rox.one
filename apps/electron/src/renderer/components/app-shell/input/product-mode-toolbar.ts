@@ -37,6 +37,18 @@ export const COMPOSER_PRODUCT_MODE_ACTION_IDS = [
 
 export type ComposerProductModeActionId = typeof COMPOSER_PRODUCT_MODE_ACTION_IDS[number];
 
+export const COMPOSER_PRODUCT_MODE_PRIMARY_ACTION_IDS = [
+  'improve-prompt',
+  'run-tdd-plan',
+  'verify',
+] as const satisfies readonly ComposerProductModeActionId[];
+
+export const COMPOSER_PRODUCT_MODE_OVERFLOW_ACTION_IDS = [
+  'tear-down',
+  'build-spec',
+  'review',
+] as const satisfies readonly ComposerProductModeActionId[];
+
 export type ProductModeIntentSource = 'composer-toolbar';
 
 export type ProductModeIntent = {
@@ -108,6 +120,28 @@ const COMPOSER_PRODUCT_MODE_ACTIONS: readonly ComposerProductModeAction[] = [
 
 export function getComposerProductModeActions(): readonly ComposerProductModeAction[] {
   return COMPOSER_PRODUCT_MODE_ACTIONS;
+}
+
+function getComposerProductModeActionsById(
+  actionIds: readonly ComposerProductModeActionId[],
+): readonly ComposerProductModeAction[] {
+  return actionIds.map(actionId => {
+    const action = COMPOSER_PRODUCT_MODE_ACTIONS.find(candidate => candidate.id === actionId);
+
+    if (!action) {
+      throw new Error(`Unknown composer product mode action: ${actionId}`);
+    }
+
+    return action;
+  });
+}
+
+export function getComposerProductModePrimaryActions(): readonly ComposerProductModeAction[] {
+  return getComposerProductModeActionsById(COMPOSER_PRODUCT_MODE_PRIMARY_ACTION_IDS);
+}
+
+export function getComposerProductModeOverflowActions(): readonly ComposerProductModeAction[] {
+  return getComposerProductModeActionsById(COMPOSER_PRODUCT_MODE_OVERFLOW_ACTION_IDS);
 }
 
 export function getComposerProductModeOptions(): ComposerProductModeOption[] {

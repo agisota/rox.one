@@ -4,8 +4,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import {
   COMPOSER_PRODUCT_MODE_ACTION_IDS,
+  COMPOSER_PRODUCT_MODE_OVERFLOW_ACTION_IDS,
+  COMPOSER_PRODUCT_MODE_PRIMARY_ACTION_IDS,
   PRODUCT_MODE_TOOLBAR_DEFAULT_MODE,
   createProductModeIntent,
+  getComposerProductModeOverflowActions,
+  getComposerProductModePrimaryActions,
   getComposerProductModeActions,
   getComposerProductModeOptions,
   resolveComposerProductModeKeyboardTarget,
@@ -40,6 +44,23 @@ describe('product mode toolbar contract', () => {
       'workbench.actions.buildSpec.description',
       'workbench.actions.review.description',
     ]);
+  });
+
+  test('groups frequent actions into a compact primary rail and keeps secondary actions in overflow', () => {
+    expect([...COMPOSER_PRODUCT_MODE_PRIMARY_ACTION_IDS]).toEqual([
+      'improve-prompt',
+      'run-tdd-plan',
+      'verify',
+    ]);
+    expect([...COMPOSER_PRODUCT_MODE_OVERFLOW_ACTION_IDS]).toEqual([
+      'tear-down',
+      'build-spec',
+      'review',
+    ]);
+    expect([
+      ...getComposerProductModePrimaryActions().map(action => action.id),
+      ...getComposerProductModeOverflowActions().map(action => action.id),
+    ]).toEqual([...COMPOSER_PRODUCT_MODE_ACTION_IDS]);
   });
 
   test('maps every action to the expected product mode', () => {
@@ -110,7 +131,10 @@ describe('product mode toolbar contract', () => {
 
     expect(markup).toContain('data-testid="product-mode-toolbar"');
     expect(markup).toContain('data-testid="product-mode-picker"');
+    expect(markup).toContain('data-testid="product-mode-actions"');
+    expect(markup).toContain('data-testid="product-mode-action-overflow"');
     expect(markup).toContain('aria-haspopup="listbox"');
+    expect(markup).toContain('aria-haspopup="menu"');
     expect(markup).toContain('aria-controls=');
     expect(markup).toContain('aria-keyshortcuts="ArrowDown ArrowUp Home End Enter Space Escape"');
     expect(markup).toContain('data-state="closed"');

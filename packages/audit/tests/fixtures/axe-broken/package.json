@@ -1,0 +1,6 @@
+{
+  "name": "audit-fixture-axe-broken",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fixture page with known WCAG 2.2 AA violations, exercised by runtime-axe.test.ts"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "audit-fixture-states-broken",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Fixture page missing interactive states, exercised by runtime-states.test.ts"
+}
