@@ -15,7 +15,9 @@ import { MarkdownSpreadsheetBlock } from './MarkdownSpreadsheetBlock'
 import { MarkdownHtmlBlock } from './MarkdownHtmlBlock'
 import { MarkdownImageBlock } from './MarkdownImageBlock'
 import { MarkdownLatexBlock } from './MarkdownLatexBlock'
-import { MarkdownPdfBlock } from './MarkdownPdfBlock'
+const MarkdownPdfBlock = React.lazy(() =>
+  import('./MarkdownPdfBlock').then((m) => ({ default: m.MarkdownPdfBlock }))
+)
 import { preprocessLinks } from './linkify'
 import { resolveMarkdownLinkTarget } from './link-target'
 import remarkCollapsibleSections from './remarkCollapsibleSections'
@@ -252,7 +254,7 @@ function createComponents(
           }
           // PDF preview blocks → inline first page with expand to full viewer
           if (match?.[1] === 'pdf-preview') {
-            return wrapBlock('pdf-preview', code, <MarkdownPdfBlock code={code} className="my-2" />, props.node?.position)
+            return wrapBlock('pdf-preview', code, <React.Suspense fallback={<div className="text-muted-foreground text-[13px] py-4 text-center">Loading PDF…</div>}><MarkdownPdfBlock code={code} className="my-2" /></React.Suspense>, props.node?.position)
           }
           // Image preview blocks → inline image with expand to full viewer
           if (match?.[1] === 'image-preview') {
@@ -381,7 +383,7 @@ function createComponents(
         }
         // PDF preview blocks → inline first page with expand to full viewer
         if (match?.[1] === 'pdf-preview') {
-          return wrapBlock('pdf-preview', code, <MarkdownPdfBlock code={code} className="my-2" />, props.node?.position)
+          return wrapBlock('pdf-preview', code, <React.Suspense fallback={<div className="text-muted-foreground text-[13px] py-4 text-center">Loading PDF…</div>}><MarkdownPdfBlock code={code} className="my-2" /></React.Suspense>, props.node?.position)
         }
         // Image preview blocks → inline image with expand to full viewer
         if (match?.[1] === 'image-preview') {
