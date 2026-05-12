@@ -128,6 +128,9 @@ Resolution:
 - `bun test apps/webui/tests/index-html.test.ts`
 - `bun run webui:typecheck`
 - `bun run webui:build`
+- `bun test apps/electron/src/renderer/components/workbench/__tests__/workbench-route-page.test.tsx apps/electron/src/renderer/components/workbench/__tests__/experience-screens-localization.test.tsx apps/electron/src/renderer/components/workbench/__tests__/deep-missions-screen.test.tsx apps/electron/src/renderer/components/workbench/__tests__/mission-control-run-detail.test.tsx apps/electron/src/renderer/components/workbench/__tests__/arena-builder-screen.test.tsx apps/electron/src/renderer/components/workbench/__tests__/experience-real-state-binding.test.tsx apps/electron/src/renderer/components/workbench/__tests__/experience-global-hud.test.tsx apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-flow.test.ts apps/electron/src/renderer/pages/settings/__tests__/account-auth-panel.test.tsx`
+- `open apps/electron/release/mac-arm64/ROX.ONE.app`
+- `pgrep -fl 'ROX.ONE|Electron|Craft'`
 
 Targeted checks also run during integration:
 
@@ -138,6 +141,8 @@ Targeted checks also run during integration:
 - AgentRuntime/PendingRequestMap/BackendStderrBuffer tests: 17 pass.
 - Account/security targeted tests: 44 pass across `auth-rotation`, `auth-timing`, `logging-helpers`, and `account-http`.
 - WebUI viewport regression test after audit/perf cherry-pick: 1 pass.
+- UI surface targeted test after final evidence commit: 61 pass across 10 files covering six Experience tabs, demo sessions/action metadata, account auth tabs, and composer artifact/quick-action routing.
+- Packaged app launch proof: `open apps/electron/release/mac-arm64/ROX.ONE.app` started `ROX.ONE` plus GPU/network/renderer helper processes.
 
 ## Passing output summary
 
@@ -159,12 +164,14 @@ Additional account/security branch gate before fast-forward to `main`:
 - `bun test apps/webui/tests/index-html.test.ts`: 1 test passed.
 - `bun run webui:typecheck`: passed.
 - `bun run webui:build`: passed; retained existing large chunk warnings and emitted the optimized `pzdrk` asset at 146.72 kB.
+- Targeted UI surface tests: 61 tests passed, 0 failed, 673 expectations across Experience, account auth, and composer artifact routing files.
+- Packaged `ROX.ONE.app`: process tree is running from `apps/electron/release/mac-arm64/ROX.ONE.app/Contents/MacOS/ROX.ONE`.
 
 ## Remaining risks
 
 - The result is local only; no push or PR creation was performed.
 - Audit/perf runtime/budget/LLM branches still need a separate clean stack; they are not safe for blind merge.
-- UI manual click-through was not repeated in a live interactive window in this pass; runtime/product surfaces are covered by RTL, e2e core, Electron startup smoke, and packaged smoke.
+- Live desktop click-through through `Computer Use` was blocked by macOS Apple Events/Accessibility error `-1743`; the packaged app did launch and visible UI surfaces were covered by targeted renderer tests, e2e core, Electron startup smoke, and packaged smoke.
 
 ## Acceptance criteria matrix
 
@@ -178,3 +185,4 @@ Additional account/security branch gate before fast-forward to `main`:
 | Full quality gate | Pass | install, typecheck, RTL, build, e2e core, packaged smoke |
 | Keep old wrapper merges out | Pass | `67ca4a4e` and `69563ec5` skipped as old merge wrappers |
 | Port isolated audit/perf value | Pass | WebUI pinch-zoom fix cherry-picked and validated with test/typecheck/build |
+| Validate product UI surfaces | Partial | 61 targeted renderer tests passed and packaged app launched; desktop click automation blocked by macOS `-1743` |
