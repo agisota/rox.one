@@ -20,6 +20,9 @@
     "apps/*",
     "!apps/online-docs"
   ],
+  "overrides": {
+    "@anthropic-ai/sdk": "0.91.1"
+  },
   "scripts": {
     "test": "bun run test:units && bun run validate:ci",
     "test:units": "bun test && for f in $(find . -name '*.isolated.ts' -not -path './node_modules/*' -not -path './apps/electron/release/*'); do bun test \"$f\" || exit 1; done",
