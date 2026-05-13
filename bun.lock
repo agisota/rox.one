@@ -142,7 +142,7 @@
         "@craft-agent/messaging-gateway": "workspace:*",
         "@craft-agent/server-core": "workspace:*",
         "@craft-agent/shared": "workspace:*",
-        "@craft-agent/ui": "workspace:*",
+        "@rox-one/ui": "workspace:*",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
@@ -198,7 +198,7 @@
       "version": "0.9.1",
       "dependencies": {
         "@craft-agent/core": "workspace:*",
-        "@craft-agent/ui": "workspace:*",
+        "@rox-one/ui": "workspace:*",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
         "react-i18next": "^17.0.2",
@@ -226,7 +226,7 @@
       "version": "0.9.1",
       "dependencies": {
         "@craft-agent/shared": "workspace:*",
-        "@craft-agent/ui": "workspace:*",
+        "@rox-one/ui": "workspace:*",
         "i18next": "^26.0.3",
         "i18next-browser-languagedetector": "^8.2.1",
         "jotai": "^2.16.0",
@@ -414,7 +414,7 @@
       },
     },
     "packages/ui": {
-      "name": "@craft-agent/ui",
+      "name": "@rox-one/ui",
       "version": "0.9.1",
       "dependencies": {
         "@craft-agent/core": "workspace:*",
@@ -698,7 +698,7 @@
 
     "@craft-agent/shared": ["@craft-agent/shared@workspace:packages/shared"],
 
-    "@craft-agent/ui": ["@craft-agent/ui@workspace:packages/ui"],
+    "@rox-one/ui": ["@rox-one/ui@workspace:packages/ui"],
 
     "@craft-agent/viewer": ["@craft-agent/viewer@workspace:apps/viewer"],
 

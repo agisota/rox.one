@@ -29,7 +29,7 @@ import {
   type ActivityItem,
   type OverlayData,
   type FileChange,
-} from '@craft-agent/ui'
+} from '@rox-one/ui'
 import { SessionUpload } from './components/SessionUpload'
 import { Header } from './components/Header'
 

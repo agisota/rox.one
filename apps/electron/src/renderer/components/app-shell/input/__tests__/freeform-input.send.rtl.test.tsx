@@ -103,7 +103,7 @@ vi.mock('../ComposerArtifactPanel', () => ({
 // React context, so a Tooltip rendered in one copy can never see a Provider
 // from another. Stubbing these primitives sidesteps the cross-copy lookup
 // without changing FreeFormInput's behavior under test.
-vi.mock('@craft-agent/ui', async (orig) => {
+vi.mock('@rox-one/ui', async (orig) => {
   const actual = (await orig()) as Record<string, unknown>
   return {
     ...actual,
