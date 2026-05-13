@@ -6,7 +6,7 @@ import type {
   MessagingLogContext,
   MessagingLogMeta,
   MessagingLogger,
-} from '@rox-agent/messaging-gateway'
+} from '@rox-one/messaging-gateway'
 
 /**
  * Resolve debug mode deterministically across runtimes.

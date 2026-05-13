@@ -1,5 +1,5 @@
 {
-  "name": "@rox-agent/messaging-whatsapp-worker",
+  "name": "@rox-one/messaging-whatsapp-worker",
   "version": "0.9.1",
   "license": "Apache-2.0",
   "description": "WhatsApp worker subprocess for ROX (Baileys-based, unofficial API)",

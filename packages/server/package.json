@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@rox-one/core": "workspace:*",
-    "@rox-agent/messaging-gateway": "workspace:*",
+    "@rox-one/messaging-gateway": "workspace:*",
     "@rox-agent/server-core": "workspace:*",
     "@rox-agent/shared": "workspace:*"
   },
