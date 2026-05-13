@@ -1168,4 +1168,287 @@ describe('BrowserPaneManager', () => {
       })
     })
   })
+
+  // ============================================================================
+  // Integration: Tab Lifecycle
+  // ============================================================================
+
+  describe('tab lifecycle — open', () => {
+    it('emits onStateChange with new instance info when a tab is opened', () => {
+      const events: any[] = []
+      manager.onStateChange((info) => events.push(info))
+
+      manager.createInstance('lifecycle-open')
+
+      const openEvent = events.find((e) => e.id === 'lifecycle-open')
+      expect(openEvent).toBeDefined()
+      expect(openEvent.id).toBe('lifecycle-open')
+    })
+
+    it('registers WebContents in manager state after createInstance', () => {
+      manager.createInstance('lifecycle-registered')
+
+      const instance = (manager as any).instances.get('lifecycle-registered')
+      expect(instance).toBeDefined()
+      expect(instance.pageView.webContents).toBeDefined()
+      expect(instance.currentUrl).toBe('about:blank')
+    })
+
+    it('creates a separate BrowserView per instance with unique WebContents id', () => {
+      manager.createInstance('lifecycle-view-a')
+      manager.createInstance('lifecycle-view-b')
+
+      const instA = (manager as any).instances.get('lifecycle-view-a')
+      const instB = (manager as any).instances.get('lifecycle-view-b')
+
+      expect(instA.pageView.webContents.id).not.toBe(instB.pageView.webContents.id)
+    })
+  })
+
+  // ============================================================================
+  // Integration: Tab Close — WebContents destroyed, removed from state
+  // ============================================================================
+
+  describe('tab close', () => {
+    it('removes the instance from manager state after destroyInstance', () => {
+      manager.createInstance('close-removed')
+      expect(manager.listInstances()).toHaveLength(1)
+
+      manager.destroyInstance('close-removed')
+
+      expect(manager.listInstances()).toHaveLength(0)
+      expect((manager as any).instances.has('close-removed')).toBe(false)
+    })
+
+    it('calls cdp.detach during instance teardown', () => {
+      manager.createInstance('close-cdp-detach')
+      const instance = (manager as any).instances.get('close-cdp-detach')
+      const detachSpy = instance.cdp.detach
+
+      manager.destroyInstance('close-cdp-detach')
+
+      expect(detachSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('closes pageView WebContents when ownsWindow=false (embedded mode)', () => {
+      const hostWindow = createMockWindow()
+      manager.setWindowManager({
+        getFocusedWindow: () => hostWindow,
+        getLastActiveWindow: () => hostWindow,
+      } as any)
+
+      manager.createInstance('close-embedded', { hostMode: 'embedded' })
+      const instance = (manager as any).instances.get('close-embedded')
+      expect(instance.hostMode).toBe('embedded')
+
+      const pageWcCloseSpy = instance.pageView.webContents.close
+
+      manager.destroyInstance('close-embedded')
+
+      expect(pageWcCloseSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('fires onRemoved callback exactly once after destroyInstance', () => {
+      const removedIds: string[] = []
+      manager.onRemoved((id) => removedIds.push(id))
+
+      manager.createInstance('close-removed-cb')
+      manager.destroyInstance('close-removed-cb')
+
+      expect(removedIds).toEqual(['close-removed-cb'])
+    })
+  })
+
+  // ============================================================================
+  // Integration: History Sync
+  // ============================================================================
+
+  describe('history sync', () => {
+    it('updates currentUrl when did-navigate fires', () => {
+      manager.createInstance('history-url')
+      const instance = (manager as any).instances.get('history-url')
+
+      instance.pageView.webContents._emit('did-navigate', 'https://example.com/page')
+
+      expect(instance.currentUrl).toBe('https://example.com/page')
+    })
+
+    it('updates canGoBack and canGoForward when did-navigate fires', () => {
+      manager.createInstance('history-nav-flags')
+      const instance = (manager as any).instances.get('history-nav-flags')
+
+      instance.pageView.webContents.canGoBack = mock(() => true)
+      instance.pageView.webContents.canGoForward = mock(() => false)
+
+      instance.pageView.webContents._emit('did-navigate', 'https://example.com/two')
+
+      expect(instance.canGoBack).toBe(true)
+      expect(instance.canGoForward).toBe(false)
+    })
+
+    it('emits onStateChange with updated URL after did-navigate', () => {
+      const states: any[] = []
+      manager.onStateChange((info) => states.push(info))
+
+      manager.createInstance('history-state-emit')
+      const instance = (manager as any).instances.get('history-state-emit')
+      states.length = 0 // discard create event
+
+      instance.pageView.webContents._emit('did-navigate', 'https://history.test/nav')
+
+      const nav = states.find((s) => s.id === 'history-state-emit')
+      expect(nav).toBeDefined()
+      expect(nav.url).toBe('https://history.test/nav')
+    })
+
+    it('updates currentUrl on did-navigate-in-page (SPA route change)', () => {
+      manager.createInstance('history-spa')
+      const instance = (manager as any).instances.get('history-spa')
+
+      instance.pageView.webContents._emit('did-navigate', 'https://spa.example.com/')
+      instance.pageView.webContents._emit('did-navigate-in-page', 'https://spa.example.com/about')
+
+      expect(instance.currentUrl).toBe('https://spa.example.com/about')
+    })
+
+    it('resets themeColor to null on full navigation (new page)', () => {
+      manager.createInstance('history-theme-reset')
+      const instance = (manager as any).instances.get('history-theme-reset')
+      instance.themeColor = '#aabbcc'
+
+      instance.pageView.webContents._emit('did-navigate', 'https://new-page.example.com/')
+
+      expect(instance.themeColor).toBeNull()
+    })
+  })
+
+  // ============================================================================
+  // Integration: CDP Attach / Detach — commands routed, cleanup on destroy
+  // ============================================================================
+
+  describe('CDP attach/detach', () => {
+    it('routes getAccessibilitySnapshot through the instance cdp object', async () => {
+      manager.createInstance('cdp-route-snapshot')
+      const instance = (manager as any).instances.get('cdp-route-snapshot')
+
+      const result = await manager.getAccessibilitySnapshot('cdp-route-snapshot')
+
+      expect(instance.cdp.getAccessibilitySnapshot).toHaveBeenCalledTimes(1)
+      expect(result).toMatchObject({ url: expect.any(String), nodes: expect.any(Array) })
+    })
+
+    it('routes clickElement through the instance cdp and records succeeded lastAction', async () => {
+      manager.createInstance('cdp-route-click')
+      const instance = (manager as any).instances.get('cdp-route-click')
+
+      await manager.clickElement('cdp-route-click', '@e1')
+
+      expect(instance.cdp.clickElement).toHaveBeenCalledWith('@e1')
+      expect(instance.lastAction).toMatchObject({
+        tool: 'browser_click',
+        ref: '@e1',
+        status: 'succeeded',
+      })
+    })
+
+    it('calls cdp.detach exactly once during instance teardown', () => {
+      manager.createInstance('cdp-teardown-detach')
+      const instance = (manager as any).instances.get('cdp-teardown-detach')
+      const spy = instance.cdp.detach
+
+      manager.destroyInstance('cdp-teardown-detach')
+
+      expect(spy).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not throw when cdp.detach is invoked on an already-detached instance', () => {
+      manager.createInstance('cdp-double-detach')
+      const instance = (manager as any).instances.get('cdp-double-detach')
+
+      instance.cdp.detach()
+      expect(() => manager.destroyInstance('cdp-double-detach')).not.toThrow()
+    })
+  })
+
+  // ============================================================================
+  // Integration: Hung Tab Detection
+  // ============================================================================
+
+  describe('hung tab detection', () => {
+    it.todo(
+      'surfaces hung state when WebContents becomes unresponsive — ' +
+      'NOTE: BrowserPaneManager does not currently listen to the WebContents ' +
+      '"unresponsive" event and has no hung-tab detection or recovery logic. ' +
+      'This is a placeholder for when detection is implemented. ' +
+      'Follow-up: add "unresponsive"/"responsive" event listeners in setupWindowListeners ' +
+      'and surface a hungTab flag on BrowserInstanceInfo.'
+    )
+  })
+
+  // ============================================================================
+  // Integration: Screenshot Capture
+  // ============================================================================
+
+  describe('screenshot capture', () => {
+    it('calls capturePage on the pageView WebContents', async () => {
+      manager.createInstance('ss-captures-page')
+      const instance = (manager as any).instances.get('ss-captures-page')
+
+      await manager.screenshot('ss-captures-page')
+
+      expect(instance.pageView.webContents.capturePage).toHaveBeenCalled()
+    })
+
+    it('returns a non-empty Buffer in the result', async () => {
+      manager.createInstance('ss-returns-buffer')
+
+      const result = await manager.screenshot('ss-returns-buffer')
+
+      expect(result.imageBuffer).toBeInstanceOf(Buffer)
+      expect(result.imageBuffer.length).toBeGreaterThan(0)
+    })
+
+    it('defaults to png image format', async () => {
+      manager.createInstance('ss-default-format')
+
+      const result = await manager.screenshot('ss-default-format')
+
+      expect(result.imageFormat).toBe('png')
+    })
+
+    it('returns jpeg format and calls toJPEG when format=jpeg is requested', async () => {
+      manager.createInstance('ss-jpeg-format')
+      const instance = (manager as any).instances.get('ss-jpeg-format')
+      instance.pageView.webContents.capturePage = mock(async () => {
+        const img = {
+          isEmpty: () => false,
+          getSize: () => ({ width: 1200, height: 900 }),
+          resize: function() { return this },
+          toPNG: () => Buffer.from('fake-png'),
+          toJPEG: (_q: number) => Buffer.from('fake-jpeg'),
+        }
+        return img
+      })
+
+      const result = await manager.screenshot('ss-jpeg-format', { format: 'jpeg' })
+
+      expect(result.imageFormat).toBe('jpeg')
+      expect(result.imageBuffer.toString()).toBe('fake-jpeg')
+    })
+
+    it('includes metadata when includeMetadata=true', async () => {
+      manager.createInstance('ss-metadata')
+
+      const result = await manager.screenshot('ss-metadata', { includeMetadata: true })
+
+      expect(result.metadata).toBeDefined()
+      expect(result.metadata?.mode).toBe('raw')
+    })
+
+    it('throws for a non-existent instance id', async () => {
+      await expect(manager.screenshot('ss-nonexistent')).rejects.toThrow(
+        'Browser instance not found: ss-nonexistent'
+      )
+    })
+  })
 })
