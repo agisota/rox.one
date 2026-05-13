@@ -5,7 +5,18 @@ import { createLogger } from '../utils/debug.ts';
 const log = createLogger('storage-scope');
 
 const STORAGE_SCOPE_BRAND: unique symbol = Symbol('storage.scope.brand');
-const brandedScopes = new WeakSet<object>();
+const STORAGE_SCOPE_BRAND_REGISTRY = Symbol.for('rox.storage.scope.brandedScopes');
+const brandedScopes = (() => {
+  const root = globalThis as typeof globalThis & {
+    [key: symbol]: WeakSet<object> | undefined;
+  };
+  let scopes = root[STORAGE_SCOPE_BRAND_REGISTRY];
+  if (!scopes) {
+    scopes = new WeakSet<object>();
+    root[STORAGE_SCOPE_BRAND_REGISTRY] = scopes;
+  }
+  return scopes;
+})();
 
 export type BrandedWorkspaceScope = WorkspaceScope & {
   readonly [STORAGE_SCOPE_BRAND]: true;
