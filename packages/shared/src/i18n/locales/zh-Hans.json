@@ -1084,6 +1084,8 @@
   "settings.server.token": "令牌",
   "settings.shortcuts.description": "键盘快捷键",
   "settings.shortcuts.title": "快捷键",
+  "settings.teamManagement.description": "按主体（用户/团队）分组查看授权",
+  "settings.teamManagement.title": "团队管理",
   "settings.teamPermissions.description": "管理 Workspace 和组织中的角色与授权",
   "settings.teamPermissions.title": "团队与权限",
   "settings.tools.builtInBrowser": "内置浏览器",

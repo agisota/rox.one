@@ -1084,6 +1084,8 @@
   "settings.server.token": "Token",
   "settings.shortcuts.description": "Billentyűparancsok",
   "settings.shortcuts.title": "Billentyűparancsok",
+  "settings.teamManagement.description": "Jogosultságok megjelenítése szereplő (felhasználó/csapat) szerint csoportosítva",
+  "settings.teamManagement.title": "Csapatkezelés",
   "settings.teamPermissions.description": "Szerepkörök és jogosultságok kezelése munkaterületeken és szervezetekben",
   "settings.teamPermissions.title": "Csapat és engedélyek",
   "settings.tools.builtInBrowser": "Beépített böngésző",

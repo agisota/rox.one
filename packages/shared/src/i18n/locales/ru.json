@@ -1084,6 +1084,8 @@
   "settings.server.token": "Токен",
   "settings.shortcuts.description": "Сочетания клавиш",
   "settings.shortcuts.title": "Клавиши",
+  "settings.teamManagement.description": "Просмотр грантов, сгруппированных по субъекту (пользователь/команда)",
+  "settings.teamManagement.title": "Управление командой",
   "settings.teamPermissions.description": "Управление ролями и грантами в рабочих областях и организациях",
   "settings.teamPermissions.title": "Команда и разрешения",
   "settings.tools.builtInBrowser": "Встроенный браузер",
