@@ -13,120 +13,120 @@ import type { ThinkingLevel } from '../agent/thinking-levels.ts';
 import { normalizeThinkingLevel } from '../agent/thinking-levels.ts';
 import type { NetworkProxySettings } from './types.ts';
 import { DEFAULT_SERVER_CONFIG, type ServerConfig } from './server-config.ts';
-import { DEFAULT_LOCAL_SCOPE, type WorkspaceScope } from './storage-scope.ts';
+import { DEFAULT_LOCAL_SCOPE, type BrandedWorkspaceScope } from './storage-scope.ts';
 
 /**
  * Get whether desktop notifications are enabled.
  * Defaults to true if not set.
  */
-export function getNotificationsEnabled(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function getNotificationsEnabled(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   if (config?.notificationsEnabled !== undefined) {
     return config.notificationsEnabled;
   }
-  const defaults = loadConfigDefaults();
+  const defaults = loadConfigDefaults(_scope);
   return defaults.defaults.notificationsEnabled;
 }
 
 /**
  * Set whether desktop notifications are enabled.
  */
-export function setNotificationsEnabled(enabled: boolean, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setNotificationsEnabled(enabled: boolean, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   config.notificationsEnabled = enabled;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 /**
  * Get whether auto-capitalisation is enabled.
  * Defaults to true if not set.
  */
-export function getAutoCapitalisation(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function getAutoCapitalisation(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   if (config?.autoCapitalisation !== undefined) {
     return config.autoCapitalisation;
   }
-  const defaults = loadConfigDefaults();
+  const defaults = loadConfigDefaults(_scope);
   return defaults.defaults.autoCapitalisation;
 }
 
 /**
  * Set whether auto-capitalisation is enabled.
  */
-export function setAutoCapitalisation(enabled: boolean, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setAutoCapitalisation(enabled: boolean, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   config.autoCapitalisation = enabled;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 /**
  * Get the key combination used to send messages.
  * Defaults to 'enter' if not set.
  */
-export function getSendMessageKey(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): 'enter' | 'cmd-enter' {
-  const config = loadStoredConfig();
+export function getSendMessageKey(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): 'enter' | 'cmd-enter' {
+  const config = loadStoredConfig(_scope);
   if (config?.sendMessageKey !== undefined) {
     return config.sendMessageKey;
   }
-  const defaults = loadConfigDefaults();
+  const defaults = loadConfigDefaults(_scope);
   return defaults.defaults.sendMessageKey;
 }
 
 /**
  * Set the key combination used to send messages.
  */
-export function setSendMessageKey(key: 'enter' | 'cmd-enter', _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setSendMessageKey(key: 'enter' | 'cmd-enter', _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   config.sendMessageKey = key;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 /**
  * Get whether spell check is enabled in the input.
  */
-export function getSpellCheck(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function getSpellCheck(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   if (config?.spellCheck !== undefined) {
     return config.spellCheck;
   }
-  const defaults = loadConfigDefaults();
+  const defaults = loadConfigDefaults(_scope);
   return defaults.defaults.spellCheck;
 }
 
 /**
  * Set whether spell check is enabled in the input.
  */
-export function setSpellCheck(enabled: boolean, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setSpellCheck(enabled: boolean, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   config.spellCheck = enabled;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 /**
  * Get whether screen should stay awake while sessions are running.
  * Defaults to false if not set.
  */
-export function getKeepAwakeWhileRunning(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function getKeepAwakeWhileRunning(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   if (config?.keepAwakeWhileRunning !== undefined) {
     return config.keepAwakeWhileRunning;
   }
-  const defaults = loadConfigDefaults();
+  const defaults = loadConfigDefaults(_scope);
   return defaults.defaults.keepAwakeWhileRunning;
 }
 
 /**
  * Set whether screen should stay awake while sessions are running.
  */
-export function setKeepAwakeWhileRunning(enabled: boolean, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setKeepAwakeWhileRunning(enabled: boolean, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   config.keepAwakeWhileRunning = enabled;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 /**
@@ -134,8 +134,8 @@ export function setKeepAwakeWhileRunning(enabled: boolean, _scope: WorkspaceScop
  * When enabled, all tool calls include intent and display name metadata.
  * Defaults to true if not set.
  */
-export function getRichToolDescriptions(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function getRichToolDescriptions(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   if (config?.richToolDescriptions !== undefined) {
     return config.richToolDescriptions;
   }
@@ -145,11 +145,11 @@ export function getRichToolDescriptions(_scope: WorkspaceScope = DEFAULT_LOCAL_S
 /**
  * Set whether rich tool descriptions are enabled.
  */
-export function setRichToolDescriptions(enabled: boolean, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setRichToolDescriptions(enabled: boolean, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   config.richToolDescriptions = enabled;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 /**
@@ -157,19 +157,19 @@ export function setRichToolDescriptions(enabled: boolean, _scope: WorkspaceScope
  * When enabled, the interceptor upgrades cache_control TTL from 5m to 1h.
  * Defaults to false if not set.
  */
-export function getExtendedPromptCache(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function getExtendedPromptCache(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   return config?.extendedPromptCache ?? false;
 }
 
 /**
  * Set whether extended prompt cache (1h TTL) is enabled.
  */
-export function setExtendedPromptCache(enabled: boolean, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setExtendedPromptCache(enabled: boolean, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   config.extendedPromptCache = enabled;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 /**
@@ -177,23 +177,23 @@ export function setExtendedPromptCache(enabled: boolean, _scope: WorkspaceScope 
  * When disabled, browser_tool is not included in session tools.
  * Defaults to true if not set.
  */
-export function getBrowserToolEnabled(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function getBrowserToolEnabled(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   if (config?.browserToolEnabled !== undefined) {
     return config.browserToolEnabled;
   }
-  const defaults = loadConfigDefaults();
+  const defaults = loadConfigDefaults(_scope);
   return defaults.defaults.browserToolEnabled;
 }
 
 /**
  * Set whether the built-in browser tool is enabled.
  */
-export function setBrowserToolEnabled(enabled: boolean, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setBrowserToolEnabled(enabled: boolean, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   config.browserToolEnabled = enabled;
-  saveConfig(config);
+  saveConfig(config, _scope);
 
   // Clear session tool caches so all sessions pick up the change immediately.
   // Lazy import to avoid circular dependency (storage ← session-scoped-tools ← storage).
@@ -207,27 +207,27 @@ export function setBrowserToolEnabled(enabled: boolean, _scope: WorkspaceScope =
  * causes 400 "Invalid Request" for lower-tier API keys on large contexts (issue #567).
  * Users opt in via AI Settings → Performance → Extended Context (1M).
  */
-export function getEnable1MContext(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function getEnable1MContext(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   return config?.enable1MContext === true;
 }
 
 /**
  * Set whether 1M context window is enabled.
  */
-export function setEnable1MContext(enabled: boolean, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setEnable1MContext(enabled: boolean, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   config.enable1MContext = enabled;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 /**
  * Get persisted Git Bash path (Windows only).
  * Used to set CLAUDE_CODE_GIT_BASH_PATH for the SDK subprocess.
  */
-export function getGitBashPath(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): string | undefined {
-  const config = loadStoredConfig();
+export function getGitBashPath(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): string | undefined {
+  const config = loadStoredConfig(_scope);
   return config?.gitBashPath;
 }
 
@@ -236,14 +236,14 @@ export function getGitBashPath(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): st
  * Persists to config so it survives app restarts.
  * Returns false if the config could not be loaded (path not persisted).
  */
-export function setGitBashPath(path: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function setGitBashPath(path: string, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   if (!config) {
     console.warn('[storage] Failed to persist Git Bash path: config could not be loaded');
     return false;
   }
   config.gitBashPath = path;
-  saveConfig(config);
+  saveConfig(config, _scope);
   return true;
 }
 
@@ -251,11 +251,11 @@ export function setGitBashPath(path: string, _scope: WorkspaceScope = DEFAULT_LO
  * Clear persisted Git Bash path (Windows only).
  * Used when the stored path is stale or invalid.
  */
-export function clearGitBashPath(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function clearGitBashPath(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config || !config.gitBashPath) return;
   delete config.gitBashPath;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 // Note: getDefaultWorkingDirectory/setDefaultWorkingDirectory removed
@@ -271,23 +271,23 @@ export function clearGitBashPath(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): 
  * Get the currently selected color theme ID.
  * Returns 'default' if not set.
  */
-export function getColorTheme(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): string {
-  const config = loadStoredConfig();
+export function getColorTheme(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): string {
+  const config = loadStoredConfig(_scope);
   if (config?.colorTheme !== undefined) {
     return config.colorTheme;
   }
-  const defaults = loadConfigDefaults();
+  const defaults = loadConfigDefaults(_scope);
   return defaults.defaults.colorTheme;
 }
 
 /**
  * Set the color theme ID.
  */
-export function setColorTheme(themeId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setColorTheme(themeId: string, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   config.colorTheme = themeId;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 // ============================================
@@ -298,8 +298,8 @@ export function setColorTheme(themeId: string, _scope: WorkspaceScope = DEFAULT_
  * Get the dismissed update version.
  * Returns null if no version is dismissed.
  */
-export function getDismissedUpdateVersion(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): string | null {
-  const config = loadStoredConfig();
+export function getDismissedUpdateVersion(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): string | null {
+  const config = loadStoredConfig(_scope);
   return config?.dismissedUpdateVersion ?? null;
 }
 
@@ -307,22 +307,22 @@ export function getDismissedUpdateVersion(_scope: WorkspaceScope = DEFAULT_LOCAL
  * Set the dismissed update version.
  * Pass the version string to dismiss notifications for that version.
  */
-export function setDismissedUpdateVersion(version: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setDismissedUpdateVersion(version: string, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   config.dismissedUpdateVersion = version;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 /**
  * Clear the dismissed update version.
  * Call this when a new version is released (or on successful update).
  */
-export function clearDismissedUpdateVersion(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function clearDismissedUpdateVersion(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   delete config.dismissedUpdateVersion;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 // ============================================
@@ -333,13 +333,13 @@ export function clearDismissedUpdateVersion(_scope: WorkspaceScope = DEFAULT_LOC
  * Get the app-level default thinking level for new sessions.
  * Falls back to bundled config-defaults when unset.
  */
-export function getDefaultThinkingLevel(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): ThinkingLevel {
-  const config = loadStoredConfig();
+export function getDefaultThinkingLevel(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): ThinkingLevel {
+  const config = loadStoredConfig(_scope);
   if (config?.defaultThinkingLevel) {
     const normalized = normalizeThinkingLevel(config.defaultThinkingLevel);
     if (normalized) return normalized;
   }
-  const defaults = loadConfigDefaults();
+  const defaults = loadConfigDefaults(_scope);
   return normalizeThinkingLevel(defaults.workspaceDefaults.thinkingLevel) ?? 'medium';
 }
 
@@ -347,12 +347,12 @@ export function getDefaultThinkingLevel(_scope: WorkspaceScope = DEFAULT_LOCAL_S
  * Set the app-level default thinking level for new sessions.
  * @returns true if persisted, false if config could not be loaded
  */
-export function setDefaultThinkingLevel(level: ThinkingLevel, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function setDefaultThinkingLevel(level: ThinkingLevel, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   if (!config) return false;
 
   config.defaultThinkingLevel = level;
-  saveConfig(config);
+  saveConfig(config, _scope);
   return true;
 }
 
@@ -380,8 +380,8 @@ function normalizeNetworkProxySettings(
  * Get the current network proxy settings.
  * Returns undefined if not configured.
  */
-export function getNetworkProxySettings(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): NetworkProxySettings | undefined {
-  const config = loadStoredConfig();
+export function getNetworkProxySettings(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): NetworkProxySettings | undefined {
+  const config = loadStoredConfig(_scope);
   return config?.networkProxy;
 }
 
@@ -389,8 +389,8 @@ export function getNetworkProxySettings(_scope: WorkspaceScope = DEFAULT_LOCAL_S
  * Persist network proxy settings.
  * Deletes the key when disabled and all proxy fields are empty.
  */
-export function setNetworkProxySettings(settings: NetworkProxySettings, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setNetworkProxySettings(settings: NetworkProxySettings, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
 
   const normalized = normalizeNetworkProxySettings(settings);
@@ -402,26 +402,26 @@ export function setNetworkProxySettings(settings: NetworkProxySettings, _scope: 
     config.networkProxy = normalized;
   }
 
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 // ============================================
 // Setup Deferred (user skipped onboarding)
 // ============================================
 
-export function isSetupDeferred(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  return loadStoredConfig()?.setupDeferred === true;
+export function isSetupDeferred(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  return loadStoredConfig(_scope)?.setupDeferred === true;
 }
 
-export function setSetupDeferred(deferred: boolean, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setSetupDeferred(deferred: boolean, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   if (deferred) {
     config.setupDeferred = true;
   } else {
     delete config.setupDeferred;
   }
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 // ============================================
@@ -432,8 +432,8 @@ export function setSetupDeferred(deferred: boolean, _scope: WorkspaceScope = DEF
  * Get the current server configuration.
  * Returns defaults if not yet configured.
  */
-export function getServerConfig(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): ServerConfig {
-  const config = loadStoredConfig();
+export function getServerConfig(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): ServerConfig {
+  const config = loadStoredConfig(_scope);
   return config?.serverConfig ?? { ...DEFAULT_SERVER_CONFIG };
 }
 
@@ -441,8 +441,8 @@ export function getServerConfig(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): S
  * Persist server configuration.
  * Auto-generates a stable auth token on first enable if none exists.
  */
-export function setServerConfig(serverConfig: ServerConfig, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function setServerConfig(serverConfig: ServerConfig, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
 
   // Generate a stable token when first enabled (or if token is missing)
@@ -451,5 +451,5 @@ export function setServerConfig(serverConfig: ServerConfig, _scope: WorkspaceSco
   }
 
   config.serverConfig = serverConfig;
-  saveConfig(config);
+  saveConfig(config, _scope);
 }

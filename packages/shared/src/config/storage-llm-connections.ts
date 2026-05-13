@@ -23,7 +23,7 @@ import {
 import { getModelProvider, getModelById } from './models.ts';
 import { loadStoredConfig, saveConfig, type StoredConfig } from './storage-io.ts';
 import { getWorkspaces } from './storage-workspaces.ts';
-import { DEFAULT_LOCAL_SCOPE, type WorkspaceScope } from './storage-scope.ts';
+import { DEFAULT_LOCAL_SCOPE, type BrandedWorkspaceScope } from './storage-scope.ts';
 
 // Re-export types for convenience (imports are at top of file)
 export type {
@@ -650,8 +650,8 @@ function migrateModelDefaultsToConnections(config: StoredConfig): boolean {
  *
  * After migration, the legacy fields are deleted since they are no longer used.
  */
-export function migrateLegacyLlmConnectionsConfig(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function migrateLegacyLlmConnectionsConfig(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
 
   const normalizeModelList = (models?: Array<{ id: string } | string>): string[] => {
@@ -775,7 +775,7 @@ export function migrateLegacyLlmConnectionsConfig(_scope: WorkspaceScope = DEFAU
     }
 
     if (needsSave) {
-      saveConfig(config);
+      saveConfig(config, _scope);
     }
     return;
   }
@@ -893,7 +893,7 @@ export function migrateLegacyLlmConnectionsConfig(_scope: WorkspaceScope = DEFAU
   backfillAllConnectionModels(config);
   migrateModelDefaultsToConnections(config);
 
-  saveConfig(config);
+  saveConfig(config, _scope);
 }
 
 /**
@@ -904,8 +904,8 @@ export function migrateLegacyLlmConnectionsConfig(_scope: WorkspaceScope = DEFAU
  * Fixes both the global defaultLlmConnection and per-workspace defaults.
  * Called on app startup alongside other migrations.
  */
-export function migrateOrphanedDefaultConnections(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function migrateOrphanedDefaultConnections(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
   if (!config.llmConnections || config.llmConnections.length === 0) return;
 
@@ -918,7 +918,7 @@ export function migrateOrphanedDefaultConnections(_scope: WorkspaceScope = DEFAU
 
   // Fix workspace defaults that point to non-existent connections
   try {
-    const workspaces = getWorkspaces();
+    const workspaces = getWorkspaces(_scope);
     for (const ws of workspaces) {
       const wsConfig = loadWorkspaceConfig(ws.rootPath);
       if (wsConfig?.defaults?.defaultLlmConnection) {
@@ -936,7 +936,7 @@ export function migrateOrphanedDefaultConnections(_scope: WorkspaceScope = DEFAU
   }
 
   if (changed) {
-    saveConfig(config);
+    saveConfig(config, _scope);
   }
 }
 
@@ -973,7 +973,7 @@ function ensureDefaultLlmConnection(config: StoredConfig): boolean {
  * After successful migration, legacy credentials are deleted to prevent
  * stale data and reduce credential store clutter.
  */
-export async function migrateLegacyCredentials(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): Promise<void> {
+export async function migrateLegacyCredentials(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): Promise<void> {
   const manager = getCredentialManager();
   const debug = (await import('../utils/debug.ts')).debug;
 
@@ -1029,8 +1029,8 @@ export async function migrateLegacyCredentials(_scope: WorkspaceScope = DEFAULT_
  * Note: This function is read-only and never modifies config.
  * Call migrateLegacyLlmConnectionsConfig() on app startup to handle migration.
  */
-export function getLlmConnections(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): LlmConnection[] {
-  const config = loadStoredConfig();
+export function getLlmConnections(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): LlmConnection[] {
+  const config = loadStoredConfig(_scope);
   if (!config) return [];
 
   // Return empty array if not migrated yet - caller should call migration on startup
@@ -1042,7 +1042,7 @@ export function getLlmConnections(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE):
  * @param slug - Connection slug
  * @returns Connection or null if not found
  */
-export function getLlmConnection(slug: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): LlmConnection | null {
+export function getLlmConnection(slug: string, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): LlmConnection | null {
   const connections = getLlmConnections();
   return connections.find(c => c.slug === slug) || null;
 }
@@ -1052,8 +1052,8 @@ export function getLlmConnection(slug: string, _scope: WorkspaceScope = DEFAULT_
  * @param connection - Connection to add (slug must be unique)
  * @returns true if added, false if slug already exists
  */
-export function addLlmConnection(connection: LlmConnection, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function addLlmConnection(connection: LlmConnection, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   if (!config) return false;
 
   // Initialize array if not yet migrated (safe default for write operations)
@@ -1075,7 +1075,7 @@ export function addLlmConnection(connection: LlmConnection, _scope: WorkspaceSco
   // Ensure default is set after adding first connection
   ensureDefaultLlmConnection(config);
 
-  saveConfig(config);
+  saveConfig(config, _scope);
   return true;
 }
 
@@ -1085,8 +1085,8 @@ export function addLlmConnection(connection: LlmConnection, _scope: WorkspaceSco
  * @param updates - Partial updates to apply (slug is ignored)
  * @returns true if updated, false if not found
  */
-export function updateLlmConnection(slug: string, updates: Partial<Omit<LlmConnection, 'slug'>>, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function updateLlmConnection(slug: string, updates: Partial<Omit<LlmConnection, 'slug'>>, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   if (!config) return false;
 
   // No connections means nothing to update
@@ -1161,7 +1161,7 @@ export function updateLlmConnection(slug: string, updates: Partial<Omit<LlmConne
     }
   }
 
-  saveConfig(config);
+  saveConfig(config, _scope);
   return true;
 }
 
@@ -1170,8 +1170,8 @@ export function updateLlmConnection(slug: string, updates: Partial<Omit<LlmConne
  * @param slug - Connection slug to delete
  * @returns true if deleted, false if not found
  */
-export function deleteLlmConnection(slug: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function deleteLlmConnection(slug: string, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   if (!config) return false;
 
   // No connections means nothing to delete
@@ -1190,11 +1190,11 @@ export function deleteLlmConnection(slug: string, _scope: WorkspaceScope = DEFAU
     config.defaultLlmConnection = connections.length > 0 ? connections[0]!.slug : undefined;
   }
 
-  saveConfig(config);
+  saveConfig(config, _scope);
 
   // Clean up workspace references to the deleted connection (non-blocking)
   try {
-    const workspaces = getWorkspaces();
+    const workspaces = getWorkspaces(_scope);
     for (const ws of workspaces) {
       const wsConfig = loadWorkspaceConfig(ws.rootPath);
       if (wsConfig?.defaults?.defaultLlmConnection === slug) {
@@ -1223,8 +1223,8 @@ export function deleteLlmConnection(slug: string, _scope: WorkspaceScope = DEFAU
  * Get the default LLM connection slug.
  * @returns Default connection slug, or null if no connections exist
  */
-export function getDefaultLlmConnection(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): string | null {
-  const config = loadStoredConfig();
+export function getDefaultLlmConnection(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): string | null {
+  const config = loadStoredConfig(_scope);
   if (!config) return null;
 
   // If no connections, return null
@@ -1240,8 +1240,8 @@ export function getDefaultLlmConnection(_scope: WorkspaceScope = DEFAULT_LOCAL_S
  * @param slug - Connection slug to set as default
  * @returns true if set, false if connection not found
  */
-export function setDefaultLlmConnection(slug: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
-  const config = loadStoredConfig();
+export function setDefaultLlmConnection(slug: string, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
   if (!config) return false;
 
   // No connections means nothing to set as default
@@ -1255,7 +1255,7 @@ export function setDefaultLlmConnection(slug: string, _scope: WorkspaceScope = D
   }
 
   config.defaultLlmConnection = slug;
-  saveConfig(config);
+  saveConfig(config, _scope);
   return true;
 }
 
@@ -1263,8 +1263,8 @@ export function setDefaultLlmConnection(slug: string, _scope: WorkspaceScope = D
  * Update the lastUsedAt timestamp for a connection.
  * @param slug - Connection slug
  */
-export function touchLlmConnection(slug: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const config = loadStoredConfig();
+export function touchLlmConnection(slug: string, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
   if (!config) return;
 
   // No connections means nothing to touch
@@ -1273,6 +1273,6 @@ export function touchLlmConnection(slug: string, _scope: WorkspaceScope = DEFAUL
   const connection = config.llmConnections.find(c => c.slug === slug);
   if (connection) {
     connection.lastUsedAt = Date.now();
-    saveConfig(config);
+    saveConfig(config, _scope);
   }
 }
