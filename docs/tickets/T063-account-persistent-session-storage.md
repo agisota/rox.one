@@ -1,6 +1,6 @@
 # T063 - Account Persistent Session Storage
 
-Status: DONE
+Status: DONE (M.4 hardening: logger + filesystem error fallback)
 
 ## Goal
 
@@ -32,3 +32,9 @@ successful sign-in.
 - [x] Tests do not call real ROX API or real Electron `safeStorage`.
 - [x] Worklog complete.
 - [x] Scoped commit exists.
+- [x] M.4 hardening: missing `safeStorage` encryption logs a warning and falls
+  back to in-memory only.
+- [x] M.4 hardening: filesystem write errors (EACCES, ENOSPC) are logged and
+  fall back to in-memory only — they must not crash the Electron main process.
+- [x] M.4 hardening: 6-case persistence test matrix lives at
+  `apps/electron/src/main/__tests__/account-session-persistence.test.ts`.

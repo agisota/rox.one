@@ -139,3 +139,38 @@ restore `rox_session` after app restart.
 | No real ROX API or real `safeStorage` in tests | DONE | tests inject fake `fetch` and fake safe-storage providers |
 | Worklog complete | DONE | this file |
 | Scoped commit exists | DONE | T063 Lore commit |
+| Missing encryption logs warning + falls back in-memory | DONE | `account session persistence > case 5` |
+| FS write error logs error + falls back in-memory | DONE | `account session persistence > case 6` and `> case 6b` |
+
+## 12. M.4 hardening pass (post-original commit)
+
+The original T063 landing covered the happy paths and the corrupt-file
+fail-closed semantics. The M.4 pass adds the two missing branches required by
+the phase plan:
+
+- An `AccountSessionLogger` (`info` / `warn` / `error`) option on
+  `createFileAccountSessionStore`. Electron main wires it to the existing
+  `mainLog` scoped logger.
+- A `writeFile` injection seam on the store so deterministic tests can simulate
+  `EACCES` and `ENOSPC` filesystem failures without touching real disks.
+- `save()` now catches encrypt + write failures, logs them, and falls back to
+  in-memory-only behaviour so the Electron main process never crashes when
+  persistence cannot complete.
+- A 7-test 6-case matrix at
+  `apps/electron/src/main/__tests__/account-session-persistence.test.ts`
+  covering: encrypted login persistence, startup hydration through
+  `/api/account/me`, logout cleanup, corrupt-file fail-closed, missing
+  encryption fallback with warning, and EACCES + ENOSPC write failures.
+
+### Validation
+
+- `bun test apps/electron/src/main/__tests__/account-session-persistence.test.ts`:
+  7 pass, 0 fail, 17 expect() calls.
+- `bun test apps/electron/src/main/__tests__/account-session-store.test.ts
+  apps/electron/src/main/__tests__/account-api.test.ts`:
+  9 pass, 0 fail, 19 expect() calls (no regression on prior coverage).
+- `bun run validate:rebrand`: exit 0.
+
+Skipped due to worktree lacking `node_modules`: `bun run typecheck` and
+`bun run lint`. The new logic is a strict superset of the existing types and
+introduces no new public API beyond the documented options.
