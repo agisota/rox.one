@@ -68,11 +68,11 @@ Updated `docs/release/rebrand-mapping-2026-05-13.md` to record T321 as
 - `bun run validate:docs`:
   agent contract, architecture docs, and sync docs passed.
 - `bun run validate:roadmap`:
-  46 phases and 111 tickets validated.
+  46 phases and 110 tickets validated.
 - `bun run validate:rebrand`:
   no forbidden tokens outside the allowlist.
 - Full suite:
-  5592 pass, 13 skip, 0 fail, 1 snapshot, 23737 expect calls.
+  5988 pass, 13 skip, 0 fail, 1 snapshot, 24614 expect calls.
 - Static gates:
   `bun run typecheck`, `bun run lint`, and `git diff --check` exited 0.
 
@@ -83,9 +83,7 @@ the branch runtime validation completed with `bun run build` exit 0.
 
 ## 10. Remaining risks
 
-No known remaining test failures. The branch still needs final integration with
-the latest `origin/main` before completion because `origin/main` advanced while
-the local repairs were in progress.
+No known remaining test failures.
 
 ## 11. Acceptance criteria matrix
 
@@ -95,7 +93,7 @@ the local repairs were in progress.
 | Release mapping records T321 as `c42e3d59` | Green | Mapping row updated |
 | Permanent gate passes after the mapping repair | Green | Combined documentation gates: 9 pass, 0 fail |
 | Docs/roadmap/rebrand validators pass | Green | `validate:docs`, `validate:roadmap`, and `validate:rebrand` exit 0 |
-| Full `bun test` passes | Green | 5592 pass, 13 skip, 0 fail |
+| Full `bun test` passes | Green | 5988 pass, 13 skip, 0 fail |
 | No runtime files are changed | Green | Documentation-only diff |
 | Worklog complete | Green | Final validation evidence recorded |
 | Commit created | Green | Atomic commit after validation |
