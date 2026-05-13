@@ -29,6 +29,14 @@ bun install
 bun run electron:start
 ```
 
+The source tree lives at `rox-one-terminal/`. To smoke-test the bundled CLI from
+the checkout:
+
+```bash
+alias rox-cli="bun run $(pwd)/apps/cli/src/index.ts"
+rox-cli ping
+```
+
 ## Features
 
 - Multi-session inbox with status workflow, flagging, and AI-named sessions
@@ -47,6 +55,11 @@ bun run electron:start
 3. Create a workspace
 4. Add a source — just describe it ("add Linear", "add Slack")
 5. Start a session
+
+## Acknowledgements
+
+ROX.ONE descends from the Apache-2.0 upstream at https://github.com/lukilabs/rox-agents-oss.
+License and notice attribution are preserved in [LICENSE](LICENSE), [NOTICE](NOTICE), and [TRADEMARK.md](TRADEMARK.md).
 
 ## License
 
