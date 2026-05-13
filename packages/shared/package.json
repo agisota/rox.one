@@ -20,6 +20,7 @@
     "./auth": "./src/auth/index.ts",
     "./auth/callback-page": "./src/auth/callback-page.ts",
     "./auth/policy-engine": "./src/auth/policy-engine.ts",
+    "./auth/rbac-resolver": "./src/auth/rbac-resolver.ts",
     "./auth/roles-schema": "./src/auth/roles-schema.ts",
     "./auth/types": "./src/auth/types.ts",
     "./audit": "./src/audit/index.ts",

@@ -9,6 +9,7 @@ import type { HandlerDeps } from '../handler-deps'
 import type { RequestContext } from '../../transport/types'
 import { isValidWorkspaceRootPath } from '../../utils/path-validation'
 import { filterOwnedWorkspaces, grantWorkspaceAccess, requireWorkspaceAccess } from './account-ownership'
+import { resolvePermittedWorkspaces } from './storage-scope'
 
 export const CORE_HANDLED_CHANNELS = [
   RPC_CHANNELS.workspaces.GET,
@@ -41,9 +42,9 @@ async function deriveWorkspaceScope(
   ctx: RequestContext,
   requestedWorkspaceId: string | null | undefined = ctx.workspaceId,
 ) {
-  const permittedWorkspaces = ctx.userId && deps.accountStore
-    ? await deps.accountStore.listWorkspaceIds(ctx.userId)
-    : []
+  // T226: consult the optional RBAC resolver before falling back to the C.4
+  // AccountStore baseline. See `resolvePermittedWorkspaces` for the order.
+  const permittedWorkspaces = await resolvePermittedWorkspaces(deps, ctx.userId ?? undefined)
 
   return deriveScopeFromAuth(
     {

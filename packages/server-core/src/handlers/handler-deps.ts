@@ -6,6 +6,7 @@ import type { IWindowManager } from './window-manager-interface'
 import type { IMessagingGatewayRegistry } from './messaging-registry-interface'
 import type { AccountStore } from '../accounts'
 import type { OfficeDocumentConverter } from '../services/office-document-adapter'
+import type { RbacResolver } from '@rox-one/shared/auth/rbac-resolver'
 
 /**
  * Generic handler dependency bag.
@@ -30,5 +31,12 @@ export interface HandlerDeps<
   oauthFlowStore: TOAuthFlowStore
   messagingRegistry?: IMessagingGatewayRegistry
   accountStore?: AccountStore
+  /**
+   * Optional RBAC resolver (T226). When provided, the RPC scope helpers
+   * source `session.permittedWorkspaces` from this resolver instead of
+   * `accountStore.listWorkspaceIds`. Hosts that have not yet adopted RBAC
+   * may omit this field; behaviour then matches the C.4 baseline path.
+   */
+  rbacResolver?: RbacResolver
   officeDocumentConverter?: OfficeDocumentConverter
 }
