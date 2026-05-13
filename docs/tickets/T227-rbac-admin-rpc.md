@@ -1,5 +1,7 @@
 # T227 - RBAC admin RPC handlers
 
+Status: IN_PROGRESS
+
 ## Context
 
 We are building a white-label fork of Rox Agents OSS into Agent Workbench Suite.
