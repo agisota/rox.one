@@ -1488,6 +1488,8 @@
   "workbench.composer.pasteImage.cancel": "Mégse",
   "workbench.composer.pasteImage.confirm": "Hozzáadás",
   "workbench.composer.pasteImage.dimensions": "{{width}} × {{height}} ({{size}})",
+  "workbench.composer.pasteImage.resizeHint": "Átméretezve {{width}} × {{height}} méretűre és JPEG-ként újrakódolva.",
+  "workbench.composer.pasteImage.resizeToggle": "Átméretezés csatolás előtt (ajánlott)",
   "workbench.composer.pasteImage.title": "Beillesztett kép hozzáadása",
   "workbench.composer.permission.awaiting": "Várakozás az ügynökre…",
   "workbench.composer.voiceInput.aria-label": "Hangbevitel",

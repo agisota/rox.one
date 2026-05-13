@@ -1,5 +1,5 @@
 /**
- * RTL coverage for PasteImagePreviewDialog.tsx (M.10 T237).
+ * RTL coverage for PasteImagePreviewDialog.tsx (M.10 T237 + T237b).
  *
  * Cases covered:
  *   - Closed when `open={false}` (no DOM, no onConfirm)
@@ -9,6 +9,10 @@
  *   - `image={null}` keeps the dialog closed even when `open=true`
  *   - Hides dimensions row when width/height are 0 (decode failure)
  *   - Size hint always rendered (with or without dimensions)
+ *   - T237b: Resize toggle hidden when image is under the budget
+ *   - T237b: Resize toggle shown + default ON when byte budget tripped
+ *   - T237b: Resize toggle shown + default ON when pixel budget tripped
+ *   - T237b: Toggle off → onConfirm receives `{resize: false}`
  */
 import * as React from 'react'
 import { describe, it, expect, vi, afterEach } from 'vitest'
@@ -156,5 +160,97 @@ describe('PasteImagePreviewDialog', () => {
     )
     expect(screen.queryByTestId('composer-paste-image-preview-dimensions')).toBeNull()
     expect(screen.getByTestId('composer-paste-image-preview-size').textContent).toBe('256 B')
+  })
+
+  // T237b: resize toggle cases.
+
+  it('does not show the resize row when the image is under the budget', () => {
+    render(
+      <Providers>
+        <PasteImagePreviewDialog
+          open
+          image={baseImage}
+          onOpenChange={() => undefined}
+          onConfirm={() => undefined}
+          onCancel={() => undefined}
+        />
+      </Providers>,
+    )
+    expect(screen.queryByTestId('composer-paste-image-preview-resize-row')).toBeNull()
+  })
+
+  it('shows the resize toggle (default ON) when the byte budget is tripped', () => {
+    render(
+      <Providers>
+        <PasteImagePreviewDialog
+          open
+          image={{ ...baseImage, sizeBytes: 5 * 1024 * 1024 }}
+          onOpenChange={() => undefined}
+          onConfirm={() => undefined}
+          onCancel={() => undefined}
+        />
+      </Providers>,
+    )
+    expect(screen.getByTestId('composer-paste-image-preview-resize-row')).not.toBeNull()
+    const sw = screen.getByTestId('composer-paste-image-preview-resize-switch')
+    // Radix Switch reflects state via aria-checked.
+    expect(sw.getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('shows the resize hint with the computed target dimensions when pixel budget is tripped', () => {
+    render(
+      <Providers>
+        <PasteImagePreviewDialog
+          open
+          image={{ ...baseImage, width: 4096, height: 2048, sizeBytes: 1024 }}
+          onOpenChange={() => undefined}
+          onConfirm={() => undefined}
+          onCancel={() => undefined}
+        />
+      </Providers>,
+    )
+    expect(screen.getByTestId('composer-paste-image-preview-resize-row')).not.toBeNull()
+    const hint = screen.getByTestId('composer-paste-image-preview-resize-hint').textContent ?? ''
+    expect(hint).toContain('workbench.composer.pasteImage.resizeHint')
+    // Target for 4096x2048 with cap 2048 → 2048x1024.
+    expect(hint).toContain('"width":2048')
+    expect(hint).toContain('"height":1024')
+  })
+
+  it('forwards `resize: true` on confirm when the toggle is left ON', () => {
+    const onConfirm = vi.fn()
+    render(
+      <Providers>
+        <PasteImagePreviewDialog
+          open
+          image={{ ...baseImage, sizeBytes: 5 * 1024 * 1024 }}
+          onOpenChange={() => undefined}
+          onConfirm={onConfirm}
+          onCancel={() => undefined}
+        />
+      </Providers>,
+    )
+    fireEvent.click(screen.getByTestId('composer-paste-image-preview-confirm'))
+    expect(onConfirm).toHaveBeenCalledTimes(1)
+    expect(onConfirm).toHaveBeenCalledWith({ resize: true })
+  })
+
+  it('forwards `resize: false` on confirm after the user disables the toggle', () => {
+    const onConfirm = vi.fn()
+    render(
+      <Providers>
+        <PasteImagePreviewDialog
+          open
+          image={{ ...baseImage, sizeBytes: 5 * 1024 * 1024 }}
+          onOpenChange={() => undefined}
+          onConfirm={onConfirm}
+          onCancel={() => undefined}
+        />
+      </Providers>,
+    )
+    // Click the switch to toggle off, then confirm.
+    fireEvent.click(screen.getByTestId('composer-paste-image-preview-resize-switch'))
+    fireEvent.click(screen.getByTestId('composer-paste-image-preview-confirm'))
+    expect(onConfirm).toHaveBeenCalledWith({ resize: false })
   })
 })
