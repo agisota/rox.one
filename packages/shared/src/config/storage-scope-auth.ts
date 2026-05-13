@@ -5,6 +5,7 @@ import { createLogger } from '../utils/debug.ts';
 const log = createLogger('storage-scope');
 
 const STORAGE_SCOPE_BRAND: unique symbol = Symbol('storage.scope.brand');
+const brandedScopes = new WeakSet<object>();
 
 export type BrandedWorkspaceScope = WorkspaceScope & {
   readonly [STORAGE_SCOPE_BRAND]: true;
@@ -47,8 +48,13 @@ function brand<T extends WorkspaceScope>(scope: T): T & BrandedWorkspaceScope {
     configurable: false,
     writable: false,
   });
+  brandedScopes.add(scope);
 
   return Object.freeze(scope) as T & BrandedWorkspaceScope;
+}
+
+export function isBrandedWorkspaceScope(value: unknown): value is BrandedWorkspaceScope {
+  return typeof value === 'object' && value !== null && brandedScopes.has(value);
 }
 
 function emitScopeAudit(
