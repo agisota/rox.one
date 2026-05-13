@@ -56,7 +56,14 @@ export default defineConfig(({ command }) => {
         }),
         'browser-toolbar': resolve(__dirname, 'src/renderer/browser-toolbar.html'),
         'browser-empty-state': resolve(__dirname, 'src/renderer/browser-empty-state.html'),
-      }
+      },
+      output: {
+        // T132: give lazy-split chunks stable, human-readable names in dist artifacts.
+        chunkFileNames: (chunkInfo) => {
+          const name = chunkInfo.name ?? 'chunk'
+          return `assets/${name}-[hash].js`
+        },
+      },
     }
   },
   resolve: {
