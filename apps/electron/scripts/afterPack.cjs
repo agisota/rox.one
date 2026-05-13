@@ -20,6 +20,7 @@
 const path = require('path');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
+const ICON_SOURCE_MTIME_SKEW_MS = 1000;
 
 module.exports = async function afterPack(context) {
   // Only process macOS builds
@@ -113,7 +114,7 @@ module.exports = async function afterPack(context) {
   if (assetCatalogSources.length > 0) {
     const assetsCarMtime = fs.statSync(precompiledAssets).mtimeMs;
     const freshestSourceMtime = Math.max(...assetCatalogSources.map(source => fs.statSync(source).mtimeMs));
-    if (freshestSourceMtime > assetsCarMtime) {
+    if (freshestSourceMtime - assetsCarMtime > ICON_SOURCE_MTIME_SKEW_MS) {
       console.log('Warning: Assets.car is older than the current icon sources');
       console.log('Skipping stale Liquid Glass asset; the app will use fallback icon.icns');
       useFallbackIcns();
