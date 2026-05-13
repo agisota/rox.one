@@ -1,5 +1,5 @@
 {
-  "name": "@craft-agent/electron",
+  "name": "@rox-one/electron",
   "version": "0.9.1",
   "description": "Desktop app for ROX ONE",
   "main": "dist/main.cjs",
