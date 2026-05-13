@@ -85,11 +85,27 @@ The C.4 design spec deferred six concrete follow-ups. They are all in scope now.
 - **Validation:** Electron typecheck + `bun test apps/electron/src/main/handlers/__tests__/**` + full suite.
 - **Stopping condition:** every session-carrying handler uses `deriveScopeFromAuth`; headless exceptions are documented; tests prove tenant routing in multi-tenant mode.
 
-### Phase 1.3 — Pi-agent-server IPC scope propagation
+### Phase 1.3 — Server-core RPC handlers scope migration
+
+- **Read first:** `packages/server-core/src/handlers/rpc/*`; ADR 0007
+  §"Out of scope" follow-on status; `docs/tickets/T215-c4-server-core-rpc-handlers-scope-migration.md`.
+- **New ticket:** `T215-c4-server-core-rpc-handlers-scope-migration`.
+- **Work breakdown:**
+  1. Map the non-workspace server-core RPC handler storage call sites.
+  2. Derive authenticated workspace scope for workspace-addressed handlers.
+  3. Keep genuinely app/global settings on an explicit global local scope helper.
+  4. Add tests proving workspace settings route through tenant-prefixed storage
+     while global settings remain flat.
+- **Validation:** targeted server-core RPC scope tests + typecheck + full suite.
+- **Stopping condition:** server-core RPC handler storage decisions are explicit,
+  tenant-addressed handlers derive scope, global settings stay flat, and tests
+  prove both paths.
+
+### Phase 1.3b — Pi-agent-server IPC scope propagation
 
 - **Read first:** `packages/server-core/src/sessions/SessionManager.ts`; the Pi subprocess bootstrap; ADR 0007 §"Out of scope" → Pi IPC propagation entry.
 - **New spec + plan:** `docs/superpowers/specs/2026-05-14-pi-ipc-scope-propagation-design.md` and `docs/superpowers/plans/2026-05-14-pi-ipc-scope-propagation.md` (use the same shape as the C.4 design/plan).
-- **New ticket:** `T215-pi-ipc-scope-propagation`.
+- **New ticket:** `T216-pi-ipc-scope-propagation`.
 - **Work breakdown:**
   1. Decide serialization: branded scope is opaque, so propagate the *inputs* (`requestedWorkspaceId` + `permittedWorkspaces`) and re-mint via `deriveScopeFromAuth` on the Pi side after a session handshake. The Pi subprocess imports `storage-scope-auth.ts` directly (single in-process trust boundary remains intact because each Pi process has its own auth context).
   2. Add a Pi-side `bootstrapScope(sessionEnvelope)` helper that mints the branded scope after validating envelope integrity (signed by the parent or scoped by a one-time secret).

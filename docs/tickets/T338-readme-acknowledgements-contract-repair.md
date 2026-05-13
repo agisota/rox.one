@@ -46,7 +46,7 @@ and the missing upstream attribution URL in `snapshot.md`.
 ## Implementation Requirements
 
 - Restore a `## Acknowledgements` section in `README.md`.
-- Include `https://github.com/lukilabs/craft-agents-oss` in that section.
+- Include the upstream OSS URL in that section.
 - Restore the source-checkout `rox-cli` smoke snippet.
 - Include the same legal-preserve upstream URL in `snapshot.md`.
 - Do not reintroduce legacy clone/setup commands.
