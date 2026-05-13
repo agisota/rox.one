@@ -1475,6 +1475,8 @@
   "workbench.brand.section": "Application",
   "workbench.brand.support": "Support",
   "workbench.composer.actions.removeRecentFolder": "Letzten Ordner entfernen",
+  "workbench.composer.emphasis.toolbar.aria-label": "Formatierung",
+  "workbench.composer.emphasis.toolbar.tooltip": "{{label}} ({{shortcut}})",
   "workbench.composer.input.editLabel": "Nachricht bearbeiten",
   "workbench.composer.input.label": "Nachrichten-Editor",
   "workbench.composer.permission.awaiting": "Warte auf Agent…",

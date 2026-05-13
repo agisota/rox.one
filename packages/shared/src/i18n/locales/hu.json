@@ -1475,6 +1475,8 @@
   "workbench.brand.section": "Application",
   "workbench.brand.support": "Support",
   "workbench.composer.actions.removeRecentFolder": "Legutóbbi mappa eltávolítása",
+  "workbench.composer.emphasis.toolbar.aria-label": "Formázás",
+  "workbench.composer.emphasis.toolbar.tooltip": "{{label}} ({{shortcut}})",
   "workbench.composer.input.editLabel": "Üzenet szerkesztése",
   "workbench.composer.input.label": "Üzenetszerkesztő",
   "workbench.composer.permission.awaiting": "Várakozás az ügynökre…",
