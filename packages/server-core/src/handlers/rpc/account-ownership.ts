@@ -1,4 +1,4 @@
-import type { WorkspaceInfo } from '@rox-agent/core/types'
+import type { WorkspaceInfo } from '@rox-one/core/types'
 import type { RequestContext } from '../../transport/types'
 import type { HandlerDeps } from '../handler-deps'
 

@@ -8,13 +8,13 @@
 import { existsSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import { readJsonFileSync } from '../utils/files.ts';
-import type { StoredAttachment, StoredMessage } from '@rox-agent/core/types';
+import type { StoredAttachment, StoredMessage } from '@rox-one/core/types';
 import type { Plan } from '../agent/plan-types.ts';
 import { getWorkspacesDir, ensureWorkspaceDir } from './storage-internal.ts';
 import { DEFAULT_LOCAL_SCOPE, type BrandedWorkspaceScope } from './storage-scope.ts';
 
 // Re-export types from core for convenience
-export type { StoredAttachment, StoredMessage } from '@rox-agent/core/types';
+export type { StoredAttachment, StoredMessage } from '@rox-one/core/types';
 
 export interface WorkspaceConversation {
   messages: StoredMessage[];

@@ -14,7 +14,7 @@ import {
 } from '@rox-agent/shared/sessions'
 import { resolveSessionConnection } from '@rox-agent/shared/agent/backend'
 import { setPermissionMode, hydratePreviousPermissionMode } from '@rox-agent/shared/agent'
-import { messageToStored, storedToMessage } from '@rox-agent/core/types'
+import { messageToStored, storedToMessage } from '@rox-one/core/types'
 import { loadWorkspaceConfig } from '@rox-agent/shared/workspaces'
 import type { Logger } from '@rox-agent/server-core/runtime'
 import type { AutomationSystem } from '@rox-agent/shared/automations'

@@ -13,7 +13,7 @@ import type {
   ToolDisplayMeta,
   AnnotationV1,
   PermissionRequest as BasePermissionRequest,
-} from '@rox-agent/core/types'
+} from '@rox-one/core/types'
 import type { PermissionMode } from '../agent/mode-types'
 import type { ThinkingLevel } from '../agent/thinking-levels'
 import type { CustomEndpointConfig } from '../config/llm-connections'
@@ -24,7 +24,7 @@ import type {
 } from '../agent/index'
 
 // Re-export generateMessageId for handler convenience
-export { generateMessageId } from '@rox-agent/core/types'
+export { generateMessageId } from '@rox-one/core/types'
 
 // ---------------------------------------------------------------------------
 // Session types

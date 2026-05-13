@@ -23,8 +23,8 @@
     "noPropertyAccessFromIndexSignature": false,
     "baseUrl": ".",
     "paths": {
-      "@rox-agent/core": ["./src/index.ts"],
-      "@rox-agent/core/*": ["./src/*"]
+      "@rox-one/core": ["./src/index.ts"],
+      "@rox-one/core/*": ["./src/*"]
     },
     "rootDir": "src",
     "outDir": "dist",

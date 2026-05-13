@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Markdown } from '../markdown'
-import type { AnnotationV1 } from '@rox-agent/core'
+import type { AnnotationV1 } from '@rox-one/core'
 import { type IslandTransitionConfig } from '../ui'
 import { AnnotationIslandMenu } from '../annotations/AnnotationIslandMenu'
 import {

@@ -1,4 +1,4 @@
-import type { AnnotationV1 } from '@rox-agent/core'
+import type { AnnotationV1 } from '@rox-one/core'
 import { getAnnotationFollowUpState, type AnnotationFollowUpState } from './follow-up-state'
 
 export type AnnotationChipInteraction = {

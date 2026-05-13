@@ -1,4 +1,4 @@
-# @rox-agent/core
+# @rox-one/core
 
 Shared TypeScript types and utilities for ROX applications.
 
@@ -6,14 +6,14 @@ Shared TypeScript types and utilities for ROX applications.
 
 ```bash
 # In a workspace package
-bun add @rox-agent/core
+bun add @rox-one/core
 ```
 
 Or add to `package.json`:
 ```json
 {
   "dependencies": {
-    "@rox-agent/core": "workspace:*"
+    "@rox-one/core": "workspace:*"
   }
 }
 ```
@@ -28,10 +28,10 @@ import type {
   Message,
   TokenUsage,
   AgentEvent,
-} from '@rox-agent/core';
+} from '@rox-one/core';
 
 // Import utilities
-import { generateMessageId, debug } from '@rox-agent/core';
+import { generateMessageId, debug } from '@rox-one/core';
 ```
 
 ## Exported Types

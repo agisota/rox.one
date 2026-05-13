@@ -30,7 +30,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rox-agent/core": "workspace:*",
+    "@rox-one/core": "workspace:*",
     "@rox-agent/shared": "workspace:*",
     "@mariozechner/pi-ai": "0.72.1",
     "jose": "^6.0.0",

@@ -6,8 +6,8 @@
  * satisfy it at runtime.
  */
 
-import type { Workspace, WorkspaceInfo, ActiveSessionInfo } from '@rox-agent/core/types'
-import type { StoredAttachment, AnnotationV1 } from '@rox-agent/core/types'
+import type { Workspace, WorkspaceInfo, ActiveSessionInfo } from '@rox-one/core/types'
+import type { StoredAttachment, AnnotationV1 } from '@rox-one/core/types'
 import type { PermissionMode } from '@rox-agent/shared/agent/mode-types'
 import type { ThinkingLevel } from '@rox-agent/shared/agent/thinking-levels'
 import type { AuthResult } from '@rox-agent/shared/agent'

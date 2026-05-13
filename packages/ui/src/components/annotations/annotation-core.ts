@@ -1,4 +1,4 @@
-import type { AnnotationV1 } from '@rox-agent/core'
+import type { AnnotationV1 } from '@rox-one/core'
 
 export const ANNOTATION_PREFIX_SUFFIX_WINDOW = 24
 export const SELECTION_POINTER_MAX_AGE_MS = 1500

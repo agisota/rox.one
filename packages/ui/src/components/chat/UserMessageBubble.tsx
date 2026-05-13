@@ -13,8 +13,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Clock } from 'lucide-react'
-import type { StoredAttachment, ContentBadge } from '@rox-agent/core'
-import { normalizePath } from '@rox-agent/core/utils'
+import type { StoredAttachment, ContentBadge } from '@rox-one/core'
+import { normalizePath } from '@rox-one/core/utils'
 import { cn } from '../../lib/utils'
 import { Markdown } from '../markdown'
 import { FileTypeIcon, getFileTypeLabel } from './attachment-helpers'

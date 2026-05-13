@@ -14,7 +14,7 @@
  * - Turn lifecycle (reset on new turn)
  */
 
-import type { AgentEvent } from '@rox-agent/core/types';
+import type { AgentEvent } from '@rox-one/core/types';
 import { parseReadCommand, type ReadCommandInfo } from './read-patterns.ts';
 import { createLogger } from '../../utils/debug.ts';
 /** MCP server name used by the pool server (previously in codex/config-generator) */

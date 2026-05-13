@@ -2,8 +2,8 @@ import * as React from 'react'
 import { useMemo, useEffect, useRef, useCallback, useState } from 'react'
 import i18n from 'i18next'
 import { useTranslation } from 'react-i18next'
-import type { ToolDisplayMeta, AnnotationV1 } from '@rox-agent/core'
-import { normalizePath, pathStartsWith, stripPathPrefix } from '@rox-agent/core/utils'
+import type { ToolDisplayMeta, AnnotationV1 } from '@rox-one/core'
+import { normalizePath, pathStartsWith, stripPathPrefix } from '@rox-one/core/utils'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   ChevronRight,

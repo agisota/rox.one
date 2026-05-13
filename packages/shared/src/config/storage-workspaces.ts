@@ -17,7 +17,7 @@ import {
 } from '../workspaces/storage.ts';
 import { findIconFile } from '../utils/icon.ts';
 import { extractWorkspaceSlugFromPath } from '../utils/workspace-slug.ts';
-import type { Workspace } from '@rox-agent/core/types';
+import type { Workspace } from '@rox-one/core/types';
 import { loadStoredConfig, saveConfig } from './storage-io.ts';
 import { getWorkspacesDir } from './storage-internal.ts';
 import { DEFAULT_LOCAL_SCOPE, type BrandedWorkspaceScope } from './storage-scope.ts';

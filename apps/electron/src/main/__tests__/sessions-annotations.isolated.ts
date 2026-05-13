@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from 'bun:test'
-import type { AnnotationV1 } from '@rox-agent/core/types'
+import type { AnnotationV1 } from '@rox-one/core/types'
 
 mock.module('electron', () => ({
   app: {

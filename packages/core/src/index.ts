@@ -1,5 +1,5 @@
 /**
- * @rox-agent/core
+ * @rox-one/core
  *
  * Core types and utilities for ROX.
  *

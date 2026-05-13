@@ -2,7 +2,7 @@
  * Config Types (Browser-safe)
  *
  * Pure type definitions for configuration.
- * Re-exports from @rox-agent/core for compatibility.
+ * Re-exports from @rox-one/core for compatibility.
  */
 
 // Re-export all config types from core (single source of truth)
@@ -11,7 +11,7 @@ export type {
   McpAuthType,
   AuthType,
   OAuthCredentials,
-} from '@rox-agent/core/types';
+} from '@rox-one/core/types';
 
 /** App-level network proxy configuration. */
 export interface NetworkProxySettings {

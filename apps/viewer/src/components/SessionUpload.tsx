@@ -9,7 +9,7 @@
 
 import * as React from 'react'
 import { useState, useCallback, useRef, useEffect } from 'react'
-import type { StoredSession } from '@rox-agent/core'
+import type { StoredSession } from '@rox-one/core'
 import { Upload, FileJson, AlertCircle } from 'lucide-react'
 
 interface SessionUploadProps {

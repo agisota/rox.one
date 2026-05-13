@@ -10,7 +10,7 @@
 import { getCredentialManager } from '../credentials/index.ts';
 import { loadWorkspaceConfig, saveWorkspaceConfig } from '../workspaces/storage.ts';
 import { debug } from '../utils/debug.ts';
-import type { AuthType } from '@rox-agent/core/types';
+import type { AuthType } from '@rox-one/core/types';
 import type { LlmConnection } from './llm-connections.ts';
 import {
   isValidProviderAuthCombination,
