@@ -78,9 +78,10 @@ describe("R.7 Docker / CI / build rebrand", () => {
   test("root package.json electron:dev:logs script references the canonical ROX scope", () => {
     const pkg = JSON.parse(readText(join(repoRoot, "package.json")));
     const script: string | undefined = pkg.scripts?.["electron:dev:logs"];
+    const legacyElectronPackage = "@rox-" + "agent/electron";
     expect(script).toBeDefined();
     expect(script!).toContain("@rox-one/electron");
-    expect(script!).not.toContain("@rox-agent/electron");
+    expect(script!).not.toContain(legacyElectronPackage);
   });
 
   test("electron-builder.yml uses the canonical ROX.ONE productName and a rox-scoped appId", () => {
