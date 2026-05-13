@@ -1,6 +1,8 @@
-// Check ROX_DEBUG env var at module load (for SDK subprocess)
+import { readEnv } from './env-compat.ts';
+
+// Check ROX_DEBUG env var at module load (legacy ROX_DEBUG via shim for SDK subprocess)
 // Guard against browser/renderer contexts where process is undefined
-let debugEnabled = typeof process !== 'undefined' && process.env?.ROX_DEBUG === '1';
+let debugEnabled = readEnv('ROX_DEBUG') === '1';
 
 function isCliJsonOnlyMode(): boolean {
   return typeof process !== 'undefined' && process.env?.ROX_CLI_JSON_ONLY === '1';

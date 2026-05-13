@@ -1,7 +1,9 @@
 /**
  * Centralized path configuration for ROX.
  *
- * Supports multi-instance development via ROX_CONFIG_DIR environment variable.
+ * Supports multi-instance development via the ROX_CONFIG_DIR environment
+ * variable. The legacy ROX_CONFIG_DIR name is still honored for one minor
+ * version via the `readEnv()` backward-compat shim from Phase R.6.
  *
  * Default (non-numbered folders): ~/.rox/
  * Instance 1 (-1 suffix): ~/.rox-1/
@@ -11,6 +13,8 @@
 import { existsSync, cpSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
+
+import { readEnv } from '../utils/env-compat.ts';
 
 function resolveDefaultConfigDir(): string {
   const home = homedir();
@@ -29,7 +33,7 @@ function resolveDefaultConfigDir(): string {
 // Resolve override dynamically so tests and multi-instance flows can switch
 // config roots within the same process before first use.
 export function getConfigDir(): string {
-  return process.env.ROX_CONFIG_DIR || resolveDefaultConfigDir();
+  return readEnv('ROX_CONFIG_DIR') || resolveDefaultConfigDir();
 }
 
 // Backward-compatible snapshot for modules that only need import-time resolution.

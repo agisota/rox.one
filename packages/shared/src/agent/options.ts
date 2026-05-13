@@ -3,6 +3,7 @@ import { join } from "path";
 import { homedir } from "os";
 import { existsSync, readFileSync, writeFileSync, unlinkSync, readdirSync } from "fs";
 import { debug } from "../utils/debug";
+import { readEnv } from "../utils/env-compat.ts";
 import { getProxyEnvVars } from "../config/proxy-env.ts";
 
 declare const ROX_AGENT_CLI_VERSION: string | undefined;
@@ -174,12 +175,17 @@ export function setPathToClaudeCodeExecutable(path: string) {
 export function buildClaudeSubprocessEnv(
     envOverrides?: Record<string, string>,
 ): NodeJS.ProcessEnv {
+    // Propagate debug mode from argv flag OR existing env var (canonical ROX_DEBUG
+    // with legacy ROX_DEBUG fallback via readEnv). Subprocesses still on the
+    // legacy ROX_DEBUG path are kept happy for one minor version by also
+    // setting ROX_DEBUG below.
+    const debugFlag = (process.argv.includes('--debug') || readEnv('ROX_DEBUG') === '1') ? '1' : '0';
     const env: NodeJS.ProcessEnv = {
         ...process.env,
         ...getProxyEnvVars(),
         ...envOverrides,
-        // Propagate debug mode from argv flag OR existing env var
-        ROX_DEBUG: (process.argv.includes('--debug') || process.env.ROX_DEBUG === '1') ? '1' : '0',
+        ROX_DEBUG: debugFlag,
+        ROX_DEBUG: debugFlag,
     };
 
     // Bedrock must never be routed through the Claude SDK path.

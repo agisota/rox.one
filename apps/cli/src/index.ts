@@ -9,6 +9,7 @@
 
 import { resolve } from 'path'
 import { isLoopbackBaseUrl } from '@rox-one/server-core/domain'
+import { readEnv } from '@rox-one/shared/utils'
 import { CliRpcClient } from './client.ts'
 
 // ---------------------------------------------------------------------------
@@ -164,10 +165,10 @@ export function parseArgs(argv: string[]): CliArgs {
     }
   }
 
-  // Env var fallbacks
-  if (!url) url = process.env.ROX_SERVER_URL ?? ''
-  if (!token) token = process.env.ROX_SERVER_TOKEN ?? ''
-  if (!tlsCa) tlsCa = process.env.ROX_TLS_CA
+  // Env var fallbacks (canonical ROX_* with legacy ROX_* via readEnv shim)
+  if (!url) url = readEnv('ROX_SERVER_URL') ?? ''
+  if (!token) token = readEnv('ROX_SERVER_TOKEN') ?? ''
+  if (!tlsCa) tlsCa = readEnv('ROX_TLS_CA')
   if (!provider) provider = process.env.LLM_PROVIDER ?? 'anthropic'
   if (!model) model = process.env.LLM_MODEL ?? ''
   if (!apiKey) apiKey = process.env.LLM_API_KEY ?? ''

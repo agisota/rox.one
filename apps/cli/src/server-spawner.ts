@@ -89,7 +89,7 @@ export async function spawnServer(opts?: SpawnServerOptions): Promise<SpawnedSer
     })()
   }
 
-  // Read stdout line by line looking for ROX_SERVER_URL=
+  // Read stdout line by line looking for ROX_SERVER_URL=.
   return new Promise<SpawnedServer>((resolve, reject) => {
     const timer = setTimeout(() => {
       proc.kill()

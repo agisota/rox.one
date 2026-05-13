@@ -12,6 +12,7 @@
 import { existsSync, readFileSync, writeFileSync, renameSync, unlinkSync, appendFileSync, mkdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { getConfigDir } from './config/paths.ts';
+import { readEnv } from './utils/env-compat.ts';
 
 // ============================================================================
 // CONSTANTS
@@ -24,7 +25,7 @@ export const IS_PACKAGED = process.argv.some(arg => arg.includes('app.asar'));
 export const INTERCEPTOR_LOGGING_ENABLED = !IS_PACKAGED;
 
 export const DEBUG = INTERCEPTOR_LOGGING_ENABLED &&
-  (process.argv.includes('--debug') || process.env.ROX_DEBUG === '1');
+  (process.argv.includes('--debug') || readEnv('ROX_DEBUG') === '1');
 
 /** Config file path for reading settings in the SDK subprocess */
 export const CONFIG_FILE = join(getConfigDir(), 'config.json');

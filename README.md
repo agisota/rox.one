@@ -191,6 +191,9 @@ In thin-client mode, the desktop app renders the UI but all session logic, tool 
 | `ROX_RPC_TLS_CA` | No | — | Path to PEM CA chain file (optional, for client cert verification) |
 | `ROX_DEBUG` | No | `false` | Enable debug logging |
 
+Legacy `ROX_*` names for the variables above are still accepted via the
+`readEnv()` shim for one minor version; please migrate to `ROX_*`.
+
 ### TLS (Recommended for Remote Access)
 
 When exposing the server over the network, TLS encrypts the WebSocket connection (`wss://` instead of `ws://`).

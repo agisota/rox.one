@@ -15,6 +15,7 @@ import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { debug } from '../utils/debug.ts';
+import { readEnv } from '../utils/env-compat.ts';
 import { readJsonFileSync, safeJsonParse } from '../utils/files.ts';
 import { CONFIG_DIR } from '../config/paths.ts';
 import { getBundledAssetsDir } from '../utils/paths.ts';
@@ -43,10 +44,11 @@ let permissionsInitialized = false;
 /**
  * Get the app-level permissions directory.
  * Default permissions are stored at ~/.rox/permissions/
- * Reads env var dynamically so tests can override via ROX_CONFIG_DIR.
+ * Reads env var dynamically so tests can override via ROX_CONFIG_DIR
+ * (legacy ROX_CONFIG_DIR is still honored via the readEnv() shim).
  */
 export function getAppPermissionsDir(): string {
-  const configDir = process.env.ROX_CONFIG_DIR || join(homedir(), '.rox');
+  const configDir = readEnv('ROX_CONFIG_DIR') || join(homedir(), '.rox');
   return join(configDir, 'permissions');
 }
 

@@ -21,6 +21,10 @@
 #     -v /path/to/certs:/certs:ro \
 #     -v ~/.rox:/home/roxagents/.rox \
 #     rox-agent-server
+#
+# Env var policy (Phase R.6): the canonical names are ROX_*. The legacy
+# ROX_* names are still read by the runtime via the readEnv() shim for
+# one minor version — please migrate any orchestrator templates to ROX_*.
 # =============================================================================
 
 FROM oven/bun:1.3-slim

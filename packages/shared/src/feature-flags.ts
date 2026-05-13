@@ -2,6 +2,8 @@
  * Feature flags for controlling experimental or in-development features.
  */
 
+import { readEnv } from './utils/env-compat.ts';
+
 /** Safe accessor for process.env — returns undefined in browser/renderer contexts. */
 function getEnv(key: string): string | undefined {
   if (typeof process !== 'undefined' && process.env) return process.env[key];
@@ -24,7 +26,7 @@ function parseBooleanEnv(value: string | undefined): boolean | undefined {
  */
 export function isDevRuntime(): boolean {
   const nodeEnv = (getEnv('NODE_ENV') || '').toLowerCase();
-  return nodeEnv === 'development' || nodeEnv === 'dev' || getEnv('ROX_DEBUG') === '1';
+  return nodeEnv === 'development' || nodeEnv === 'dev' || readEnv('ROX_DEBUG') === '1';
 }
 
 /**

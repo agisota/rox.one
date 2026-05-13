@@ -48,6 +48,7 @@ ANTHROPIC_API_KEY=sk-... bun run apps/cli/src/index.ts run "Hello, world!"
 | `--send-timeout <ms>` | — | `300000` | Timeout for `send` command (5 min) |
 
 Flags take precedence over environment variables. If `--workspace` is omitted, the CLI auto-detects the first available workspace.
+Legacy `ROX_SERVER_URL`, `ROX_SERVER_TOKEN`, and `ROX_TLS_CA` are still accepted via the `readEnv()` shim for one minor version; please migrate to `ROX_*`.
 
 ## Commands
 
