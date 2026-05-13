@@ -75,9 +75,9 @@ before any workflow reference can change.
 
 ## Acceptance Criteria
 
-- [ ] R.7 test asserts the name-key + artifact-name contract is green.
-- [ ] No workflow file is edited during T290.
-- [ ] ROX_* env-var keys remain in workflow YAML to exercise the
+- [x] R.7 test asserts the name-key + artifact-name contract is green.
+- [x] No workflow file is edited during T290.
+- [x] ROX_* env-var keys remain in workflow YAML to exercise the
       R.6 shim.
 
 ## Worklog
