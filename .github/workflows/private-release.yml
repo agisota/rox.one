@@ -119,6 +119,48 @@ jobs:
           set -o pipefail
           bun run electron:build 2>&1 | tee .ci-logs/private-release/electron-build.log
 
+      # CycloneDX SBOM -- generated after `electron:build` so the lockfile
+      # reflects exactly what was installed during the build.
+      # Format: CycloneDX JSON (bun native exporter preferred;
+      # @cyclonedx/cyclonedx-npm used as fallback for older bun versions).
+      # Satisfies user rule: "SBOM required: generate CycloneDX SBOM for each release."
+      - name: Generate CycloneDX SBOM
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-logs/private-release
+          SBOM_FILE=".ci-logs/private-release/sbom.json"
+          if bunx --bun @cyclonedx/bun --help >/dev/null 2>&1; then
+            echo "Using @cyclonedx/bun exporter"
+            bunx --bun @cyclonedx/bun \
+              --output-file "${SBOM_FILE}" \
+              --output-format JSON
+          else
+            echo "Falling back to @cyclonedx/cyclonedx-npm"
+            bunx --bun @cyclonedx/cyclonedx-npm \
+              --output-format json \
+              --output-file "${SBOM_FILE}" \
+              --package-lock-only
+          fi
+          echo "SBOM written to ${SBOM_FILE}"
+          python3 - "${SBOM_FILE}" <<PYINNER
+          import json, sys
+          sbom = json.load(open(sys.argv[1]))
+          components = sbom.get("components", [])
+          print(f"SBOM component count: {len(components)}")
+          print(f"SBOM spec version:    {sbom.get('specVersion', 'unknown')}")
+          PYINNER
+
+      - name: Upload SBOM
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: .ci-logs/private-release/sbom.json
+          retention-days: 90
+          if-no-files-found: error
+
       - name: Validate bundle policy
         shell: bash
         run: |

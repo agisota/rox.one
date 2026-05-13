@@ -10,3 +10,11 @@
 # exits non-zero if any forbidden legacy-brand token appears outside the
 # curated allowlist. A non-zero exit aborts the push.
 bun run validate:rebrand
+
+# Secret leak scan -- gate on gitleaks if installed locally.
+# Install: brew install gitleaks  OR  https://github.com/gitleaks/gitleaks#installing
+# Developers without gitleaks are NOT blocked (command -v guard below).
+# CI enforces this unconditionally via .github/workflows/secret-scan.yml.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --redact --no-banner --exit-code 1
+fi
