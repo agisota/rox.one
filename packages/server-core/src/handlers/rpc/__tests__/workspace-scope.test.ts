@@ -1,79 +1,28 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { describe, expect, it } from 'bun:test'
+import { spawnSync } from 'node:child_process'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { RPC_CHANNELS } from '@craft-agent/shared/protocol'
-import { MultiTenantForgeryError } from '@craft-agent/shared/config'
-import {
-  __resetMultiTenantForTests,
-  __setMultiTenantForTests,
-} from '../../../../../shared/src/config/storage-scope-runtime'
-import { registerWorkspaceCoreHandlers } from '../workspace'
-import type { AccountStore } from '../../../accounts'
-import type { HandlerDeps } from '../../handler-deps'
-import type { HandlerFn, RequestContext, RpcServer } from '../../../transport/types'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
-function createRpcHarness(options: { permittedWorkspaceIds?: string[] } = {}) {
-  const handlers = new Map<string, HandlerFn>()
-  const server: RpcServer = {
-    handle(channel, handler) {
-      handlers.set(channel, handler)
-    },
-    push() {},
-    async invokeClient() {
-      return undefined
-    },
-  }
+const testDir = dirname(fileURLToPath(import.meta.url))
+const repoRoot = resolve(testDir, '../../../../../..')
+const workspaceModuleUrl = pathToFileURL(resolve(testDir, '../workspace.ts')).href
+const runtimeModuleUrl = pathToFileURL(resolve(repoRoot, 'packages/shared/src/config/storage-scope-runtime.ts')).href
+const protocolModuleUrl = pathToFileURL(resolve(repoRoot, 'packages/shared/src/protocol/index.ts')).href
 
-  const accountStore = options.permittedWorkspaceIds
-    ? ({
-        async listWorkspaceIds() {
-          return options.permittedWorkspaceIds ?? []
-        },
-      } as Partial<AccountStore> as AccountStore)
-    : undefined
-
-  const deps = {
-    sessionManager: {
-      getWorkspaces() {
-        throw new Error('workspaces.GET must read through the C4 scoped storage path')
-      },
-    },
-    oauthFlowStore: {},
-    accountStore,
-    platform: {
-      appRootPath: '/',
-      resourcesPath: '/',
-      isPackaged: false,
-      appVersion: '0.0.0-test',
-      isDebugMode: true,
-      logger: {
-        info: () => {},
-        warn: () => {},
-        error: () => {},
-        debug: () => {},
-      },
-      imageProcessor: {
-        getMetadata: async () => null,
-        process: async () => Buffer.alloc(0),
-      },
-    },
-  } as unknown as HandlerDeps
-
-  registerWorkspaceCoreHandlers(server, deps)
-  const getWorkspaces = handlers.get(RPC_CHANNELS.workspaces.GET)
-  if (!getWorkspaces) throw new Error('workspaces.GET handler was not registered')
-
-  return { getWorkspaces }
+interface WorkspaceScenario {
+  multiTenant: boolean
+  workspaceId: string | null
+  userId?: string
+  permittedWorkspaceIds?: string[]
 }
 
-function ctx(overrides: Partial<RequestContext> = {}): RequestContext {
-  return {
-    clientId: 'client-workspace-scope-test',
-    workspaceId: null,
-    webContentsId: 1,
-    ...overrides,
-  }
+interface WorkspaceScenarioResult {
+  ok: boolean
+  ids?: string[]
+  errorName?: string
+  message?: string
 }
 
 async function writeConfig(configRoot: string, scopeRoot: string, workspaceId: string, name: string): Promise<void> {
@@ -102,71 +51,151 @@ async function writeConfig(configRoot: string, scopeRoot: string, workspaceId: s
   }, null, 2))
 }
 
-describe('workspace.ts getWorkspaces scope wiring (C4)', () => {
-  let tempRoot = ''
-  let configRoot = ''
+async function runWorkspaceScenario(scenario: WorkspaceScenario): Promise<WorkspaceScenarioResult> {
+  const tempRoot = await mkdtemp(join(tmpdir(), 'rox-workspace-scope-'))
+  const configRoot = join(tempRoot, 'config')
 
-  beforeEach(async () => {
-    tempRoot = await mkdtemp(join(tmpdir(), 'rox-workspace-scope-'))
-    configRoot = join(tempRoot, 'config')
-    process.env.CRAFT_CONFIG_DIR = configRoot
-    __resetMultiTenantForTests()
+  try {
     await writeConfig(configRoot, configRoot, 'FLAT', 'Flat Workspace')
     await writeConfig(configRoot, join(configRoot, 'tenants', 'W42'), 'W42', 'Tenant Workspace')
-  })
 
-  afterEach(async () => {
-    __resetMultiTenantForTests()
-    delete process.env.CRAFT_CONFIG_DIR
-    if (tempRoot) {
-      await rm(tempRoot, { recursive: true, force: true })
-      tempRoot = ''
-      configRoot = ''
+    const runnerPath = join(tempRoot, 'workspace-scope-runner.ts')
+    await writeFile(runnerPath, `
+import { RPC_CHANNELS } from ${JSON.stringify(protocolModuleUrl)}
+import { __resetMultiTenantForTests, __setMultiTenantForTests } from ${JSON.stringify(runtimeModuleUrl)}
+import { registerWorkspaceCoreHandlers } from ${JSON.stringify(workspaceModuleUrl)}
+
+const scenario = JSON.parse(process.env.C4_WORKSPACE_SCOPE_SCENARIO ?? '{}')
+const handlers = new Map()
+const server = {
+  handle(channel, handler) {
+    handlers.set(channel, handler)
+  },
+  push() {},
+  async invokeClient() {
+    return undefined
+  },
+}
+const accountStore = scenario.permittedWorkspaceIds
+  ? {
+      async listWorkspaceIds() {
+        return scenario.permittedWorkspaceIds ?? []
+      },
     }
+  : undefined
+const deps = {
+  sessionManager: {
+    getWorkspaces() {
+      throw new Error('workspaces.GET must read through the C4 scoped storage path')
+    },
+  },
+  oauthFlowStore: {},
+  accountStore,
+  platform: {
+    appRootPath: '/',
+    resourcesPath: '/',
+    isPackaged: false,
+    appVersion: '0.0.0-test',
+    isDebugMode: true,
+    logger: {
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+      debug: () => {},
+    },
+    imageProcessor: {
+      getMetadata: async () => null,
+      process: async () => Buffer.alloc(0),
+    },
+  },
+}
+registerWorkspaceCoreHandlers(server, deps)
+const getWorkspaces = handlers.get(RPC_CHANNELS.workspaces.GET)
+if (!getWorkspaces) throw new Error('workspaces.GET handler was not registered')
+
+try {
+  __resetMultiTenantForTests()
+  __setMultiTenantForTests(Boolean(scenario.multiTenant))
+  const result = await getWorkspaces({
+    clientId: 'client-workspace-scope-test',
+    workspaceId: scenario.workspaceId ?? null,
+    userId: scenario.userId,
+    webContentsId: 1,
   })
+  console.log(JSON.stringify({ ok: true, ids: result.map((workspace) => workspace.id) }))
+} catch (error) {
+  console.log(JSON.stringify({
+    ok: false,
+    errorName: error instanceof Error ? error.name : typeof error,
+    message: error instanceof Error ? error.message : String(error),
+  }))
+} finally {
+  __resetMultiTenantForTests()
+}
+`, 'utf8')
 
+    const result = spawnSync('bun', ['run', runnerPath], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        CRAFT_CONFIG_DIR: configRoot,
+        C4_WORKSPACE_SCOPE_SCENARIO: JSON.stringify(scenario),
+      },
+    })
+
+    if (result.status !== 0) {
+      throw new Error(`workspace scope runner failed with exit ${result.status}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`)
+    }
+
+    const lastLine = result.stdout.trim().split('\n').filter(Boolean).at(-1)
+    if (!lastLine) {
+      throw new Error(`workspace scope runner produced no JSON\nstderr:\n${result.stderr}`)
+    }
+    return JSON.parse(lastLine) as WorkspaceScenarioResult
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true })
+  }
+}
+
+describe('workspace.ts getWorkspaces scope wiring (C4)', () => {
   it('single-user runtime returns existing flat config data', async () => {
-    __setMultiTenantForTests(false)
-    const { getWorkspaces } = createRpcHarness()
+    const result = await runWorkspaceScenario({ multiTenant: false, workspaceId: null })
 
-    const result = await getWorkspaces(ctx())
-
-    expect(result.map((workspace: { id: string }) => workspace.id)).toEqual(['FLAT'])
+    expect(result).toMatchObject({ ok: true, ids: ['FLAT'] })
   })
 
   it('single-user runtime downgrades a requested workspace to flat config data', async () => {
-    __setMultiTenantForTests(false)
-    const { getWorkspaces } = createRpcHarness()
+    const result = await runWorkspaceScenario({ multiTenant: false, workspaceId: 'W42' })
 
-    const result = await getWorkspaces(ctx({ workspaceId: 'W42' }))
-
-    expect(result.map((workspace: { id: string }) => workspace.id)).toEqual(['FLAT'])
+    expect(result).toMatchObject({ ok: true, ids: ['FLAT'] })
   })
 
   it('multi-tenant runtime reads tenant config data for a permitted workspace', async () => {
-    __setMultiTenantForTests(true)
-    const { getWorkspaces } = createRpcHarness({ permittedWorkspaceIds: ['W42'] })
+    const result = await runWorkspaceScenario({
+      multiTenant: true,
+      workspaceId: 'W42',
+      userId: 'u1',
+      permittedWorkspaceIds: ['W42'],
+    })
 
-    const result = await getWorkspaces(ctx({ userId: 'u1', workspaceId: 'W42' }))
-
-    expect(result.map((workspace: { id: string }) => workspace.id)).toEqual(['W42'])
+    expect(result).toMatchObject({ ok: true, ids: ['W42'] })
   })
 
   it('multi-tenant runtime rejects requested workspace forgery', async () => {
-    __setMultiTenantForTests(true)
-    const { getWorkspaces } = createRpcHarness({ permittedWorkspaceIds: ['W42'] })
+    const result = await runWorkspaceScenario({
+      multiTenant: true,
+      workspaceId: 'W_OTHER',
+      userId: 'u1',
+      permittedWorkspaceIds: ['W42'],
+    })
 
-    await expect(
-      getWorkspaces(ctx({ userId: 'u1', workspaceId: 'W_OTHER' })),
-    ).rejects.toThrow(MultiTenantForgeryError)
+    expect(result).toMatchObject({ ok: false, errorName: 'MultiTenantForgeryError' })
   })
 
   it('multi-tenant runtime with null workspace id keeps flat config data', async () => {
-    __setMultiTenantForTests(true)
-    const { getWorkspaces } = createRpcHarness()
+    const result = await runWorkspaceScenario({ multiTenant: true, workspaceId: null })
 
-    const result = await getWorkspaces(ctx({ workspaceId: null }))
-
-    expect(result.map((workspace: { id: string }) => workspace.id)).toEqual(['FLAT'])
+    expect(result).toMatchObject({ ok: true, ids: ['FLAT'] })
   })
 })
