@@ -88,4 +88,20 @@ describe('RC E2E smoke harness', () => {
 
     expect(ticket).toContain('bun run e2e:smoke -- --scenario s05-team-invite-rbac')
   })
+
+  it('recognizes S06 file upload entity graph and documents current validation paths', async () => {
+    const harness = await import('../e2e-smoke')
+    const scenario = harness.resolveRequiredScenario('s06-file-upload-entity-graph')
+    const ticket = readFileSync(join(rootDir, 'docs/tickets/T344-rc-s06-file-upload-entity-graph.md'), 'utf8')
+
+    expect(scenario.command).toContain('packages/server-core/src/handlers/rpc/files.test.ts')
+    expect(scenario.command).toContain('packages/shared/src/workbench/__tests__/markdown-entity-graph.test.ts')
+    expect(scenario.command).toContain('packages/server-core/src/handlers/__tests__/file-manager-scopes.test.ts')
+    expect(scenario.command).toContain(
+      'apps/electron/src/renderer/components/right-sidebar/__tests__/session-files-watch.test.ts',
+    )
+
+    expect(ticket).not.toContain('apps/electron/src/renderer/components/workbench/**/__tests__/file*.test.*')
+    expect(ticket).not.toContain('packages/shared/src/**/__tests__/entity-graph*.test.ts')
+  })
 })
