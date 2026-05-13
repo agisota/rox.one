@@ -1,7 +1,9 @@
 /**
  * Secure Storage Backend
  *
- * Stores credentials in an encrypted file at ~/.rox/credentials.enc
+ * Stores credentials in encrypted files rooted at the ROX config directory.
+ * Local single-user credentials stay at ~/.rox/credentials.enc by default;
+ * workspace-scoped credentials can opt into tenant-prefixed files.
  * Uses AES-256-GCM for authenticated encryption.
  *
  * Encryption key is derived from OS-native hardware UUID using PBKDF2:
@@ -29,6 +31,7 @@ import {
   createDecipheriv,
   randomBytes,
   pbkdf2Sync,
+  hkdfSync,
   createHash,
 } from 'crypto';
 import { execSync } from 'child_process';
@@ -39,10 +42,14 @@ import { join, dirname } from 'path';
 import type { CredentialBackend } from './types.ts';
 import type { CredentialId, StoredCredential } from '../types.ts';
 import { credentialIdToAccount, accountToCredentialId } from '../types.ts';
-
-// File location
-const CREDENTIALS_DIR = join(homedir(), '.rox');
-const CREDENTIALS_FILE = join(CREDENTIALS_DIR, 'credentials.enc');
+import { getConfigDir } from '../../config/paths.ts';
+import {
+  DEFAULT_LOCAL_SCOPE,
+  type BrandedWorkspaceScope,
+} from '../../config/storage-scope.ts';
+import { isMultiTenantActivated } from '../../config/storage-scope-runtime.ts';
+import { appendStructuredAuditEvent } from '../../audit/index.ts';
+import { createLogger } from '../../utils/debug.ts';
 
 // File format constants
 const MAGIC_BYTES = Buffer.from('ROX01\0');
@@ -53,9 +60,13 @@ const SALT_SIZE = 32;
 const IV_SIZE = 12;
 const AUTH_TAG_SIZE = 16;
 const KEY_SIZE = 32;
+const TENANT_CREDENTIAL_KDF_VERSION = 1;
+const TENANT_CREDENTIAL_KDF_INFO = Buffer.from('rox.credentials.v1');
 
 // PBKDF2 iterations (balance security vs startup time)
 const PBKDF2_ITERATIONS = 100000;
+
+const log = createLogger('credentials');
 
 /**
  * Get stable machine identifier using OS-native hardware UUID.
@@ -100,21 +111,35 @@ function getStableMachineId(): string {
 
 /** Internal credential store structure */
 interface CredentialStore {
-  version: 1;
+  version: 1 | 2;
   credentials: Record<string, StoredCredential>;
   metadata: {
     createdAt: number;
     updatedAt: number;
+    kdfVersion?: 1;
+    workspaceId?: string;
   };
+}
+
+export interface SecureStorageBackendOptions {
+  readonly priority?: number;
 }
 
 export class SecureStorageBackend implements CredentialBackend {
   readonly name = 'secure-storage';
-  readonly priority = 100;
+  readonly priority: number;
 
   private cachedStore: CredentialStore | null = null;
   private encryptionKey: Buffer | null = null;
+  private encryptionKeyCacheId: string | null = null;
   private salt: Buffer | null = null;
+
+  constructor(
+    private readonly scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE,
+    options: SecureStorageBackendOptions = {},
+  ) {
+    this.priority = options.priority ?? 100;
+  }
 
   async isAvailable(): Promise<boolean> {
     // File backend is always available - we can always write to filesystem
@@ -123,10 +148,21 @@ export class SecureStorageBackend implements CredentialBackend {
 
   async get(id: CredentialId): Promise<StoredCredential | null> {
     const store = await this.loadStore();
-    if (!store) return null;
+    if (!store) {
+      this.emitTenantAudit('credential.scope.read', {
+        credentialType: id.type,
+        hit: false,
+      });
+      return null;
+    }
 
     const key = credentialIdToAccount(id);
-    return store.credentials[key] || null;
+    const credential = store.credentials[key] || null;
+    this.emitTenantAudit('credential.scope.read', {
+      credentialType: id.type,
+      hit: credential !== null,
+    });
+    return credential;
   }
 
   async set(id: CredentialId, credential: StoredCredential): Promise<void> {
@@ -134,53 +170,83 @@ export class SecureStorageBackend implements CredentialBackend {
 
     if (!store) {
       // Initialize new store
-      store = {
-        version: 1,
-        credentials: {},
-        metadata: {
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        },
-      };
+      store = this.createEmptyStore();
     }
 
     const key = credentialIdToAccount(id);
     store.credentials[key] = credential;
+    this.applyScopeMetadata(store);
     store.metadata.updatedAt = Date.now();
 
     await this.saveStore(store);
+    this.emitTenantAudit('credential.scope.write', {
+      credentialType: id.type,
+    });
   }
 
   async delete(id: CredentialId): Promise<boolean> {
     const store = await this.loadStore();
-    if (!store) return false;
+    if (!store) {
+      this.emitTenantAudit('credential.scope.delete', {
+        credentialType: id.type,
+        deleted: false,
+      });
+      return false;
+    }
 
     const key = credentialIdToAccount(id);
-    if (!(key in store.credentials)) return false;
+    if (!(key in store.credentials)) {
+      this.emitTenantAudit('credential.scope.delete', {
+        credentialType: id.type,
+        deleted: false,
+      });
+      return false;
+    }
 
     delete store.credentials[key];
+    this.applyScopeMetadata(store);
     store.metadata.updatedAt = Date.now();
 
     await this.saveStore(store);
+    this.emitTenantAudit('credential.scope.delete', {
+      credentialType: id.type,
+      deleted: true,
+    });
     return true;
   }
 
   async list(filter?: Partial<CredentialId>): Promise<CredentialId[]> {
     const store = await this.loadStore();
-    if (!store) return [];
+    if (!store) {
+      this.emitTenantAudit('credential.scope.list', {
+        credentialType: filter?.type,
+        count: 0,
+      });
+      return [];
+    }
 
     const ids = Object.keys(store.credentials)
       .map(accountToCredentialId)
       .filter((id): id is CredentialId => id !== null);
 
-    if (!filter) return ids;
+    if (!filter) {
+      this.emitTenantAudit('credential.scope.list', {
+        count: ids.length,
+      });
+      return ids;
+    }
 
-    return ids.filter((id) => {
+    const filtered = ids.filter((id) => {
       if (filter.type && id.type !== filter.type) return false;
       if (filter.workspaceId && id.workspaceId !== filter.workspaceId) return false;
       if (filter.name && id.name !== filter.name) return false;
       return true;
     });
+    this.emitTenantAudit('credential.scope.list', {
+      credentialType: filter.type,
+      count: filtered.length,
+    });
+    return filtered;
   }
 
   // ============================================================
@@ -191,11 +257,12 @@ export class SecureStorageBackend implements CredentialBackend {
     // Return cached store if available
     if (this.cachedStore) return this.cachedStore;
 
-    if (!existsSync(CREDENTIALS_FILE)) return null;
+    const credentialsFile = this.getCredentialsFile();
+    if (!existsSync(credentialsFile)) return null;
 
     let fileData: Buffer;
     try {
-      fileData = readFileSync(CREDENTIALS_FILE);
+      fileData = readFileSync(credentialsFile);
     } catch {
       return null;
     }
@@ -230,16 +297,20 @@ export class SecureStorageBackend implements CredentialBackend {
       return store;
     }
 
-    // Try legacy key for migration (v1 - included hostname)
-    // This handles credentials encrypted with old key derivation
-    const legacyKey = this.getLegacyEncryptionKey(salt);
-    store = this.tryDecrypt(encryptedData, legacyKey);
+    if (!this.getTenantWorkspaceId()) {
+      // Try legacy key for migration (v1 - included hostname).
+      // This handles flat credentials encrypted with old key derivation. Tenant
+      // files intentionally do not try local legacy keys because copied flat or
+      // cross-tenant files must not decrypt under a workspace scope.
+      const legacyKey = this.getLegacyEncryptionKey(salt);
+      store = this.tryDecrypt(encryptedData, legacyKey);
 
-    if (store) {
-      // Migration: re-save with new stable key so future loads use hardware UUID
-      this.cachedStore = store;
-      await this.saveStore(store);
-      return store;
+      if (store) {
+        // Migration: re-save with new stable key so future loads use hardware UUID
+        this.cachedStore = store;
+        await this.saveStore(store);
+        return store;
+      }
     }
 
     // Both keys failed - file is truly corrupted
@@ -267,9 +338,11 @@ export class SecureStorageBackend implements CredentialBackend {
   }
 
   private async saveStore(store: CredentialStore): Promise<void> {
+    const credentialsFile = this.getCredentialsFile();
     // Ensure directory exists
-    if (!existsSync(CREDENTIALS_DIR)) {
-      mkdirSync(CREDENTIALS_DIR, { recursive: true, mode: 0o700 });
+    const credentialsDir = dirname(credentialsFile);
+    if (!existsSync(credentialsDir)) {
+      mkdirSync(credentialsDir, { recursive: true, mode: 0o700 });
     }
 
     // Use existing salt or generate new one
@@ -300,12 +373,16 @@ export class SecureStorageBackend implements CredentialBackend {
     const fileData = Buffer.concat([header, iv, authTag, ciphertext]);
 
     // Write with restrictive permissions (owner read/write only)
-    writeFileSync(CREDENTIALS_FILE, fileData, { mode: 0o600 });
+    writeFileSync(credentialsFile, fileData, { mode: 0o600 });
     this.cachedStore = store;
   }
 
   private getEncryptionKey(salt: Buffer): Buffer {
-    if (this.encryptionKey) return this.encryptionKey;
+    const tenantWorkspaceId = this.getTenantWorkspaceId();
+    const cacheId = `${tenantWorkspaceId ?? 'local'}:${salt.toString('hex')}`;
+    if (this.encryptionKey && this.encryptionKeyCacheId === cacheId) {
+      return this.encryptionKey;
+    }
 
     // New stable machine ID using hardware UUID (v2)
     // This is far more stable than hostname which can change with network/DHCP
@@ -314,8 +391,19 @@ export class SecureStorageBackend implements CredentialBackend {
       .update('rox-agent-v2') // Bumped version for new key derivation
       .digest();
 
-    // Derive key using PBKDF2
-    this.encryptionKey = pbkdf2Sync(stableMachineId, salt, PBKDF2_ITERATIONS, KEY_SIZE, 'sha256');
+    // Derive local master key using the existing PBKDF2 substrate.
+    const masterKey = pbkdf2Sync(stableMachineId, salt, PBKDF2_ITERATIONS, KEY_SIZE, 'sha256');
+
+    this.encryptionKey = tenantWorkspaceId
+      ? Buffer.from(hkdfSync(
+        'sha256',
+        masterKey,
+        Buffer.from(tenantWorkspaceId),
+        TENANT_CREDENTIAL_KDF_INFO,
+        KEY_SIZE,
+      ))
+      : masterKey;
+    this.encryptionKeyCacheId = cacheId;
 
     return this.encryptionKey;
   }
@@ -337,15 +425,17 @@ export class SecureStorageBackend implements CredentialBackend {
 
   private handleCorruptedFile(): void {
     // Delete corrupted file - user will need to re-enter credentials
+    const credentialsFile = this.getCredentialsFile();
     try {
-      if (existsSync(CREDENTIALS_FILE)) {
-        unlinkSync(CREDENTIALS_FILE);
+      if (existsSync(credentialsFile)) {
+        unlinkSync(credentialsFile);
       }
     } catch {
       // Ignore deletion errors
     }
     this.cachedStore = null;
     this.encryptionKey = null;
+    this.encryptionKeyCacheId = null;
     this.salt = null;
   }
 
@@ -353,6 +443,75 @@ export class SecureStorageBackend implements CredentialBackend {
   clearCache(): void {
     this.cachedStore = null;
     this.encryptionKey = null;
+    this.encryptionKeyCacheId = null;
     this.salt = null;
+  }
+
+  private getCredentialsFile(): string {
+    return join(this.getCredentialsDir(), 'credentials.enc');
+  }
+
+  private getCredentialsDir(): string {
+    const tenantWorkspaceId = this.getTenantWorkspaceId();
+    if (!tenantWorkspaceId) {
+      return getConfigDir();
+    }
+    return join(getConfigDir(), 'tenants', tenantWorkspaceId);
+  }
+
+  private getTenantWorkspaceId(): string | null {
+    if (this.scope.kind !== 'workspace' || !isMultiTenantActivated()) {
+      return null;
+    }
+    return this.scope.workspaceId;
+  }
+
+  private createEmptyStore(): CredentialStore {
+    const now = Date.now();
+    const tenantWorkspaceId = this.getTenantWorkspaceId();
+    if (!tenantWorkspaceId) {
+      return {
+        version: 1,
+        credentials: {},
+        metadata: {
+          createdAt: now,
+          updatedAt: now,
+        },
+      };
+    }
+
+    return {
+      version: 2,
+      credentials: {},
+      metadata: {
+        createdAt: now,
+        updatedAt: now,
+        kdfVersion: TENANT_CREDENTIAL_KDF_VERSION,
+        workspaceId: tenantWorkspaceId,
+      },
+    };
+  }
+
+  private applyScopeMetadata(store: CredentialStore): void {
+    const tenantWorkspaceId = this.getTenantWorkspaceId();
+    if (!tenantWorkspaceId) return;
+    store.version = 2;
+    store.metadata.kdfVersion = TENANT_CREDENTIAL_KDF_VERSION;
+    store.metadata.workspaceId = tenantWorkspaceId;
+  }
+
+  private emitTenantAudit(event: string, payload: Record<string, unknown>): void {
+    const tenantWorkspaceId = this.getTenantWorkspaceId();
+    if (!tenantWorkspaceId) return;
+    appendStructuredAuditEvent('trace', event, {
+      workspaceId: tenantWorkspaceId,
+      ...payload,
+    });
+    log.debug(JSON.stringify({
+      level: 'trace',
+      event,
+      workspaceId: tenantWorkspaceId,
+      ...payload,
+    }));
   }
 }

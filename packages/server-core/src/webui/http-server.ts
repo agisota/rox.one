@@ -80,6 +80,12 @@ import {
   type WorkspaceSyncFilePayload,
   type WorkspaceSyncService,
 } from '../sync/workspace-sync-service'
+import {
+  queryAuditEventRecords,
+  type AuditEventActor,
+  type AuditEventRecord,
+  type AuditEventStorageBackend,
+} from '../audit'
 
 const ACCOUNT_TEAM_INVITE_ROLES = new Set<Exclude<AccountTeamRole, 'owner'>>(['admin', 'member', 'viewer'])
 
@@ -225,6 +231,75 @@ export function resolveWebSocketUrl(
   return `${wsProtocol}://127.0.0.1:${wsPort}`
 }
 
+const MAX_WEBUI_AUDIT_LIMIT = 500
+
+function parseAuditQueryLimit(raw: string | null): number | undefined {
+  if (!raw) return undefined
+  const limit = Number(raw)
+  if (!Number.isSafeInteger(limit) || limit <= 0) return undefined
+  return Math.min(limit, MAX_WEBUI_AUDIT_LIMIT)
+}
+
+function getOptionalSearchParam(url: URL, key: string): string | undefined {
+  const value = url.searchParams.get(key)?.trim()
+  return value ? value : undefined
+}
+
+function getAuditTimestampSearchParam(url: URL, key: 'from' | 'to'): string | Response | undefined {
+  const value = getOptionalSearchParam(url, key)
+  if (!value) return undefined
+  if (!Number.isFinite(Date.parse(value))) {
+    return Response.json({ error: `Invalid audit ${key} timestamp` }, { status: 400 })
+  }
+  return value
+}
+
+function getAuditActorTypeSearchParam(url: URL): AuditEventActor['type'] | undefined {
+  const value = getOptionalSearchParam(url, 'actorType')
+  return value === 'user' || value === 'system' || value === 'service' ? value : undefined
+}
+
+function parseAuditPayload(payloadJson: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(payloadJson)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : { value: parsed }
+  } catch {
+    return { payloadJson }
+  }
+}
+
+function createAccountCabinetEventsFromAuditRecords(records: AuditEventRecord[]) {
+  return {
+    events: records.map(record => ({
+      id: record.eventId,
+      type: record.eventType,
+      action: record.eventType,
+      actor: {
+        type: record.actor.type === 'user' ? 'user' : 'system',
+        ...(record.actor.id ? { userId: record.actor.id } : {}),
+        ...(record.tenantId ? { teamId: record.tenantId } : {}),
+        ...(record.actor.role ? { role: record.actor.role } : {}),
+      },
+      target: record.tenantId
+        ? { type: 'tenant', id: record.tenantId, teamId: record.tenantId }
+        : { type: 'audit', id: record.eventId },
+      ...(record.tenantId ? { teamId: record.tenantId } : {}),
+      severity: record.severity,
+      source: 'audit-store',
+      title: record.eventType,
+      details: parseAuditPayload(record.payloadJson),
+      metadata: {
+        ...(record.requestId ? { requestId: record.requestId } : {}),
+        previousEventHash: record.previousEventHash,
+        eventHash: record.eventHash,
+      },
+      createdAt: record.ts,
+    })),
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Handler options (shared between embedded and standalone modes)
 // ---------------------------------------------------------------------------
@@ -278,6 +353,8 @@ export interface WebuiHandlerOptions {
   accountCloudWorkspaceStore?: ManagedCloudWorkspaceStore
   /** Optional local-cloud workspace sync service. */
   accountWorkspaceSyncService?: WorkspaceSyncService
+  /** Optional queryable audit event store for account/team audit surfaces. */
+  accountAuditEventStore?: AuditEventStorageBackend
   /** Optional DV.net billing configuration. Secrets stay server-side. */
   accountDvnetBilling?: {
     storeUuid: string
@@ -1127,6 +1204,24 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       if (membership instanceof Response) return membership
       if (membership.role !== 'owner' && membership.role !== 'admin') {
         return Response.json({ error: 'Team audit access requires owner or admin role' }, { status: 403 })
+      }
+
+      if (options.accountAuditEventStore) {
+        const from = getAuditTimestampSearchParam(url, 'from')
+        if (from instanceof Response) return from
+        const to = getAuditTimestampSearchParam(url, 'to')
+        if (to instanceof Response) return to
+
+        const records = await queryAuditEventRecords(options.accountAuditEventStore, {
+          tenantId: teamId,
+          actorId: getOptionalSearchParam(url, 'actorId'),
+          actorType: getAuditActorTypeSearchParam(url),
+          eventType: getOptionalSearchParam(url, 'eventType'),
+          from,
+          to,
+          limit: parseAuditQueryLimit(url.searchParams.get('limit')),
+        })
+        return Response.json(createAccountCabinetEventsFromAuditRecords(records))
       }
 
       if (!options.accountEventHistory) return Response.json(createAccountCabinetEvents())

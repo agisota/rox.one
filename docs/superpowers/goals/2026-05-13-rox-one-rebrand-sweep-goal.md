@@ -14,7 +14,7 @@ The operator made four scope-locking decisions before any rebrand work was autho
 |---|---|---|---|
 | 1 | **Canonical brand token** | `ROX.ONE` (wordmark, with dot) + `ROX ONE` (spoken form) | Wordmark goes everywhere written: README, code, `package.json`, ADRs, brand assets. Spoken form is for voice-over / marketing audio only and does not appear in code. |
 | 2 | **Package scope** | `@rox-one/*` (kebab-case) | Matches the existing `@rox-one/marketing` package already present in the repo. |
-| 3 | **Coordination with master roadmap** | Wait for `T222-c4-followups-closeout` to be `Status: DONE` before invoking this `/goal` | Concurrent execution with C.4 follow-on phases is forbidden by Phase R.5's import-graph collision risk. |
+| 3 | **Coordination with master roadmap** | Wait for `T223-c4-followups-closeout` to be `Status: DONE` before invoking this `/goal` | Concurrent execution with C.4 follow-on phases is forbidden by Phase R.5's import-graph collision risk. |
 | 4 | **Git history rewrite** | **Authorized** — via `git filter-repo` in new Phase R.11, *as the last step before the v1.0.0 release tag* | The operator explicitly waived the CLAUDE.md "never force-push to main" rule for this one-time pre-release cleanup. R.11 has its own destructive-action safeguards. |
 
 ## Mega-Objective
@@ -27,7 +27,7 @@ Drive a **comprehensive, sweep-style rebrand** of the entire `rox-one-terminal` 
 4. Existing single-user installs continue to work after upgrade — config-dir, env-var, and credential-store migrations are shimmed, not break-changed.
 5. A final grep gate (`rg -i 'rox' <repo>` outside the legal-preserve allowlist) returns **zero** matches.
 
-This goal is **inserted between master-roadmap Phase 1 (C.4 follow-ons closeout) and Phase 2 (RBAC)**. It does *not* run in parallel with C.4 work because Phase R.5 (package scope rename) touches the same import graph that C.4 Phase 1.x is actively modifying. Wait for `T222-c4-followups-closeout` to be `Status: DONE` before invoking this `/goal`.
+This goal is **inserted between master-roadmap Phase 1 (C.4 follow-ons closeout) and Phase 2 (RBAC)**. It does *not* run in parallel with C.4 work because Phase R.5 (package scope rename) touches the same import graph that C.4 Phase 1.x is actively modifying. Wait for `T223-c4-followups-closeout` to be `Status: DONE` before invoking this `/goal`.
 
 ## Read first (once, before Phase R.0)
 
@@ -87,7 +87,7 @@ git -C . pull --ff-only origin main
 Verify the master roadmap's Phase 1 closeout is complete:
 
 ```bash
-git -C . log --oneline | grep -E "T222-c4-followups-closeout|Phase 1 closeout" || \
+git -C . log --oneline | grep -E "T223-c4-followups-closeout|Phase 1 closeout" || \
   echo "BLOCKED: C.4 follow-ons not yet closed. STOP and wait for master roadmap Phase 1."
 ```
 
@@ -600,8 +600,8 @@ The operator explicitly waived the CLAUDE.md `<git_and_versioning>` rule "Never 
 ### Hard prerequisites (every one must be true before R.11 starts)
 
 1. R.0 through R.10 are all `Status: DONE` with matching closeout tickets.
-2. The master roadmap's Phase 1 closeout (`T222`) is `Status: DONE`.
-3. The master roadmap's Phase 2 (RBAC) closeout (`T228`) is `Status: DONE` and merged on `main`. *Reason: RBAC is the consumer of C.4; we want it on the rewritten ancestry, not stuck on an old one.*
+2. The master roadmap's Phase 1 closeout (`T223`) is `Status: DONE`.
+3. The master roadmap's Phase 2 (RBAC) closeout (`T229`) is `Status: DONE` and merged on `main`. *Reason: RBAC is the consumer of C.4; we want it on the rewritten ancestry, not stuck on an old one.*
 4. **Every open PR** is either merged or closed. Confirm with `gh pr list --state open --limit 200` → empty list.
 5. **No active codex `/goal` runs.** Confirm in codex with `/goal` (no args) → "no active goal". If codex shows an active goal, `/goal pause` first; do not resume until R.11 closeout.
 6. **No third-party forks expected to upstream.** Confirm by listing `gh api repos/agisota/rox-one-terminal/forks` and checking the count is what you expect (typically zero or one for backup).
@@ -776,7 +776,7 @@ All of:
 
 # Stop and ask if
 
-- The C.4 follow-on closeout (`T222-c4-followups-closeout`) is not yet `Status: DONE` when you start Phase R.5 — package-scope renames will collide with active C.4 import-path changes.
+- The C.4 follow-on closeout (`T223-c4-followups-closeout`) is not yet `Status: DONE` when you start Phase R.5 — package-scope renames will collide with active C.4 import-path changes.
 - A legal-preserve allowlist entry is ambiguous — Apache 2.0 attribution boundaries are non-negotiable, ask before editing.
 - Phase R.5 finds an unexpected package scope (e.g. a third-party fork shipping `@rox-agent/*` under a different license) — the rebrand must not break legitimate downstream users without notice.
 - The migration shim in Phase R.8 detects user data that does not match the expected schema — ask before copying anything destructive.
