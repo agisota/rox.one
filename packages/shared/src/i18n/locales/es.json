@@ -330,6 +330,8 @@
   "common.validating": "Validando...",
   "common.viewFullscreen": "Ver pantalla completa",
   "common.yesterday": "Ayer",
+  "composer.voiceInput.aria-label": "[TRANSLATE]: Voice input",
+  "composer.voiceInput.comingSoon": "[TRANSLATE]: Coming soon",
   "datatable.defaultTitle": "Tabla de datos",
   "datatable.loadingData": "Cargando datos...",
   "datatable.rowCount_one": "{{count}} fila",
