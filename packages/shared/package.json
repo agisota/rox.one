@@ -79,7 +79,8 @@
     "./workbench/review-board": "./src/workbench/review-board.ts",
     "./workbench/validation-gates": "./src/workbench/validation-gates.ts",
     "./workbench/thinking-partner": "./src/workbench/thinking-partner.ts",
-    "./workbench/spec-compiler": "./src/workbench/spec-compiler.ts"
+    "./workbench/spec-compiler": "./src/workbench/spec-compiler.ts",
+    "./highlight": "./src/highlight/index.ts"
   },
   "dependencies": {
     "@rox-one/core": "workspace:*",
