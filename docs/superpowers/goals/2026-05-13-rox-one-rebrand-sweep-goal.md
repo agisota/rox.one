@@ -6,6 +6,17 @@
 **Slot:** between master-roadmap Phase 1 (C.4 follow-ons closeout) and Phase 2 (RBAC slice) — inserts as **Phase 1.7**
 **Audience:** Codex CLI in autonomous `/goal` mode (or human operator)
 
+## User-locked decisions (2026-05-13)
+
+The operator made four scope-locking decisions before any rebrand work was authorized. They are non-negotiable for this `/goal` run.
+
+| # | Decision | Locked value | Notes |
+|---|---|---|---|
+| 1 | **Canonical brand token** | `ROX.ONE` (wordmark, with dot) + `ROX ONE` (spoken form) | Wordmark goes everywhere written: README, code, `package.json`, ADRs, brand assets. Spoken form is for voice-over / marketing audio only and does not appear in code. |
+| 2 | **Package scope** | `@rox-one/*` (kebab-case) | Matches the existing `@rox-one/marketing` package already present in the repo. |
+| 3 | **Coordination with master roadmap** | Wait for `T222-c4-followups-closeout` to be `Status: DONE` before invoking this `/goal` | Concurrent execution with C.4 follow-on phases is forbidden by Phase R.5's import-graph collision risk. |
+| 4 | **Git history rewrite** | **Authorized** — via `git filter-repo` in new Phase R.11, *as the last step before the v1.0.0 release tag* | The operator explicitly waived the CLAUDE.md "never force-push to main" rule for this one-time pre-release cleanup. R.11 has its own destructive-action safeguards. |
+
 ## Mega-Objective
 
 Drive a **comprehensive, sweep-style rebrand** of the entire `rox-one-terminal` repository so that:
@@ -71,11 +82,11 @@ If the closeout marker is missing, **stop and report**. Do not start Phase R.0 w
 
 The whole sweep depends on three locked decisions. Encode them in a single ADR before any rename begins.
 
-### Locked decisions to record
+### Locked decisions to record (already user-confirmed; copy verbatim into ADR 0011)
 
-1. **Canonical product brand token.** One of: `ROX.ONE` (preferred — already the dominant token in `branding.ts` and the marketing site), `ROX ONE`, `ROX_ONE`, or `Agent Workbench Suite`. The default below is **`ROX.ONE`** as the product name with **`Agent Workbench Suite`** as the suite descriptor (per `plan.md §1`).
-2. **Package scope.** One of: `@rox-one/*` (kebab-case, npm-conventional), `@roxone/*` (flat), `@rox/*` (short). The default below is **`@rox-one/*`**.
-3. **Env-var prefix policy.** `ROX_*` for all new vars; legacy `CRAFT_*` names continue to be read for **one minor version** with a deprecation warning, then dropped. Migration shims are *mandatory*, not optional.
+1. **Canonical product brand token:** `ROX.ONE` (wordmark, with dot) — written form everywhere in code, docs, package names, brand assets. Spoken form `ROX ONE` is reserved for voice/marketing audio only and never appears in source files. `Agent Workbench Suite` is the suite descriptor below the product name where context demands it (per `plan.md §1`). **User-locked 2026-05-13.**
+2. **Package scope:** `@rox-one/*` (kebab-case). Matches existing `@rox-one/marketing` already in the workspace. **User-locked 2026-05-13.**
+3. **Env-var prefix policy:** `ROX_*` for all new vars; legacy `CRAFT_*` names continue to be read for **one minor version** via the `readEnv()` shim (Phase R.6) with a per-process deprecation warning, then dropped. Migration shims are *mandatory*, not optional.
 
 ### New ticket cluster
 
@@ -544,16 +555,192 @@ Prove the rebrand is complete and irreversibly enforced.
 
 ---
 
+# Phase R.11 — Git history rewrite (DESTRUCTIVE, user-authorized)
+
+### Goal
+
+Scrub legacy `craft-agent` / `Craft Agents` brand text from the **entire git history** of `main` so that even `git log -p` and `git blame` show only the canonical `ROX.ONE` / `@rox-one/*` voice. This is the *single* destructive operation in the whole rebrand and runs **only after every other phase has merged and stabilized**.
+
+### Authorization
+
+The operator explicitly waived the CLAUDE.md `<git_and_versioning>` rule "Never `git push --force` to `main`/`master`" for this one-time pre-release cleanup on 2026-05-13 (decision #4 in the "User-locked decisions" table at the top of this file). The waiver applies *only* to Phase R.11 and *only* to the agisota/rox-one-terminal repository.
+
+### Hard prerequisites (every one must be true before R.11 starts)
+
+1. R.0 through R.10 are all `Status: DONE` with matching closeout tickets.
+2. The master roadmap's Phase 1 closeout (`T222`) is `Status: DONE`.
+3. The master roadmap's Phase 2 (RBAC) closeout (`T228`) is `Status: DONE` and merged on `main`. *Reason: RBAC is the consumer of C.4; we want it on the rewritten ancestry, not stuck on an old one.*
+4. **Every open PR** is either merged or closed. Confirm with `gh pr list --state open --limit 200` → empty list.
+5. **No active codex `/goal` runs.** Confirm in codex with `/goal` (no args) → "no active goal". If codex shows an active goal, `/goal pause` first; do not resume until R.11 closeout.
+6. **No third-party forks expected to upstream.** Confirm by listing `gh api repos/agisota/rox-one-terminal/forks` and checking the count is what you expect (typically zero or one for backup).
+7. The `rebrand-v1` tag from Phase R.10 exists.
+8. Local working tree is clean: `git status --porcelain` → empty.
+9. Local `main` is in sync with `origin/main`: `git rev-list --left-right --count origin/main...HEAD` → `0	0`.
+
+If **any** prerequisite fails, **stop and report**. Do not partially execute R.11 — it is all-or-nothing.
+
+### Backup procedure (mandatory)
+
+```bash
+# 1. Snapshot the current state to a backup tag and push it.
+git -C . tag -a pre-rebrand-history-rewrite-backup -m "Backup before R.11 git filter-repo on 2026-05-13"
+git -C . push origin pre-rebrand-history-rewrite-backup
+
+# 2. Verify the backup tag is visible on the remote.
+git -C . ls-remote --tags origin pre-rebrand-history-rewrite-backup
+
+# 3. Create a parallel backup branch and push it (belt-and-braces).
+git -C . switch -c backup/pre-rebrand-history-rewrite-2026-05-13 main
+git -C . push origin backup/pre-rebrand-history-rewrite-2026-05-13
+git -C . switch main
+
+# 4. Locally clone a second copy of the repo as an offline backup.
+#    This survives even a catastrophic mistake on origin.
+cd /tmp && git clone --mirror file:///home/dev/craft/rox-one-terminal \
+  /tmp/rox-one-terminal-backup-2026-05-13.git
+```
+
+The backup tag and the offline mirror must **both** exist before any filter-repo invocation. Confirm with `ls -la /tmp/rox-one-terminal-backup-2026-05-13.git` and `git ls-remote --tags origin | grep pre-rebrand`.
+
+### Filter-repo plan
+
+Use `git-filter-repo` (the modern replacement for `git filter-branch`; install with `pip install git-filter-repo` if not present). Two passes:
+
+**Pass 1 — Commit message rewrite** (changes commit subjects/bodies but not tree contents):
+
+```bash
+git -C . filter-repo --force \
+  --replace-message <(cat <<'EOF'
+craft-agent==>rox-one
+@craft-agent==>@rox-one
+Craft Agents==>ROX.ONE
+Craft Agent==>ROX.ONE
+CRAFT_==>ROX_
+craft-ai-agents/craft-agents-oss==>craft-ai-agents/craft-agents-oss
+lukilabs/craft-agents-oss==>lukilabs/craft-agents-oss
+EOF
+)
+```
+
+*The last two lines are no-ops — they exist to **prevent** the rule above from rewriting attribution URLs that must remain pointing at the legitimate upstream source. `git-filter-repo` applies rules top-down with last-match-wins.*
+
+**Pass 2 — Path-name rewrite** (changes file paths in history so `git log --follow` shows the rebranded names):
+
+```bash
+git -C . filter-repo --force \
+  --path-rename packages/shared/src/config/sync-craft-agent-bash-patterns.ts:packages/shared/src/config/sync-agent-bash-patterns.ts \
+  --path-rename packages/pi-agent-server/src/craft-metadata-schema.ts:packages/pi-agent-server/src/rox-agent-metadata-schema.ts \
+  --path-rename apps/electron/resources/craft-logos:apps/electron/resources/rox-logos \
+  --path-rename apps/electron/resources/bin/craft-agent:apps/electron/resources/bin/rox-agent \
+  --path-rename apps/electron/resources/docs/craft-cli.md:apps/electron/resources/docs/rox-cli.md
+```
+
+### Legal-preserve checks (run AFTER filter-repo, BEFORE push)
+
+```bash
+# 1. LICENSE, NOTICE, TRADEMARK.md must be byte-identical to pre-rewrite versions.
+git show pre-rebrand-history-rewrite-backup:LICENSE > /tmp/license.before
+git show HEAD:LICENSE > /tmp/license.after
+diff -q /tmp/license.before /tmp/license.after  # MUST output nothing
+
+git show pre-rebrand-history-rewrite-backup:NOTICE > /tmp/notice.before
+git show HEAD:NOTICE > /tmp/notice.after
+diff -q /tmp/notice.before /tmp/notice.after  # MUST output nothing
+
+git show pre-rebrand-history-rewrite-backup:TRADEMARK.md > /tmp/trademark.before
+git show HEAD:TRADEMARK.md > /tmp/trademark.after
+diff -q /tmp/trademark.before /tmp/trademark.after  # MUST output nothing
+
+# 2. The upstream source URL in Dockerfile.server must still point at lukilabs/craft-agents-oss.
+grep -F 'org.opencontainers.image.source' Dockerfile.server | grep -F 'lukilabs/craft-agents-oss' \
+  || { echo "FAIL: upstream attribution URL was rewritten"; exit 1; }
+```
+
+If any check fails, **stop, restore from backup, investigate**. Never push a rewritten history that has scrubbed Apache 2.0 attribution.
+
+### Force-push procedure
+
+```bash
+# 1. Force-push main.
+git -C . push --force-with-lease origin main
+
+# 2. Force-push the rebrand-v1 tag (it now points at a different SHA after the rewrite).
+git -C . push --force origin refs/tags/rebrand-v1
+
+# 3. Push the new SHAs of every still-relevant branch.
+#    By this point only `main` and the backup branch should exist;
+#    every other branch should have been merged or closed in the prerequisites step.
+git -C . branch -r | grep -v 'HEAD\|main\|pre-rebrand\|backup/' | while read remote; do
+  echo "Stale remote ref: $remote — review manually before deletion"
+done
+```
+
+`--force-with-lease` is mandatory (not plain `--force`) so the push fails closed if anyone else pushed to `main` in the time between the backup and the rewrite.
+
+### Post-rewrite re-coordination protocol
+
+After the force-push, every clone in the world (including codex's local checkout and any developer machines) is on stale ancestry. Each must run:
+
+```bash
+git fetch origin --prune
+git switch main
+git reset --hard origin/main
+# Any locally-committed work that hasn't been pushed: cherry-pick onto the new main.
+```
+
+Document this in `README.md` § "After R.11 history rewrite" with a 72-hour visible banner.
+
+### New ticket
+
+- `T298-rebrand-git-history-rewrite` — the closeout ticket; the worklog records every command run, every backup created, every legal-preserve diff that passed, and the pre/post `git rev-list --count main` numbers.
+
+### Validation
+
+- All three legal-preserve byte-diffs are empty.
+- The Dockerfile attribution URL grep passes.
+- `bun run validate:rebrand` is green on the rewritten history.
+- `bun run typecheck`, full `bun test`, `bun run build` are all green on the rewritten history.
+- `git log --oneline | wc -l` shows the expected post-rewrite commit count (filter-repo may compact some commits; document the delta).
+
+### Stopping condition
+
+- Backup tag and backup mirror both exist.
+- Force-push completed without rejection.
+- Legal-preserve diffs are empty.
+- T298 `Status: DONE`.
+
+### Rollback (if R.11 goes wrong)
+
+```bash
+# 1. Restore main from backup tag.
+git -C . switch main
+git -C . reset --hard pre-rebrand-history-rewrite-backup
+git -C . push --force origin main
+
+# 2. Force-push the rebrand-v1 tag back to its pre-rewrite SHA (read from the backup mirror).
+cd /tmp/rox-one-terminal-backup-2026-05-13.git
+ORIG_REBRAND_SHA=$(git rev-parse rebrand-v1)
+cd /home/dev/craft/rox-one-terminal
+git tag -f rebrand-v1 "$ORIG_REBRAND_SHA"
+git push --force origin refs/tags/rebrand-v1
+```
+
+After rollback, R.11 is marked `Status: ROLLED-BACK` in its ticket and a new ticket is authored to investigate the cause before another attempt.
+
+---
+
 # Global stopping condition
 
 All of:
 
-1. T260–T297 `Status: DONE` with matching worklogs and commit SHAs.
+1. T260–T298 `Status: DONE` with matching worklogs and commit SHAs (T298 is the R.11 git-history-rewrite closeout).
 2. `bun run validate:rebrand` green on `main`.
 3. `bun run typecheck`, full `bun test`, `bun run lint`, `bun run build`, `bun run validate:docs`, `bun run validate:agent-contract` all green on `main`.
-4. The master roadmap's Phase 2 (RBAC) is unblocked — i.e. the package-scope rename in Phase R.5 has completed cleanly so RBAC work can land in the new scope.
-5. `rebrand-v1` tag exists on `main`.
-6. `docs/release/rebrand-mapping-2026-05-13.md` is updated with closeout commit SHAs.
+4. The master roadmap's Phase 2 (RBAC) has merged and is on the rewritten ancestry — i.e. R.11 ran *after* RBAC closeout, so RBAC commits live on the cleaned history rather than the legacy one.
+5. `rebrand-v1` tag exists on `main` (re-pointed to the post-rewrite SHA in Phase R.11).
+6. `pre-rebrand-history-rewrite-backup` tag exists on `origin` and the offline mirror at `/tmp/rox-one-terminal-backup-2026-05-13.git` is preserved for at least 90 days.
+7. `docs/release/rebrand-mapping-2026-05-13.md` is updated with closeout commit SHAs.
+8. `git log -p --all` shows zero matches for the forbidden-token list outside the legal-preserve allowlist.
 
 # Stop and ask if
 
