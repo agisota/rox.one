@@ -59,14 +59,14 @@ Do not change the single-user on-disk layout. Do not export the private brand sy
 
 ## Acceptance Criteria
 
-- [ ] `DEFAULT_LOCAL_SCOPE` resolves to `getConfigDir()`.
-- [ ] Branded workspace scope resolves to `<configDir>/tenants/<workspaceId>` when multi-tenant mode is active.
-- [ ] Branded workspace scope downgrades to `getConfigDir()` when multi-tenant mode is inactive.
-- [ ] Unbranded scope-shaped objects throw `BrandedScopeBreachError`.
-- [ ] Cast-breach and downgrade audit events are observable.
-- [ ] Tests pass.
-- [ ] Worklog complete.
-- [ ] Commit created.
+- [x] `DEFAULT_LOCAL_SCOPE` resolves to `getConfigDir()`.
+- [x] Branded workspace scope resolves to `<configDir>/tenants/<workspaceId>` when multi-tenant mode is active.
+- [x] Branded workspace scope downgrades to `getConfigDir()` when multi-tenant mode is inactive.
+- [x] Unbranded scope-shaped objects throw `BrandedScopeBreachError`.
+- [x] Cast-breach and downgrade audit events are observable.
+- [x] Tests pass.
+- [x] Worklog complete.
+- [x] Commit created.
 
 ## Worklog
 

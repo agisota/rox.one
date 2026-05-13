@@ -63,7 +63,7 @@ Verify:
 - [x] Targeted C4 tests pass.
 - [x] `bun run typecheck` passes.
 - [x] `bun run lint` passes.
-- [ ] Full `bun test` passes.
+- [x] Full `bun test` passes.
 - [x] `bun run build` passes.
 - [x] Worklogs and tickets for C4 are complete.
 - [x] No unrelated runtime files modified.

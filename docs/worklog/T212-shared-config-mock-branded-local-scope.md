@@ -83,12 +83,12 @@ BrandedScopeBreachError: storage received an unbranded workspace scope
 
 ## 9. Build output summary
 
-Pending final validation.
+Final C4 validation ran after this fix. `bun run build` passed.
 
 ## 10. Remaining risks
 
-- The root validation matrix still needs the non-bail full suite plus
-  typecheck, lint, and build in the final C4 validation ticket.
+- The final root validation matrix passed in T208. No remaining T212 blocker is
+  known.
 
 ## 11. Acceptance criteria matrix
 

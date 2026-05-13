@@ -73,14 +73,14 @@ BrandedScopeBreachError: storage received an unbranded workspace scope
 
 ## 9. Build output summary
 
-Pending final validation.
+Final C4 validation ran after this fix. `bun run build` passed.
 
 ## 10. Remaining risks
 
 - The shared registry is intentionally not exported. Code that does not import
   the official factory still cannot brand a scope through public APIs.
-- Full suite must still be rerun to prove the earlier backend factory failure is
-  gone in the complete test graph.
+- Full-suite validation later found a separate shared-config mock literal, fixed
+  under T212. No remaining T211 blocker is known.
 
 ## 11. Acceptance criteria matrix
 
