@@ -25,6 +25,8 @@
     "paths": {
       "@rox-one/core": ["../core/src/index.ts"],
       "@rox-one/core/*": ["../core/src/*"],
+      "@rox-one/session-tools-core": ["../session-tools-core/src/index.ts"],
+      "@rox-one/session-tools-core/*": ["../session-tools-core/src/*"],
       "@rox-one/shared": ["./src/index.ts"],
       "@rox-one/shared/*": ["./src/*"]
     }

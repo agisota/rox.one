@@ -19,7 +19,13 @@
     "noUnusedParameters": false,
     "baseUrl": ".",
     "paths": {
+      "@rox-one/core": ["../core/src/index.ts"],
+      "@rox-one/core/types": ["../core/src/types/index.ts"],
+      "@rox-one/core/*": ["../core/src/*"],
+      "@rox-one/session-tools-core": ["../session-tools-core/src/index.ts"],
+      "@rox-one/session-tools-core/*": ["../session-tools-core/src/*"],
       "@rox-one/shared": ["../shared/src/index.ts"],
+      "@rox-one/shared/interceptor": ["../shared/src/interceptor-common.ts"],
       "@rox-one/shared/*": ["../shared/src/*"]
     }
   },

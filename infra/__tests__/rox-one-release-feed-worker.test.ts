@@ -10,7 +10,7 @@ describe('rox-one release feed worker', () => {
 
     expect(response.status).toBe(200)
     const body = await response.text()
-    expect(body).toContain('version: 0.9.1')
+    expect(body).toContain('version: 0.9.2')
     expect(body).toContain('url: ROX-ONE-arm64.zip')
     expect(body).toContain('arch: arm64')
     expect(response.headers.get('content-type')).toContain('application/x-yaml')
@@ -21,6 +21,22 @@ describe('rox-one release feed worker', () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = ((input: RequestInfo | URL) => {
       fetchCalls.push(String(input))
+      if (String(input).endsWith('/releases/tags/v0.9.2')) {
+        return Promise.resolve(
+          Response.json({
+            assets: [
+              {
+                name: 'install-app.sh',
+                url: 'https://api.github.com/repos/agisota/rox-one-terminal/releases/assets/install-sh',
+              },
+              {
+                name: 'ROX-ONE-arm64.zip',
+                url: 'https://api.github.com/repos/agisota/rox-one-terminal/releases/assets/mac-zip',
+              },
+            ],
+          }),
+        )
+      }
       return Promise.resolve(new Response('asset body', { status: 200 }))
     }) as typeof fetch
 
@@ -38,8 +54,10 @@ describe('rox-one release feed worker', () => {
       expect(zip.status).toBe(200)
       expect(zip.headers.get('content-type')).toBe('application/zip')
       expect(fetchCalls).toEqual([
-        'https://api.github.com/repos/agisota/rox-one-terminal/releases/assets/415900506',
-        'https://api.github.com/repos/agisota/rox-one-terminal/releases/assets/415899637',
+        'https://api.github.com/repos/agisota/rox-one-terminal/releases/tags/v0.9.2',
+        'https://api.github.com/repos/agisota/rox-one-terminal/releases/assets/install-sh',
+        'https://api.github.com/repos/agisota/rox-one-terminal/releases/tags/v0.9.2',
+        'https://api.github.com/repos/agisota/rox-one-terminal/releases/assets/mac-zip',
       ])
     } finally {
       globalThis.fetch = originalFetch

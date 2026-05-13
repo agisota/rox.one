@@ -20,10 +20,18 @@
     "baseUrl": ".",
     "paths": {
       "@rox-one/shared": ["../shared/src/index.ts"],
+      "@rox-one/shared/interceptor": ["../shared/src/interceptor-common.ts"],
       "@rox-one/shared/*": ["../shared/src/*"],
       "@rox-one/server-core": ["../server-core/src/index.ts"],
       "@rox-one/server-core/*": ["../server-core/src/*"],
+      "@rox-one/messaging-gateway": ["../messaging-gateway/src/index.ts"],
+      "@rox-one/messaging-gateway/*": ["../messaging-gateway/src/*"],
+      "@rox-one/messaging-whatsapp-worker": ["../messaging-whatsapp-worker/src/protocol.ts"],
+      "@rox-one/messaging-whatsapp-worker/*": ["../messaging-whatsapp-worker/src/*"],
       "@rox-one/core": ["../core/src/index.ts"],
+      "@rox-one/core/types": ["../core/src/types/index.ts"],
+      "@rox-one/session-tools-core": ["../session-tools-core/src/index.ts"],
+      "@rox-one/session-tools-core/*": ["../session-tools-core/src/*"],
       "@rox-one/core/*": ["../core/src/*"]
     }
   },

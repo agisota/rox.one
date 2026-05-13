@@ -47,7 +47,7 @@ const proofs = [
 ]
 
 const liveSignals = [
-  { label: 'Desktop feed', value: 'v0.9.1 live' },
+  { label: 'Desktop feed', value: 'v0.9.2 live' },
   { label: 'Download host', value: 'app.rox.one' },
   { label: 'Runtime language', value: 'RU first' },
   { label: 'Distribution', value: 'Cloudflare' },
@@ -136,7 +136,7 @@ const runSteps = [
 ]
 
 const terminalRelease = {
-  version: '0.9.1',
+  version: '0.9.2',
   manifestUrl: 'https://app.rox.one/electron/latest/manifest.json',
   baseUrl: 'https://app.rox.one/electron/latest',
 }
@@ -146,23 +146,23 @@ const terminalDownloads = [
     title: 'macOS Apple Silicon DMG',
     subtitle: 'Для Mac на M1, M2, M3 и M4',
     fileName: 'ROX-ONE-arm64.dmg',
-    size: '328 MB',
-    sha256: 'd4e75a4359c3decfdb98845b51d6831415e5c64ec5b06ddfd6eda512b23848ab',
+    size: '320.1 MB',
+    sha256: '687376ea2c29710c7006956fe6f12934df3860fc5c6628b64955a37bf93a144c',
     action: 'Скачать DMG',
   },
   {
     title: 'macOS Apple Silicon ZIP',
     subtitle: 'Для auto-update feed и ручной распаковки',
     fileName: 'ROX-ONE-arm64.zip',
-    size: '317 MB',
-    sha256: '3a124e2619c9880051716132e345d22badd61301a01c9e2ef275cc90d0ecc19f',
+    size: '309.4 MB',
+    sha256: '8050c770eaaeaf5eb93ac4099e84eda71d885d55cf48d5829469a5846296b25f',
     action: 'Скачать ZIP',
   },
 ]
 
 const releaseFacts = [
   'Публичный feed: app.rox.one/electron/latest',
-  'Актуальная сборка: macOS arm64 v0.9.1',
+  'Актуальная сборка: macOS arm64 v0.9.2',
   'Installer scripts: shell + PowerShell',
 ]
 
