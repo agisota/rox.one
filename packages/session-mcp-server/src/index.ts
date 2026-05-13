@@ -3,7 +3,7 @@
  * Session MCP Server
  *
  * This MCP server provides session-scoped tools to Codex via stdio transport.
- * It uses the shared handlers from @rox-agent/session-tools-core to ensure
+ * It uses the shared handlers from @rox-one/session-tools-core to ensure
  * feature parity with Claude's session-scoped tools.
  *
  * Callback Communication:
@@ -47,7 +47,7 @@ import {
   // Helpers
   loadSourceConfig as loadSourceConfigFromHelpers,
   errorResponse,
-} from '@rox-agent/session-tools-core';
+} from '@rox-one/session-tools-core';
 
 // ============================================================
 // Types

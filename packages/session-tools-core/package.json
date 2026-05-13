@@ -1,5 +1,5 @@
 {
-  "name": "@rox-agent/session-tools-core",
+  "name": "@rox-one/session-tools-core",
   "version": "0.9.1",
   "license": "Apache-2.0",
   "description": "Shared utilities for session-scoped tools (Claude and Codex)",
