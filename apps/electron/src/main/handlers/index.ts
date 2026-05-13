@@ -1,6 +1,6 @@
 import type { HandlerDeps } from './handler-deps'
-import type { RpcServer } from '@rox-agent/server-core/transport'
-import { registerCoreRpcHandlers, type ServerHandlerContext } from '@rox-agent/server-core/handlers/rpc'
+import type { RpcServer } from '@rox-one/server-core/transport'
+import { registerCoreRpcHandlers, type ServerHandlerContext } from '@rox-one/server-core/handlers/rpc'
 export { registerCoreRpcHandlers }
 
 // GUI-only handlers remain local (Electron-specific imports)

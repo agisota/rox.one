@@ -7,8 +7,8 @@ import {
   registerSessionsHandlers,
   cleanupSessionFileWatchForClient,
   _setSessionFileWatcherFactoryForTesting,
-} from '@rox-agent/server-core/handlers/rpc'
-import type { RpcServer } from '@rox-agent/server-core/transport'
+} from '@rox-one/server-core/handlers/rpc'
+import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 
 type HandlerFn = (ctx: { clientId: string }, ...args: any[]) => Promise<any> | any

@@ -27,7 +27,7 @@ import {
 } from '@rox-agent/shared/config'
 import { readJsonFileSync } from '@rox-agent/shared/utils/files'
 import { RPC_CHANNELS, type UpdateInfo } from '../shared/types'
-import type { EventSink } from '@rox-agent/server-core/transport'
+import type { EventSink } from '@rox-one/server-core/transport'
 
 // Platform detection
 const PLATFORM = platform()

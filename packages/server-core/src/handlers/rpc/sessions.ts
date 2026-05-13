@@ -8,7 +8,7 @@ import { perf } from '@rox-agent/shared/utils'
 import { isValidThinkingLevel, THINKING_LEVEL_IDS } from '@rox-agent/shared/agent/thinking-levels'
 
 const VALID_THINKING_LEVELS_LIST = THINKING_LEVEL_IDS.map(id => `'${id}'`).join(', ')
-import { pushTyped, type RpcServer } from '@rox-agent/server-core/transport'
+import { pushTyped, type RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { setTransferableHandler } from './transfer'
 import { requireSessionAccess, requireWorkspaceAccess } from './account-ownership'
@@ -474,7 +474,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
       return []
     }
 
-    const { searchSessions } = await import('@rox-agent/server-core/services')
+    const { searchSessions } = await import('@rox-one/server-core/services')
     const { getWorkspaceSessionsPath } = await import('@rox-agent/shared/workspaces')
 
     const sessionsDir = getWorkspaceSessionsPath(workspace.rootPath)

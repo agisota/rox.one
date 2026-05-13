@@ -9,7 +9,7 @@ import {
   type StoredSession,
 } from '@rox-agent/shared/sessions'
 import type { StoredMessage } from '@rox-one/core/types'
-import type { Logger } from '@rox-agent/server-core/runtime'
+import type { Logger } from '@rox-one/server-core/runtime'
 import { createManagedSession, type ManagedSession } from '../session-manager-helpers'
 import { SessionPersistence } from '../session-persistence'
 import { SessionIPC } from '../session-ipc'

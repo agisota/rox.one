@@ -5,16 +5,16 @@ import { execSync } from 'child_process'
 import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
 import { getWorkspaceByNameOrId, getGitBashPath, setGitBashPath, clearGitBashPath } from '@rox-agent/shared/config'
 import { isSafeExternalUrl } from '@rox-agent/shared/utils/url-safety'
-import { isUsableGitBashPath, validateGitBashPath } from '@rox-agent/server-core/services'
-import { validateFilePath, getWorkspaceAllowedDirs } from '@rox-agent/server-core/handlers'
-import type { RequestContext, RpcServer } from '@rox-agent/server-core/transport'
+import { isUsableGitBashPath, validateGitBashPath } from '@rox-one/server-core/services'
+import { validateFilePath, getWorkspaceAllowedDirs } from '@rox-one/server-core/handlers'
+import type { RequestContext, RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import {
   requestClientOpenExternal,
   requestClientOpenPath,
   requestClientShowInFolder,
   requestClientOpenFileDialog,
-} from '@rox-agent/server-core/transport'
+} from '@rox-one/server-core/transport'
 import { SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE, deriveRpcWorkspaceScope } from './storage-scope'
 
 export const CORE_HANDLED_CHANNELS = [

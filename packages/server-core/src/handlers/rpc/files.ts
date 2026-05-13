@@ -8,18 +8,18 @@ import type { StoredAttachment } from '@rox-one/core/types'
 import { readFileAttachment, validateImageForClaudeAPI, IMAGE_LIMITS } from '@rox-agent/shared/utils'
 import { getSessionAttachmentsPath, validateSessionId } from '@rox-agent/shared/sessions'
 import { getWorkspaceByNameOrId } from '@rox-agent/shared/config'
-import { resizeImageForAPI, inspectImageBuffer, convertOfficeDocumentToMarkdown } from '@rox-agent/server-core/services'
+import { resizeImageForAPI, inspectImageBuffer, convertOfficeDocumentToMarkdown } from '@rox-one/server-core/services'
 import {
   sanitizeFilename,
   validateFilePath,
   getWorkspaceAllowedDirs,
   buildFileManagerScopes,
   validateFileManagerPathForScopes,
-} from '@rox-agent/server-core/handlers'
+} from '@rox-one/server-core/handlers'
 import { MarkItDown } from 'markitdown-js'
-import type { RpcServer } from '@rox-agent/server-core/transport'
+import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
-import { requestClientOpenFileDialog } from '@rox-agent/server-core/transport'
+import { requestClientOpenFileDialog } from '@rox-one/server-core/transport'
 import { requireWorkspaceAccess } from './account-ownership'
 
 export const HANDLED_CHANNELS = [

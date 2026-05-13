@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * @rox-agent/server — standalone headless ROX server.
+ * @rox-one/server — standalone headless ROX server.
  *
  * Usage:
  *   ROX_SERVER_TOKEN=<secret> bun run packages/server/src/index.ts
@@ -38,7 +38,7 @@ import { homedir } from 'node:os'
 import { readFileSync, existsSync } from 'node:fs'
 import { version as packageVersion } from '../package.json'
 import { enableDebug } from '@rox-agent/shared/utils/debug'
-import { bootstrapServer, startHealthHttpServer, generateServerToken } from '@rox-agent/server-core/bootstrap'
+import { bootstrapServer, startHealthHttpServer, generateServerToken } from '@rox-one/server-core/bootstrap'
 import {
   validateSession,
   validateAccountSession,
@@ -48,10 +48,10 @@ import {
   InMemoryAccountEventHistory,
   InMemoryAccountTeamStore,
   InMemoryManagedCloudWorkspaceStore,
-} from '@rox-agent/server-core/webui'
-import type { WebuiHandler } from '@rox-agent/server-core/webui'
-import { createPostgresAccountStore } from '@rox-agent/server-core/accounts'
-import { InMemoryWorkspaceSyncService } from '@rox-agent/server-core/sync'
+} from '@rox-one/server-core/webui'
+import type { WebuiHandler } from '@rox-one/server-core/webui'
+import { createPostgresAccountStore } from '@rox-one/server-core/accounts'
+import { InMemoryWorkspaceSyncService } from '@rox-one/server-core/sync'
 import { getCredentialManager } from '@rox-agent/shared/credentials'
 import { DEFAULT_LOCAL_SCOPE, getWorkspaces } from '@rox-agent/shared/config'
 import {
@@ -65,12 +65,12 @@ if (process.argv.includes('--generate-token')) {
   console.log(generateServerToken())
   process.exit(0)
 }
-import type { WsRpcTlsOptions } from '@rox-agent/server-core/transport'
-import { registerCoreRpcHandlers, cleanupSessionFileWatchForClient } from '@rox-agent/server-core/handlers/rpc'
-import { SessionManager, setSessionPlatform, setSessionRuntimeHooks } from '@rox-agent/server-core/sessions'
-import { initModelRefreshService, setFetcherPlatform } from '@rox-agent/server-core/model-fetchers'
-import { setSearchPlatform, setImageProcessor } from '@rox-agent/server-core/services'
-import type { HandlerDeps } from '@rox-agent/server-core/handlers'
+import type { WsRpcTlsOptions } from '@rox-one/server-core/transport'
+import { registerCoreRpcHandlers, cleanupSessionFileWatchForClient } from '@rox-one/server-core/handlers/rpc'
+import { SessionManager, setSessionPlatform, setSessionRuntimeHooks } from '@rox-one/server-core/sessions'
+import { initModelRefreshService, setFetcherPlatform } from '@rox-one/server-core/model-fetchers'
+import { setSearchPlatform, setImageProcessor } from '@rox-one/server-core/services'
+import type { HandlerDeps } from '@rox-one/server-core/handlers'
 
 process.env.ROX_IS_PACKAGED ??= 'false'
 
@@ -374,14 +374,14 @@ if (messagingHandle !== null) {
 
 // Wire up the lazy health check now that the session manager is ready
 if (webuiHandler) {
-  const { getHealthCheck } = await import('@rox-agent/server-core/handlers/rpc/server')
+  const { getHealthCheck } = await import('@rox-one/server-core/handlers/rpc/server')
   const depsLike = { sessionManager: instance.sessionManager } as any
   healthCheckFn = () => getHealthCheck(depsLike)
 
   // Wire up OAuth callback deps so /api/oauth/callback works
   const { getSourceCredentialManager, loadWorkspaceSources } = await import('@rox-agent/shared/sources')
   const { getWorkspaceByNameOrId } = await import('@rox-agent/shared/config')
-  const { pushTyped } = await import('@rox-agent/server-core/transport')
+  const { pushTyped } = await import('@rox-one/server-core/transport')
   const { RPC_CHANNELS } = await import('@rox-agent/shared/protocol')
 
   webuiHandler.setOAuthCallbackDeps({

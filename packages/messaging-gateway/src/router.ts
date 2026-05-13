@@ -9,7 +9,7 @@
  * applies its own pre-binding access gate.)
  */
 
-import type { ISessionManager } from '@rox-agent/server-core/handlers'
+import type { ISessionManager } from '@rox-one/server-core/handlers'
 import { readFileAttachment } from '@rox-agent/shared/utils'
 import type { FileAttachment } from '@rox-agent/shared/protocol'
 import {

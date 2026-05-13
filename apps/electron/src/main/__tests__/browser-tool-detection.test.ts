@@ -4,7 +4,7 @@ import {
   normalizeBrowserToolName,
   getBrowserToolCommandVerb,
   shouldActivateBrowserOverlay,
-} from '@rox-agent/server-core/domain'
+} from '@rox-one/server-core/domain'
 
 describe('browser-tool-detection', () => {
   describe('normalizeBrowserToolName', () => {

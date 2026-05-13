@@ -1,1 +1,1 @@
-export { WsRpcServer, type WsRpcServerOptions } from '@rox-agent/server-core/transport'
+export { WsRpcServer, type WsRpcServerOptions } from '@rox-one/server-core/transport'

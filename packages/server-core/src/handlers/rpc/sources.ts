@@ -3,7 +3,7 @@ import { getWorkspaceByNameOrId } from '@rox-agent/shared/config'
 import { loadWorkspaceSources } from '@rox-agent/shared/sources'
 import { safeJsonParse } from '@rox-agent/shared/utils/files'
 import { getCredentialManager } from '@rox-agent/shared/credentials'
-import type { RpcServer } from '@rox-agent/server-core/transport'
+import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { requireWorkspaceAccess } from './account-ownership'
 

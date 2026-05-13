@@ -22,7 +22,7 @@ import type {
   IMessagingGatewayRegistry,
   MessagingBindingInfo,
   MessagingConfigInfo,
-} from '@rox-agent/server-core/handlers'
+} from '@rox-one/server-core/handlers'
 
 import { MessagingGateway } from './gateway'
 import { ConfigStore } from './config-store'

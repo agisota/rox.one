@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test'
-import { InitGate } from '@rox-agent/server-core/domain'
+import { InitGate } from '@rox-one/server-core/domain'
 
 describe('InitGate', () => {
   it('resolves waiters when marked ready', async () => {

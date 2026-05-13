@@ -3,7 +3,7 @@ import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
 import { getWorkspaceByNameOrId } from '@rox-agent/shared/config'
 import { loadSource, loadWorkspaceSources, getSourceCredentialManager } from '@rox-agent/shared/sources'
 import { createPendingFlow } from '@rox-agent/shared/auth'
-import { pushTyped, type RpcServer } from '@rox-agent/server-core/transport'
+import { pushTyped, type RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { requireWorkspaceAccess } from './account-ownership'
 

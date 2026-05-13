@@ -13,7 +13,7 @@ import {
   ELECTRON_GLOBAL_STORAGE_SCOPE,
   ELECTRON_GLOBAL_STORAGE_SCOPE_REASON,
 } from '../storage-scope'
-import type { RpcServer } from '@rox-agent/server-core/transport'
+import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 
 mock.module('electron', () => ({

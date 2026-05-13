@@ -2,7 +2,7 @@
  * Server DTO types — data shapes used by RPC handlers and SessionManager.
  *
  * These were previously in apps/electron/src/shared/types.ts.
- * Extracted here so handler code in @rox-agent/server-core can import
+ * Extracted here so handler code in @rox-one/server-core can import
  * from @rox-agent/shared/protocol without reaching into the app.
  */
 

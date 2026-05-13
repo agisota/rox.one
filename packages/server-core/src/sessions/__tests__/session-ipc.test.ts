@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
-import type { EventSink } from '@rox-agent/server-core/transport'
-import type { Logger } from '@rox-agent/server-core/runtime'
+import type { EventSink } from '@rox-one/server-core/transport'
+import type { Logger } from '@rox-one/server-core/runtime'
 import { RPC_CHANNELS, type SessionEvent, type UnreadSummary } from '@rox-agent/shared/protocol'
 import type { LoadedSource } from '@rox-agent/shared/sources'
 import type { LoadedSkill } from '@rox-agent/shared/skills'

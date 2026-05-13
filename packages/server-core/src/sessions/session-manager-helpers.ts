@@ -6,7 +6,7 @@
 import { join } from 'path'
 import { existsSync } from 'fs'
 import { readFile, writeFile, mkdir } from 'fs/promises'
-import { createScopedLogger, CONSOLE_LOGGER, type Logger } from '@rox-agent/server-core/runtime'
+import { createScopedLogger, CONSOLE_LOGGER, type Logger } from '@rox-one/server-core/runtime'
 import {
   type AgentBackend,
 } from '@rox-agent/shared/agent/backend'
@@ -41,8 +41,8 @@ import {
 import { type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-one/core/types'
 import { perf, encodeIconToDataUrlAsync, getEmojiIcon, resolveToolIcon } from '@rox-agent/shared/utils'
 import { type ThinkingLevel, normalizeThinkingLevel } from '@rox-agent/shared/agent/thinking-levels'
-import { normalizeBrowserToolName } from '@rox-agent/server-core/domain'
-import { resizeIconBuffer } from '@rox-agent/server-core/services'
+import { normalizeBrowserToolName } from '@rox-one/server-core/domain'
+import { resizeIconBuffer } from '@rox-one/server-core/services'
 
 // Helper-local logger — wired up by SessionManager.setSessionPlatform() via setHelpersLogger().
 // Falls back to console until then. This shim exists because the original module-mutable
@@ -80,7 +80,7 @@ export const METADATA_WRITE_GUARD_MS = 5000
  */
 export const PLAN_APPROVAL_MESSAGE = 'Plan approved, please execute.'
 
-// validateSpawnAttachmentPath removed — use shared validateFilePath from @rox-agent/server-core/handlers
+// validateSpawnAttachmentPath removed — use shared validateFilePath from @rox-one/server-core/handlers
 
 const PI_TURN_ANCHORS_VERSION = 1
 const PI_TURN_ANCHORS_FILE = 'pi-turn-anchors.json'

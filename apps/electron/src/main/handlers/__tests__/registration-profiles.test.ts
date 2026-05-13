@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
-import type { RpcServer } from '@rox-agent/server-core/transport'
+import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 
 const registeredChannels: string[] = []
@@ -106,22 +106,22 @@ async function getExpectedCoreChannels(): Promise<Set<string>> {
     resources,
     transfer,
   ] = await Promise.all([
-    import('@rox-agent/server-core/handlers/rpc/auth'),
-    import('@rox-agent/server-core/handlers/rpc/automations'),
-    import('@rox-agent/server-core/handlers/rpc/files'),
-    import('@rox-agent/server-core/handlers/rpc/labels'),
-    import('@rox-agent/server-core/handlers/rpc/llm-connections'),
-    import('@rox-agent/server-core/handlers/rpc/oauth'),
-    import('@rox-agent/server-core/handlers/rpc/sessions'),
-    import('@rox-agent/server-core/handlers/rpc/settings'),
-    import('@rox-agent/server-core/handlers/rpc/skills'),
-    import('@rox-agent/server-core/handlers/rpc/sources'),
-    import('@rox-agent/server-core/handlers/rpc/statuses'),
-    import('@rox-agent/server-core/handlers/rpc/system'),
-    import('@rox-agent/server-core/handlers/rpc/workspace'),
-    import('@rox-agent/server-core/handlers/rpc/onboarding'),
-    import('@rox-agent/server-core/handlers/rpc/resources'),
-    import('@rox-agent/server-core/handlers/rpc/transfer'),
+    import('@rox-one/server-core/handlers/rpc/auth'),
+    import('@rox-one/server-core/handlers/rpc/automations'),
+    import('@rox-one/server-core/handlers/rpc/files'),
+    import('@rox-one/server-core/handlers/rpc/labels'),
+    import('@rox-one/server-core/handlers/rpc/llm-connections'),
+    import('@rox-one/server-core/handlers/rpc/oauth'),
+    import('@rox-one/server-core/handlers/rpc/sessions'),
+    import('@rox-one/server-core/handlers/rpc/settings'),
+    import('@rox-one/server-core/handlers/rpc/skills'),
+    import('@rox-one/server-core/handlers/rpc/sources'),
+    import('@rox-one/server-core/handlers/rpc/statuses'),
+    import('@rox-one/server-core/handlers/rpc/system'),
+    import('@rox-one/server-core/handlers/rpc/workspace'),
+    import('@rox-one/server-core/handlers/rpc/onboarding'),
+    import('@rox-one/server-core/handlers/rpc/resources'),
+    import('@rox-one/server-core/handlers/rpc/transfer'),
   ])
 
   return new Set([

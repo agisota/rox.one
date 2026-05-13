@@ -7,7 +7,7 @@
 import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
 import { getWorkspaceByNameOrId } from '@rox-agent/shared/config'
 import { getCredentialManager, SOURCE_CREDENTIAL_TYPES } from '@rox-agent/shared/credentials'
-import type { RpcServer } from '@rox-agent/server-core/transport'
+import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { requireWorkspaceAccess } from './account-ownership'
 import type {

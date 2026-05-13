@@ -2,7 +2,7 @@ import { join } from 'path'
 import { existsSync, readdirSync, statSync } from 'fs'
 import { RPC_CHANNELS, type SkillFile } from '@rox-agent/shared/protocol'
 import { getWorkspaceByNameOrId } from '@rox-agent/shared/config'
-import type { RpcServer } from '@rox-agent/server-core/transport'
+import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 
 export const HANDLED_CHANNELS = [

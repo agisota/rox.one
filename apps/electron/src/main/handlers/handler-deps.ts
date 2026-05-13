@@ -4,8 +4,8 @@
  * Concrete Electron specialization of the generic server-core handler deps.
  */
 
-import type { HandlerDeps as BaseHandlerDeps } from '@rox-agent/server-core/handlers'
-import type { SessionManager } from '@rox-agent/server-core/sessions'
+import type { HandlerDeps as BaseHandlerDeps } from '@rox-one/server-core/handlers'
+import type { SessionManager } from '@rox-one/server-core/sessions'
 import type { WindowManager } from '../window-manager'
 import type { BrowserPaneManager } from '../browser-pane-manager'
 import type { OAuthFlowStore } from '@rox-agent/shared/auth'

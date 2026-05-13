@@ -21,8 +21,8 @@
     "paths": {
       "@rox-agent/shared": ["../../packages/shared/src/index.ts"],
       "@rox-agent/shared/*": ["../../packages/shared/src/*"],
-      "@rox-agent/server-core": ["../../packages/server-core/src/index.ts"],
-      "@rox-agent/server-core/*": ["../../packages/server-core/src/*"]
+      "@rox-one/server-core": ["../../packages/server-core/src/index.ts"],
+      "@rox-one/server-core/*": ["../../packages/server-core/src/*"]
     }
   },
   "include": ["src/**/*", "../../packages/shared/src/**/*.d.ts"],

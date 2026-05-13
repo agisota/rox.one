@@ -267,7 +267,7 @@ mock.module('@rox-agent/shared/sessions', () => ({
   validateSessionId: () => true,
 }))
 
-const { SessionManager } = await import('@rox-agent/server-core/sessions')
+const { SessionManager } = await import('@rox-one/server-core/sessions')
 
 describe('session branch rollback on preflight failure', () => {
   beforeEach(() => {

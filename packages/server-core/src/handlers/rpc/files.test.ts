@@ -4,8 +4,8 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
 import type { HandlerDeps } from '../handler-deps'
-import type { HandlerFn, RequestContext, RpcServer } from '@rox-agent/server-core/transport'
-import type { OfficeDocumentConverter } from '@rox-agent/server-core/services'
+import type { HandlerFn, RequestContext, RpcServer } from '@rox-one/server-core/transport'
+import type { OfficeDocumentConverter } from '@rox-one/server-core/services'
 
 let workspaceRootPath = ''
 

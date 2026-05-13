@@ -125,7 +125,7 @@
         "rox-cli": "src/index.ts",
       },
       "dependencies": {
-        "@rox-agent/server-core": "workspace:*",
+        "@rox-one/server-core": "workspace:*",
         "@rox-agent/shared": "workspace:*",
       },
       "devDependencies": {
@@ -140,7 +140,7 @@
       "dependencies": {
         "@rox-one/core": "workspace:*",
         "@rox-one/messaging-gateway": "workspace:*",
-        "@rox-agent/server-core": "workspace:*",
+        "@rox-one/server-core": "workspace:*",
         "@rox-agent/shared": "workspace:*",
         "@rox-one/ui": "workspace:*",
         "@dnd-kit/core": "^6.3.1",
@@ -268,7 +268,7 @@
       "dependencies": {
         "@rox-one/core": "workspace:*",
         "@rox-one/messaging-whatsapp-worker": "workspace:*",
-        "@rox-agent/server-core": "workspace:*",
+        "@rox-one/server-core": "workspace:*",
         "@rox-agent/shared": "workspace:*",
         "@larksuiteoapi/node-sdk": "^1.62.1",
         "grammy": "^1.35.0",
@@ -310,7 +310,7 @@
       },
     },
     "packages/server": {
-      "name": "@rox-agent/server",
+      "name": "@rox-one/server",
       "version": "0.9.1",
       "bin": {
         "rox-server": "src/index.ts",
@@ -318,7 +318,7 @@
       "dependencies": {
         "@rox-one/core": "workspace:*",
         "@rox-one/messaging-gateway": "workspace:*",
-        "@rox-agent/server-core": "workspace:*",
+        "@rox-one/server-core": "workspace:*",
         "@rox-agent/shared": "workspace:*",
       },
       "devDependencies": {
@@ -328,7 +328,7 @@
       },
     },
     "packages/server-core": {
-      "name": "@rox-agent/server-core",
+      "name": "@rox-one/server-core",
       "version": "0.9.1",
       "dependencies": {
         "@rox-one/core": "workspace:*",
@@ -688,9 +688,9 @@
 
     "@rox-one/pi-agent-server": ["@rox-one/pi-agent-server@workspace:packages/pi-agent-server"],
 
-    "@rox-agent/server": ["@rox-agent/server@workspace:packages/server"],
+    "@rox-one/server": ["@rox-one/server@workspace:packages/server"],
 
-    "@rox-agent/server-core": ["@rox-agent/server-core@workspace:packages/server-core"],
+    "@rox-one/server-core": ["@rox-one/server-core@workspace:packages/server-core"],
 
     "@rox-one/session-mcp-server": ["@rox-one/session-mcp-server@workspace:packages/session-mcp-server"],
 
@@ -3724,9 +3724,9 @@
 
     "@rox-one/pi-agent-server/@types/node": ["@types/node@22.19.17", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q=="],
 
-    "@rox-agent/server/@types/node": ["@types/node@22.19.17", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q=="],
+    "@rox-one/server/@types/node": ["@types/node@22.19.17", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q=="],
 
-    "@rox-agent/server-core/@types/node": ["@types/node@22.19.17", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q=="],
+    "@rox-one/server-core/@types/node": ["@types/node@22.19.17", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q=="],
 
     "@rox-one/session-mcp-server/@types/node": ["@types/node@22.19.17", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q=="],
 
@@ -4132,9 +4132,9 @@
 
     "@rox-one/pi-agent-server/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
-    "@rox-agent/server-core/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+    "@rox-one/server-core/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
-    "@rox-agent/server/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+    "@rox-one/server/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "@rox-one/session-mcp-server/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
