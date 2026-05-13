@@ -79,10 +79,10 @@ None. Admin UI ships in T228.
   contract for future caching layers.
 - `HandlerDeps.roleStore?: RoleStore` — optional. Default `undefined`.
 - RPC channels under the `roles` namespace:
-  - `roles:list`
-  - `roles:create`
-  - `roles:grant`
-  - `roles:revoke`
+  - `roles.list`
+  - `roles.create`
+  - `roles.grant`
+  - `roles.revoke`
 
 ### Permission rules
 
