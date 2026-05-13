@@ -6,7 +6,7 @@
  */
 
 import type { Message, StoredMessage, MessageRole } from '@rox-one/core'
-import { isParentTaskTool } from '@rox-agent/shared/utils/toolNames'
+import { isParentTaskTool } from '@rox-one/shared/utils/toolNames'
 import { storedToMessage } from '@rox-one/core'
 
 export { storedToMessage }

@@ -403,7 +403,7 @@ export interface ResolvedLabelsResult {
   available: string[];
   /**
    * Optional per-input rejection reason, keyed by the original input string.
-   * Populated by `resolveSessionLabels()` from `@rox-agent/shared/labels`.
+   * Populated by `resolveSessionLabels()` from `@rox-one/shared/labels`.
    * Handlers use this to build clearer errors (e.g. "label X doesn't accept a value").
    */
   reasons?: Record<string, string>;

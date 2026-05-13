@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import {
   compileMissionModePrompt,
   getMissionModePromptContract,
-} from '@rox-agent/shared/workbench'
+} from '@rox-one/shared/workbench'
 
 import {
   createFakeProviderGateway,

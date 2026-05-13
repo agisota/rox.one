@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import type { LabelConfig } from '@rox-agent/shared/labels';
+import type { LabelConfig } from '@rox-one/shared/labels';
 import { createLabelMenuItems, filterItems } from '../label-menu-utils';
 
 describe('createLabelMenuItems', () => {

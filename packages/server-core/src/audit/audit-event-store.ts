@@ -5,9 +5,9 @@ import {
   type AuditEventActor,
   type AuditEventRecord,
   type AuditEventStorageBackend,
-} from '@rox-agent/shared/audit'
+} from '@rox-one/shared/audit'
 
-export * from '@rox-agent/shared/audit'
+export * from '@rox-one/shared/audit'
 
 export interface AuditEventQuery {
   tenantId?: string

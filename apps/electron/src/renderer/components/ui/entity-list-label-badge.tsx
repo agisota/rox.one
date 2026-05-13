@@ -1,10 +1,10 @@
 import { useState } from "react"
-import { parseLabelEntry, formatLabelEntry, formatDisplayValue } from "@rox-agent/shared/labels"
-import { resolveEntityColor } from "@rox-agent/shared/colors"
+import { parseLabelEntry, formatLabelEntry, formatDisplayValue } from "@rox-one/shared/labels"
+import { resolveEntityColor } from "@rox-one/shared/colors"
 import { useTheme } from "@/context/ThemeContext"
 import { LabelValuePopover } from "./label-value-popover"
 import { LabelValueTypeIcon } from "./label-icon"
-import type { LabelConfig } from "@rox-agent/shared/labels"
+import type { LabelConfig } from "@rox-one/shared/labels"
 
 interface EntityListLabelBadgeProps {
   label: LabelConfig

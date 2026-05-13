@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
 import { CLIENT_OPEN_EXTERNAL } from '@rox-one/server-core/transport'
 import type { RpcServer, HandlerFn, RequestContext } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'

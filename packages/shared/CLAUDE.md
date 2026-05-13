@@ -1,4 +1,4 @@
-# CLAUDE.md — `@rox-agent/shared`
+# CLAUDE.md — `@rox-one/shared`
 
 ## Purpose
 Core business logic package for ROX:

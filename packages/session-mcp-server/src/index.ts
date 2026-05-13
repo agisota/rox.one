@@ -32,7 +32,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { isDeveloperFeedbackEnabled } from '@rox-agent/shared/feature-flags';
+import { isDeveloperFeedbackEnabled } from '@rox-one/shared/feature-flags';
 // Import from session-tools-core
 import {
   type SessionToolContext,

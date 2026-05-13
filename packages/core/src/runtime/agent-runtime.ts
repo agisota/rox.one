@@ -3,7 +3,7 @@
  *
  * This module is the type-level anchor for the agent runtime concept inside
  * `@rox-one/core`. The full provider-facing contract lives in
- * `@rox-agent/shared` as `AgentBackend` (see
+ * `@rox-one/shared` as `AgentBackend` (see
  * `packages/shared/src/agent/backend/types.ts`). That interface is the de-facto
  * runtime contract today: every concrete agent (`ClaudeAgent`, `PiAgent`)
  * implements it via `BaseAgent`.
@@ -26,7 +26,7 @@
  * same name and signature as the corresponding member on `AgentBackend`.
  *
  * If you are looking for the full surface (sources, permissions, callbacks),
- * import `AgentBackend` from `@rox-agent/shared/agent`. If you only need
+ * import `AgentBackend` from `@rox-one/shared/agent`. If you only need
  * the lifecycle primitives that close over `AgentEvent`, depend on this type
  * here in core.
  *
@@ -39,7 +39,7 @@ import type { AgentEvent } from '../types/message.ts';
  * The provider-agnostic core of the agent runtime contract.
  *
  * This is intentionally a *strict subset* of
- * `@rox-agent/shared/agent#AgentBackend`. Every member here has an
+ * `@rox-one/shared/agent#AgentBackend`. Every member here has an
  * identically-named member on `AgentBackend` with the same signature, so any
  * `AgentBackend` is assignable to `AgentRuntime` without a cast.
  *

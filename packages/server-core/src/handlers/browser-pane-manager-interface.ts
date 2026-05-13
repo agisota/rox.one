@@ -8,7 +8,7 @@
  * so releaseBrowserOwnershipOnForcedStop() accepts IBrowserPaneManager.
  */
 
-import type { BrowserInstanceInfo } from '@rox-agent/shared/protocol'
+import type { BrowserInstanceInfo } from '@rox-one/shared/protocol'
 
 // ---------------------------------------------------------------------------
 // Supporting types — minimal subsets of BPM's internal types

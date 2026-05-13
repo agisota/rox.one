@@ -3,7 +3,7 @@
  * Extracted to a separate file to allow unit testing without importing
  * Electron main process modules.
  */
-import { WS_ID_CHARS } from '@rox-agent/shared/mentions'
+import { WS_ID_CHARS } from '@rox-one/shared/mentions'
 
 /**
  * Sanitize message content for use as session title.

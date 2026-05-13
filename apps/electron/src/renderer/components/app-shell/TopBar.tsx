@@ -41,8 +41,8 @@ import { useEffect, useRef, useState } from "react"
 import { BrowserTabStrip } from "../browser/BrowserTabStrip"
 import type { Workspace } from "../../../shared/types"
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher"
-import { getDocUrl } from "@rox-agent/shared/docs/doc-links"
-import { AGENT_WORKBENCH_BRAND_CONFIG, getBrandDocsUrl } from "@rox-agent/shared/branding"
+import { getDocUrl } from "@rox-one/shared/docs/doc-links"
+import { AGENT_WORKBENCH_BRAND_CONFIG, getBrandDocsUrl } from "@rox-one/shared/branding"
 
 // --- Menu rendering (moved from AppMenu) ---
 

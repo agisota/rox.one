@@ -1,9 +1,9 @@
 import { existsSync } from 'node:fs'
 import { join } from 'path'
 import { homedir } from 'os'
-import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
-import { deriveScopeFromAuth, getWorkspaces, getWorkspaceByNameOrId, addWorkspace, setActiveWorkspace, updateWorkspaceRemoteServer } from '@rox-agent/shared/config'
-import { perf } from '@rox-agent/shared/utils'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
+import { deriveScopeFromAuth, getWorkspaces, getWorkspaceByNameOrId, addWorkspace, setActiveWorkspace, updateWorkspaceRemoteServer } from '@rox-one/shared/config'
+import { perf } from '@rox-one/shared/utils'
 import { pushTyped, type RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import type { RequestContext } from '../../transport/types'
@@ -312,32 +312,32 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // ============================================================
 
   server.handle(RPC_CHANNELS.theme.GET_APP, async (ctx) => {
-    const { loadAppTheme } = await import('@rox-agent/shared/config/storage')
+    const { loadAppTheme } = await import('@rox-one/shared/config/storage')
     const scope = await deriveWorkspaceScope(deps, ctx)
     return loadAppTheme(scope)
   })
 
   // Preset themes (app-level)
   server.handle(RPC_CHANNELS.theme.GET_PRESETS, async (ctx) => {
-    const { loadPresetThemes } = await import('@rox-agent/shared/config/storage')
+    const { loadPresetThemes } = await import('@rox-one/shared/config/storage')
     const scope = await deriveWorkspaceScope(deps, ctx)
     return loadPresetThemes(scope)
   })
 
   server.handle(RPC_CHANNELS.theme.LOAD_PRESET, async (ctx, themeId: string) => {
-    const { loadPresetTheme } = await import('@rox-agent/shared/config/storage')
+    const { loadPresetTheme } = await import('@rox-one/shared/config/storage')
     const scope = await deriveWorkspaceScope(deps, ctx)
     return loadPresetTheme(themeId, scope)
   })
 
   server.handle(RPC_CHANNELS.theme.GET_COLOR_THEME, async (ctx) => {
-    const { getColorTheme } = await import('@rox-agent/shared/config/storage')
+    const { getColorTheme } = await import('@rox-one/shared/config/storage')
     const scope = await deriveWorkspaceScope(deps, ctx)
     return getColorTheme(scope)
   })
 
   server.handle(RPC_CHANNELS.theme.SET_COLOR_THEME, async (ctx, themeId: string) => {
-    const { setColorTheme } = await import('@rox-agent/shared/config/storage')
+    const { setColorTheme } = await import('@rox-one/shared/config/storage')
     const scope = await deriveWorkspaceScope(deps, ctx)
     setColorTheme(themeId, scope)
   })
@@ -350,7 +350,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // Workspace-level theme overrides
   server.handle(RPC_CHANNELS.theme.GET_WORKSPACE_COLOR_THEME, async (ctx, workspaceId: string) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
-    const { getWorkspaceColorTheme } = await import('@rox-agent/shared/workspaces/storage')
+    const { getWorkspaceColorTheme } = await import('@rox-one/shared/workspaces/storage')
     const scope = await deriveWorkspaceScope(deps, ctx, workspaceId)
     const workspaces = getWorkspaces(scope)
     const workspace = workspaces.find(w => w.id === workspaceId)
@@ -360,7 +360,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
 
   server.handle(RPC_CHANNELS.theme.SET_WORKSPACE_COLOR_THEME, async (ctx, workspaceId: string, themeId: string | null) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
-    const { setWorkspaceColorTheme } = await import('@rox-agent/shared/workspaces/storage')
+    const { setWorkspaceColorTheme } = await import('@rox-one/shared/workspaces/storage')
     const scope = await deriveWorkspaceScope(deps, ctx, workspaceId)
     const workspaces = getWorkspaces(scope)
     const workspace = workspaces.find(w => w.id === workspaceId)
@@ -369,7 +369,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   })
 
   server.handle(RPC_CHANNELS.theme.GET_ALL_WORKSPACE_THEMES, async (ctx) => {
-    const { getWorkspaceColorTheme } = await import('@rox-agent/shared/workspaces/storage')
+    const { getWorkspaceColorTheme } = await import('@rox-one/shared/workspaces/storage')
     const scope = await deriveWorkspaceScope(deps, ctx)
     const workspaces = await filterOwnedWorkspaces(deps, ctx, getWorkspaces(scope))
     const themes: Record<string, string | undefined> = {}
@@ -396,18 +396,18 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
     const workspace = getWorkspaceByNameOrId(workspaceId, scope)
     if (!workspace) throw new Error('Workspace not found')
 
-    const { listViews } = await import('@rox-agent/shared/views/storage')
+    const { listViews } = await import('@rox-one/shared/views/storage')
     return listViews(workspace.rootPath)
   })
 
   // Save views (replaces full array)
-  server.handle(RPC_CHANNELS.views.SAVE, async (ctx, workspaceId: string, views: import('@rox-agent/shared/views').ViewConfig[]) => {
+  server.handle(RPC_CHANNELS.views.SAVE, async (ctx, workspaceId: string, views: import('@rox-one/shared/views').ViewConfig[]) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const scope = await deriveWorkspaceScope(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId, scope)
     if (!workspace) throw new Error('Workspace not found')
 
-    const { saveViews } = await import('@rox-agent/shared/views/storage')
+    const { saveViews } = await import('@rox-one/shared/views/storage')
     saveViews(workspace.rootPath, views)
     // Broadcast labels changed since views are used alongside labels in sidebar
     pushTyped(server, RPC_CHANNELS.labels.CHANGED, { to: 'workspace', workspaceId }, workspaceId)
@@ -420,9 +420,9 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // Tool icon mappings — loads tool-icons.json and resolves each entry's icon to a data URL
   // for display in the Appearance settings page
   server.handle(RPC_CHANNELS.toolIcons.GET_MAPPINGS, async (ctx) => {
-    const { getToolIconsDir } = await import('@rox-agent/shared/config/storage')
-    const { loadToolIconConfig } = await import('@rox-agent/shared/utils/cli-icon-resolver')
-    const { encodeIconToDataUrl } = await import('@rox-agent/shared/utils/icon-encoder')
+    const { getToolIconsDir } = await import('@rox-one/shared/config/storage')
+    const { loadToolIconConfig } = await import('@rox-one/shared/utils/cli-icon-resolver')
+    const { encodeIconToDataUrl } = await import('@rox-one/shared/utils/icon-encoder')
     const { join } = await import('path')
 
     const scope = await deriveWorkspaceScope(deps, ctx)
@@ -447,7 +447,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
 
   // Logo URL resolution (uses Node.js filesystem cache for provider domains)
   server.handle(RPC_CHANNELS.logo.GET_URL, async (_ctx, serviceUrl: string, provider?: string) => {
-    const { getLogoUrl } = await import('@rox-agent/shared/utils/logo')
+    const { getLogoUrl } = await import('@rox-one/shared/utils/logo')
     const result = getLogoUrl(serviceUrl, provider)
     return result
   })

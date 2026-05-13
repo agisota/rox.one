@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@rox-one/ui'
 import type { DetailsPageMeta } from '@/lib/navigation-registry'
-import type { ServerConfig, ServerStatus } from '@rox-agent/shared/config/server-config'
+import type { ServerConfig, ServerStatus } from '@rox-one/shared/config/server-config'
 
 import {
   SettingsSection,

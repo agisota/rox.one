@@ -11,7 +11,7 @@
 
 import * as React from 'react'
 import type { ComponentEntry } from './types'
-import type { LabelConfig } from '@rox-agent/shared/labels'
+import type { LabelConfig } from '@rox-one/shared/labels'
 import { LabelBadgeRow } from '@/components/ui/label-badge-row'
 
 // ============================================================================

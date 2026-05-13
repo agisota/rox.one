@@ -5,7 +5,7 @@ import {
   createInitialExperienceRuntimeState,
   replayExperienceEvents,
   type ExperienceEvent,
-} from '@rox-agent/shared/workbench';
+} from '@rox-one/shared/workbench';
 
 import {
   ExperienceGlobalHud,

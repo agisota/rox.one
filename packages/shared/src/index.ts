@@ -1,17 +1,17 @@
 /**
- * @rox-agent/shared
+ * @rox-one/shared
  *
  * Shared business logic for ROX.
  * Used by the Electron app.
  *
  * Import specific modules via subpath exports:
- *   import { RoxAgent } from '@rox-agent/shared/agent';
- *   import { loadStoredConfig } from '@rox-agent/shared/config';
- *   import { getCredentialManager } from '@rox-agent/shared/credentials';
- *   import { RoxMcpClient } from '@rox-agent/shared/mcp';
- *   import { debug } from '@rox-agent/shared/utils';
- *   import { loadSource, createSource, getSourceCredentialManager } from '@rox-agent/shared/sources';
- *   import { createWorkspace, loadWorkspace } from '@rox-agent/shared/workspaces';
+ *   import { RoxAgent } from '@rox-one/shared/agent';
+ *   import { loadStoredConfig } from '@rox-one/shared/config';
+ *   import { getCredentialManager } from '@rox-one/shared/credentials';
+ *   import { RoxMcpClient } from '@rox-one/shared/mcp';
+ *   import { debug } from '@rox-one/shared/utils';
+ *   import { loadSource, createSource, getSourceCredentialManager } from '@rox-one/shared/sources';
+ *   import { createWorkspace, loadWorkspace } from '@rox-one/shared/workspaces';
  *
  * Available modules:
  *   - agent: RoxAgent SDK wrapper, plan tools

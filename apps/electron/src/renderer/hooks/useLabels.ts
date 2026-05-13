@@ -8,8 +8,8 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import type { LabelConfig } from '@rox-agent/shared/labels'
-import { flattenLabels } from '@rox-agent/shared/labels'
+import type { LabelConfig } from '@rox-one/shared/labels'
+import { flattenLabels } from '@rox-one/shared/labels'
 
 export interface UseLabelsResult {
   /** Label tree (root-level nodes with nested children) */

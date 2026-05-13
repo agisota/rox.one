@@ -2,9 +2,9 @@ import { resolve } from 'path'
 import { join } from 'path'
 import { homedir } from 'os'
 import { execSync } from 'child_process'
-import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
-import { getGitBashPath, setGitBashPath, clearGitBashPath } from '@rox-agent/shared/config'
-import { isSafeExternalUrl } from '@rox-agent/shared/utils/url-safety'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
+import { getGitBashPath, setGitBashPath, clearGitBashPath } from '@rox-one/shared/config'
+import { isSafeExternalUrl } from '@rox-one/shared/utils/url-safety'
 import { isUsableGitBashPath, validateGitBashPath } from '@rox-one/server-core/services'
 import { validateFilePath, getWorkspaceAllowedDirs } from '@rox-one/server-core/handlers'
 import type { RpcServer } from '@rox-one/server-core/transport'
@@ -97,12 +97,12 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
 
   // Release notes
   server.handle(RPC_CHANNELS.releaseNotes.GET, async () => {
-    const { getCombinedReleaseNotes } = require('@rox-agent/shared/release-notes') as typeof import('@rox-agent/shared/release-notes')
+    const { getCombinedReleaseNotes } = require('@rox-one/shared/release-notes') as typeof import('@rox-one/shared/release-notes')
     return getCombinedReleaseNotes()
   })
 
   server.handle(RPC_CHANNELS.releaseNotes.GET_LATEST_VERSION, async () => {
-    const { getLatestReleaseVersion } = require('@rox-agent/shared/release-notes') as typeof import('@rox-agent/shared/release-notes')
+    const { getLatestReleaseVersion } = require('@rox-one/shared/release-notes') as typeof import('@rox-one/shared/release-notes')
     return getLatestReleaseVersion()
   })
 
@@ -288,12 +288,12 @@ export function registerSystemGuiHandlers(server: RpcServer, deps: HandlerDeps):
   })
 
   server.handle(RPC_CHANNELS.update.DISMISS, async (_ctx, version: string) => {
-    const { setDismissedUpdateVersion } = await import('@rox-agent/shared/config')
+    const { setDismissedUpdateVersion } = await import('@rox-one/shared/config')
     setDismissedUpdateVersion(version, ELECTRON_GLOBAL_STORAGE_SCOPE)
   })
 
   server.handle(RPC_CHANNELS.update.GET_DISMISSED, async () => {
-    const { getDismissedUpdateVersion } = await import('@rox-agent/shared/config')
+    const { getDismissedUpdateVersion } = await import('@rox-one/shared/config')
     return getDismissedUpdateVersion(ELECTRON_GLOBAL_STORAGE_SCOPE)
   })
 
@@ -401,12 +401,12 @@ export function registerSystemGuiHandlers(server: RpcServer, deps: HandlerDeps):
   })
 
   server.handle(RPC_CHANNELS.notification.GET_ENABLED, async () => {
-    const { getNotificationsEnabled } = await import('@rox-agent/shared/config/storage')
+    const { getNotificationsEnabled } = await import('@rox-one/shared/config/storage')
     return getNotificationsEnabled(ELECTRON_GLOBAL_STORAGE_SCOPE)
   })
 
   server.handle(RPC_CHANNELS.notification.SET_ENABLED, async (_ctx, enabled: boolean) => {
-    const { setNotificationsEnabled } = await import('@rox-agent/shared/config/storage')
+    const { setNotificationsEnabled } = await import('@rox-one/shared/config/storage')
     setNotificationsEnabled(enabled, ELECTRON_GLOBAL_STORAGE_SCOPE)
 
     if (enabled) {

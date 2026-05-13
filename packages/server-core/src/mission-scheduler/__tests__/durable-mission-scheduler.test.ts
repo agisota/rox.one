@@ -4,7 +4,7 @@ import {
   projectMissionRunStatusFromSchedulerEvents,
   type MissionGateResult,
   type MissionRun,
-} from '@rox-agent/shared/workbench'
+} from '@rox-one/shared/workbench'
 import { createInMemoryAgentWorkbenchPersistenceAdapter } from '../../persistence'
 import {
   createDurableMissionScheduler,

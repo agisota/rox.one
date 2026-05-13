@@ -11,7 +11,7 @@
  */
 import { describe, it, expect, mock, beforeEach } from 'bun:test'
 import { createBuiltInConnection } from '@rox-one/server-core/domain'
-import type { LlmConnectionSetup } from '@rox-agent/shared/protocol'
+import type { LlmConnectionSetup } from '@rox-one/shared/protocol'
 
 // ============================================================
 // Simulated updateOnly guard logic

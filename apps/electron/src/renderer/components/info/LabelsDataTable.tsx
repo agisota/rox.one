@@ -18,7 +18,7 @@ import { DataTableOverlay } from '@rox-one/ui'
 import { LabelIcon } from '@/components/ui/label-icon'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/hooks/useTheme'
-import type { LabelConfig } from '@rox-agent/shared/labels'
+import type { LabelConfig } from '@rox-one/shared/labels'
 
 interface LabelsDataTableProps {
   /** Label tree (root-level nodes with nested children) */

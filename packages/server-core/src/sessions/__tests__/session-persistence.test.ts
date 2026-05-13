@@ -7,7 +7,7 @@ import {
   loadSession,
   writeSessionJsonl,
   type StoredSession,
-} from '@rox-agent/shared/sessions'
+} from '@rox-one/shared/sessions'
 import type { StoredMessage } from '@rox-one/core/types'
 import type { Logger } from '@rox-one/server-core/runtime'
 import { createManagedSession, type ManagedSession } from '../session-manager-helpers'

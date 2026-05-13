@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import type { EventSink } from '@rox-one/server-core/transport'
 import type { Logger } from '@rox-one/server-core/runtime'
-import { RPC_CHANNELS, type SessionEvent, type UnreadSummary } from '@rox-agent/shared/protocol'
-import type { LoadedSource } from '@rox-agent/shared/sources'
-import type { LoadedSkill } from '@rox-agent/shared/skills'
-import type { ThemeOverrides } from '@rox-agent/shared/config'
+import { RPC_CHANNELS, type SessionEvent, type UnreadSummary } from '@rox-one/shared/protocol'
+import type { LoadedSource } from '@rox-one/shared/sources'
+import type { LoadedSkill } from '@rox-one/shared/skills'
+import type { ThemeOverrides } from '@rox-one/shared/config'
 import { SessionIPC } from '../session-ipc'
 
 // Per-helper unit tests for the IPC concern extracted from SessionManager

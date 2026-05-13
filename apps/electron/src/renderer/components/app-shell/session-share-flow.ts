@@ -1,4 +1,4 @@
-import type { PublicShareStatusResult, ShareResult } from '@rox-agent/shared/protocol'
+import type { PublicShareStatusResult, ShareResult } from '@rox-one/shared/protocol'
 
 export type SessionShareFlowStateName =
   | 'idle'

@@ -5,13 +5,13 @@ import {
   resolveOptionGraphOptions,
   type OptionGraphCategory,
   type OptionGraphOption,
-} from '@rox-agent/shared/workbench/option-graph';
+} from '@rox-one/shared/workbench/option-graph';
 import {
   applyProductWorkflowAutomationPresets,
   type ProductWorkflowAutomationPresetResult,
-} from '@rox-agent/shared/automations/presets';
-import { planAgentPipeline, type AgentPipelinePlan } from '@rox-agent/shared/workbench/agent-pipeline-planner';
-import type { ProductMode } from '@rox-agent/shared/workbench/product-mode-registry';
+} from '@rox-one/shared/automations/presets';
+import { planAgentPipeline, type AgentPipelinePlan } from '@rox-one/shared/workbench/agent-pipeline-planner';
+import type { ProductMode } from '@rox-one/shared/workbench/product-mode-registry';
 
 export type SpecBuilderSource = 'manual' | 'prompt-rewrite' | 'thinking-partner';
 

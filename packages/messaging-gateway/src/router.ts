@@ -10,8 +10,8 @@
  */
 
 import type { ISessionManager } from '@rox-one/server-core/handlers'
-import { readFileAttachment } from '@rox-agent/shared/utils'
-import type { FileAttachment } from '@rox-agent/shared/protocol'
+import { readFileAttachment } from '@rox-one/shared/utils'
+import type { FileAttachment } from '@rox-one/shared/protocol'
 import {
   evaluateBindingAccess,
   executeRejection,

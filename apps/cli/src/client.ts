@@ -8,7 +8,7 @@
 import {
   PROTOCOL_VERSION,
   type MessageEnvelope,
-} from '@rox-agent/shared/protocol'
+} from '@rox-one/shared/protocol'
 import {
   serializeEnvelope,
   deserializeEnvelope,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { i18n, setupI18n } from '@rox-agent/shared/i18n/setupI18n'
+import { i18n, setupI18n } from '@rox-one/shared/i18n/setupI18n'
 
 // Bootstrap i18next and pin the language asserted by this copy contract.
 setupI18n()

@@ -23,7 +23,7 @@ let settingEnabled = false
  * Call this on app startup.
  */
 export async function initPowerManager(): Promise<void> {
-  const { getKeepAwakeWhileRunning } = await import('@rox-agent/shared/config/storage')
+  const { getKeepAwakeWhileRunning } = await import('@rox-one/shared/config/storage')
   settingEnabled = getKeepAwakeWhileRunning()
   mainLog.info('[power] Power manager initialized', { settingEnabled })
 }

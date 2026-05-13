@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import type { FileAttachment } from '@rox-agent/shared/protocol'
+import type { FileAttachment } from '@rox-one/shared/protocol'
 import {
   CONTENT_PERSIST_CAP,
   attachmentFromContentRef,

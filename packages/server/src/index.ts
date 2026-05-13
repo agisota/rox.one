@@ -37,7 +37,7 @@ import { join } from 'node:path'
 import { homedir } from 'node:os'
 import { readFileSync, existsSync } from 'node:fs'
 import { version as packageVersion } from '../package.json'
-import { enableDebug } from '@rox-agent/shared/utils/debug'
+import { enableDebug } from '@rox-one/shared/utils/debug'
 import { bootstrapServer, startHealthHttpServer, generateServerToken } from '@rox-one/server-core/bootstrap'
 import {
   validateSession,
@@ -52,8 +52,8 @@ import {
 import type { WebuiHandler } from '@rox-one/server-core/webui'
 import { createPostgresAccountStore } from '@rox-one/server-core/accounts'
 import { InMemoryWorkspaceSyncService } from '@rox-one/server-core/sync'
-import { getCredentialManager } from '@rox-agent/shared/credentials'
-import { DEFAULT_LOCAL_SCOPE, getWorkspaces } from '@rox-agent/shared/config'
+import { getCredentialManager } from '@rox-one/shared/credentials'
+import { DEFAULT_LOCAL_SCOPE, getWorkspaces } from '@rox-one/shared/config'
 import {
   createMessagingBootstrap,
   type MessagingBootstrapHandle,
@@ -379,10 +379,10 @@ if (webuiHandler) {
   healthCheckFn = () => getHealthCheck(depsLike)
 
   // Wire up OAuth callback deps so /api/oauth/callback works
-  const { getSourceCredentialManager, loadWorkspaceSources } = await import('@rox-agent/shared/sources')
-  const { getWorkspaceByNameOrId } = await import('@rox-agent/shared/config')
+  const { getSourceCredentialManager, loadWorkspaceSources } = await import('@rox-one/shared/sources')
+  const { getWorkspaceByNameOrId } = await import('@rox-one/shared/config')
   const { pushTyped } = await import('@rox-one/server-core/transport')
-  const { RPC_CHANNELS } = await import('@rox-agent/shared/protocol')
+  const { RPC_CHANNELS } = await import('@rox-one/shared/protocol')
 
   webuiHandler.setOAuthCallbackDeps({
     flowStore: instance.oauthFlowStore,

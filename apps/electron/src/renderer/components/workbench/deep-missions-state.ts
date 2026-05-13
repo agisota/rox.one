@@ -6,8 +6,8 @@ import type {
   MissionCheckpoint,
   MissionMode,
   MissionRun,
-} from '@rox-agent/shared/workbench';
-import { normalizeMissionRunForLaunch } from '@rox-agent/shared/workbench';
+} from '@rox-one/shared/workbench';
+import { normalizeMissionRunForLaunch } from '@rox-one/shared/workbench';
 
 export type DeepMissionPresetId = 'sprint_6h' | 'deep_run_24h' | 'watchtower_72h';
 export type DeepMissionFormStatus = 'empty' | 'invalid' | 'ready' | 'launching' | 'launched' | 'blocked' | 'failed';

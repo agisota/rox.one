@@ -28,7 +28,7 @@
     "@rox-one/core": "workspace:*",
     "@rox-one/messaging-gateway": "workspace:*",
     "@rox-one/server-core": "workspace:*",
-    "@rox-agent/shared": "workspace:*"
+    "@rox-one/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

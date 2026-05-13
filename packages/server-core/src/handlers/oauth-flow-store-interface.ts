@@ -2,10 +2,10 @@
  * IOAuthFlowStore — abstract interface for the pending OAuth flow store.
  *
  * Handlers program against this; concrete implementations satisfy it.
- * See OAuthFlowStore in @rox-agent/shared/auth for the canonical impl.
+ * See OAuthFlowStore in @rox-one/shared/auth for the canonical impl.
  */
 
-import type { PendingOAuthFlow } from '@rox-agent/shared/auth'
+import type { PendingOAuthFlow } from '@rox-one/shared/auth'
 
 export interface IOAuthFlowStore {
   store(flow: PendingOAuthFlow): void

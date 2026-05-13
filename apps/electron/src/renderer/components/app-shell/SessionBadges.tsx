@@ -1,9 +1,9 @@
 import { useMemo } from "react"
-import { parseLabelEntry } from "@rox-agent/shared/labels"
+import { parseLabelEntry } from "@rox-one/shared/labels"
 import { EntityListLabelBadge } from "@/components/ui/entity-list-label-badge"
 import { useSessionListContext } from "@/context/SessionListContext"
 import type { SessionMeta } from "@/atoms/sessions"
-import type { LabelConfig } from "@rox-agent/shared/labels"
+import type { LabelConfig } from "@rox-one/shared/labels"
 
 interface SessionBadgesProps {
   item: SessionMeta

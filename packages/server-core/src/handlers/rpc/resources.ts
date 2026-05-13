@@ -4,9 +4,9 @@
  * Handles workspace resource export/import (sources, skills, automations).
  */
 
-import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
-import { getWorkspaceByNameOrId } from '@rox-agent/shared/config'
-import { getCredentialManager, SOURCE_CREDENTIAL_TYPES } from '@rox-agent/shared/credentials'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
+import { getWorkspaceByNameOrId } from '@rox-one/shared/config'
+import { getCredentialManager, SOURCE_CREDENTIAL_TYPES } from '@rox-one/shared/credentials'
 import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { requireWorkspaceAccess } from './account-ownership'
@@ -14,7 +14,7 @@ import type {
   ResourceBundle,
   ResourceImportMode,
   ExportResourcesOptions,
-} from '@rox-agent/shared/resources'
+} from '@rox-one/shared/resources'
 
 export const HANDLED_CHANNELS = [
   RPC_CHANNELS.resources.EXPORT,
@@ -30,7 +30,7 @@ export function registerResourcesHandlers(server: RpcServer, deps: HandlerDeps):
       const workspace = getWorkspaceByNameOrId(workspaceId)
       if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
 
-      const { exportResources } = await import('@rox-agent/shared/resources')
+      const { exportResources } = await import('@rox-one/shared/resources')
       const result = exportResources(workspace.rootPath, options)
 
       deps.platform.logger?.info(
@@ -53,7 +53,7 @@ export function registerResourcesHandlers(server: RpcServer, deps: HandlerDeps):
       const workspace = getWorkspaceByNameOrId(workspaceId)
       if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
 
-      const { importResources } = await import('@rox-agent/shared/resources')
+      const { importResources } = await import('@rox-one/shared/resources')
       const credManager = getCredentialManager()
 
       const result = await importResources(workspace.rootPath, bundle, mode, {

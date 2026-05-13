@@ -15,7 +15,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import type {
   CredentialManager,
-} from '@rox-agent/shared/credentials'
+} from '@rox-one/shared/credentials'
 import type { ISessionManager } from '@rox-one/server-core/handlers'
 
 import { MessagingGatewayRegistry, type MessagingGatewayRegistryOptions } from '../registry'

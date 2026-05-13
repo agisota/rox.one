@@ -5,7 +5,7 @@ import {
   type ThinkingPartnerOptionCard,
   type ThinkingPartnerOutput,
   type ThinkingPartnerQuestionCard,
-} from '@rox-agent/shared/workbench/thinking-partner';
+} from '@rox-one/shared/workbench/thinking-partner';
 import type { ProductModeIntent } from './product-mode-toolbar';
 
 export const THINKING_PARTNER_SPEC_BUILDER_EVENT = 'rox:spec-builder-intent';

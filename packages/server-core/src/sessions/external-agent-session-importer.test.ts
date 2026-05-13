@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { getSessionFilePath, loadSession } from '@rox-agent/shared/sessions';
+import { getSessionFilePath, loadSession } from '@rox-one/shared/sessions';
 import { importExternalAgentSessionIndex } from './external-agent-session-importer.ts';
 
 let tempDir: string;

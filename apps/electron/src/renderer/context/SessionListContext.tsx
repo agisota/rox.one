@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react"
-import type { LabelConfig } from "@rox-agent/shared/labels"
+import type { LabelConfig } from "@rox-one/shared/labels"
 import type { SessionStatusId, SessionStatus } from "@/config/session-status-config"
 import type { SessionMeta } from "@/atoms/sessions"
 import type { SessionOptions } from "@/hooks/useSessionOptions"

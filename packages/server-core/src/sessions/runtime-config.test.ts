@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
-import type { LlmConnection } from '@rox-agent/shared/config'
-import type { FileAttachment } from '@rox-agent/shared/protocol'
+import type { LlmConnection } from '@rox-one/shared/config'
+import type { FileAttachment } from '@rox-one/shared/protocol'
 import { buildBackendRuntimeSignature, filterAttachmentsForModelInput } from './runtime-config'
 
 const baseCompat: LlmConnection = {

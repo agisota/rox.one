@@ -17,7 +17,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import type { CredentialManager } from '@rox-agent/shared/credentials'
+import type { CredentialManager } from '@rox-one/shared/credentials'
 import type { ISessionManager } from '@rox-one/server-core/handlers'
 import { MessagingGatewayRegistry } from '../registry'
 

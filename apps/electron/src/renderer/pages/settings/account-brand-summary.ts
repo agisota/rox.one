@@ -1,4 +1,4 @@
-import { AGENT_WORKBENCH_BRAND_CONFIG, getBrandDocsUrl, type BrandConfig } from '@rox-agent/shared/branding'
+import { AGENT_WORKBENCH_BRAND_CONFIG, getBrandDocsUrl, type BrandConfig } from '@rox-one/shared/branding'
 
 export interface AccountBrandSummaryRow {
   label: string

@@ -1,4 +1,4 @@
-import { DEFAULT_LOCAL_SCOPE, type BrandedWorkspaceScope } from '@rox-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, type BrandedWorkspaceScope } from '@rox-one/shared/config'
 
 export const ELECTRON_GLOBAL_STORAGE_SCOPE_REASON =
   'Electron main handler storage here is machine-wide local UI/runtime preference state, not tenant or workspace content.'

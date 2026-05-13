@@ -25,8 +25,8 @@
     "paths": {
       "@rox-one/core": ["../core/src/index.ts"],
       "@rox-one/core/*": ["../core/src/*"],
-      "@rox-agent/shared": ["./src/index.ts"],
-      "@rox-agent/shared/*": ["./src/*"]
+      "@rox-one/shared": ["./src/index.ts"],
+      "@rox-one/shared/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"],

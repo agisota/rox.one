@@ -1,7 +1,7 @@
 // =============================================================================
 // Protocol re-exports (channels, DTOs, events, wire types)
 // =============================================================================
-export * from '@rox-agent/shared/protocol'
+export * from '@rox-one/shared/protocol'
 
 // =============================================================================
 // Package re-exports (convenience for renderer imports)
@@ -23,14 +23,14 @@ import type {
 } from '@rox-one/core/types';
 
 // Mode types from dedicated subpath export (avoids pulling in SDK)
-import type { PermissionMode } from '@rox-agent/shared/agent/modes';
+import type { PermissionMode } from '@rox-one/shared/agent/modes';
 export type { PermissionMode };
-export { PERMISSION_MODE_CONFIG } from '@rox-agent/shared/agent/modes';
+export { PERMISSION_MODE_CONFIG } from '@rox-one/shared/agent/modes';
 
 // Thinking level types
-import type { ThinkingLevel } from '@rox-agent/shared/agent/thinking-levels';
+import type { ThinkingLevel } from '@rox-one/shared/agent/thinking-levels';
 export type { ThinkingLevel };
-export { THINKING_LEVELS, DEFAULT_THINKING_LEVEL } from '@rox-agent/shared/agent/thinking-levels';
+export { THINKING_LEVELS, DEFAULT_THINKING_LEVEL } from '@rox-one/shared/agent/thinking-levels';
 
 export type {
   CoreMessage as Message,
@@ -47,28 +47,28 @@ export type {
 };
 
 // Auth types for onboarding
-import type { AuthState, SetupNeeds } from '@rox-agent/shared/auth/types';
-import type { AuthType } from '@rox-agent/shared/config/types';
+import type { AuthState, SetupNeeds } from '@rox-one/shared/auth/types';
+import type { AuthType } from '@rox-one/shared/config/types';
 export type { AuthState, SetupNeeds, AuthType };
 
 // Credential health types
-import type { CredentialHealthStatus, CredentialHealthIssue, CredentialHealthIssueType } from '@rox-agent/shared/credentials/types';
+import type { CredentialHealthStatus, CredentialHealthIssue, CredentialHealthIssueType } from '@rox-one/shared/credentials/types';
 export type { CredentialHealthStatus, CredentialHealthIssue, CredentialHealthIssueType };
 
 // Source types for session source selection
-import type { LoadedSource, FolderSourceConfig, SourceConnectionStatus } from '@rox-agent/shared/sources/types';
+import type { LoadedSource, FolderSourceConfig, SourceConnectionStatus } from '@rox-one/shared/sources/types';
 export type { LoadedSource, FolderSourceConfig, SourceConnectionStatus };
 
 // Skill types
-import type { LoadedSkill, SkillMetadata } from '@rox-agent/shared/skills/types';
+import type { LoadedSkill, SkillMetadata } from '@rox-one/shared/skills/types';
 export type { LoadedSkill, SkillMetadata };
 
 // Resource bundle types (cross-workspace export/import)
-import type { ExportResourcesOptions, ExportResult, ResourceImportMode, ResourceBundle, ResourceImportResult } from '@rox-agent/shared/resources';
+import type { ExportResourcesOptions, ExportResult, ResourceImportMode, ResourceBundle, ResourceImportResult } from '@rox-one/shared/resources';
 export type { ExportResourcesOptions, ExportResult, ResourceImportMode, ResourceBundle, ResourceImportResult };
 
 // LLM connection types
-import type { LlmConnection, LlmConnectionWithStatus, LlmAuthType, LlmProviderType, NetworkProxySettings } from '@rox-agent/shared/config';
+import type { LlmConnection, LlmConnectionWithStatus, LlmAuthType, LlmProviderType, NetworkProxySettings } from '@rox-one/shared/config';
 export type { LlmConnection, LlmConnectionWithStatus, LlmAuthType, LlmProviderType, NetworkProxySettings };
 
 // =============================================================================
@@ -214,7 +214,7 @@ import type {
   DirectoryListingResult,
   RemoteSessionTransferPayload,
   ImportRemoteSessionTransferResult,
-} from '@rox-agent/shared/protocol'
+} from '@rox-one/shared/protocol'
 
 export interface ElectronAPI {
   // Session management
@@ -238,9 +238,9 @@ export interface ElectronAPI {
   getServerHomeDir(): Promise<string>
 
   // Server mode configuration
-  getServerConfig(): Promise<import('@rox-agent/shared/config/server-config').ServerConfig>
-  setServerConfig(config: import('@rox-agent/shared/config/server-config').ServerConfig): Promise<void>
-  getServerStatus(): Promise<import('@rox-agent/shared/config/server-config').ServerStatus>
+  getServerConfig(): Promise<import('@rox-one/shared/config/server-config').ServerConfig>
+  setServerConfig(config: import('@rox-one/shared/config/server-config').ServerConfig): Promise<void>
+  getServerStatus(): Promise<import('@rox-one/shared/config/server-config').ServerStatus>
 
   // App lifecycle
   relaunchApp(): Promise<void>
@@ -439,10 +439,10 @@ export interface ElectronAPI {
   writePreferences(content: string): Promise<{ success: boolean; error?: string }>
 
   // Session Drafts (persisted composer state — text + attachment refs)
-  getDraft(sessionId: string): Promise<import('@rox-agent/shared/config').SessionDraft | null>
-  setDraft(sessionId: string, draft: import('@rox-agent/shared/config').SessionDraft): Promise<void>
+  getDraft(sessionId: string): Promise<import('@rox-one/shared/config').SessionDraft | null>
+  setDraft(sessionId: string, draft: import('@rox-one/shared/config').SessionDraft): Promise<void>
   deleteDraft(sessionId: string): Promise<void>
-  getAllDrafts(): Promise<Record<string, import('@rox-agent/shared/config').SessionDraft>>
+  getAllDrafts(): Promise<Record<string, import('@rox-one/shared/config').SessionDraft>>
 
   // Session Info Panel
   getSessionFiles(sessionId: string): Promise<SessionFile[]>
@@ -458,9 +458,9 @@ export interface ElectronAPI {
   deleteSource(workspaceId: string, sourceSlug: string): Promise<void>
   startSourceOAuth(workspaceId: string, sourceSlug: string): Promise<{ success: boolean; error?: string }>
   saveSourceCredentials(workspaceId: string, sourceSlug: string, credential: string): Promise<void>
-  getSourcePermissionsConfig(workspaceId: string, sourceSlug: string): Promise<import('@rox-agent/shared/agent').PermissionsConfigFile | null>
-  getWorkspacePermissionsConfig(workspaceId: string): Promise<import('@rox-agent/shared/agent').PermissionsConfigFile | null>
-  getDefaultPermissionsConfig(): Promise<{ config: import('@rox-agent/shared/agent').PermissionsConfigFile | null; path: string }>
+  getSourcePermissionsConfig(workspaceId: string, sourceSlug: string): Promise<import('@rox-one/shared/agent').PermissionsConfigFile | null>
+  getWorkspacePermissionsConfig(workspaceId: string): Promise<import('@rox-one/shared/agent').PermissionsConfigFile | null>
+  getDefaultPermissionsConfig(): Promise<{ config: import('@rox-one/shared/agent').PermissionsConfigFile | null; path: string }>
   getMcpTools(workspaceId: string, sourceSlug: string): Promise<McpToolsResult>
 
   // OAuth (server-owned credentials, client-orchestrated flow)
@@ -487,13 +487,13 @@ export interface ElectronAPI {
   onSkillsChanged(callback: (workspaceId: string, skills: LoadedSkill[]) => void): () => void
 
   // Statuses (workspace-scoped)
-  listStatuses(workspaceId: string): Promise<import('@rox-agent/shared/statuses').StatusConfig[]>
+  listStatuses(workspaceId: string): Promise<import('@rox-one/shared/statuses').StatusConfig[]>
   reorderStatuses(workspaceId: string, orderedIds: string[]): Promise<void>
   onStatusesChanged(callback: (workspaceId: string) => void): () => void
 
   // Labels (workspace-scoped)
-  listLabels(workspaceId: string): Promise<import('@rox-agent/shared/labels').LabelConfig[]>
-  createLabel(workspaceId: string, input: import('@rox-agent/shared/labels').CreateLabelInput): Promise<import('@rox-agent/shared/labels').LabelConfig>
+  listLabels(workspaceId: string): Promise<import('@rox-one/shared/labels').LabelConfig[]>
+  createLabel(workspaceId: string, input: import('@rox-one/shared/labels').CreateLabelInput): Promise<import('@rox-one/shared/labels').LabelConfig>
   deleteLabel(workspaceId: string, labelId: string): Promise<{ stripped: number }>
   onLabelsChanged(callback: (workspaceId: string) => void): () => void
 
@@ -501,8 +501,8 @@ export interface ElectronAPI {
   onLlmConnectionsChanged(callback: () => void): () => void
 
   // Views (workspace-scoped, stored in views.json)
-  listViews(workspaceId: string): Promise<import('@rox-agent/shared/views').ViewConfig[]>
-  saveViews(workspaceId: string, views: import('@rox-agent/shared/views').ViewConfig[]): Promise<void>
+  listViews(workspaceId: string): Promise<import('@rox-one/shared/views').ViewConfig[]>
+  saveViews(workspaceId: string, views: import('@rox-one/shared/views').ViewConfig[]): Promise<void>
 
   // Generic workspace image loading/saving
   readWorkspaceImage(workspaceId: string, relativePath: string): Promise<string>

@@ -1,5 +1,5 @@
 import { sanitizePublicPayload } from '../security/public-payload-sanitizer'
-import type { ArtifactType } from '@rox-agent/shared/workbench'
+import type { ArtifactType } from '@rox-one/shared/workbench'
 import type {
   FakeProviderGatewayOptions,
   ProviderAdapter,

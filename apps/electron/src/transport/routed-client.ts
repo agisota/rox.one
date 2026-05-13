@@ -13,7 +13,7 @@
 import type { WsRpcClient, TransportConnectionState } from './client'
 import type { RpcClient } from '@rox-one/server-core/transport'
 import type { RemoteServerConfig } from '@rox-one/core/types'
-import { isLocalOnly, RPC_CHANNELS } from '@rox-agent/shared/protocol'
+import { isLocalOnly, RPC_CHANNELS } from '@rox-one/shared/protocol'
 
 // ---------------------------------------------------------------------------
 // Types
