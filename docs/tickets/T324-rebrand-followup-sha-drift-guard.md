@@ -5,7 +5,7 @@ Status: DONE
 ## Context
 
 Rebasing the R.10 follow-up branch changed the local T321 commit SHA more than
-once, with the current post-PR #74 value at `33e08cf`. The closeout mapping and
+once, with the current post-PR #75 value at `f82da7f`. The closeout mapping and
 its permanent gate still hardcoded the previous SHA, which made the evidence
 stale even though the branch was otherwise green.
 
@@ -60,7 +60,7 @@ mapping still references the old rebased-away SHA.
 ## Acceptance Criteria
 
 - [x] The revised permanent gate fails before docs are refreshed.
-- [x] The release mapping records T321 as `33e08cf`.
+- [x] The release mapping records T321 as `f82da7f`.
 - [x] T322 ticket/worklog evidence no longer names the stale T321 SHA.
 - [x] Rebrand/docs/roadmap/typecheck/lint/test/build gates stay green.
 - [x] Worklog complete.

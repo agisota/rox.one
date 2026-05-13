@@ -1,12 +1,12 @@
-# T327 - Rebrand follow-up SHA drift after T227
+# T330 - Rebrand follow-up SHA drift after T227 completion
 
 Status: DONE
 Phase: R.10 follow-up evidence repair
-Ticket: docs/tickets/T327-rebrand-followup-sha-drift-after-t227.md
+Ticket: docs/tickets/T330-rebrand-followup-sha-drift-after-t227-completion.md
 
 ## 1. Task summary
 
-Refresh the R.10 follow-up closeout evidence after rebasing through PR #75.
+Refresh the R.10 follow-up closeout evidence after rebasing onto PR #75.
 
 ## 2. Repo context discovered
 
@@ -20,6 +20,8 @@ previous T321 commit.
 - `docs/release/rebrand-mapping-2026-05-13.md`
 - `docs/tickets/T324-rebrand-followup-sha-drift-guard.md`
 - `docs/worklog/T324-rebrand-followup-sha-drift-guard.md`
+- `docs/tickets/T327-rebrand-followup-sha-drift-after-t227.md`
+- `docs/worklog/T327-rebrand-followup-sha-drift-after-t227.md`
 - `docs/worklog/T322-rebrand-closeout-evidence-reconciliation.md`
 
 ## 4. Tests added first
@@ -37,13 +39,15 @@ mapping still contained the previous T321 row.
 
 - Updated `docs/release/rebrand-mapping-2026-05-13.md` to record T321 as
   `f82da7f`.
-- Updated T322/T324 evidence wording to describe the PR #75 rebase point.
+- Updated the prior SHA-drift evidence wording in T322/T324/T327 docs to name
+  the PR #75 rebase point and current T321 commit.
 
 ## 7. Validation commands run
 
 - `bun test scripts/__tests__/rebrand-permanent-gate.test.ts` (red)
 - `bun test scripts/__tests__/rebrand-permanent-gate.test.ts`
 - `bun run validate:rebrand`
+- `bun run validate:docs`
 - `bun run validate:roadmap`
 - `git diff --check`
 
@@ -53,13 +57,17 @@ mapping still contained the previous T321 row.
   0 fail, 8 expects.
 - `bun run validate:rebrand`: `rebrand validation passed: no forbidden tokens
   outside the allowlist`.
+- `bun run validate:docs`: agent-contract, architecture-docs, and
+  sync-v2-design validators passed; agent contract reported 11 skills,
+  239 tickets, and 7 required docs.
 - `bun run validate:roadmap`: `validate:roadmap OK -- 46 phases, 111 tickets
   across detail files`.
 - `git diff --check`: clean.
 
 ## 9. Build output summary
 
-Not run. This ticket changes documentation evidence only.
+Not run. This ticket changes documentation evidence only; the branch-level build
+is run separately after the current repair set is committed.
 
 ## 10. Remaining risks
 
@@ -70,6 +78,6 @@ repair.
 
 - [x] The permanent gate fails before implementation for the expected SHA drift.
 - [x] The release mapping records T321 as `f82da7f`.
-- [x] T322/T324 evidence no longer names the previous current T321 SHA as current.
-- [x] Rebrand and roadmap validation pass.
+- [x] Prior SHA-drift evidence no longer names the previous T321 SHA as current.
+- [x] Rebrand/docs/roadmap validation passes.
 - [x] Worklog complete.
