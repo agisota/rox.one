@@ -1,5 +1,7 @@
 # T299 - End-to-end spine integration
 
+Status: DONE
+
 ## Context
 
 We are building a white-label fork of Rox Agents OSS into Agent Workbench Suite.
@@ -87,7 +89,7 @@ Do NOT touch historical worklogs/tickets/release-notes — they are immutable.
 - [x] This ticket and its worklog committed.
 - [x] Branch `docs/v1-end-to-end-spine-2026-05-13` pushed to origin.
 - [x] PR opened against `main` with reviewer-friendly body.
-- [ ] PR merged (operator decision).
+- [x] PR merged (operator decision).
 
 ## Worklog
 
