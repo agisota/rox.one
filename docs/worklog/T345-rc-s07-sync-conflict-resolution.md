@@ -65,18 +65,35 @@ The following filters did not match any test files:
 
 No runtime files were changed.
 
+After T358, the S07 smoke command reaches the harness and passes current
+deterministic sync conflict coverage:
+
+```text
+[e2e-smoke] pass s07-sync-conflict-resolution
+23 pass
+4 todo
+0 fail
+70 expect() calls
+```
+
 ## 7. Validation Commands Run
 
 ```bash
 bun run e2e:smoke -- --scenario s07-sync-conflict-resolution
 bun test packages/server-core/src/**/__tests__/sync*.test.ts
 bun test packages/server-core/src/sync/__tests__/workspace-sync-service.test.ts packages/server-core/src/sync/__tests__/local-cloud-sync.test.ts packages/server-core/src/sync/__tests__/workspace-sync-multi-client-conflict.test.ts
+bun test scripts/__tests__/e2e-smoke-harness.test.ts
+bun run e2e:smoke -- --scenario s07-sync-conflict-resolution
 ```
 
 ## 8. Passing Test Output Summary
 
 - Current adjacent sync conflict tests: 23 pass, 4 todo, 0 fail, 70
   expectations.
+- `bun test scripts/__tests__/e2e-smoke-harness.test.ts`: 8 pass, 0 fail, 35
+  expectations.
+- `bun run e2e:smoke -- --scenario s07-sync-conflict-resolution`: 23 pass, 4
+  todo, 0 fail, 70 expectations.
 
 ## 9. Build Output Summary
 
@@ -84,7 +101,6 @@ No build was run because this ticket made no runtime/source changes.
 
 ## 10. Remaining Risks
 
-- S07 smoke harness entry is not registered yet; T358 tracks that repair.
 - S07 has not produced packaged Electron conflict-modal screenshots or
   browser-console evidence.
 - The passing tests prove deterministic sync conflict behavior, not a full
@@ -103,3 +119,4 @@ No build was run because this ticket made no runtime/source changes.
 | Screenshot evidence captured and referenced | Blocked | No screenshot captured in current deterministic test harness |
 | RC evidence row S07 updated | Pass | `docs/release/2026-05-14-rc-evidence.md` row S07 is `Blocked` |
 | Initial blocking ticket filed | Pass | `T358-rc-s07-smoke-harness-and-command-repair.md` |
+| S07 deterministic harness path repaired | Pass | T358 registers S07 and `e2e:smoke` passes 23 tests with 4 todo markers |
