@@ -19,6 +19,8 @@
     "./agent/thinking-levels": "./src/agent/thinking-levels.ts",
     "./auth": "./src/auth/index.ts",
     "./auth/callback-page": "./src/auth/callback-page.ts",
+    "./auth/policy-engine": "./src/auth/policy-engine.ts",
+    "./auth/roles-schema": "./src/auth/roles-schema.ts",
     "./auth/types": "./src/auth/types.ts",
     "./audit": "./src/audit/index.ts",
     "./config": "./src/config/index.ts",
