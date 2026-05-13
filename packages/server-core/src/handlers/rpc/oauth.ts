@@ -6,6 +6,7 @@ import { createPendingFlow } from '@rox-one/shared/auth'
 import { pushTyped, type RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { requireWorkspaceAccess } from './account-ownership'
+import { parseId, parseSafeString } from './_validators'
 
 export const HANDLED_CHANNELS = [
   RPC_CHANNELS.oauth.START,
@@ -90,6 +91,7 @@ export function registerOAuthHandlers(server: RpcServer, deps: HandlerDeps): voi
     authRequestId?: string
   }) => {
     const { sourceSlug, callbackPort, callbackUrl, sessionId, authRequestId } = args
+    parseId('sourceSlug', sourceSlug)
 
     if (!ctx.workspaceId) {
       throw new Error('No workspace bound to this client')
@@ -137,6 +139,9 @@ export function registerOAuthHandlers(server: RpcServer, deps: HandlerDeps): voi
     state: string
   }) => {
     const { flowId, code, state } = args
+    parseId('flowId', flowId)
+    parseSafeString('code', code, 2048)
+    parseSafeString('state', state, 2048)
 
     // Validate flowId match before delegating
     const flow = flowStore.getByState(state)
@@ -170,6 +175,8 @@ export function registerOAuthHandlers(server: RpcServer, deps: HandlerDeps): voi
     state: string
   }) => {
     const { flowId, state } = args
+    parseId('flowId', flowId)
+    parseSafeString('state', state, 2048)
     const flow = flowStore.getByState(state)
     if (flow && flow.flowId === flowId && flow.ownerClientId === ctx.clientId) {
       flowStore.remove(state)
@@ -182,6 +189,7 @@ export function registerOAuthHandlers(server: RpcServer, deps: HandlerDeps): voi
     sourceSlug: string
   }) => {
     const { sourceSlug } = args
+    parseId('sourceSlug', sourceSlug)
 
     if (!ctx.workspaceId) {
       throw new Error('No workspace bound to this client')

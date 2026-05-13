@@ -10,6 +10,7 @@ import { getCredentialManager, SOURCE_CREDENTIAL_TYPES } from '@rox-one/shared/c
 import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { requireWorkspaceAccess } from './account-ownership'
+import { parseId, parseEnum } from './_validators'
 import type {
   ResourceBundle,
   ResourceImportMode,
@@ -26,6 +27,7 @@ export function registerResourcesHandlers(server: RpcServer, deps: HandlerDeps):
   server.handle(
     RPC_CHANNELS.resources.EXPORT,
     async (ctx, workspaceId: string, options: ExportResourcesOptions) => {
+      parseId('workspaceId', workspaceId)
       await requireWorkspaceAccess(deps, ctx, workspaceId)
       const workspace = getWorkspaceByNameOrId(workspaceId)
       if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
@@ -49,6 +51,8 @@ export function registerResourcesHandlers(server: RpcServer, deps: HandlerDeps):
   server.handle(
     RPC_CHANNELS.resources.IMPORT,
     async (ctx, workspaceId: string, bundle: ResourceBundle, mode: ResourceImportMode) => {
+      parseId('workspaceId', workspaceId)
+      parseEnum('mode', mode, ['skip', 'overwrite'] as const)
       await requireWorkspaceAccess(deps, ctx, workspaceId)
       const workspace = getWorkspaceByNameOrId(workspaceId)
       if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)

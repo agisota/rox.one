@@ -113,6 +113,58 @@ export function parseEnum<T extends string>(
   return value as T
 }
 
+/**
+ * Parse a free-form string (e.g. message body, search query, token).
+ * Rejects: not-a-string, control chars. Enforces an explicit max length.
+ * Unlike `parseId`, allows leading/trailing whitespace and does NOT
+ * require non-whitespace content (some free-form fields may be blank).
+ */
+export function parseSafeString(name: string, value: unknown, maxLen: number): string {
+  if (typeof value !== 'string') invalidInput(`${name} must be a string`)
+  if (value.length > maxLen) invalidInput(`${name} must be <= ${maxLen} chars`)
+  if (hasControlChar(value)) invalidInput(`${name} must not contain control characters`)
+  return value
+}
+
+/**
+ * Parse an optional safe string (undefined/null pass through).
+ * Non-null values run through `parseSafeString` rules.
+ */
+export function parseOptionalSafeString(name: string, value: unknown, maxLen: number): string | undefined {
+  if (value === undefined || value === null) return undefined
+  return parseSafeString(name, value, maxLen)
+}
+
+/**
+ * Parse a URL string — must be a string, <= 2048 chars, parseable by the
+ * `URL` constructor, and use only `http:` or `https:` scheme.
+ * Used for webhook URLs and OAuth callback URLs.
+ */
+export function parseUrl(name: string, value: unknown): string {
+  if (typeof value !== 'string') invalidInput(`${name} must be a string`)
+  if (value.length === 0) invalidInput(`${name} must not be empty`)
+  if (value.length > 2048) invalidInput(`${name} must be <= 2048 chars`)
+  if (hasControlChar(value)) invalidInput(`${name} must not contain control characters`)
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    invalidInput(`${name} must be a valid URL`)
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    invalidInput(`${name} must use http or https scheme`)
+  }
+  return value
+}
+
+/**
+ * Parse an optional URL string (undefined/null pass through).
+ */
+export function parseOptionalUrl(name: string, value: unknown): string | undefined {
+  if (value === undefined || value === null) return undefined
+  return parseUrl(name, value)
+}
+
 // ---------------------------------------------------------------------------
 // Per-handler payload schemas
 // ---------------------------------------------------------------------------

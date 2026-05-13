@@ -12,6 +12,7 @@ import { pushTyped, type RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { setTransferableHandler } from './transfer'
 import { requireSessionAccess, requireWorkspaceAccess } from './account-ownership'
+import { parseId, parseSafeString, parseOptionalSafeString } from './_validators'
 
 interface ClientSessionWatchState {
   watcher: SessionFileWatcher
@@ -221,12 +222,14 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   })
 
   server.handle(RPC_CHANNELS.sessions.MARK_ALL_READ, async (ctx, workspaceId: string) => {
+    parseId('workspaceId', workspaceId)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     return sessionManager.markAllSessionsRead(workspaceId)
   })
 
   // Get a single session with messages (for lazy loading)
   server.handle(RPC_CHANNELS.sessions.GET_MESSAGES, async (ctx, sessionId: string) => {
+    parseId('sessionId', sessionId)
     await requireSessionAccess(deps, ctx, sessionId)
     const end = perf.start('rpc.getSessionMessages')
     const session = await sessionManager.getSession(sessionId)
@@ -236,6 +239,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Create a new session
   server.handle(RPC_CHANNELS.sessions.CREATE, async (ctx, workspaceId: string, options?: import('@rox-one/shared/protocol').CreateSessionOptions) => {
+    parseId('workspaceId', workspaceId)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const end = perf.start('rpc.createSession', { workspaceId })
     const session = await sessionManager.createSession(workspaceId, options)
@@ -245,6 +249,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Delete a session
   server.handle(RPC_CHANNELS.sessions.DELETE, async (ctx, sessionId: string) => {
+    parseId('sessionId', sessionId)
     await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.deleteSession(sessionId)
   })
@@ -263,6 +268,8 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   //     event stream as today.
   // attachments: FileAttachment[] for Claude (has content), storedAttachments: StoredAttachment[] for persistence (has thumbnailBase64)
   server.handle(RPC_CHANNELS.sessions.SEND_MESSAGE, async (ctx, sessionId: string, message: string, attachments?: FileAttachment[], storedAttachments?: StoredAttachment[], options?: SendMessageOptions) => {
+    parseId('sessionId', sessionId)
+    parseSafeString('message', message, 1_000_000)
     await requireSessionAccess(deps, ctx, sessionId)
     // Capture the caller's clientId for error routing
     const callerClientId = ctx.clientId
@@ -311,18 +318,22 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Cancel processing
   server.handle(RPC_CHANNELS.sessions.CANCEL, async (ctx, sessionId: string, silent?: boolean) => {
+    parseId('sessionId', sessionId)
     await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.cancelProcessing(sessionId, silent)
   })
 
   // Kill background shell
   server.handle(RPC_CHANNELS.sessions.KILL_SHELL, async (ctx, sessionId: string, shellId: string) => {
+    parseId('sessionId', sessionId)
+    parseId('shellId', shellId)
     await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.killShell(sessionId, shellId)
   })
 
   // Get background task output
   server.handle(RPC_CHANNELS.tasks.GET_OUTPUT, async (_ctx, taskId: string) => {
+    parseId('taskId', taskId)
     try {
       const output = await sessionManager.getTaskOutput(taskId)
       return output
@@ -335,6 +346,8 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   // Respond to a permission request (bash command approval)
   // Returns true if the response was delivered, false if agent/session is gone
   server.handle(RPC_CHANNELS.sessions.RESPOND_TO_PERMISSION, async (ctx, sessionId: string, requestId: string, allowed: boolean, alwaysAllow: boolean) => {
+    parseId('sessionId', sessionId)
+    parseId('requestId', requestId)
     await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.respondToPermission(sessionId, requestId, allowed, alwaysAllow)
   })
@@ -342,6 +355,8 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   // Respond to a credential request (secure auth input)
   // Returns true if the response was delivered, false if agent/session is gone
   server.handle(RPC_CHANNELS.sessions.RESPOND_TO_CREDENTIAL, async (ctx, sessionId: string, requestId: string, response: import('@rox-one/shared/protocol').CredentialResponse) => {
+    parseId('sessionId', sessionId)
+    parseId('requestId', requestId)
     await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.respondToCredential(sessionId, requestId, response)
   })
@@ -356,6 +371,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
     sessionId: string,
     command: import('@rox-one/shared/protocol').SessionCommand
   ) => {
+    parseId('sessionId', sessionId)
     await requireSessionAccess(deps, ctx, sessionId)
     switch (command.type) {
       case 'flag':
@@ -464,6 +480,9 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Search session content using ripgrep
   server.handle(RPC_CHANNELS.sessions.SEARCH_CONTENT, async (ctx, workspaceId: string, query: string, searchId?: string) => {
+    parseId('workspaceId', workspaceId)
+    parseSafeString('query', query, 1024)
+    parseOptionalSafeString('searchId', searchId, 128)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const id = searchId || Date.now().toString(36)
     log.info('[search]','ipc:request', { searchId: id, query })
@@ -504,6 +523,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Get files in session directory (recursive tree structure)
   server.handle(RPC_CHANNELS.sessions.GET_FILES, async (ctx, sessionId: string) => {
+    parseId('sessionId', sessionId)
     await requireSessionAccess(deps, ctx, sessionId)
     const sessionPath = sessionManager.getSessionPath(sessionId)
     if (!sessionPath) return []
@@ -518,6 +538,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Start watching a session directory for file changes (per client)
   server.handle(RPC_CHANNELS.sessions.WATCH_FILES, async (ctx, sessionId: string) => {
+    parseId('sessionId', sessionId)
     await requireSessionAccess(deps, ctx, sessionId)
     const clientId = ctx.clientId
     cleanupSessionFileWatchForClient(clientId)
@@ -562,6 +583,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Get session notes (reads notes.md from session directory)
   server.handle(RPC_CHANNELS.sessions.GET_NOTES, async (ctx, sessionId: string) => {
+    parseId('sessionId', sessionId)
     await requireSessionAccess(deps, ctx, sessionId)
     const sessionPath = sessionManager.getSessionPath(sessionId)
     if (!sessionPath) return ''
@@ -578,6 +600,8 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Set session notes (writes to notes.md in session directory)
   server.handle(RPC_CHANNELS.sessions.SET_NOTES, async (ctx, sessionId: string, content: string) => {
+    parseId('sessionId', sessionId)
+    parseSafeString('content', content, 1_000_000)
     await requireSessionAccess(deps, ctx, sessionId)
     const sessionPath = sessionManager.getSessionPath(sessionId)
     if (!sessionPath) {
@@ -599,6 +623,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Export a session as a portable bundle
   server.handle(RPC_CHANNELS.sessions.EXPORT, async (ctx, sessionId: string) => {
+    parseId('sessionId', sessionId)
     await requireSessionAccess(deps, ctx, sessionId)
     await sessionManager.waitForInit()
     const workspaceId = ctx.workspaceId ?? deps.windowManager?.getWorkspaceForWindow(ctx.webContentsId!)
@@ -626,6 +651,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Export a session as a summarized remote-transfer payload.
   server.handle(RPC_CHANNELS.sessions.EXPORT_REMOTE_TRANSFER, async (ctx, sessionId: string) => {
+    parseId('sessionId', sessionId)
     await requireSessionAccess(deps, ctx, sessionId)
     await sessionManager.waitForInit()
     const workspaceId = ctx.workspaceId ?? deps.windowManager?.getWorkspaceForWindow(ctx.webContentsId!)
@@ -639,7 +665,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   // Import a summarized remote-transfer payload into a target workspace.
   server.handle(RPC_CHANNELS.sessions.IMPORT_REMOTE_TRANSFER, async (ctx, targetWorkspaceId: string, payload: import('@rox-one/shared/protocol').RemoteSessionTransferPayload) => {
     await sessionManager.waitForInit()
-    if (!targetWorkspaceId || typeof targetWorkspaceId !== 'string') throw new Error('targetWorkspaceId is required')
+    parseId('targetWorkspaceId', targetWorkspaceId)
     await requireWorkspaceAccess(deps, ctx, targetWorkspaceId)
     return sessionManager.importRemoteSessionTransfer(targetWorkspaceId, payload)
   })
