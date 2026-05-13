@@ -37,6 +37,12 @@ function isWholeFileAllowlisted(path) {
   if (['LICENSE', 'NOTICE', 'TRADEMARK.md', 'plan.md', 'snapshot.md'].includes(path)) {
     return true
   }
+  // Allowlist reason: CHANGELOG.md must reference legacy CRAFT_* / @craft-agent
+  // / craft-agent-server / craft-cli / ~/.craft-agent / ~/.craft / Craft Agents
+  // names verbatim to document the rebrand sweep R.0-R.10 and the v1.0.0
+  // deprecation timeline. Recursive self-reference makes them forbidden tokens
+  // by construction — they are historical record, not branding drift.
+  if (path === 'CHANGELOG.md') return true
   if (path.startsWith('docs/decision-records/')) return true
   if (/^docs\/worklog\/T[0-2].*-.*\.md$/.test(path)) return true
   if (/^docs\/tickets\/T[0-2].*-.*\.md$/.test(path)) return true
