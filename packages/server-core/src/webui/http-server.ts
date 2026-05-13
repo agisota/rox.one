@@ -340,7 +340,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
   const dvnetBillingIntentStore = options.accountDvnetBillingIntentStore ?? new InMemoryDvnetBillingIntentStore()
 
   // Hash the login password at startup (async, but resolves before first auth attempt in practice)
-  const passwordReady = initPasswordHash(loginPassword)
+  const passwordHashReady = initPasswordHash(loginPassword)
 
   /** Extract client IP — only trusts proxy headers when trustedProxies is configured. */
   function getClientIp(req: Request): string {
@@ -847,7 +847,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       if (accountStore) {
         return Response.json({ error: 'Use /api/auth/login for account auth' }, { status: 400 })
       }
-      await passwordReady
+      const passwordHash = await passwordHashReady
       const ip = getClientIp(req)
 
       if (!rateLimiter.check(ip)) {
@@ -869,7 +869,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         return Response.json({ error: 'Password is required' }, { status: 400 })
       }
 
-      if (!await verifyPassword(body.password)) {
+      if (!await verifyPassword(body.password, passwordHash)) {
         logger.warn(`[webui] Failed auth attempt from ${ip}`)
         return Response.json({ error: 'Invalid credentials' }, { status: 401 })
       }

@@ -179,6 +179,9 @@ mock.module('electron', () => ({
       popup: mock(() => {}),
     })),
   },
+  screen: {
+    getDisplayMatching: mock(() => ({ workArea: { x: 0, y: 0, width: 1440, height: 900 } })),
+  },
   nativeTheme: {
     shouldUseDarkColors: false,
   },

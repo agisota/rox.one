@@ -135,22 +135,19 @@ export function extractSessionCookie(cookieHeader: string | null): string | null
 // Password verification (argon2id via Bun.password)
 // ---------------------------------------------------------------------------
 
-let hashedPassword: string | null = null
-
 /**
  * Hash the login password at startup. Must be called before any auth requests.
- * The hash is stored in memory — the raw password is not retained.
+ * The returned hash is stored by the caller — the raw password is not retained.
  */
-export async function initPasswordHash(plaintext: string): Promise<void> {
-  hashedPassword = await Bun.password.hash(plaintext, { algorithm: 'argon2id' })
+export async function initPasswordHash(plaintext: string): Promise<string> {
+  return Bun.password.hash(plaintext, { algorithm: 'argon2id' })
 }
 
 /**
  * Verify a user-supplied password against the pre-hashed password.
  * Uses Bun's built-in argon2id verification (constant-time).
  */
-export async function verifyPassword(input: string): Promise<boolean> {
-  if (!hashedPassword) return false
+export async function verifyPassword(input: string, hashedPassword: string): Promise<boolean> {
   return Bun.password.verify(input, hashedPassword)
 }
 

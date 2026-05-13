@@ -57,6 +57,7 @@ mock.module('../logger', () => {
 })
 
 mock.module('@craft-agent/shared/config', () => ({
+  DEFAULT_LOCAL_SCOPE: Object.freeze({ kind: 'local-single-user' }),
   getWorkspaceByNameOrId: (id: string) => (id === workspace.id ? workspace : null),
   getWorkspaces: () => [workspace],
   loadConfigDefaults: () => ({
@@ -71,6 +72,11 @@ mock.module('@craft-agent/shared/config', () => ({
   getToolIconsDir: () => '/tmp/tool-icons',
   getMiniModel: () => 'claude-haiku-4-5-20251001',
   getDefaultThinkingLevel: () => 'medium',
+  loadPreferences: () => ({}),
+  resetManagedAnthropicAuthEnvVars: () => {},
+  resolveMidStreamBehavior: (connection: { midStreamBehavior?: string; providerType?: string } | null) => (
+    connection?.midStreamBehavior ?? (connection?.providerType === 'anthropic' ? 'queue' : 'steer')
+  ),
   ConfigWatcher: class ConfigWatcher {
     constructor(..._args: unknown[]) {}
     start() {}
@@ -85,6 +91,8 @@ mock.module('@craft-agent/shared/config', () => ({
   DEFAULT_THEME: { mode: 'system' },
   getDefaultModelsForConnection: () => ({ default: 'claude-sonnet-4-20250514', mini: 'claude-haiku-4-5-20251001' }),
   getDefaultModelForConnection: () => 'claude-sonnet-4-20250514',
+  defaultMidStreamBehavior: (providerType: string) => providerType === 'anthropic' ? 'queue' : 'steer',
+  modelSupportsImages: () => true,
   setGitBashPath: () => {},
   clearGitBashPath: () => {},
   setActiveWorkspace: () => {},

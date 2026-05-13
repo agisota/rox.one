@@ -5,10 +5,12 @@ import type { HandlerDeps } from '../handler-deps'
 
 type HandlerFn = (ctx: { clientId: string }, ...args: any[]) => Promise<any> | any
 
-const getDefaultThinkingLevelMock = mock(() => 'think')
-const setDefaultThinkingLevelMock = mock((_level: string) => true)
+const defaultLocalScope = Object.freeze({ kind: 'local-single-user' } as const)
+const getDefaultThinkingLevelMock = mock((_scope = defaultLocalScope) => 'think')
+const setDefaultThinkingLevelMock = mock((_level: string, _scope = defaultLocalScope) => true)
 
 mock.module('@craft-agent/shared/config', () => ({
+  DEFAULT_LOCAL_SCOPE: defaultLocalScope,
   getPreferencesPath: () => '/tmp/preferences.json',
   getSessionDraft: () => null,
   setSessionDraft: () => {},
@@ -76,6 +78,7 @@ describe('settings default thinking RPC handlers', () => {
 
     const result = await getHandler!({ clientId: 'client-1' })
     expect(result).toBe('think')
+    expect(getDefaultThinkingLevelMock).toHaveBeenCalledWith(defaultLocalScope)
     expect(getDefaultThinkingLevelMock).toHaveBeenCalledTimes(1)
   })
 
@@ -85,7 +88,7 @@ describe('settings default thinking RPC handlers', () => {
 
     const result = await setHandler!({ clientId: 'client-1' }, 'max')
     expect(result).toEqual({ success: true })
-    expect(setDefaultThinkingLevelMock).toHaveBeenCalledWith('max')
+    expect(setDefaultThinkingLevelMock).toHaveBeenCalledWith('max', defaultLocalScope)
     expect(setDefaultThinkingLevelMock).toHaveBeenCalledTimes(1)
   })
 
