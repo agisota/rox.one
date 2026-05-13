@@ -5,15 +5,17 @@ Status: DONE
 ## Context
 
 After rebasing T302/T337 onto `origin/main`, full `bun test` exposed a
-deterministic README contract regression from PR #93. The current README no
-longer has a `## Acknowledgements` section containing the upstream OSS URL,
-while `scripts/__tests__/rebrand-doc-cleanup.test.ts` still requires that
-legal-preserve attribution.
+deterministic R.4 documentation contract regression from PR #93 and later
+canonical-history replays. The current README no longer has a
+`## Acknowledgements` section containing the upstream OSS URL, the README no
+longer carries the source-checkout CLI smoke snippet, and `snapshot.md` no
+longer includes the legal-preserve upstream URL required by
+`scripts/__tests__/rebrand-doc-cleanup.test.ts`.
 
 ## Goal
 
-Restore the README acknowledgement required by the rebrand documentation
-contract without changing runtime behavior.
+Restore the documentation attribution and source-checkout smoke contract
+required by the rebrand documentation tests without changing runtime behavior.
 
 ## Required UI
 
@@ -37,13 +39,16 @@ Use the existing contract test as the red check:
 
 `bun test scripts/__tests__/rebrand-doc-cleanup.test.ts`
 
-The expected failure is the missing upstream URL inside the README
-`Acknowledgements` section.
+The expected failures are the missing upstream URL inside the README
+`Acknowledgements` section, the missing source-checkout `rox-cli` smoke alias,
+and the missing upstream attribution URL in `snapshot.md`.
 
 ## Implementation Requirements
 
 - Restore a `## Acknowledgements` section in `README.md`.
 - Include `https://github.com/lukilabs/craft-agents-oss` in that section.
+- Restore the source-checkout `rox-cli` smoke snippet.
+- Include the same legal-preserve upstream URL in `snapshot.md`.
 - Do not reintroduce legacy clone/setup commands.
 - Do not change runtime source.
 
@@ -59,9 +64,11 @@ The expected failure is the missing upstream URL inside the README
 ## Acceptance Criteria
 
 - [x] README contains `## Acknowledgements` with the upstream URL.
+- [x] README contains the source-checkout `rox-cli` smoke snippet.
+- [x] `snapshot.md` contains the legal-preserve upstream URL.
 - [x] Rebrand doc cleanup contract passes.
 - [x] Docs/roadmap/rebrand validators pass.
-- [ ] Full `bun test` passes.
+- [x] Full `bun test` passes.
 - [x] No runtime files are changed.
 - [x] Worklog complete.
 - [x] Commit created.
