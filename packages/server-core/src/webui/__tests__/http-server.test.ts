@@ -25,6 +25,7 @@ function createTestWebuiDir(): string {
 }
 
 async function createServer(overrides?: {
+  password?: string
   secureCookies?: boolean
   publicWsUrl?: string
   wsProtocol?: 'ws' | 'wss'
@@ -34,7 +35,7 @@ async function createServer(overrides?: {
     port: 0,
     webuiDir: createTestWebuiDir(),
     secret: SECRET,
-    password: PASSWORD,
+    password: overrides?.password ?? PASSWORD,
     secureCookies: overrides?.secureCookies,
     publicWsUrl: overrides?.publicWsUrl,
     wsProtocol: overrides?.wsProtocol ?? 'wss',
@@ -110,6 +111,31 @@ describe('startWebuiHttpServer', () => {
 
     expect(res.status).toBe(401)
     expect(await res.json()).toEqual({ error: 'Invalid credentials' })
+  })
+
+  it('keeps legacy password hashes scoped to each server instance', async () => {
+    const first = await createServer({ password: 'first-password' })
+    const second = await createServer({ password: 'second-password' })
+
+    const firstRes = await fetch(`${first.baseUrl}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'first-password' }),
+    })
+    const secondRes = await fetch(`${second.baseUrl}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'second-password' }),
+    })
+    const crossRes = await fetch(`${first.baseUrl}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: 'second-password' }),
+    })
+
+    expect(firstRes.status).toBe(200)
+    expect(secondRes.status).toBe(200)
+    expect(crossRes.status).toBe(401)
   })
 
   it('honors an explicit secure-cookie override', async () => {

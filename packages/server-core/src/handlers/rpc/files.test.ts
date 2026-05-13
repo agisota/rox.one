@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, jest, mock } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -8,22 +8,6 @@ import type { HandlerFn, RequestContext, RpcServer } from '@rox-agent/server-cor
 import type { OfficeDocumentConverter } from '@rox-agent/server-core/services'
 
 let workspaceRootPath = ''
-
-mock.module('@rox-agent/shared/config', () => ({
-  getWorkspaceByNameOrId: jest.fn((nameOrId: string) => {
-    if (nameOrId !== 'ws-files-test' || !workspaceRootPath) return null
-    return {
-      id: 'ws-files-test',
-      name: 'Files Test',
-      rootPath: workspaceRootPath,
-      createdAt: 0,
-    }
-  }),
-}))
-
-mock.module('@rox-agent/shared/workspaces', () => ({
-  loadWorkspaceConfig: jest.fn(() => null),
-}))
 
 function createRpcHarness(overrides: Partial<HandlerDeps> = {}) {
   const handlers = new Map<string, HandlerFn>()
@@ -78,12 +62,36 @@ describe('registerFilesHandlers runtime integrations', () => {
 
   beforeEach(async () => {
     tempRoot = await mkdtemp(join(tmpdir(), 'rox-files-rpc-'))
+    const configRootPath = join(tempRoot, 'config')
     workspaceRootPath = join(tempRoot, 'workspace')
+    process.env.ROX_CONFIG_DIR = configRootPath
+    await mkdir(configRootPath, { recursive: true })
     await mkdir(workspaceRootPath, { recursive: true })
+    await writeFile(join(workspaceRootPath, 'config.json'), JSON.stringify({
+      id: 'ws-files-test',
+      name: 'Files Test',
+      slug: 'files-test',
+      defaults: {},
+      createdAt: 0,
+      updatedAt: 0,
+    }, null, 2))
+    await writeFile(join(configRootPath, 'config.json'), JSON.stringify({
+      workspaces: [
+        {
+          id: 'ws-files-test',
+          name: 'Files Test',
+          rootPath: workspaceRootPath,
+          createdAt: 0,
+        },
+      ],
+      activeWorkspaceId: 'ws-files-test',
+      activeSessionId: null,
+    }, null, 2))
   })
 
   afterEach(async () => {
     workspaceRootPath = ''
+    delete process.env.ROX_CONFIG_DIR
     if (tempRoot) {
       await rm(tempRoot, { recursive: true, force: true })
       tempRoot = ''

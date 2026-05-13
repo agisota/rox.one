@@ -4,6 +4,21 @@ import { getKeybindingContext } from '../keybinding-context'
 
 const originalDocument = globalThis.document
 
+function setTestDocument(querySelector: (selector: string) => object | null): void {
+  const head = { appendChild: () => undefined }
+  ;(globalThis as unknown as { document: Document }).document = {
+    querySelector,
+    head,
+    getElementsByTagName: (tagName: string) => (tagName === 'head' ? [head] : []),
+    createElement: () => ({
+      appendChild: () => undefined,
+      styleSheet: null,
+      type: '',
+    }),
+    createTextNode: () => ({}),
+  } as unknown as Document
+}
+
 afterEach(() => {
   setDismissibleLayerBridge(null)
   ;(globalThis as unknown as { document: Document | undefined }).document = originalDocument
@@ -19,9 +34,7 @@ describe('getKeybindingContext', () => {
       handleEscape: () => true,
     })
 
-    ;(globalThis as unknown as { document: { querySelector: (_selector: string) => null } }).document = {
-      querySelector: () => null,
-    }
+    setTestDocument(() => null)
 
     const event = {
       target: { tagName: 'DIV', isContentEditable: false },
@@ -32,15 +45,13 @@ describe('getKeybindingContext', () => {
   })
 
   it('sets menuOpen=true when island dialog overlay is open', () => {
-    ;(globalThis as unknown as { document: { querySelector: (selector: string) => object | null } }).document = {
-      querySelector: (selector: string) => {
-        if (selector.includes('[data-ca-island-dialog="true"][data-state="open"]')) {
-          return {}
-        }
+    setTestDocument((selector: string) => {
+      if (selector.includes('[data-ca-island-dialog="true"][data-state="open"]')) {
+        return {}
+      }
 
-        return null
-      },
-    }
+      return null
+    })
 
     const event = {
       target: { tagName: 'DIV', isContentEditable: false },
@@ -51,9 +62,7 @@ describe('getKeybindingContext', () => {
   })
 
   it('sets menuOpen=false when no overlay is open', () => {
-    ;(globalThis as unknown as { document: { querySelector: (_selector: string) => null } }).document = {
-      querySelector: () => null,
-    }
+    setTestDocument(() => null)
 
     const event = {
       target: { tagName: 'DIV', isContentEditable: false },
