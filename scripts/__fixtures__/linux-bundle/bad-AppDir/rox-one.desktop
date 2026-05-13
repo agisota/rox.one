@@ -1,0 +1,10 @@
+[Desktop Entry]
+# Bad fixture (M.18 T253): broken Exec target, missing canonical
+# T253 marker, wrong Categories. Validator must fail on the first
+# violation (AppImage filename) before reaching here.
+Name=FakeApp
+Exec=fake-binary
+Icon=fake
+Terminal=false
+Type=Application
+Categories=Game;

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Stub AppRun/executable for M.18 T253 good-AppDir fixture.
+# Real builds ship the electron-built binary here; we only need the
+# basename to match canonical signing-output.txt entries.
+exec /opt/rox-one/rox-one "$@"

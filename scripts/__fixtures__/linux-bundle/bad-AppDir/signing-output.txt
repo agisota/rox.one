@@ -1,0 +1,11 @@
+Verifying: not-rox-one.AppImage.sig
+
+gpg: assuming signed data in 'not-rox-one.AppImage'
+gpg: BAD signature from "Unknown" [unknown]
+gpg: No public key available for verification
+not-rox-one.AppImage is not signed.
+
+# NOTE: this sidecar is intentionally lacking the canonical
+# (T253 linux boundary ok) marker so any later validator pass that
+# slips past the AppImage filename check still catches the missing
+# marker or the forbidden signing tokens.

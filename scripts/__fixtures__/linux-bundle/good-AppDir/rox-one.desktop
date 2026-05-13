@@ -1,0 +1,16 @@
+[Desktop Entry]
+# ROX.ONE Linux desktop entry fixture (M.18 T253 good-AppDir)
+# Mirrors what apps/electron/scripts/afterPack-linux.cjs emits.
+Name=rox-one
+GenericName=ROX.ONE Agent Workbench
+Comment=ROX.ONE Agent Workbench Suite
+Exec=rox-one %U
+Icon=rox-one
+Terminal=false
+Type=Application
+Categories=Office;Utility;Development;
+StartupWMClass=rox-one
+X-RoxOne-AppId=com.rox.one
+X-RoxOne-Version=1.2.3-92
+X-RoxOne-Maintainer=roxone <support@rox.one>
+# (T253 linux boundary ok)
