@@ -75,7 +75,7 @@ async function spawnTestServer(extraEnv?: Record<string, string>): Promise<Spawn
       buffer = lines.pop() ?? ''
       for (const line of lines) {
         if (line.startsWith('ROX_SERVER_URL=')) {
-          url = line.slice('ROX_SERVER_URL='.length).trim()
+          url = line.slice(line.indexOf('=') + 1).trim()
         }
         if (url) {
           clearTimeout(timer)
