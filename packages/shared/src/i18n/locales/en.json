@@ -1084,6 +1084,8 @@
   "settings.server.token": "Token",
   "settings.shortcuts.description": "Keyboard shortcuts",
   "settings.shortcuts.title": "Shortcuts",
+  "settings.teamManagement.description": "View grants grouped by actor (user/team)",
+  "settings.teamManagement.title": "Team management",
   "settings.teamPermissions.description": "Manage roles and grants on workspaces and orgs",
   "settings.teamPermissions.title": "Team & permissions",
   "settings.tools.builtInBrowser": "Built-in browser",

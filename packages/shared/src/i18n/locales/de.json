@@ -1084,6 +1084,8 @@
   "settings.server.token": "Token",
   "settings.shortcuts.description": "Tastaturkürzel",
   "settings.shortcuts.title": "Tastaturkürzel",
+  "settings.teamManagement.description": "Berechtigungen nach Akteur (Nutzer/Team) gruppiert anzeigen",
+  "settings.teamManagement.title": "Team-Verwaltung",
   "settings.teamPermissions.description": "Rollen und Grants in Workspaces und Organisationen verwalten",
   "settings.teamPermissions.title": "Team und Berechtigungen",
   "settings.tools.builtInBrowser": "Integrierter Browser",

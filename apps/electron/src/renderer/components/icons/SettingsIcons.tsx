@@ -109,6 +109,23 @@ export const PermissionsIcon = ({ className }: IconProps) => (
   </svg>
 )
 
+/** Two-figure "team" icon for the actor-grouped team management view (T231) */
+export const TeamManagementIcon = ({ className }: IconProps) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M9 4C7.34315 4 6 5.34315 6 7C6 8.65685 7.34315 10 9 10C10.6569 10 12 8.65685 12 7C12 5.34315 10.6569 4 9 4ZM17 7C15.8954 7 15 7.89543 15 9C15 10.1046 15.8954 11 17 11C18.1046 11 19 10.1046 19 9C19 7.89543 18.1046 7 17 7ZM4 17.5C4 14.4624 6.46243 12 9.5 12H8.5C11.5376 12 14 14.4624 14 17.5V20H4V17.5ZM15.7222 13.5C16.1571 13.1815 16.5634 12.8189 16.9265 12.4221C16.9509 12.4076 16.9757 12.3938 17 12.3806C17.0243 12.3938 17.0491 12.4076 17.0735 12.4221C17.4366 12.8189 17.8429 13.1815 18.2778 13.5C19.357 14.2899 20.0001 15.5598 20.0001 16.9067V20H16V17.5C16 16.0457 15.5778 14.6764 14.8499 13.5176C15.1469 13.523 15.4391 13.5169 15.7222 13.5Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
 /** Tag icon for labels */
 export const LabelsIcon = ({ className }: IconProps) => (
   <svg
@@ -203,6 +220,7 @@ export const SETTINGS_ICONS: Record<SettingsSubpage, React.ComponentType<IconPro
   input: InputIcon,
   workspace: WorkspaceIcon,
   permissions: PermissionsIcon,
+  'team-management': TeamManagementIcon,
   'team-permissions': PermissionsIcon,
   labels: LabelsIcon,
   messaging: MessagingSettingsIcon,

@@ -1084,6 +1084,8 @@
   "settings.server.token": "Token",
   "settings.shortcuts.description": "Skróty klawiaturowe",
   "settings.shortcuts.title": "Skróty",
+  "settings.teamManagement.description": "Wyświetl uprawnienia pogrupowane według aktora (użytkownik/zespół)",
+  "settings.teamManagement.title": "Zarządzanie zespołem",
   "settings.teamPermissions.description": "Zarządzaj rolami i grantami w Workspace i organizacjach",
   "settings.teamPermissions.title": "Zespół i uprawnienia",
   "settings.tools.builtInBrowser": "Wbudowana przeglądarka",
