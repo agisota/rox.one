@@ -22,6 +22,7 @@ import WorkspaceSettingsPage from './WorkspaceSettingsPage'
 import PermissionsSettingsPage from './PermissionsSettingsPage'
 import TeamManagementSettingsPage from './TeamManagementSettingsPage'
 import TeamPermissionsSettingsPage from './TeamPermissionsSettingsPage'
+import AuditLogSettingsPage from './AuditLogSettingsPage'
 import LabelsSettingsPage from './LabelsSettingsPage'
 import MessagingSettingsPage from './MessagingSettingsPage'
 import ServerSettingsPage from './ServerSettingsPage'
@@ -42,6 +43,7 @@ export const SETTINGS_PAGE_COMPONENTS: Record<SettingsSubpage, ComponentType> = 
   permissions: PermissionsSettingsPage,
   'team-management': TeamManagementSettingsPage,
   'team-permissions': TeamPermissionsSettingsPage,
+  'audit-log': AuditLogSettingsPage,
   labels: LabelsSettingsPage,
   messaging: MessagingSettingsPage,
   server: ServerSettingsPage,
