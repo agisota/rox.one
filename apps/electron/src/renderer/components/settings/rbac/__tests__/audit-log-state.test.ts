@@ -260,7 +260,7 @@ describe('selectAuditLogView', () => {
     })
     const view = selectAuditLogView(state)
     expect(view.groups.map(g => g.day)).toEqual(['2026-05-13', '2026-05-12'])
-    expect(view.groups[0]!.events.map(e => e.correlationId)).toEqual([
+    expect(view.groups[0]!.events.map(e => String(e.correlationId))).toEqual([
       'c-later',
       'c-earlier',
     ])
