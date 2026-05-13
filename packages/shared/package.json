@@ -26,6 +26,7 @@
     "./auth/types": "./src/auth/types.ts",
     "./audit": "./src/audit/index.ts",
     "./observability": "./src/observability/index.ts",
+    "./observability/audit-event": "./src/observability/audit-event.ts",
     "./config": "./src/config/index.ts",
     "./experience-layer": "./src/experience-layer/index.ts",
     "./config/models-pi": "./src/config/models-pi.ts",
