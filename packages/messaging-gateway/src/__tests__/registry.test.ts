@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os'
 import type {
   CredentialManager,
 } from '@rox-agent/shared/credentials'
-import type { ISessionManager } from '@rox-agent/server-core/handlers'
+import type { ISessionManager } from '@rox-one/server-core/handlers'
 
 import { MessagingGatewayRegistry, type MessagingGatewayRegistryOptions } from '../registry'
 import type { TelegramChatInfo } from '../adapters/telegram/index'

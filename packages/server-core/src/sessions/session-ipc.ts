@@ -3,9 +3,9 @@
  * Owns eventSink, browserPaneManager, delta queues, broadcast methods.
  * Sibling files: session-manager-helpers.ts, SessionManager.ts.
  */
-import type { EventSink } from '@rox-agent/server-core/transport'
-import type { IBrowserPaneManager } from '@rox-agent/server-core/handlers'
-import type { Logger } from '@rox-agent/server-core/runtime'
+import type { EventSink } from '@rox-one/server-core/transport'
+import type { IBrowserPaneManager } from '@rox-one/server-core/handlers'
+import type { Logger } from '@rox-one/server-core/runtime'
 import { type SessionEvent, type UnreadSummary, RPC_CHANNELS } from '@rox-agent/shared/protocol'
 import type { LoadedSource } from '@rox-agent/shared/sources'
 import type { LoadedSkill } from '@rox-agent/shared/skills'

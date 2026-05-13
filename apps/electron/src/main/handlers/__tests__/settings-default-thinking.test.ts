@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { RPC_CHANNELS } from '../../../shared/types'
-import type { RpcServer } from '@rox-agent/server-core/transport'
+import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { DEFAULT_LOCAL_SCOPE as defaultLocalScope } from '../../../../../../packages/shared/src/config/storage-scope-auth.ts'
 
@@ -68,7 +68,7 @@ describe('settings default thinking RPC handlers', () => {
       } as unknown as HandlerDeps['oauthFlowStore'],
     }
 
-    const { registerSettingsHandlers } = await import('@rox-agent/server-core/handlers/rpc/settings')
+    const { registerSettingsHandlers } = await import('@rox-one/server-core/handlers/rpc/settings')
     registerSettingsHandlers(server, deps)
   })
 

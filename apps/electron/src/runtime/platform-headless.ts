@@ -1,1 +1,1 @@
-export { createHeadlessPlatform } from '@rox-agent/server-core/runtime'
+export { createHeadlessPlatform } from '@rox-one/server-core/runtime'

@@ -25,6 +25,10 @@ const legacyMessagingWhatsappWorkerPackage = `${legacyScope}/messaging-whatsapp-
 const roxMessagingWhatsappWorkerPackage = `${roxScope}/messaging-whatsapp-worker`;
 const legacyPiAgentServerPackage = `${legacyScope}/pi-agent-server`;
 const roxPiAgentServerPackage = `${roxScope}/pi-agent-server`;
+const legacyServerPackage = `${legacyScope}/server`;
+const roxServerPackage = `${roxScope}/server`;
+const legacyServerCorePackage = `${legacyScope}/server-core`;
+const roxServerCorePackage = `${roxScope}/server-core`;
 
 function readText(path: string): string {
   return readFileSync(join(repoRoot, path), "utf8");
@@ -32,6 +36,14 @@ function readText(path: string): string {
 
 function readJson(path: string): Record<string, unknown> {
   return JSON.parse(readText(path)) as Record<string, unknown>;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function containsPackageReference(body: string, packageName: string): boolean {
+  return new RegExp(`${escapeRegExp(packageName)}(?=$|[/@'"\\s,:\\]])`).test(body);
 }
 
 function listFiles(root: string): string[] {
@@ -245,5 +257,52 @@ describe("R.5 package-scope rebrand", () => {
     const roxMatches = activeFiles.filter((path) => readText(path).includes(roxPiAgentServerPackage));
     expect(roxMatches.length).toBeGreaterThan(0);
     expect(readText("bun.lock")).toContain(roxPiAgentServerPackage);
+  });
+
+  test("renames the server workspace packages to the ROX scope", () => {
+    const serverPackageJson = readJson("packages/server/package.json");
+    expect(serverPackageJson.name).toBe(roxServerPackage);
+
+    const serverCorePackageJson = readJson("packages/server-core/package.json");
+    expect(serverCorePackageJson.name).toBe(roxServerCorePackage);
+
+    const dependencyPackages = [
+      "apps/cli/package.json",
+      "apps/electron/package.json",
+      "packages/messaging-gateway/package.json",
+      "packages/server/package.json",
+    ];
+
+    for (const path of dependencyPackages) {
+      const packageJson = readJson(path);
+      const dependencies = packageJson.dependencies as Record<string, string>;
+      expect(dependencies[roxServerCorePackage], path).toBe("workspace:*");
+      expect(dependencies[legacyServerCorePackage], path).toBeUndefined();
+    }
+
+    const activeFiles = [...listFiles("apps"), ...listFiles("packages"), "scripts/build-server.ts", "bun.lock"];
+    const legacyServerMatches = activeFiles.filter((path) =>
+      containsPackageReference(readText(path), legacyServerPackage),
+    );
+    expect(legacyServerMatches).toEqual([]);
+
+    const legacyServerCoreMatches = activeFiles.filter((path) =>
+      containsPackageReference(readText(path), legacyServerCorePackage),
+    );
+    expect(legacyServerCoreMatches).toEqual([]);
+
+    const roxServerMatches = activeFiles.filter((path) =>
+      containsPackageReference(readText(path), roxServerPackage),
+    );
+    expect(roxServerMatches.length).toBeGreaterThan(0);
+
+    const roxServerCoreMatches = activeFiles.filter((path) =>
+      containsPackageReference(readText(path), roxServerCorePackage),
+    );
+    expect(roxServerCoreMatches.length).toBeGreaterThan(0);
+
+    const lockfile = readText("bun.lock");
+    expect(containsPackageReference(lockfile, roxServerPackage)).toBe(true);
+    expect(containsPackageReference(lockfile, roxServerCorePackage)).toBe(true);
   });
 });

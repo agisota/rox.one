@@ -8,7 +8,7 @@
  */
 
 import { resolve } from 'path'
-import { isLoopbackBaseUrl } from '@rox-agent/server-core/domain'
+import { isLoopbackBaseUrl } from '@rox-one/server-core/domain'
 import { CliRpcClient } from './client.ts'
 
 // ---------------------------------------------------------------------------

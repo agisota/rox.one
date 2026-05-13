@@ -5,7 +5,7 @@ import {
   validateModelList,
   validateSetupTestInput,
   BUILT_IN_CONNECTION_TEMPLATES,
-} from '@rox-agent/server-core/domain'
+} from '@rox-one/server-core/domain'
 import type { ModelDefinition } from '@rox-agent/shared/config/models'
 
 // ============================================================

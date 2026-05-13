@@ -38,7 +38,7 @@ import type { BrowserWindow } from 'electron'
 import { mainLog } from './logger'
 import type { WindowManager } from './window-manager'
 import { RPC_CHANNELS } from '../shared/types'
-import type { EventSink } from '@rox-agent/server-core/transport'
+import type { EventSink } from '@rox-one/server-core/transport'
 
 export interface DeepLinkTarget {
   /** Workspace ID - undefined means use active window */

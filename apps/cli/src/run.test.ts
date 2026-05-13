@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, mock, beforeEach } from 'bun:test'
 import {
   serializeEnvelope,
   deserializeEnvelope,
-} from '@rox-agent/server-core/transport'
+} from '@rox-one/server-core/transport'
 import type { SpawnedServer } from './server-spawner.ts'
 
 // ---------------------------------------------------------------------------

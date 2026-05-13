@@ -14,7 +14,7 @@
     "test": "bun test src/"
   },
   "dependencies": {
-    "@rox-agent/server-core": "workspace:*",
+    "@rox-one/server-core": "workspace:*",
     "@rox-agent/shared": "workspace:*"
   },
   "devDependencies": {

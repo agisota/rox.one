@@ -12,7 +12,7 @@ import {
 import {
   serializeEnvelope,
   deserializeEnvelope,
-} from '@rox-agent/server-core/transport'
+} from '@rox-one/server-core/transport'
 
 // ---------------------------------------------------------------------------
 // Types

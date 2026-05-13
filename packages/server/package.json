@@ -1,5 +1,5 @@
 {
-  "name": "@rox-agent/server",
+  "name": "@rox-one/server",
   "version": "0.9.1",
   "description": "Standalone headless ROX server (Bun runtime)",
   "type": "module",
@@ -27,7 +27,7 @@
   "dependencies": {
     "@rox-one/core": "workspace:*",
     "@rox-one/messaging-gateway": "workspace:*",
-    "@rox-agent/server-core": "workspace:*",
+    "@rox-one/server-core": "workspace:*",
     "@rox-agent/shared": "workspace:*"
   },
   "devDependencies": {

@@ -521,7 +521,7 @@ function createRootConfig(config: ServerBuildConfig): void {
       module: 'ESNext',
       moduleResolution: 'bundler',
       paths: {
-        '@rox-agent/server-core/*': ['./packages/server-core/src/*'],
+        '@rox-one/server-core/*': ['./packages/server-core/src/*'],
         '@rox-agent/shared/*': ['./packages/shared/src/*'],
         '@rox-agent/core/*': ['./packages/core/src/*'],
         '@rox-agent/session-tools-core/*': ['./packages/session-tools-core/src/*'],

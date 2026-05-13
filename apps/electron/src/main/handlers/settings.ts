@@ -1,5 +1,5 @@
 import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
-import type { RpcServer } from '@rox-agent/server-core/transport'
+import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from './handler-deps'
 import { ELECTRON_GLOBAL_STORAGE_SCOPE } from './storage-scope'
 

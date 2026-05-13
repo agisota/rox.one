@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { rollbackFailedBranchCreation } from '@rox-agent/server-core/domain'
+import { rollbackFailedBranchCreation } from '@rox-one/server-core/domain'
 
 describe('rollbackFailedBranchCreation', () => {
   it('cleans runtime + storage and tears down agent/pool on preflight failure', async () => {

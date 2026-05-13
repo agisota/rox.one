@@ -17,7 +17,7 @@
 
 import type { PushTarget } from '@rox-agent/shared/protocol'
 import type { CredentialManager } from '@rox-agent/shared/credentials'
-import type { ISessionManager } from '@rox-agent/server-core/handlers'
+import type { ISessionManager } from '@rox-one/server-core/handlers'
 
 import { MessagingGatewayRegistry } from './registry'
 import { createFanOutSink, type EventSinkFn } from './event-fanout'

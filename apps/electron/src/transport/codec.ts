@@ -2,4 +2,4 @@ export {
   serializeEnvelope,
   deserializeEnvelope,
   validateEnvelopeShape,
-} from '@rox-agent/server-core/transport'
+} from '@rox-one/server-core/transport'
