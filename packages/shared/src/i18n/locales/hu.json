@@ -330,6 +330,8 @@
   "common.validating": "Ellenőrzés...",
   "common.viewFullscreen": "Teljes képernyő",
   "common.yesterday": "Tegnap",
+  "composer.voiceInput.aria-label": "[TRANSLATE]: Voice input",
+  "composer.voiceInput.comingSoon": "[TRANSLATE]: Coming soon",
   "datatable.defaultTitle": "Adattábla",
   "datatable.loadingData": "Adatok betöltése...",
   "datatable.rowCount_one": "{{count}} sor",

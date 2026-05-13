@@ -330,6 +330,8 @@
   "common.validating": "Проверка...",
   "common.viewFullscreen": "Во весь экран",
   "common.yesterday": "Вчера",
+  "composer.voiceInput.aria-label": "[TRANSLATE]: Voice input",
+  "composer.voiceInput.comingSoon": "[TRANSLATE]: Coming soon",
   "datatable.defaultTitle": "Таблица данных",
   "datatable.loadingData": "Загрузка данных...",
   "datatable.rowCount_one": "{{count}} строка",

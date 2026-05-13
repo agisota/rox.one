@@ -330,6 +330,8 @@
   "common.validating": "验证中...",
   "common.viewFullscreen": "全屏查看",
   "common.yesterday": "昨天",
+  "composer.voiceInput.aria-label": "[TRANSLATE]: Voice input",
+  "composer.voiceInput.comingSoon": "[TRANSLATE]: Coming soon",
   "datatable.defaultTitle": "数据表",
   "datatable.loadingData": "正在加载数据...",
   "datatable.rowCount_one": "{{count}} 行",

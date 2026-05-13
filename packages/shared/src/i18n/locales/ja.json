@@ -330,6 +330,8 @@
   "common.validating": "検証中...",
   "common.viewFullscreen": "全画面表示",
   "common.yesterday": "昨日",
+  "composer.voiceInput.aria-label": "[TRANSLATE]: Voice input",
+  "composer.voiceInput.comingSoon": "[TRANSLATE]: Coming soon",
   "datatable.defaultTitle": "データテーブル",
   "datatable.loadingData": "データを読み込み中...",
   "datatable.rowCount_one": "{{count}}行",
