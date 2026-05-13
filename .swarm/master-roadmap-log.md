@@ -6,3 +6,4 @@ rebrand-R.1-surface-text-completion | 24aa751 | T263 | 2026-05-13T13:06:01Z
 rebrand-R.2-code-identifier-renames | 93e7b73,cc89339,e6117bb | T264,T265,T266 | 2026-05-13T13:26:47Z
 rebrand-R.3-asset-file-renames | 82a8425,e9305ca | T267,T268 | 2026-05-13T13:45:57Z
 rebrand-R.4-doc-plan-cleanup | 5bfd87a,1cd54cf,0fd740f,cb34ecd | T269,T270,T271,T272 | 2026-05-13T14:04:04Z
+rebrand-R.5-package-scope-renames | acc1946,76b85ec,f07da34,09ef0ef,34dc261,35098cc,f7c2a15,d7a9af1,8a390ec,baad43e,3ab5324,2c70ed4 | T273,T274,T275,T276,T277,T278,T279,T280,T281,T282,T283,T284 | 2026-05-13T16:07:51Z
