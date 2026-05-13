@@ -23,6 +23,21 @@ const S02_PROMPT_PIPELINE_TESTS = [
   'packages/shared/src/workbench/__tests__/review-board.test.ts',
 ] as const
 
+const S03_MISSION_CHECKPOINT_TESTS = [
+  'packages/server-core/src/missions/__tests__/mission-id.test.ts',
+  'packages/server-core/src/missions/__tests__/mission-store.test.ts',
+  'packages/server-core/src/missions/__tests__/scheduler.test.ts',
+  'packages/server-core/src/missions/__tests__/state.test.ts',
+  'packages/server-core/src/missions/__tests__/transitions.test.ts',
+  'packages/server-core/src/missions/__tests__/scheduler-audit.test.ts',
+  'packages/server-core/src/missions/__tests__/sqlite-mission-store.test.ts',
+  'packages/server-core/src/missions/__tests__/host.test.ts',
+  'apps/electron/src/renderer/components/workbench/__tests__/deep-missions-screen.test.tsx',
+  'apps/electron/src/renderer/components/workbench/__tests__/mission-control-run-detail.test.tsx',
+  'apps/electron/src/renderer/components/workbench/__tests__/workbench-interactions.test.ts',
+  'apps/electron/src/renderer/components/workbench/__tests__/experience-real-state-binding.test.tsx',
+] as const
+
 export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
   {
     id: 's01-registration',
@@ -34,6 +49,11 @@ export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
     id: 's02-prompt-pipeline',
     title: 'RC S02 prompt rewrite to review pipeline smoke',
     command: ['bun', 'test', ...S02_PROMPT_PIPELINE_TESTS],
+  },
+  {
+    id: 's03-mission-checkpoint',
+    title: 'RC S03 mission checkpoint and final verification smoke',
+    command: ['bun', 'test', ...S03_MISSION_CHECKPOINT_TESTS],
   },
 ]
 

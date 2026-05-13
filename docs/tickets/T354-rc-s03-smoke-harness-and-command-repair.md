@@ -1,6 +1,6 @@
 # T354 - RC S03 Smoke Harness And Command Repair
 
-Status: Todo
+Status: DONE
 
 ## Context
 

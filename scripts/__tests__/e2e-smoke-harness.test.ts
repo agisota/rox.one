@@ -38,4 +38,20 @@ describe('RC E2E smoke harness', () => {
     expect(ticket).not.toContain('packages/server-core/src/handlers/rpc/__tests__/prompt*.test.ts')
     expect(ticket).not.toContain('packages/server-core/src/handlers/rpc/__tests__/spec*.test.ts')
   })
+
+  it('recognizes S03 mission checkpoint and documents current validation paths', async () => {
+    const harness = await import('../e2e-smoke')
+    const scenario = harness.resolveRequiredScenario('s03-mission-checkpoint')
+    const ticket = readFileSync(join(rootDir, 'docs/tickets/T341-rc-s03-mission-checkpoint-verification.md'), 'utf8')
+
+    expect(scenario.command).toContain('packages/server-core/src/missions/__tests__/scheduler.test.ts')
+    expect(scenario.command).toContain(
+      'apps/electron/src/renderer/components/workbench/__tests__/mission-control-run-detail.test.tsx',
+    )
+    expect(scenario.command).toContain(
+      'apps/electron/src/renderer/components/workbench/__tests__/deep-missions-screen.test.tsx',
+    )
+
+    expect(ticket).not.toContain('apps/electron/src/renderer/components/workbench/**/__tests__/mission*.test.*')
+  })
 })
