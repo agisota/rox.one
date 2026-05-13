@@ -98,6 +98,12 @@ import {
 } from './composer-history'
 import { LineNumbersGutter } from './LineNumbersGutter'
 import { CompactPermissionModeSelector } from './CompactPermissionModeSelector'
+import { EmphasisToolbar } from './EmphasisToolbar'
+import {
+  toggleEmphasis,
+  matchEmphasisShortcut,
+  type EmphasisMode,
+} from './emphasis-mode'
 
 /**
  * Format token count for display (e.g., 1500 -> "1.5k", 200000 -> "200k")
@@ -1435,6 +1441,85 @@ export function FreeFormInput({
     onStop?.(silent)
   }
 
+  /**
+   * Apply a markdown emphasis toggle (bold / italic / code / strike) to the
+   * composer input. Reads the current selection from the rich-text input
+   * handle (and falls back to the live DOM selection so that a ranged
+   * selection — not just a caret position — is respected), delegates to the
+   * pure `toggleEmphasis` helper, then writes the new value through the
+   * controlled `setInput` + `syncToParent` chain. The post-edit selection is
+   * restored on the next animation frame so the user can keep typing or
+   * stack a second emphasis on top.
+   *
+   * The handler is wired to both the toolbar buttons (via `onToggle`) and
+   * the keyboard shortcut branch in `handleKeyDown` (via
+   * `matchEmphasisShortcut`).
+   */
+  const handleEmphasisToggle = React.useCallback((mode: EmphasisMode) => {
+    const handle = richInputRef.current
+    if (!handle) return
+
+    const value = inputRef.current
+    // Prefer the live DOM selection when it exists and lies inside the
+    // composer's contenteditable element. This is what lets users select a
+    // range of text and then click "Bold" — without it we would only see the
+    // caret position and would expand to the surrounding word instead of
+    // emphasising the user-selected slice.
+    let start = handle.selectionStart
+    let end = start
+    try {
+      const element = handle.element as (HTMLDivElement & Partial<HTMLTextAreaElement>) | null
+      // Textarea/input elements expose `selectionEnd` natively — pick it up
+      // when the element is a form control (the production rich-text input
+      // is a contenteditable div, but tests + the structured input use a
+      // real <textarea>, and we want both paths to honour ranged selections).
+      if (element && typeof element.selectionEnd === 'number') {
+        const elementStart = typeof element.selectionStart === 'number'
+          ? element.selectionStart
+          : start
+        start = elementStart
+        end = element.selectionEnd
+      }
+      const selection = typeof window !== 'undefined' ? window.getSelection() : null
+      if (element && selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0)
+        // Only trust the DOM range when it sits inside the composer — focus
+        // could be elsewhere (e.g. the shortcut fired from a different panel).
+        const anchorInside = range.startContainer && element.contains(range.startContainer)
+        const focusInside = range.endContainer && element.contains(range.endContainer)
+        if (anchorInside && focusInside && !range.collapsed) {
+          // Reuse the rich-text helpers via the handle's `selectionStart`
+          // accessor: it computes the model-space position for the *caret*,
+          // so we approximate the range by walking both ends.
+          // For our purposes start/end derived from the textContent length
+          // of the range are sufficient because the helper only inspects
+          // string offsets.
+          const preRange = range.cloneRange()
+          preRange.selectNodeContents(element)
+          preRange.setEnd(range.startContainer, range.startOffset)
+          const rangeStart = preRange.toString().replace(/​/g, '').length
+          const rangeBody = range.toString().replace(/​/g, '').length
+          start = rangeStart
+          end = rangeStart + rangeBody
+        }
+      }
+    } catch {
+      // Fall through to the cursor-only path. The helper expands to the
+      // surrounding word when `start === end`, so we still produce a useful
+      // result without a live range.
+    }
+
+    const result = toggleEmphasis(value, { start, end }, mode)
+    setInput(result.next)
+    syncToParent(result.next)
+    // Restore the selection on the next frame so the rich-text input has a
+    // chance to flush the new value through its render cycle.
+    requestAnimationFrame(() => {
+      richInputRef.current?.focus()
+      richInputRef.current?.setSelectionRange(result.nextSelection.start, result.nextSelection.end)
+    })
+  }, [richInputRef, syncToParent])
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // During IME composition, ESC should cancel composition, not trigger app/menu ESC behavior.
     if (e.key === 'Escape' && e.nativeEvent.isComposing) {
@@ -1479,6 +1564,24 @@ export function FreeFormInput({
         inlineLabel.close()
         return
       }
+    }
+
+    // T235b: emphasis shortcuts (Cmd+B, Cmd+I, Cmd+`, Cmd+Shift+X — and
+    // Ctrl+ variants on Windows/Linux). Routed through the same handler the
+    // toolbar uses so the keyboard and click paths share a single code path.
+    // The shortcut matcher returns null for any non-emphasis key combo, so
+    // unrelated Cmd+Key behaviour (Cmd+Enter to submit, Cmd+Z, etc.) is
+    // unaffected.
+    const emphasisMode = matchEmphasisShortcut({
+      code: e.nativeEvent.code,
+      shiftKey: e.shiftKey,
+      metaKey: e.metaKey,
+      ctrlKey: e.ctrlKey,
+    })
+    if (emphasisMode) {
+      e.preventDefault()
+      handleEmphasisToggle(emphasisMode)
+      return
     }
 
     // T234: composer history recall via ArrowUp / ArrowDown.
@@ -2144,6 +2247,21 @@ export function FreeFormInput({
             />
           </div>
         </div>
+        )}
+
+        {/* T235b: emphasis toolbar — bold / italic / inline code / strike.
+            Mounted below the textarea so the formatting affordance sits
+            adjacent to the content it edits, without crowding the bottom
+            controls row (attach / sources / model). The toolbar itself is
+            pure presentational; the wiring lives in `handleEmphasisToggle`
+            and the keyboard branch in `handleKeyDown`. */}
+        {!(compactMode && isProcessing) && (
+          <div className="px-3 pt-1 pb-0.5">
+            <EmphasisToolbar
+              onToggle={handleEmphasisToggle}
+              disabled={disabled}
+            />
+          </div>
         )}
 
         {/* Bottom Row: Controls - wrapped in relative container for status slot overlay */}
