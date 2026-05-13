@@ -23,7 +23,7 @@
  */
 
 import { permittedWorkspaces } from './policy-engine.ts';
-import type { RoleGrant } from './roles-schema.ts';
+import { assertValidRoleGrant, type RoleGrant } from './roles-schema.ts';
 
 /**
  * Async source of `RoleGrant` entries for a given user.
@@ -40,12 +40,21 @@ import type { RoleGrant } from './roles-schema.ts';
  * `grant` / `revoke` are the mutation methods introduced in T227. The
  * admin RPC handlers call through these. `revoke` returns `true` if a
  * grant was removed and `false` if nothing matched (idempotent).
+ *
+ * Implementations MUST validate inputs at the mutation boundary via
+ * `validateRoleGrant` (T244). The reserved-scope-id `'*'` and other
+ * malformed grant shapes are rejected before persistence so the
+ * runtime cannot serve a smuggled grant from a cached / persisted
+ * store. The `InMemoryGrantStore` shipped here uses
+ * `assertValidRoleGrant` for both seeding and `grant()` calls.
  */
 export interface GrantStore {
   grantsForUser(userId: string): Promise<ReadonlyArray<RoleGrant>>;
   /**
    * Add a grant. Implementations MAY ignore non-user actor kinds when
    * team RBAC is not yet wired. `InMemoryGrantStore` ignores team grants.
+   * Implementations MUST validate the grant via `validateRoleGrant`
+   * before persistence (T244).
    */
   grant(grant: RoleGrant): Promise<void>;
   /**
@@ -72,12 +81,22 @@ function grantsEqual(a: RoleGrant, b: RoleGrant): boolean {
  * grants by `actorId` so per-user lookups are O(1). Skips any seeded
  * grant whose `actorKind` is not `'user'` because T226 only ships
  * user-actor wiring; team RBAC lands in a later phase.
+ *
+ * T244 hardens the seed + mutation paths: every grant is fed through
+ * `assertValidRoleGrant` before being persisted. A constructor seed
+ * with an invalid grant throws synchronously; a runtime `grant()`
+ * call with an invalid grant rejects the returned promise. The
+ * reserved sentinel `'*'` cannot reach `grantsByUser`.
  */
 export class InMemoryGrantStore implements GrantStore {
   private readonly grantsByUser: Map<string, RoleGrant[]> = new Map();
 
   constructor(initial: ReadonlyArray<RoleGrant> = []) {
     for (const grant of initial) {
+      // Validate before any structural filtering. Throwing here
+      // surfaces persistence-layer bugs at construction time instead
+      // of at first read.
+      assertValidRoleGrant(grant);
       if (grant.actorKind !== 'user') continue;
       const bucket = this.grantsByUser.get(grant.actorId) ?? [];
       bucket.push(grant);
@@ -90,6 +109,7 @@ export class InMemoryGrantStore implements GrantStore {
   }
 
   async grant(grant: RoleGrant): Promise<void> {
+    assertValidRoleGrant(grant);
     if (grant.actorKind !== 'user') return;
     const bucket = this.grantsByUser.get(grant.actorId) ?? [];
     if (!bucket.some((existing) => grantsEqual(existing, grant))) {
@@ -99,6 +119,11 @@ export class InMemoryGrantStore implements GrantStore {
   }
 
   async revoke(grant: RoleGrant): Promise<boolean> {
+    // revoke() is intentionally NOT gated on `validateRoleGrant`:
+    // operators MUST be able to clean up grants that pre-date the
+    // T244 reservation (e.g. a smuggled grant persisted before this
+    // ticket landed). The lookup matches on the five-field tuple, so
+    // a forged grant simply won't match anything valid.
     if (grant.actorKind !== 'user') return false;
     const bucket = this.grantsByUser.get(grant.actorId);
     if (!bucket) return false;

@@ -29,7 +29,12 @@ import {
   permittedWorkspaces,
   PERMITTED_WORKSPACES_GLOBAL_SENTINEL,
 } from '../policy-engine.ts';
-import type { RoleGrant, ScopeKind, RbacAction } from '../roles-schema.ts';
+import {
+  validateRoleGrant,
+  type RoleGrant,
+  type ScopeKind,
+  type RbacAction,
+} from '../roles-schema.ts';
 
 const SYSTEM_ROLE_IDS = ['owner', 'editor', 'viewer'] as const;
 const SCOPE_KINDS: ReadonlyArray<ScopeKind> = ['workspace', 'org', 'global'];
@@ -335,6 +340,65 @@ describe('T243 — scope-forgery property tests', () => {
         expect(decision.allow).toBe(true);
         expect(decision.reason).toBe('global-owner');
       }
+    }
+  });
+
+  // --------------------------------------------------------------------
+  // Property 5 (T244) — `validateRoleGrant` rejects every smuggled
+  // `{scopeKind: 'workspace'|'org', scopeId: '*'}` forgery (Finding A
+  // close) AND accepts every legitimate grant. One test, two
+  // counterweighted iteration loops: a buggy validator that rejects
+  // everything would fail the accept loop; one that accepts
+  // everything would fail the reject loop. Property 3 above pins the
+  // legacy `permittedWorkspaces` ambiguity; this property pins the
+  // schema-layer fix.
+  // --------------------------------------------------------------------
+  test(`validator rejects '*' forgery + accepts clean grants (${ITERATIONS}× each)`, () => {
+    const rng = makeRng(SEED_BASE ^ 0xb1ade244);
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const scopeKind: ScopeKind = pick(rng, ['workspace', 'org']);
+      const grant: RoleGrant = {
+        roleId: pick(rng, SYSTEM_ROLE_IDS),
+        actorKind: pick(rng, ['user', 'team']),
+        actorId: randomString(rng, 6 + Math.floor(rng() * 8)),
+        scopeKind,
+        scopeId: PERMITTED_WORKSPACES_GLOBAL_SENTINEL,
+      };
+      const result = validateRoleGrant(grant);
+      if (result.ok) {
+        throw new Error(
+          `smuggled '*' accepted — seed=${SEED_BASE}, iter=${i}, ` +
+            `grant=${JSON.stringify(grant)}`,
+        );
+      }
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error.code).toBe('reserved-scope-id');
+    }
+
+    for (let i = 0; i < ITERATIONS; i++) {
+      const scopeKind: ScopeKind = pick(rng, SCOPE_KINDS);
+      let scopeId: string | null = null;
+      if (scopeKind !== 'global') {
+        do {
+          scopeId = randomString(rng, 1 + Math.floor(rng() * 12));
+        } while (scopeId === PERMITTED_WORKSPACES_GLOBAL_SENTINEL || scopeId === '');
+      }
+      const grant: RoleGrant = {
+        roleId: pick(rng, SYSTEM_ROLE_IDS),
+        actorKind: pick(rng, ['user', 'team']),
+        actorId: randomString(rng, 6 + Math.floor(rng() * 8)),
+        scopeKind,
+        scopeId,
+      };
+      const result = validateRoleGrant(grant);
+      if (!result.ok) {
+        throw new Error(
+          `clean grant rejected — seed=${SEED_BASE}, iter=${i}, ` +
+            `grant=${JSON.stringify(grant)}, code=${result.error.code}`,
+        );
+      }
+      expect(result.ok).toBe(true);
     }
   });
 });
