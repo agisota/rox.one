@@ -104,4 +104,18 @@ describe('RC E2E smoke harness', () => {
     expect(ticket).not.toContain('apps/electron/src/renderer/components/workbench/**/__tests__/file*.test.*')
     expect(ticket).not.toContain('packages/shared/src/**/__tests__/entity-graph*.test.ts')
   })
+
+  it('recognizes S07 sync conflict resolution and documents current validation paths', async () => {
+    const harness = await import('../e2e-smoke')
+    const scenario = harness.resolveRequiredScenario('s07-sync-conflict-resolution')
+    const ticket = readFileSync(join(rootDir, 'docs/tickets/T345-rc-s07-sync-conflict-resolution.md'), 'utf8')
+
+    expect(scenario.command).toContain('packages/server-core/src/sync/__tests__/local-cloud-sync.test.ts')
+    expect(scenario.command).toContain('packages/server-core/src/sync/__tests__/workspace-sync-service.test.ts')
+    expect(scenario.command).toContain(
+      'packages/server-core/src/sync/__tests__/workspace-sync-multi-client-conflict.test.ts',
+    )
+
+    expect(ticket).not.toContain('packages/server-core/src/**/__tests__/sync*.test.ts')
+  })
 })

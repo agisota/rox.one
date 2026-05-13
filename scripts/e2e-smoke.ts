@@ -74,6 +74,12 @@ const S06_FILE_UPLOAD_ENTITY_GRAPH_TESTS = [
   'apps/electron/src/renderer/components/right-sidebar/__tests__/session-files-watch.test.ts',
 ] as const
 
+const S07_SYNC_CONFLICT_RESOLUTION_TESTS = [
+  'packages/server-core/src/sync/__tests__/local-cloud-sync.test.ts',
+  'packages/server-core/src/sync/__tests__/workspace-sync-service.test.ts',
+  'packages/server-core/src/sync/__tests__/workspace-sync-multi-client-conflict.test.ts',
+] as const
+
 export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
   {
     id: 's01-registration',
@@ -105,6 +111,11 @@ export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
     id: 's06-file-upload-entity-graph',
     title: 'RC S06 file upload entity graph smoke',
     command: ['bun', 'test', ...S06_FILE_UPLOAD_ENTITY_GRAPH_TESTS],
+  },
+  {
+    id: 's07-sync-conflict-resolution',
+    title: 'RC S07 sync conflict resolution smoke',
+    command: ['bun', 'test', ...S07_SYNC_CONFLICT_RESOLUTION_TESTS],
   },
 ]
 

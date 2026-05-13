@@ -1,6 +1,6 @@
 # T358 - RC S07 Smoke Harness And Command Repair
 
-Status: Todo
+Status: DONE
 
 ## Context
 
@@ -51,14 +51,14 @@ git diff --check
 
 ## Acceptance Criteria
 
-- [ ] Harness contract test fails before implementation for unsupported S07.
-- [ ] `s07-sync-conflict-resolution` is listed in supported scenarios.
-- [ ] S07 smoke runs current local/cloud sync tests.
-- [ ] S07 smoke runs current workspace sync service tests.
-- [ ] S07 smoke runs current multi-client conflict tests.
-- [ ] T345 no longer references the stale sync glob.
-- [ ] Existing S01 Linux host-blocker behavior is unchanged.
-- [ ] Worklog captures red/green evidence.
+- [x] Harness contract test fails before implementation for unsupported S07.
+- [x] `s07-sync-conflict-resolution` is listed in supported scenarios.
+- [x] S07 smoke runs current local/cloud sync tests.
+- [x] S07 smoke runs current workspace sync service tests.
+- [x] S07 smoke runs current multi-client conflict tests.
+- [x] T345 no longer references the stale sync glob.
+- [x] Existing S01 Linux host-blocker behavior is unchanged.
+- [x] Worklog captures red/green evidence.
 
 ## Worklog
 
