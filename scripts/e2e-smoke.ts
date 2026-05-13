@@ -65,6 +65,15 @@ const S05_TEAM_INVITE_RBAC_TESTS = [
   'apps/electron/src/renderer/components/settings/rbac/__tests__/roles-panel.test.tsx',
 ] as const
 
+const S06_FILE_UPLOAD_ENTITY_GRAPH_TESTS = [
+  'packages/shared/src/workbench/__tests__/markdown-entity-graph.test.ts',
+  'packages/server-core/src/handlers/rpc/files.test.ts',
+  'packages/server-core/src/handlers/__tests__/file-manager-scopes.test.ts',
+  'packages/server-core/src/handlers/__tests__/validate-file-path.test.ts',
+  'apps/electron/src/renderer/lib/__tests__/file-changes.test.ts',
+  'apps/electron/src/renderer/components/right-sidebar/__tests__/session-files-watch.test.ts',
+] as const
+
 export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
   {
     id: 's01-registration',
@@ -91,6 +100,11 @@ export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
     id: 's05-team-invite-rbac',
     title: 'RC S05 team invite and RBAC smoke',
     command: ['bun', 'test', ...S05_TEAM_INVITE_RBAC_TESTS],
+  },
+  {
+    id: 's06-file-upload-entity-graph',
+    title: 'RC S06 file upload entity graph smoke',
+    command: ['bun', 'test', ...S06_FILE_UPLOAD_ENTITY_GRAPH_TESTS],
   },
 ]
 

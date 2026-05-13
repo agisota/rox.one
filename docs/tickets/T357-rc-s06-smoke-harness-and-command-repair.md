@@ -1,6 +1,6 @@
 # T357 - RC S06 Smoke Harness And Command Repair
 
-Status: Todo
+Status: DONE
 
 ## Context
 
@@ -50,14 +50,14 @@ git diff --check
 
 ## Acceptance Criteria
 
-- [ ] Harness contract test fails before implementation for unsupported S06.
-- [ ] `s06-file-upload-entity-graph` is listed in supported scenarios.
-- [ ] S06 smoke runs current file manager/path validation tests.
-- [ ] S06 smoke runs current markdown entity graph tests.
-- [ ] S06 smoke runs current source-link-adjacent renderer tests.
-- [ ] T344 no longer references stale workbench/entity-graph globs.
-- [ ] Existing S01 Linux host-blocker behavior is unchanged.
-- [ ] Worklog captures red/green evidence.
+- [x] Harness contract test fails before implementation for unsupported S06.
+- [x] `s06-file-upload-entity-graph` is listed in supported scenarios.
+- [x] S06 smoke runs current file manager/path validation tests.
+- [x] S06 smoke runs current markdown entity graph tests.
+- [x] S06 smoke runs current source-link-adjacent renderer tests.
+- [x] T344 no longer references stale workbench/entity-graph globs.
+- [x] Existing S01 Linux host-blocker behavior is unchanged.
+- [x] Worklog captures red/green evidence.
 
 ## Worklog
 
