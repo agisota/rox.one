@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { DEFAULT_LOCAL_SCOPE } from '../../../../../packages/shared/src/config/storage-scope-auth.ts'
 
 const workspaceRootPath = '/tmp/ws-rollback'
 const workspace = {
@@ -57,7 +58,7 @@ mock.module('../logger', () => {
 })
 
 mock.module('@craft-agent/shared/config', () => ({
-  DEFAULT_LOCAL_SCOPE: Object.freeze({ kind: 'local-single-user' }),
+  DEFAULT_LOCAL_SCOPE,
   getWorkspaceByNameOrId: (id: string) => (id === workspace.id ? workspace : null),
   getWorkspaces: () => [workspace],
   loadConfigDefaults: () => ({
