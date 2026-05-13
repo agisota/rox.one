@@ -2,10 +2,11 @@ import { existsSync } from 'node:fs'
 import { join } from 'path'
 import { homedir } from 'os'
 import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
-import { DEFAULT_LOCAL_SCOPE, getWorkspaceByNameOrId, addWorkspace, setActiveWorkspace, updateWorkspaceRemoteServer } from '@rox-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, deriveScopeFromAuth, getWorkspaces, getWorkspaceByNameOrId, addWorkspace, setActiveWorkspace, updateWorkspaceRemoteServer } from '@rox-agent/shared/config'
 import { perf } from '@rox-agent/shared/utils'
 import { pushTyped, type RpcServer } from '@rox-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
+import type { RequestContext } from '../../transport/types'
 import { isValidWorkspaceRootPath } from '../../utils/path-validation'
 import { filterOwnedWorkspaces, grantWorkspaceAccess, requireWorkspaceAccess } from './account-ownership'
 
@@ -35,13 +36,29 @@ export const CORE_HANDLED_CHANNELS = [
   RPC_CHANNELS.logo.GET_URL,
 ] as const
 
+async function deriveWorkspaceScope(deps: HandlerDeps, ctx: RequestContext) {
+  const permittedWorkspaces = ctx.userId && deps.accountStore
+    ? await deps.accountStore.listWorkspaceIds(ctx.userId)
+    : []
+
+  return deriveScopeFromAuth(
+    {
+      userId: ctx.userId ?? undefined,
+      permittedWorkspaces,
+      reqId: ctx.sessionId ?? ctx.clientId,
+    },
+    ctx.workspaceId,
+  )
+}
+
 export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDeps): void {
   const { sessionManager } = deps
   const windowManager = deps.windowManager
 
   // Get workspaces (LOCAL_ONLY — includes rootPath for local Electron renderer)
   server.handle(RPC_CHANNELS.workspaces.GET, async (ctx) => {
-    return filterOwnedWorkspaces(deps, ctx, sessionManager.getWorkspaces())
+    const scope = await deriveWorkspaceScope(deps, ctx)
+    return filterOwnedWorkspaces(deps, ctx, getWorkspaces(scope))
   })
 
   // Create a new workspace at a folder path (Obsidian-style: folder IS the workspace)
@@ -52,9 +69,11 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
       throw new Error(validation.reason!)
     }
 
+    // TODO(C4): use deriveScopeFromAuth when ready
     const workspace = addWorkspace({ name, rootPath, ...(remoteServer && { remoteServer }) }, DEFAULT_LOCAL_SCOPE)
     await grantWorkspaceAccess(deps, ctx, workspace.id)
     // Make it active
+    // TODO(C4): use deriveScopeFromAuth when ready
     setActiveWorkspace(workspace.id, DEFAULT_LOCAL_SCOPE)
     deps.platform.logger.info(`Created workspace "${name}" at ${rootPath}${remoteServer ? ` (remote: ${remoteServer.url})` : ''}`)
     return workspace
@@ -71,6 +90,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // Update remote server config for an existing workspace (reconnect flow)
   server.handle(RPC_CHANNELS.workspaces.UPDATE_REMOTE, async (ctx, workspaceId: string, remoteServer: { url: string; token: string; remoteWorkspaceId: string }) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
+    // TODO(C4): use deriveScopeFromAuth when ready
     updateWorkspaceRemoteServer(workspaceId, remoteServer, DEFAULT_LOCAL_SCOPE)
     deps.platform.logger.info(`Updated remote server for workspace ${workspaceId}: ${remoteServer.url}`)
     return { success: true }
@@ -82,6 +102,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
     // Set up ConfigWatcher for live updates (labels, statuses, sources, themes)
     if (workspaceId) {
       await requireWorkspaceAccess(deps, ctx, workspaceId)
+      // TODO(C4): use deriveScopeFromAuth when ready
       const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
       if (workspace) {
         sessionManager.setupConfigWatcher(workspace.rootPath, workspaceId)
@@ -133,6 +154,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
     }
 
     // Set up ConfigWatcher for the new workspace
+    // TODO(C4): use deriveScopeFromAuth when ready
     const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
     if (workspace) {
       sessionManager.setupConfigWatcher(workspace.rootPath, workspaceId)
@@ -154,6 +176,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // Generic workspace image loading (for source icons, status icons, etc.)
   server.handle(RPC_CHANNELS.workspace.READ_IMAGE, async (ctx, workspaceId: string, relativePath: string) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
+    // TODO(C4): use deriveScopeFromAuth when ready
     const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
     if (!workspace) throw new Error('Workspace not found')
 
@@ -211,6 +234,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // Resizes images to max 256x256 to keep file sizes small
   server.handle(RPC_CHANNELS.workspace.WRITE_IMAGE, async (ctx, workspaceId: string, relativePath: string, base64: string, mimeType: string) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
+    // TODO(C4): use deriveScopeFromAuth when ready
     const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
     if (!workspace) throw new Error('Workspace not found')
 
@@ -286,27 +310,32 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
 
   server.handle(RPC_CHANNELS.theme.GET_APP, async () => {
     const { loadAppTheme } = await import('@rox-agent/shared/config/storage')
+    // TODO(C4): use deriveScopeFromAuth when ready
     return loadAppTheme(DEFAULT_LOCAL_SCOPE)
   })
 
   // Preset themes (app-level)
   server.handle(RPC_CHANNELS.theme.GET_PRESETS, async () => {
     const { loadPresetThemes } = await import('@rox-agent/shared/config/storage')
+    // TODO(C4): use deriveScopeFromAuth when ready
     return loadPresetThemes(DEFAULT_LOCAL_SCOPE)
   })
 
   server.handle(RPC_CHANNELS.theme.LOAD_PRESET, async (_ctx, themeId: string) => {
     const { loadPresetTheme } = await import('@rox-agent/shared/config/storage')
+    // TODO(C4): use deriveScopeFromAuth when ready
     return loadPresetTheme(themeId, DEFAULT_LOCAL_SCOPE)
   })
 
   server.handle(RPC_CHANNELS.theme.GET_COLOR_THEME, async () => {
     const { getColorTheme } = await import('@rox-agent/shared/config/storage')
+    // TODO(C4): use deriveScopeFromAuth when ready
     return getColorTheme(DEFAULT_LOCAL_SCOPE)
   })
 
   server.handle(RPC_CHANNELS.theme.SET_COLOR_THEME, async (_ctx, themeId: string) => {
     const { setColorTheme } = await import('@rox-agent/shared/config/storage')
+    // TODO(C4): use deriveScopeFromAuth when ready
     setColorTheme(themeId, DEFAULT_LOCAL_SCOPE)
   })
 
@@ -320,6 +349,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const { getWorkspaces } = await import('@rox-agent/shared/config/storage')
     const { getWorkspaceColorTheme } = await import('@rox-agent/shared/workspaces/storage')
+    // TODO(C4): use deriveScopeFromAuth when ready
     const workspaces = getWorkspaces(DEFAULT_LOCAL_SCOPE)
     const workspace = workspaces.find(w => w.id === workspaceId)
     if (!workspace) return null
@@ -330,6 +360,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const { getWorkspaces } = await import('@rox-agent/shared/config/storage')
     const { setWorkspaceColorTheme } = await import('@rox-agent/shared/workspaces/storage')
+    // TODO(C4): use deriveScopeFromAuth when ready
     const workspaces = getWorkspaces(DEFAULT_LOCAL_SCOPE)
     const workspace = workspaces.find(w => w.id === workspaceId)
     if (!workspace) return
@@ -339,6 +370,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   server.handle(RPC_CHANNELS.theme.GET_ALL_WORKSPACE_THEMES, async (ctx) => {
     const { getWorkspaces } = await import('@rox-agent/shared/config/storage')
     const { getWorkspaceColorTheme } = await import('@rox-agent/shared/workspaces/storage')
+    // TODO(C4): use deriveScopeFromAuth when ready
     const workspaces = await filterOwnedWorkspaces(deps, ctx, getWorkspaces(DEFAULT_LOCAL_SCOPE))
     const themes: Record<string, string | undefined> = {}
     for (const ws of workspaces) {
@@ -360,6 +392,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // List views for a workspace (dynamic expression-based filters stored in views.json)
   server.handle(RPC_CHANNELS.views.LIST, async (ctx, workspaceId: string) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
+    // TODO(C4): use deriveScopeFromAuth when ready
     const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
     if (!workspace) throw new Error('Workspace not found')
 
@@ -370,6 +403,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // Save views (replaces full array)
   server.handle(RPC_CHANNELS.views.SAVE, async (ctx, workspaceId: string, views: import('@rox-agent/shared/views').ViewConfig[]) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
+    // TODO(C4): use deriveScopeFromAuth when ready
     const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
     if (!workspace) throw new Error('Workspace not found')
 
@@ -391,6 +425,7 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
     const { encodeIconToDataUrl } = await import('@rox-agent/shared/utils/icon-encoder')
     const { join } = await import('path')
 
+    // TODO(C4): use deriveScopeFromAuth when ready
     const toolIconsDir = getToolIconsDir(DEFAULT_LOCAL_SCOPE)
     const config = loadToolIconConfig(toolIconsDir)
     if (!config) return []
