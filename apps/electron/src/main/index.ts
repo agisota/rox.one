@@ -84,7 +84,7 @@ import { setSearchPlatform, setImageProcessor } from '@rox-one/server-core/servi
 import { createApplicationMenu } from './menu'
 import { WindowManager } from './window-manager'
 import { loadWindowState, saveWindowState } from './window-state'
-import { DEFAULT_LOCAL_SCOPE, getWorkspaces, getWorkspaceByNameOrId, loadStoredConfig, addWorkspace, saveConfig } from '@rox-one/shared/config'
+import { DEFAULT_LOCAL_SCOPE, getWorkspaces, getWorkspaceByNameOrId, loadStoredConfig, addWorkspace, saveConfig, migrateUserDataIfNeeded } from '@rox-one/shared/config'
 import { getDefaultWorkspacesDir } from '@rox-one/shared/workspaces'
 import { initializeDocs } from '@rox-one/shared/docs'
 import { initializeReleaseNotes } from '@rox-one/shared/release-notes'
@@ -416,6 +416,14 @@ app.whenReady().then(async () => {
   // Register PowerShell validator root so it can find the bundled parser script
   // (Windows only: validates PowerShell commands in Explore mode using AST analysis)
   setPowerShellValidatorRoot(join(__dirname, 'resources'))
+
+  // Phase R.8 — migrate legacy user data from ~/.craft-agent/ (or ~/.craft/)
+  // into ~/.rox/ BEFORE any storage seeder runs. The shim is non-destructive
+  // (copy, not move) and self-marks so subsequent launches are a fast no-op.
+  // It must precede initializeDocs / ensureToolIcons / ensurePresetThemes
+  // because those seeders call ensureConfigDir() and would otherwise create
+  // an empty ~/.rox/ that trips the conflict branch.
+  migrateUserDataIfNeeded({ logger: mainLog })
 
   // Initialize bundled docs
   initializeDocs()
