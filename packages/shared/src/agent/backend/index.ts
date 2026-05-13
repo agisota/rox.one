@@ -32,6 +32,8 @@ export type {
   AgentProvider,
   CoreBackendConfig,
   BackendConfig,
+  BackendStorageScopeAuth,
+  PiStorageScopeAuthEnvelope,
   BackendHostRuntimeContext,
   PermissionCallback,
   PlanCallback,
