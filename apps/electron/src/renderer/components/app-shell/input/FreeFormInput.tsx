@@ -1467,7 +1467,18 @@ export function FreeFormInput({
     let start = handle.selectionStart
     let end = start
     try {
-      const element = handle.element
+      const element = handle.element as (HTMLDivElement & Partial<HTMLTextAreaElement>) | null
+      // Textarea/input elements expose `selectionEnd` natively — pick it up
+      // when the element is a form control (the production rich-text input
+      // is a contenteditable div, but tests + the structured input use a
+      // real <textarea>, and we want both paths to honour ranged selections).
+      if (element && typeof element.selectionEnd === 'number') {
+        const elementStart = typeof element.selectionStart === 'number'
+          ? element.selectionStart
+          : start
+        start = elementStart
+        end = element.selectionEnd
+      }
       const selection = typeof window !== 'undefined' ? window.getSelection() : null
       if (element && selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0)
