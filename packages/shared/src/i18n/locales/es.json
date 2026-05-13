@@ -1084,6 +1084,8 @@
   "settings.server.token": "Token",
   "settings.shortcuts.description": "Atajos de teclado",
   "settings.shortcuts.title": "Atajos",
+  "settings.teamManagement.description": "Ver concesiones agrupadas por actor (usuario/equipo)",
+  "settings.teamManagement.title": "Gestión de equipo",
   "settings.teamPermissions.description": "Gestiona roles y concesiones en Workspaces y organizaciones",
   "settings.teamPermissions.title": "Equipo y permisos",
   "settings.tools.builtInBrowser": "Navegador integrado",

@@ -1084,6 +1084,8 @@
   "settings.server.token": "トークン",
   "settings.shortcuts.description": "キーボードショートカット",
   "settings.shortcuts.title": "ショートカット",
+  "settings.teamManagement.description": "アクター（ユーザー/チーム）別にグループ化された付与を表示",
+  "settings.teamManagement.title": "チーム管理",
   "settings.teamPermissions.description": "Workspaceと組織のロールと付与を管理します",
   "settings.teamPermissions.title": "チームと権限",
   "settings.tools.builtInBrowser": "組み込みブラウザ",
