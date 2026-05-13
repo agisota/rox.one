@@ -35,6 +35,10 @@ export {
   type MissionStore,
 } from './mission-store.ts'
 export {
+  SqliteMissionStore,
+  type SqliteMissionStoreOptions,
+} from './sqlite-mission-store.ts'
+export {
   MissionScheduler,
   type DispatchError,
   type DispatchResult,

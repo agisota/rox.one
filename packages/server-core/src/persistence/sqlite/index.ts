@@ -30,3 +30,4 @@ export type { CreateSqliteAdapterOptions } from './sqlite-adapter'
 export { uuidV7, uuidV7TimestampMs } from './uuid-v7'
 
 export { migration0001Initial } from './migrations/0001-initial'
+export { migration0002Missions } from './migrations/0002-missions'
