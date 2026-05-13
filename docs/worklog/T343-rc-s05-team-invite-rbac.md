@@ -12,8 +12,8 @@ and RBAC denial/audit behavior is covered.
 regressions instead of changing runtime behavior in this ticket.
 
 The shared RC smoke harness registers S01 through S04 after T355, but
-`s05-team-invite-rbac` is not registered. The S05 smoke command exits at the
-harness before it can run current RBAC/team invite coverage.
+`s05-team-invite-rbac` was not registered. T356 registered the scenario against
+current Bun-compatible RBAC/team invite coverage.
 
 The targeted RBAC integration, policy engine, and scope-forgery commands listed
 in T343 pass on current main. Additional current account-team invite and RBAC
@@ -67,6 +67,16 @@ error: script "e2e:smoke" exited with code 1
 
 No runtime files were changed.
 
+After T356, the S05 smoke command reaches the harness and passes current
+deterministic team invite/RBAC coverage:
+
+```text
+[e2e-smoke] pass s05-team-invite-rbac
+161 pass
+0 fail
+9819 expect() calls
+```
+
 ## 7. Validation Commands Run
 
 ```bash
@@ -75,6 +85,9 @@ bun test packages/server-core/src/handlers/rpc/__tests__/roles*.test.ts
 bun test packages/shared/src/auth/__tests__/policy*.test.ts
 bun test packages/shared/src/**/__tests__/scope-forgery*.test.ts
 bun test packages/server-core/src/webui/__tests__/account-teams.test.ts packages/server-core/src/webui/__tests__/account-http.test.ts packages/server-core/src/webui/__tests__/team-chat-http.test.ts apps/electron/src/renderer/components/settings/rbac/__tests__/team-management-state.test.ts apps/electron/src/renderer/components/settings/rbac/__tests__/roles-panel-state.test.ts apps/electron/src/renderer/components/settings/rbac/__tests__/roles-panel.test.tsx
+bun test scripts/__tests__/e2e-smoke-harness.test.ts
+bun run e2e:smoke -- --scenario s05-team-invite-rbac
+bun run validate:agent-contract
 ```
 
 ## 8. Passing Test Output Summary
@@ -85,6 +98,12 @@ bun test packages/server-core/src/webui/__tests__/account-teams.test.ts packages
 - Scope-forgery property tests: 6 pass, 0 fail, 9347 expectations.
 - Adjacent account-team invite and RBAC settings state tests: 62 pass, 0 fail,
   265 expectations.
+- `bun run e2e:smoke -- --scenario s05-team-invite-rbac`: 161 pass, 0 fail,
+  9819 expectations.
+- `bun test scripts/__tests__/e2e-smoke-harness.test.ts`: 6 pass, 0 fail, 25
+  expectations.
+- `bun run validate:agent-contract`: ok, 11 skills, 311 tickets, 7 required
+  docs.
 
 ## 9. Build Output Summary
 
@@ -92,7 +111,6 @@ No build was run because this ticket made no runtime/source changes.
 
 ## 10. Remaining Risks
 
-- S05 smoke harness entry is not registered yet; T356 tracks that repair.
 - S05 has not produced packaged Electron UI screenshots or browser-console
   evidence.
 - The passing tests prove deterministic account/RBAC behavior, not a full
@@ -111,3 +129,4 @@ No build was run because this ticket made no runtime/source changes.
 | Screenshot evidence captured and referenced | Blocked | No screenshot captured in current deterministic test harness |
 | RC evidence row S05 updated | Pass | `docs/release/2026-05-14-rc-evidence.md` row S05 is `Blocked` |
 | Initial blocking ticket filed | Pass | `T356-rc-s05-smoke-harness-registration.md` |
+| S05 deterministic harness path repaired | Pass | T356 registers S05 and `e2e:smoke` passes 161 tests |

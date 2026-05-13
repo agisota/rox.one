@@ -50,6 +50,21 @@ const S04_ARENA_SWARM_VDI_TESTS = [
   'apps/electron/src/renderer/components/workbench/__tests__/experience-real-state-binding.test.tsx',
 ] as const
 
+const S05_TEAM_INVITE_RBAC_TESTS = [
+  'packages/server-core/src/handlers/rpc/__tests__/roles.test.ts',
+  'packages/server-core/src/handlers/rpc/__tests__/roles-audit.test.ts',
+  'packages/server-core/src/handlers/rpc/__tests__/roles-rate-limit.test.ts',
+  'packages/shared/src/auth/__tests__/policy-engine.test.ts',
+  'packages/shared/src/auth/__tests__/policy-engine.edge-cases.test.ts',
+  'packages/shared/src/auth/__tests__/scope-forgery.property.test.ts',
+  'packages/server-core/src/webui/__tests__/account-teams.test.ts',
+  'packages/server-core/src/webui/__tests__/account-http.test.ts',
+  'packages/server-core/src/webui/__tests__/team-chat-http.test.ts',
+  'apps/electron/src/renderer/components/settings/rbac/__tests__/team-management-state.test.ts',
+  'apps/electron/src/renderer/components/settings/rbac/__tests__/roles-panel-state.test.ts',
+  'apps/electron/src/renderer/components/settings/rbac/__tests__/roles-panel.test.tsx',
+] as const
+
 export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
   {
     id: 's01-registration',
@@ -71,6 +86,11 @@ export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
     id: 's04-arena-swarm-vdi',
     title: 'RC S04 arena swarm signal dedupe and VDI smoke',
     command: ['bun', 'test', ...S04_ARENA_SWARM_VDI_TESTS],
+  },
+  {
+    id: 's05-team-invite-rbac',
+    title: 'RC S05 team invite and RBAC smoke',
+    command: ['bun', 'test', ...S05_TEAM_INVITE_RBAC_TESTS],
   },
 ]
 
