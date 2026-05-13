@@ -1,6 +1,6 @@
 # T340 - RC Scenario S02: Raw Prompt → Rewrite → Spec → TDD → Review
 
-Status: Todo
+Status: Blocked
 
 ## Context
 
@@ -100,3 +100,11 @@ bun run validate:agent-contract
 
 Update `docs/worklog/T340-rc-s02-prompt-pipeline-flow.md` with run log,
 screenshots, and any blocker ticket references.
+
+## Current Blocker
+
+- `T353-rc-s02-smoke-harness-and-command-repair.md` — the required
+  `bun run e2e:smoke -- --scenario s02-prompt-pipeline` command reaches the
+  RC harness but exits with `Unsupported scenario "s02-prompt-pipeline"`.
+  The targeted test globs listed in this ticket also match zero files; adjacent
+  Composer/workbench pipeline tests pass when run by their current paths.
