@@ -1,5 +1,5 @@
 {
-  "name": "@craft-agent/server-core",
+  "name": "@rox-one/server-core",
   "version": "0.9.1",
   "license": "Apache-2.0",
   "description": "Reusable headless server infrastructure for ROX",

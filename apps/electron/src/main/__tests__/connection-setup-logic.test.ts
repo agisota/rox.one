@@ -5,7 +5,7 @@ import {
   validateModelList,
   validateSetupTestInput,
   BUILT_IN_CONNECTION_TEMPLATES,
-} from '@craft-agent/server-core/domain'
+} from '@rox-one/server-core/domain'
 import type { ModelDefinition } from '@craft-agent/shared/config/models'
 
 // ============================================================

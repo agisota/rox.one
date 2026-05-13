@@ -4,7 +4,7 @@ import {
   createFakeProviderGateway,
   createProviderGateway,
   ProviderGatewayError,
-} from '@craft-agent/server-core/provider-gateway'
+} from '@rox-one/server-core/provider-gateway'
 
 describe('provider gateway package export', () => {
   it('exposes provider orchestration contracts through server-core', () => {

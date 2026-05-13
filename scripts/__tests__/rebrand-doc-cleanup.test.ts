@@ -69,7 +69,8 @@ describe("R.4 documentation rebrand cleanup", () => {
     const plan = readText("plan.md");
     const snapshot = readText("snapshot.md");
 
-    expect(plan).toContain("Successor goal: this rebrand sweep (R.0-R.10).");
+    expect(plan).toContain("Successor goal: this rebrand sweep (R.0-R.10) and the end-to-end spine roadmap.");
+    expect(plan).toContain("docs/superpowers/goals/2026-05-13-rox-one-v1-end-to-end-spine-goal.md");
     expect(plan).toContain("ROX.ONE Agent Workbench Suite");
     expect(plan).not.toContain(`${spokenWordmark} Agent Workbench Suite`);
     expect(plan).not.toContain(`A white-label ${legacyProductPlural} fork`);

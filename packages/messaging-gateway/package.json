@@ -15,7 +15,7 @@
   "dependencies": {
     "@rox-one/core": "workspace:*",
     "@rox-one/messaging-whatsapp-worker": "workspace:*",
-    "@craft-agent/server-core": "workspace:*",
+    "@rox-one/server-core": "workspace:*",
     "@craft-agent/shared": "workspace:*",
     "@larksuiteoapi/node-sdk": "^1.62.1",
     "grammy": "^1.35.0"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * @craft-agent/server — standalone headless ROX server.
+ * @rox-one/server — standalone headless ROX server.
  *
  * Usage:
  *   CRAFT_SERVER_TOKEN=<secret> bun run packages/server/src/index.ts
@@ -38,7 +38,7 @@ import { homedir } from 'node:os'
 import { readFileSync, existsSync } from 'node:fs'
 import { version as packageVersion } from '../package.json'
 import { enableDebug } from '@craft-agent/shared/utils/debug'
-import { bootstrapServer, startHealthHttpServer, generateServerToken } from '@craft-agent/server-core/bootstrap'
+import { bootstrapServer, startHealthHttpServer, generateServerToken } from '@rox-one/server-core/bootstrap'
 import {
   validateSession,
   validateAccountSession,
@@ -48,10 +48,10 @@ import {
   InMemoryAccountEventHistory,
   InMemoryAccountTeamStore,
   InMemoryManagedCloudWorkspaceStore,
-} from '@craft-agent/server-core/webui'
-import type { WebuiHandler } from '@craft-agent/server-core/webui'
-import { createPostgresAccountStore } from '@craft-agent/server-core/accounts'
-import { InMemoryWorkspaceSyncService } from '@craft-agent/server-core/sync'
+} from '@rox-one/server-core/webui'
+import type { WebuiHandler } from '@rox-one/server-core/webui'
+import { createPostgresAccountStore } from '@rox-one/server-core/accounts'
+import { InMemoryWorkspaceSyncService } from '@rox-one/server-core/sync'
 import { getCredentialManager } from '@craft-agent/shared/credentials'
 import { DEFAULT_LOCAL_SCOPE, getWorkspaces } from '@craft-agent/shared/config'
 import {
@@ -65,12 +65,12 @@ if (process.argv.includes('--generate-token')) {
   console.log(generateServerToken())
   process.exit(0)
 }
-import type { WsRpcTlsOptions } from '@craft-agent/server-core/transport'
-import { registerCoreRpcHandlers, cleanupSessionFileWatchForClient } from '@craft-agent/server-core/handlers/rpc'
-import { SessionManager, setSessionPlatform, setSessionRuntimeHooks } from '@craft-agent/server-core/sessions'
-import { initModelRefreshService, setFetcherPlatform } from '@craft-agent/server-core/model-fetchers'
-import { setSearchPlatform, setImageProcessor } from '@craft-agent/server-core/services'
-import type { HandlerDeps } from '@craft-agent/server-core/handlers'
+import type { WsRpcTlsOptions } from '@rox-one/server-core/transport'
+import { registerCoreRpcHandlers, cleanupSessionFileWatchForClient } from '@rox-one/server-core/handlers/rpc'
+import { SessionManager, setSessionPlatform, setSessionRuntimeHooks } from '@rox-one/server-core/sessions'
+import { initModelRefreshService, setFetcherPlatform } from '@rox-one/server-core/model-fetchers'
+import { setSearchPlatform, setImageProcessor } from '@rox-one/server-core/services'
+import type { HandlerDeps } from '@rox-one/server-core/handlers'
 
 process.env.CRAFT_IS_PACKAGED ??= 'false'
 
@@ -374,14 +374,14 @@ if (messagingHandle !== null) {
 
 // Wire up the lazy health check now that the session manager is ready
 if (webuiHandler) {
-  const { getHealthCheck } = await import('@craft-agent/server-core/handlers/rpc/server')
+  const { getHealthCheck } = await import('@rox-one/server-core/handlers/rpc/server')
   const depsLike = { sessionManager: instance.sessionManager } as any
   healthCheckFn = () => getHealthCheck(depsLike)
 
   // Wire up OAuth callback deps so /api/oauth/callback works
   const { getSourceCredentialManager, loadWorkspaceSources } = await import('@craft-agent/shared/sources')
   const { getWorkspaceByNameOrId } = await import('@craft-agent/shared/config')
-  const { pushTyped } = await import('@craft-agent/server-core/transport')
+  const { pushTyped } = await import('@rox-one/server-core/transport')
   const { RPC_CHANNELS } = await import('@craft-agent/shared/protocol')
 
   webuiHandler.setOAuthCallbackDeps({

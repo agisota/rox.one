@@ -5,9 +5,9 @@ import { execSync } from 'child_process'
 import { RPC_CHANNELS } from '@craft-agent/shared/protocol'
 import { getGitBashPath, setGitBashPath, clearGitBashPath } from '@craft-agent/shared/config'
 import { isSafeExternalUrl } from '@craft-agent/shared/utils/url-safety'
-import { isUsableGitBashPath, validateGitBashPath } from '@craft-agent/server-core/services'
-import { validateFilePath, getWorkspaceAllowedDirs } from '@craft-agent/server-core/handlers'
-import type { RpcServer } from '@craft-agent/server-core/transport'
+import { isUsableGitBashPath, validateGitBashPath } from '@rox-one/server-core/services'
+import { validateFilePath, getWorkspaceAllowedDirs } from '@rox-one/server-core/handlers'
+import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from './handler-deps'
 import { ELECTRON_GLOBAL_STORAGE_SCOPE } from './storage-scope'
 import { DEFAULT_APP_ZOOM_FACTOR } from '../window-manager'
@@ -16,7 +16,7 @@ import {
   requestClientOpenPath,
   requestClientShowInFolder,
   requestClientOpenFileDialog,
-} from '@craft-agent/server-core/transport'
+} from '@rox-one/server-core/transport'
 
 export const CORE_HANDLED_CHANNELS = [
   RPC_CHANNELS.theme.GET_SYSTEM_PREFERENCE,

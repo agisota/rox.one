@@ -16,7 +16,7 @@ import { resolveSessionConnection } from '@craft-agent/shared/agent/backend'
 import { setPermissionMode, hydratePreviousPermissionMode } from '@craft-agent/shared/agent'
 import { messageToStored, storedToMessage } from '@rox-one/core/types'
 import { loadWorkspaceConfig } from '@craft-agent/shared/workspaces'
-import type { Logger } from '@craft-agent/server-core/runtime'
+import type { Logger } from '@rox-one/server-core/runtime'
 import type { AutomationSystem } from '@craft-agent/shared/automations'
 import {
   createManagedSession,

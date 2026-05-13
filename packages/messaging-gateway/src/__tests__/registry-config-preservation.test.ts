@@ -17,7 +17,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import type { CredentialManager } from '@craft-agent/shared/credentials'
-import type { ISessionManager } from '@craft-agent/server-core/handlers'
+import type { ISessionManager } from '@rox-one/server-core/handlers'
 import { MessagingGatewayRegistry } from '../registry'
 import type { PlatformAdapter } from '../types'
 

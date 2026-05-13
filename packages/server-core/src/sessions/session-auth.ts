@@ -4,8 +4,8 @@
  * Sibling files: session-ipc.ts, session-persistence.ts, session-manager-helpers.ts, SessionManager.ts.
  */
 import { basename } from 'path'
-import type { Logger } from '@craft-agent/server-core/runtime'
-import { PrivilegedExecutionBroker } from '@craft-agent/server-core/services'
+import type { Logger } from '@rox-one/server-core/runtime'
+import { PrivilegedExecutionBroker } from '@rox-one/server-core/services'
 import {
   type AuthRequest,
   type AuthResult,

@@ -7,13 +7,13 @@ import {
   testBackendConnection,
   validateStoredBackendConnection,
 } from '@craft-agent/shared/agent/backend'
-import { getModelRefreshService } from '@craft-agent/server-core/model-fetchers'
-import { parseTestConnectionError, createBuiltInConnection, validateModelList, piAuthProviderDisplayName, validateSetupTestInput, setupTestRequiresApiKey, resolveCustomEndpointSetup, resolveLlmEndpointDependencyRiskMode, resolveLlmProviderDependencyRiskMode, validatePublicCustomEndpointBaseUrl, validatePublicProviderSdkAccess } from '@craft-agent/server-core/domain'
-import { buildBackendHostRuntimeContext } from '@craft-agent/server-core/handlers'
-import { pushTyped, type RpcServer } from '@craft-agent/server-core/transport'
+import { getModelRefreshService } from '@rox-one/server-core/model-fetchers'
+import { parseTestConnectionError, createBuiltInConnection, validateModelList, piAuthProviderDisplayName, validateSetupTestInput, setupTestRequiresApiKey, resolveCustomEndpointSetup, resolveLlmEndpointDependencyRiskMode, resolveLlmProviderDependencyRiskMode, validatePublicCustomEndpointBaseUrl, validatePublicProviderSdkAccess } from '@rox-one/server-core/domain'
+import { buildBackendHostRuntimeContext } from '@rox-one/server-core/handlers'
+import { pushTyped, type RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { randomUUID } from 'node:crypto'
-import { CLIENT_OPEN_EXTERNAL } from '@craft-agent/server-core/transport'
+import { CLIENT_OPEN_EXTERNAL } from '@rox-one/server-core/transport'
 import { requireAdmin, requireWorkspaceAccess } from './account-ownership'
 import { SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE, deriveRpcWorkspaceScope } from './storage-scope'
 
