@@ -1,6 +1,6 @@
 # T353 - RC S02 smoke harness and command repair
 
-Status: Todo
+Status: DONE
 
 ## Context
 
@@ -48,11 +48,11 @@ bun run validate:agent-contract
 
 ## Acceptance Criteria
 
-- [ ] `bun run e2e:smoke -- --scenario s02-prompt-pipeline` no longer fails
+- [x] `bun run e2e:smoke -- --scenario s02-prompt-pipeline` no longer fails
       with `Unsupported scenario`.
-- [ ] S02 harness command runs a reproducible prompt-pipeline validation path.
-- [ ] T340 no longer points at test globs that match zero files.
-- [ ] Existing S01 harness behavior is unchanged.
+- [x] S02 harness command runs a reproducible prompt-pipeline validation path.
+- [x] T340 no longer points at test globs that match zero files.
+- [x] Existing S01 harness behavior is unchanged.
 
 ## Worklog
 
