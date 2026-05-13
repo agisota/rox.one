@@ -82,7 +82,10 @@
     "./workbench/validation-gates": "./src/workbench/validation-gates.ts",
     "./workbench/thinking-partner": "./src/workbench/thinking-partner.ts",
     "./workbench/spec-compiler": "./src/workbench/spec-compiler.ts",
-    "./highlight": "./src/highlight/index.ts"
+    "./highlight": "./src/highlight/index.ts",
+    "./security": "./src/security/index.ts",
+    "./security/rate-limiter": "./src/security/rate-limiter.ts",
+    "./security/budget-guard": "./src/security/budget-guard.ts"
   },
   "dependencies": {
     "@rox-one/core": "workspace:*",
