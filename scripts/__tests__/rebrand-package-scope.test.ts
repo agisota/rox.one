@@ -73,6 +73,21 @@ function listFiles(root: string): string[] {
   return files;
 }
 
+function listPackageScopeCloseoutFiles(): string[] {
+  return [
+    ...listFiles("apps"),
+    ...listFiles("packages"),
+    ...listFiles("scripts"),
+    "package.json",
+    "tsconfig.base.json",
+    "tsconfig.json",
+  ].filter((path) =>
+    /\.(ts|tsx)$/.test(path) ||
+    path.endsWith("package.json") ||
+    /(^|\/)tsconfig[^/]*\.json$/.test(path),
+  );
+}
+
 describe("R.5 package-scope rebrand", () => {
   test("renames the test-fixtures workspace package to the ROX scope", () => {
     const fixturePackageJson = readJson("packages/test-fixtures/package.json");
@@ -378,5 +393,12 @@ describe("R.5 package-scope rebrand", () => {
       expect(roxMatches.length).toBeGreaterThan(0);
       expect(containsPackageReference(readText("bun.lock"), roxPackage)).toBe(true);
     }
+  });
+
+  test("keeps active package-scope surfaces free of legacy workspace scope", () => {
+    const activeFiles = listPackageScopeCloseoutFiles();
+    const legacyMatches = activeFiles.filter((path) => readText(path).includes(`${legacyScope}/`));
+
+    expect(legacyMatches).toEqual([]);
   });
 });
