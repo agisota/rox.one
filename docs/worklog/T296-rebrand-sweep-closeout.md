@@ -119,6 +119,9 @@ Files explicitly NOT touched in R.10 (verified by `git diff main`):
 - `Dockerfile.server` — `org.opencontainers.image.source` label
   pointing at the upstream OSS repo preserved.
 
+T321 later reconciles the roadmap validator with the shipped phase
+ledger; T322 records that follow-up in the release mapping.
+
 ## 7. Validation commands run
 
 - `bun run validate:rebrand` — exit 0 on the worktree
@@ -242,6 +245,11 @@ adds at most a few seconds of CI time per push.
   The permanent gate enforces that the script's exit code stays 0;
   it does not enforce that the allowlist itself stays narrow. That
   guardrail relies on code review.
+
+- **T321/T322 follow-up evidence lives after the R.10 merge.** The
+  closeout mapping now records the T321 roadmap-validator repair on top
+  of PR #71. R.11 is still responsible for re-pointing `rebrand-v1`
+  after the destructive history rewrite.
 
 ## 11. Acceptance criteria matrix
 

@@ -1,6 +1,8 @@
 # T287 - Rebrand env-var docs update
 
-Status: IN_PROGRESS
+Status: DONE
+
+R.6 merge evidence: `777ada7` (`Complete R.6 env-var rename with readEnv() shim (#66)`)
 
 ## Context
 
@@ -78,11 +80,11 @@ For each operator surface:
 
 ## Acceptance Criteria
 
-- [ ] README primary text uses `ROX_*` everywhere.
-- [ ] `.env.example` lists only `ROX_*` names for the canonical 16.
-- [ ] `Dockerfile.server` `ENV` lines and `package.json` scripts use `ROX_*`.
-- [ ] Deprecation note present where operators encounter the shim.
-- [ ] No legal-preserve surface modified.
+- [x] README primary text uses `ROX_*` everywhere.
+- [x] `.env.example` lists only `ROX_*` names for the canonical 16.
+- [x] `Dockerfile.server` `ENV` lines and `package.json` scripts use `ROX_*`.
+- [x] Deprecation note present where operators encounter the shim.
+- [x] No legal-preserve surface modified.
 
 ## Worklog
 

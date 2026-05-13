@@ -1,5 +1,7 @@
 # T226 - RBAC session permittedWorkspaces wiring
 
+Status: DONE
+
 ## 1. Task summary
 
 Land the runtime wire-in that produces `session.permittedWorkspaces` from

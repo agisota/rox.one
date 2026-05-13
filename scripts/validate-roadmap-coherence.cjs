@@ -3,10 +3,13 @@
  * validate-roadmap-coherence.cjs
  *
  * Lints the three roadmap files to enforce:
- *   1. Every phase ID in the spine ledger has a matching `# Phase` heading
- *      in its owner detail file.
- *   2. Every ticket ID (T###-slug) appears in at most one roadmap file
- *      (the owner detail file).
+ *   1. Every phase ID in the spine ledger has a matching phase heading in
+ *      its owner detail file. Master-roadmap phases are written as numeric
+ *      headings (`# Phase 2`), while the spine owns post-release `P.x`
+ *      headings directly.
+ *   2. Every owned ticket ID (T###-slug) appears in at most one roadmap file
+ *      (the owner detail file). Cross-file prerequisite references are not
+ *      ownership.
  *   3. The phase sequence in the spine forms a valid topological order
  *      against the dependency graph in
  *      `docs/release/v1-end-to-end-dependency-graph.md`.
@@ -56,13 +59,33 @@ function readFile(file) {
   return fs.readFileSync(file, 'utf8');
 }
 
-function extractPhaseIdsFromHeadings(body) {
+function extractPhaseIdsFromHeadings(body, ownerLane) {
   const ids = new Set();
   const re = /^#{1,6}\s+Phase\s+([MRP]\.[0-9]+(?:\.[0-9]+)?[a-z]?)\b/gm;
   let m;
   while ((m = re.exec(body)) !== null) {
     ids.add(m[1]);
   }
+
+  if (ownerLane === 'M') {
+    const numericRe = /^#{1,6}\s+Phase\s+([0-9]+(?:\.[0-9]+)?[a-z]?)\b/gm;
+    while ((m = numericRe.exec(body)) !== null) {
+      ids.add(`M.${m[1]}`);
+    }
+
+    const closeoutRe = /^#{1,6}\s+Phase\s+1\s+closeout\b/gim;
+    if (closeoutRe.test(body)) {
+      ids.add('M.1.7');
+    }
+  }
+
+  if (ownerLane === 'P') {
+    const postReleaseRe = /^#{1,6}\s+(?:Phase\s+)?(P\.[0-9]+(?:\.[0-9]+)?[a-z]?)\b/gm;
+    while ((m = postReleaseRe.exec(body)) !== null) {
+      ids.add(m[1]);
+    }
+  }
+
   return ids;
 }
 
@@ -86,12 +109,15 @@ function extractPhaseIdsFromGraph(body) {
   return ids;
 }
 
-function extractTicketIds(body) {
+function extractTicketIds(body, { min = Number.NEGATIVE_INFINITY, max = Number.POSITIVE_INFINITY } = {}) {
   const ids = new Set();
-  const re = /\bT\d{3}\b/g;
+  const re = /\bT(\d{3})\b/g;
   let m;
   while ((m = re.exec(body)) !== null) {
-    ids.add(m[0]);
+    const ticketNumber = Number(m[1]);
+    if (ticketNumber >= min && ticketNumber <= max) {
+      ids.add(m[0]);
+    }
   }
   return ids;
 }
@@ -129,9 +155,9 @@ if (!spineBody || !masterBody || !rebrandBody || !graphBody) {
 }
 
 const spineLedgerPhases = extractPhaseIdsFromLedger(spineBody);
-const masterHeadingPhases = extractPhaseIdsFromHeadings(masterBody);
-const rebrandHeadingPhases = extractPhaseIdsFromHeadings(rebrandBody);
-const spineHeadingPhases = extractPhaseIdsFromHeadings(spineBody);
+const masterHeadingPhases = extractPhaseIdsFromHeadings(masterBody, 'M');
+const rebrandHeadingPhases = extractPhaseIdsFromHeadings(rebrandBody, 'R');
+const spineHeadingPhases = extractPhaseIdsFromHeadings(spineBody, 'P');
 
 for (const phase of spineLedgerPhases) {
   const lane = phase[0];
@@ -157,8 +183,8 @@ for (const phase of spineLedgerPhases) {
   }
 }
 
-const masterTickets = extractTicketIds(masterBody);
-const rebrandTickets = extractTicketIds(rebrandBody);
+const masterTickets = extractTicketIds(masterBody, { max: 259 });
+const rebrandTickets = extractTicketIds(rebrandBody, { min: 260, max: 299 });
 const overlappingTickets = new Set();
 for (const t of masterTickets) {
   if (rebrandTickets.has(t)) {

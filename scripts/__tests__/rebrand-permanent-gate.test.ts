@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, test } from "bun:test";
@@ -10,6 +11,10 @@ function read(path: string): string {
 
 function relPath(path: string): string {
   return relative(repoRoot, path);
+}
+
+function git(args: string[]): string {
+  return execFileSync("git", args, { cwd: repoRoot, encoding: "utf8" }).trim();
 }
 
 /**
@@ -58,5 +63,22 @@ describe("R.10 permanent validate:rebrand gate", () => {
       }
     }
     expect(matches.length).toBeGreaterThan(0);
+  });
+
+  test("closeout mapping records concrete R.10 follow-up commit evidence", () => {
+    const mapping = read(join(repoRoot, "docs/release/rebrand-mapping-2026-05-13.md"));
+    const t296Worklog = read(join(repoRoot, "docs/worklog/T296-rebrand-sweep-closeout.md"));
+    const t321Commit = git([
+      "log",
+      "-1",
+      "--format=%h",
+      "--",
+      "docs/tickets/T321-roadmap-coherence-validator-repair.md",
+    ]);
+
+    expect(mapping).toContain(`| R.10 follow-up | T321 | \`${t321Commit}\` |`);
+    expect(mapping).toContain("validate:roadmap OK");
+    expect(mapping).not.toContain("this closeout commit");
+    expect(t296Worklog).not.toContain("this closeout commit");
   });
 });

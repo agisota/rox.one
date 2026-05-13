@@ -1,6 +1,8 @@
 # T286 - Rebrand env-var call-site migration
 
-Status: IN_PROGRESS
+Status: DONE
+
+R.6 merge evidence: `777ada7` (`Complete R.6 env-var rename with readEnv() shim (#66)`)
 
 ## Context
 
@@ -97,10 +99,10 @@ file to use `readEnv`.
 
 ## Acceptance Criteria
 
-- [ ] Every runtime call site uses `readEnv()`.
-- [ ] No test in scope regresses by more than 1 case vs main.
-- [ ] `bun run validate:rebrand` shows a strictly smaller `CRAFT_` finding count.
-- [ ] `bun run build` passes.
+- [x] Every runtime call site uses `readEnv()`.
+- [x] No test in scope regresses by more than 1 case vs main.
+- [x] `bun run validate:rebrand` shows a strictly smaller `CRAFT_` finding count.
+- [x] `bun run build` passes.
 
 ## Worklog
 
