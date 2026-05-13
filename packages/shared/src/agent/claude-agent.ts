@@ -2683,5 +2683,5 @@ This is a branched conversation. All prior messages in this conversation are par
 /** @deprecated Use ClaudeAgent instead */
 export { ClaudeAgent as CraftAgent };
 
-/** @deprecated Use ClaudeAgentConfig instead */
+/** @deprecated Use ClaudeAgentConfig instead; remove in v1.1.0. */
 export type { ClaudeAgentConfig as CraftAgentConfig };

@@ -26,7 +26,7 @@ import {
   type SummarizeCallback,
 } from '@craft-agent/shared/sources'
 import { loadAllSkills } from '@craft-agent/shared/skills'
-import { CraftMcpClient, McpClientPool, McpPoolServer } from '@craft-agent/shared/mcp'
+import { McpClientPool, McpPoolServer } from '@craft-agent/shared/mcp'
 import {
   type Session,
   type SessionEvent,
