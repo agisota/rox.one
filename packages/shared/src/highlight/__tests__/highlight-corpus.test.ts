@@ -61,7 +61,7 @@ describe('highlight corpus contract', () => {
   test('output is deterministic across freshly-built highlighters', async () => {
     const h1 = await createShikiHighlighter()
     const h2 = await createShikiHighlighter()
-    const sample = HIGHLIGHT_CORPUS[0]
+    const sample = HIGHLIGHT_CORPUS[0]!
     const a = await h1.highlight(sample.code, sample.lang)
     const b = await h2.highlight(sample.code, sample.lang)
     expect(a).toBe(b)
