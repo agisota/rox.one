@@ -1,5 +1,7 @@
 # T078 ROX composer quick-action wrappers
 
+Status: DONE
+
 ## Problem
 
 The composer toolbar currently treats quick controls like Improve prompt, TDD Plan, Verify, Tear down, Build spec, and Review as artifact screens. That makes lightweight intent changes feel like modal workflows, and empty input can still surface noisy in-app artifact states.

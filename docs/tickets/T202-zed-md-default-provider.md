@@ -1,5 +1,7 @@
 # T202 - ZED.MD default provider for ROX.ONE
 
+Status: DONE
+
 ## Context
 
 The ROX.ONE onboarding API screen currently treats `https://api.zed.md/v1` as a generic custom endpoint. Connection validation can fall through to the generic Pi subprocess path and surface `spawn ENOEXEC` instead of validating the OpenAI-compatible endpoint directly.
