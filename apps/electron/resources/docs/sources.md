@@ -2,9 +2,9 @@
 
 This guide explains how to configure sources (MCP servers, APIs, local filesystems) in ROX.
 
-> **CLI-first workflow (recommended):** Use `craft-agent source ...` commands instead of editing source config files directly.
-> - `craft-agent source --help`
-> - Canonical command reference: [craft-cli.md](./craft-cli.md)
+> **CLI-first workflow (recommended):** Use `rox-agent source ...` commands instead of editing source config files directly.
+> - `rox-agent source --help`
+> - Canonical command reference: [rox-cli.md](./rox-cli.md)
 
 ## Source Setup Process
 

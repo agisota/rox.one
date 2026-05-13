@@ -2,9 +2,9 @@
 
 This guide explains how to create and configure skills in ROX.
 
-> **CLI-first workflow (recommended):** Use `craft-agent skill ...` commands instead of editing `SKILL.md` files directly.
-> - `craft-agent skill --help`
-> - Canonical command reference: [craft-cli.md](./craft-cli.md)
+> **CLI-first workflow (recommended):** Use `rox-agent skill ...` commands instead of editing `SKILL.md` files directly.
+> - `rox-agent skill --help`
+> - Canonical command reference: [rox-cli.md](./rox-cli.md)
 
 ## What Are Skills?
 
