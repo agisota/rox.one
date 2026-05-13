@@ -1,5 +1,7 @@
 # T209 - Liquid Glass checkout mtime skew
 
+Status: DONE
+
 ## Context
 
 C4 final validation exposed a stable failure in the macOS Liquid Glass icon

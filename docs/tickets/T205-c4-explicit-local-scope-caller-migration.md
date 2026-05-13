@@ -1,5 +1,7 @@
 # T205 - C4 explicit local scope caller migration
 
+Status: DONE
+
 ## Context
 
 We are building a white-label fork of Craft Agents OSS into Agent Workbench Suite.
