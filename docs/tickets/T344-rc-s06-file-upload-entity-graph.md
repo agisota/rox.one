@@ -71,8 +71,7 @@ close.
 bun run e2e:smoke -- --scenario s06-file-upload-entity-graph
 
 # File manager + entity graph tests
-bun test apps/electron/src/renderer/components/workbench/**/__tests__/file*.test.*
-bun test packages/shared/src/**/__tests__/entity-graph*.test.ts
+bun test packages/shared/src/workbench/__tests__/markdown-entity-graph.test.ts packages/server-core/src/handlers/rpc/files.test.ts packages/server-core/src/handlers/__tests__/file-manager-scopes.test.ts packages/server-core/src/handlers/__tests__/validate-file-path.test.ts apps/electron/src/renderer/lib/__tests__/file-changes.test.ts apps/electron/src/renderer/components/right-sidebar/__tests__/session-files-watch.test.ts
 
 # Agent contract gate
 bun run validate:agent-contract
