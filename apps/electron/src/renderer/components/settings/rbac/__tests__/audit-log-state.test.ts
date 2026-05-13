@@ -8,7 +8,7 @@
  * the DOM.
  */
 import { describe, expect, test } from 'bun:test'
-import type { AuditEvent } from '@rox-one/shared/observability'
+import type { AuditEvent } from '@rox-one/shared/observability/audit-event'
 import {
   actorIdentity,
   auditLogReducer,

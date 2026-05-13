@@ -17,7 +17,7 @@ import { HeaderMenu } from '@/components/ui/HeaderMenu'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { routes } from '@/lib/navigate'
 import type { DetailsPageMeta } from '@/lib/navigation-registry'
-import type { AuditEvent } from '@rox-one/shared/observability'
+import type { AuditEvent } from '@rox-one/shared/observability/audit-event'
 import {
   AuditLogPanel,
   AuditLogPanelContext,

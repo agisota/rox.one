@@ -8,7 +8,7 @@
  * audit kind requires extending both `AUDIT_EVENT_KINDS` and the
  * discriminated union below, and `isAuditEvent` keeps validation honest.
  */
-import { type CorrelationId } from './correlation.ts'
+import { type CorrelationId } from './correlation-id.ts'
 
 export const AUDIT_EVENT_KINDS = [
   'RoleGranted',

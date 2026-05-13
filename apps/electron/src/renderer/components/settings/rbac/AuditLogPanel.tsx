@@ -18,8 +18,11 @@
  */
 
 import * as React from 'react'
-import type { AuditEvent, AuditEventKind } from '@rox-one/shared/observability'
-import { AUDIT_EVENT_KINDS } from '@rox-one/shared/observability'
+import {
+  AUDIT_EVENT_KINDS,
+  type AuditEvent,
+  type AuditEventKind,
+} from '@rox-one/shared/observability/audit-event'
 import { SettingsCard, SettingsSection } from '@/components/settings'
 import {
   actorIdentity,
