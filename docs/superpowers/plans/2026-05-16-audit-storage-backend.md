@@ -108,17 +108,17 @@ suite, and build.
 - Test: `packages/server-core/src/webui/__tests__/account-http.test.ts`
 - Test: `packages/server-core/src/audit/__tests__/audit-event-store.test.ts`
 
-- [ ] **Step 1: Write failing query tests**
+- [x] **Step 1: Write failing query tests**
 
 Prove filters for tenant, actor, event type, and time range return only matching
 events and preserve redaction.
 
-- [ ] **Step 2: Implement query filters**
+- [x] **Step 2: Implement query filters**
 
 Add query options behind the audit backend and wire the existing admin/team
 audit HTTP surface to consume them without changing authorization rules.
 
-- [ ] **Step 3: Validate**
+- [x] **Step 3: Validate**
 
 Run audit/webui targeted tests, server-core typecheck, repository typecheck,
 lint, full suite, and build.

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test'
 
 import {
   InMemoryAuditEventStore,
+  queryAuditEventRecords,
   verifyAuditHashChain,
 } from '../audit-event-store'
 
@@ -99,5 +100,69 @@ describe('audit event store schema', () => {
     expect(record.payloadJson).toContain('[redacted]')
     expect(record.payloadJson).toContain('Bearer [redacted]')
     expect(record.payloadJson).toContain('"visible":"safe"')
+  })
+
+  it('queries records by tenant, actor, event type, and inclusive time range', async () => {
+    const store = new InMemoryAuditEventStore()
+
+    await store.append({
+      actor: { type: 'user', id: 'user-1', role: 'owner' },
+      tenantId: 'tenant-a',
+      eventType: 'scope.factory.downgraded',
+      severity: 'trace',
+      payload: { reason: 'multi-tenant-not-activated', token: 'raw-token' },
+      requestId: 'req-1',
+      ts: '2026-05-16T10:00:00.000Z',
+    })
+    await store.append({
+      actor: { type: 'user', id: 'user-1', role: 'owner' },
+      tenantId: 'tenant-b',
+      eventType: 'scope.factory.downgraded',
+      severity: 'trace',
+      payload: { reason: 'wrong-tenant' },
+      requestId: 'req-2',
+      ts: '2026-05-16T10:05:00.000Z',
+    })
+    await store.append({
+      actor: { type: 'user', id: 'user-2' },
+      tenantId: 'tenant-a',
+      eventType: 'credential.scope.write',
+      severity: 'trace',
+      payload: { credentialType: 'anthropic_api_key' },
+      requestId: 'req-3',
+      ts: '2026-05-16T10:10:00.000Z',
+    })
+    await store.append({
+      actor: { type: 'system' },
+      tenantId: 'tenant-a',
+      eventType: 'scope.factory.downgraded',
+      severity: 'warn',
+      payload: { reason: 'outside-window' },
+      requestId: 'req-4',
+      ts: '2026-05-16T12:00:00.000Z',
+    })
+
+    const records = await queryAuditEventRecords(store, {
+      tenantId: 'tenant-a',
+      actorType: 'user',
+      actorId: 'user-1',
+      eventType: 'scope.factory.downgraded',
+      from: '2026-05-16T09:00:00.000Z',
+      to: '2026-05-16T11:00:00.000Z',
+      limit: 10,
+    })
+
+    expect(records).toHaveLength(1)
+    expect(records[0]).toMatchObject({
+      tenantId: 'tenant-a',
+      eventType: 'scope.factory.downgraded',
+      requestId: 'req-1',
+    })
+    expect(records[0]!.payloadJson).not.toContain('raw-token')
+    expect(records[0]!.payloadJson).toContain('[redacted]')
+
+    records[0]!.actor.id = 'mutated'
+    const reread = await queryAuditEventRecords(store, { tenantId: 'tenant-a', limit: 1 })
+    expect(reread[0]!.actor.id).not.toBe('mutated')
   })
 })

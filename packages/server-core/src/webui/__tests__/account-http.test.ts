@@ -10,6 +10,7 @@ import { InMemoryAccountTeamStore } from '../account-teams'
 import { InMemoryManagedCloudWorkspaceStore } from '../account-cloud-workspaces'
 import { createDvnetWebhookSignature } from '../account-billing'
 import type { WorkspaceSyncService } from '../../sync/workspace-sync-service'
+import { InMemoryAuditEventStore } from '../../audit'
 
 class MemoryAccountStore implements AccountStore {
   users = new Map<string, PublicUser & { passwordHash: string }>()
@@ -225,6 +226,7 @@ describe('account webui auth', () => {
     cloudWorkspaceStore?: InMemoryManagedCloudWorkspaceStore,
     dvnetBilling?: { storeUuid: string; paymentBaseUrl: string; webhookSecret: string },
     workspaceSyncService?: WorkspaceSyncService,
+    auditEventStore?: InMemoryAuditEventStore,
   ) {
     const handler = createWebuiHandler({
       webuiDir: '/tmp/does-not-need-static-assets',
@@ -242,6 +244,7 @@ describe('account webui auth', () => {
       accountCloudWorkspaceStore: cloudWorkspaceStore,
       accountDvnetBilling: dvnetBilling,
       accountWorkspaceSyncService: workspaceSyncService,
+      accountAuditEventStore: auditEventStore,
     })
     handlers.push(handler)
     return handler
@@ -899,6 +902,103 @@ describe('account webui auth', () => {
 
     const anonymousAudit = await handler.fetch(new Request(`http://rox.test/api/account/teams/${teamId}/audit`))
     expect(anonymousAudit.status).toBe(401)
+  })
+
+  it('queries stored team audit records with filters while preserving team audit RBAC', async () => {
+    const store = new MemoryAccountStore()
+    const teams = new InMemoryAccountTeamStore()
+    const auditStore = new InMemoryAuditEventStore()
+    const owner = await store.createUser({ email: 'audit-query-owner@example.com', password: 'password123' })
+    await store.markEmailVerified(owner.id)
+    const viewer = await store.createUser({ email: 'audit-query-viewer@example.com', password: 'password123' })
+    await store.markEmailVerified(viewer.id)
+    const handler = createHandler(store, undefined, undefined, undefined, teams, undefined, undefined, undefined, auditStore)
+
+    const ownerLogin = await handler.fetch(new Request('http://rox.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'audit-query-owner@example.com', password: 'password123' }),
+    }))
+    const ownerCookie = ownerLogin.headers.get('set-cookie') ?? ''
+    expect(ownerLogin.status).toBe(200)
+
+    const createTeam = await handler.fetch(new Request('http://rox.test/api/account/teams', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ name: 'Audit Query Ops' }),
+    }))
+    expect(createTeam.status).toBe(200)
+    const createTeamBody = await createTeam.json() as { teams: Array<{ id: string }> }
+    const teamId = createTeamBody.teams[0]!.id
+
+    await auditStore.append({
+      actor: { type: 'user', id: owner.id, role: 'owner' },
+      tenantId: teamId,
+      eventType: 'scope.factory.downgraded',
+      severity: 'trace',
+      payload: { reason: 'multi-tenant-not-activated', token: 'raw-token' },
+      requestId: 'req-visible',
+      ts: '2026-05-16T10:00:00.000Z',
+    })
+    await auditStore.append({
+      actor: { type: 'user', id: owner.id, role: 'owner' },
+      tenantId: 'other-team',
+      eventType: 'scope.factory.downgraded',
+      severity: 'trace',
+      payload: { reason: 'wrong-tenant' },
+      requestId: 'req-other-tenant',
+      ts: '2026-05-16T10:05:00.000Z',
+    })
+    await auditStore.append({
+      actor: { type: 'user', id: viewer.id },
+      tenantId: teamId,
+      eventType: 'credential.scope.write',
+      severity: 'trace',
+      payload: { credentialType: 'anthropic_api_key' },
+      requestId: 'req-other-event',
+      ts: '2026-05-16T10:10:00.000Z',
+    })
+
+    const query = new URL(`http://rox.test/api/account/teams/${teamId}/audit`)
+    query.searchParams.set('eventType', 'scope.factory.downgraded')
+    query.searchParams.set('actorId', owner.id)
+    query.searchParams.set('from', '2026-05-16T09:00:00.000Z')
+    query.searchParams.set('to', '2026-05-16T11:00:00.000Z')
+    const response = await handler.fetch(new Request(query.toString(), { headers: { cookie: ownerCookie } }))
+    expect(response.status).toBe(200)
+    const body = await response.json() as { events: Array<Record<string, any>> }
+
+    expect(body.events).toHaveLength(1)
+    expect(body.events[0]).toMatchObject({
+      type: 'scope.factory.downgraded',
+      action: 'scope.factory.downgraded',
+      teamId,
+      severity: 'trace',
+      details: { reason: 'multi-tenant-not-activated', token: '[redacted]' },
+      metadata: { requestId: 'req-visible' },
+    })
+    expect(JSON.stringify(body)).not.toContain('raw-token')
+    expect(JSON.stringify(body)).not.toContain('wrong-tenant')
+
+    const invite = await handler.fetch(new Request(`http://rox.test/api/account/teams/${teamId}/invites`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', cookie: ownerCookie },
+      body: JSON.stringify({ role: 'viewer' }),
+    }))
+    const inviteBody = await invite.json() as { invite: { code: string } }
+    const viewerLogin = await handler.fetch(new Request('http://rox.test/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'audit-query-viewer@example.com', password: 'password123' }),
+    }))
+    const viewerCookie = viewerLogin.headers.get('set-cookie') ?? ''
+    await handler.fetch(new Request(`http://rox.test/api/account/invites/${inviteBody.invite.code}/accept`, {
+      method: 'POST',
+      headers: { cookie: viewerCookie },
+    }))
+
+    const viewerAudit = await handler.fetch(new Request(query.toString(), { headers: { cookie: viewerCookie } }))
+    expect(viewerAudit.status).toBe(403)
   })
 
   it('creates managed cloud workspaces through account sessions and grants explicit ownership', async () => {
