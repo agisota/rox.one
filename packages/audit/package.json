@@ -1,5 +1,5 @@
 {
-  "name": "@rox-agent/audit",
+  "name": "@rox-one/audit",
   "version": "0.9.1",
   "private": true,
   "type": "module",
