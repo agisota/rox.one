@@ -99,6 +99,9 @@ Still out of scope for ADR 0007:
 - **RBAC-owned `session.permittedWorkspaces` population.** C4 consumes the
   permitted workspace set but does not define role or team policy. Phase 2 owns
   the RBAC policy model and session population path.
+  Updated 2026-05-13 — RBAC enforcement landed via ADR 0009; the "always
+  permit" stub in `deriveScopeFromAuth` is no longer a stub when an
+  `rbacResolver` is wired into `HandlerDeps`.
 
 ## Security Implications
 
