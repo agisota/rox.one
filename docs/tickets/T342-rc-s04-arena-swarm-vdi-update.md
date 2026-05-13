@@ -1,6 +1,6 @@
 # T342 - RC Scenario S04: Arena Swarm → Dedupe Signals → Review Board → VDI Update
 
-Status: Todo
+Status: Blocked
 
 ## Context
 
