@@ -114,6 +114,54 @@ Current tracked-file findings for community-link patterns:
 
 Planned cleanup owner: Phase R.9. Historical release notes remain preserved.
 
+## Bucket: Legal preserve — community links (R.9 closeout)
+
+T295 (Phase R.9) audited every tracked file for community-implying URLs and
+landed the following replacements. The audit regression test lives at
+`scripts/__tests__/community-link-audit.test.ts`; it fails closed if any of
+the patterns below reappear outside the allowlist.
+
+### R.9 REPLACE set (2 paths, 3 hits)
+
+| Path:line | Old URL | New URL | Justification |
+| --- | --- | --- | --- |
+| `.github/ISSUE_TEMPLATE/bug_report.yml:116` | `https://github.com/lukilabs/rox-agents-oss#troubleshooting` | `https://github.com/agisota/rox-one-terminal#troubleshooting` | User-facing bug-report template pointing reporters at the upstream README implied this product still lives in the upstream community. Redirected to the ROX.ONE-owned repo's Troubleshooting section. |
+| `apps/electron/src/renderer/playground/registry/browser-ui.tsx:691` | `https://github.com/lukilabs/rox-agents-oss/pulls` | `https://github.com/agisota/rox-one-terminal/pulls` | Playground demo seed data renders a mock browser tab with this URL. Demoing the upstream PR list implied this product still ships from there. |
+| `apps/electron/src/renderer/playground/registry/browser-ui.tsx:783` | `https://github.com/lukilabs/rox-agents-oss` | `https://github.com/agisota/rox-one-terminal` | Same demo registry, separate seed; the surrounding title literal `'ROX ONE OSS Repo …'` was already ROX-branded, so only the URL needed updating. |
+
+### R.9 PRESERVE set (community-implying patterns that remain by design)
+
+| Path | Category | Justification |
+| --- | --- | --- |
+| `LICENSE` | Apache 2.0 §4 attribution | Upstream copyright + source URL preserved verbatim. |
+| `NOTICE` | Apache 2.0 §4 attribution | Same. |
+| `TRADEMARK.md` | Trademark notice | Same. |
+| `Dockerfile.server` (`org.opencontainers.image.source` label) | OCI image attribution | The image label must point at the upstream source per Apache 2.0; enforced by the R.7 test `scripts/__tests__/r7-docker-ci-build.test.ts`. |
+| `README.md` (License + Acknowledgements sections) | Attribution | Allowlisted line-by-line in `scripts/validate-rebrand.cjs`. |
+| `plan.md`, `snapshot.md` | Historical orientation docs | Whole-file allowlist; revised in R.4 but the upstream remote/clone references remain for operator reference. |
+| `apps/electron/resources/release-notes/*.md` | Historical immutable release notes | Reference upstream GitHub issues (e.g. `#597`, `#583`, `#616`) and `docs.rox.do/messaging/lark` because the release notes describe shipped state at the time; preserving them is the historical record. |
+| `docs/worklog/T*-*.md`, `docs/tickets/T*-*.md` (Status: DONE) | Historical immutable record | Same. |
+| `docs/decision-records/` | Architectural decision records | Historical record of decisions; ADR 0011 is the canonical rebrand decision and refers back to upstream context. |
+| `docs/release/upstream-v0.9.1-rox-protected-map.md` | Upstream merge map | Operational doc describing the upstream merge baseline; explicitly names the upstream remote. |
+| `docs/superpowers/goals/2026-05-13-*.md` | Goal definitions | Goals define the audit rules themselves; they name the forbidden patterns to document them. |
+| `packages/server-core/src/sessions/SessionManager.ts:680` | Developer JSDoc traceability | The comment `See: https://github.com/lukilabs/rox-agents-oss/issues/39` documents *why* the SDK subprocess disables Bun's auto `.env` loading (a fix that originated in the upstream issue tracker). It is developer-facing context, not a user-directed community link, and is line-allowlisted in the audit test. |
+| `packages/shared/src/automations/utils.ts` (`ROX_WH_DISCORD_TOKEN` JSDoc) | Generic Discord webhook example | Documents how arbitrary Discord webhooks can be wired up via the `ROX_WH_*` user-defined secret namespace. Not a community link. Token namespace itself is owned by R.6 / future env-var renames, not R.9. |
+| `apps/electron/resources/docs/automations.md` (Discord/Slack webhook examples) | Generic webhook docs | Documents the webhook-action capability with Slack and Discord as illustrative third-party services. Not a community link directing users to a Rox Agents server. |
+
+### R.9 placeholder destinations
+
+The goal authorised placeholder URLs for canonical ROX.ONE community
+destinations (`https://discord.gg/rox-one`, `https://x.com/rox_one`,
+`https://rox.one/community`). The R.9 audit did not need to use any of those
+placeholders — the REPLACE set above redirects to the ROX.ONE-owned GitHub
+repository only, which exists today. Future ticket work (post-R.10) may need
+to expand on the canonical Discord/X destinations once they are minted.
+
+### R.9 verification
+
+- Regression test: `bun test scripts/__tests__/community-link-audit.test.ts` (3 pass, 0 fail).
+- Manual click-through on every replaced URL: deferred (`TBD: manual verification`); the three replacement URLs all resolve to existing GitHub paths under the ROX.ONE-owned repository.
+
 ## Bucket: Legal Preserve
 
 These paths are intentionally allowlisted by ADR 0011 and the rebrand goal:

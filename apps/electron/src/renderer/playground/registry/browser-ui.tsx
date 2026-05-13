@@ -688,7 +688,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
     },
     {
       id: 'run-3',
-      url: 'https://github.com/lukilabs/rox-agents-oss/pulls',
+      url: 'https://github.com/agisota/rox-one-terminal/pulls',
       title: 'GitHub PRs',
       favicon: null,
       isLoading: true,
@@ -780,7 +780,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
     },
     {
       id: 'mix-4',
-      url: 'https://github.com/lukilabs/rox-agents-oss',
+      url: 'https://github.com/agisota/rox-one-terminal',
       title: 'ROX ONE OSS Repo with a Surprisingly Long Branch and Compare View Name',
       favicon: null,
       isLoading: false,
