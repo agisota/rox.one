@@ -20,6 +20,26 @@ import path from 'node:path';
 const root = process.cwd();
 const appPath = path.join(root, 'apps/electron/release/mac-arm64/ROX.ONE.app');
 
+/** T251: support `--fixture <path>` as a CLI alternative to the
+ *  MAC_BOUNDARY_FIXTURE_DIR env var. The CLI form is what
+ *  `validate:mac-boundary-fixtures` and bun-test invocations use; the env
+ *  var stays supported for backwards compatibility. */
+const argv = process.argv.slice(2);
+for (let index = 0; index < argv.length; index += 1) {
+  const arg = argv[index];
+  if (arg === '--fixture' || arg === '--fixture-dir') {
+    const next = argv[index + 1];
+    if (!next || next.startsWith('--')) {
+      console.error('[mac-private-release-boundary] --fixture requires a path argument');
+      process.exit(1);
+    }
+    process.env.MAC_BOUNDARY_FIXTURE_DIR = next;
+    index += 1;
+  } else if (arg.startsWith('--fixture=')) {
+    process.env.MAC_BOUNDARY_FIXTURE_DIR = arg.slice('--fixture='.length);
+  }
+}
+
 /** Canonical bundle-id pattern. `com.rox.one` is the registered base scope;
  *  helper apps and downstream tools may extend with `.helper`, etc. */
 const BUNDLE_ID_PATTERN = /^com\.rox\.one(\.[A-Za-z0-9-]+)*$/;

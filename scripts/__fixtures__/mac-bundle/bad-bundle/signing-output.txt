@@ -1,0 +1,20 @@
+Executable=Contents/MacOS/Fake
+Identifier=com.notrox.fake
+Format=app bundle with Mach-O thin (arm64)
+CodeDirectory v=20500 size=1234 flags=0x0 hashes=0+0 location=embedded
+Signature=adhoc
+TeamIdentifier=not set
+Sealed Resources version=2 rules=13 files=42
+Entitlements:
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+  <key>com.apple.security.network.server</key>
+  <true/>
+</dict>
+</plist>
+Signed native binaries:
+Fake
