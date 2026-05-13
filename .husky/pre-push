@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+# R.10 — permanent validate:rebrand gate.
+#
+# Husky v9.1 user-shim layout: the dispatcher at .husky/_/<hookname> calls
+# `sh -e .husky/<hookname>`, so this file is plain shell with no source line.
+# (The deprecated `. "$(dirname -- "$0")/_/husky.sh"` form is removed in
+# husky v10; we keep this file forward-compatible.)
+#
+# `bun run validate:rebrand` shells into scripts/validate-rebrand.cjs and
+# exits non-zero if any forbidden legacy-brand token appears outside the
+# curated allowlist. A non-zero exit aborts the push.
+bun run validate:rebrand
