@@ -140,7 +140,11 @@ export function migrateUserDataIfNeeded(
   }
 
   // Conflict: legacy + new root both present, no marker. Refuse to merge.
-  if (existsSync(newRoot)) {
+  // If newRoot is itself one of the legacyRoots (e.g. ~/.rox/ listed as a
+  // lower-priority source after ~/.rox-agent/), it is a migration source, not
+  // independently-curated user data, so copying over it is safe and intended.
+  const newRootIsLegacySource = legacyRoots.includes(newRoot)
+  if (existsSync(newRoot) && !newRootIsLegacySource) {
     logger.warn(
       `[user-data-migration] both ${source} and ${newRoot} exist; ` +
         'skipping migration. Consolidate manually if you want the ' +
@@ -161,9 +165,12 @@ export function migrateUserDataIfNeeded(
   // `verbatimSymlinks: true` keeps symlinks instead of dereferencing
   // them. Node 22+ honors the option; older hosts silently ignore it
   // (degradation, not corruption — see spec §6).
+  // `force: true` ensures existing files at the destination are overwritten;
+  // Bun's cpSync skips existing files by default unlike Node.js.
   cpSync(source, newRoot, {
     recursive: true,
     verbatimSymlinks: true,
+    force: true,
   } as Parameters<typeof cpSync>[2])
 
   const filesCopied = countFiles(newRoot)

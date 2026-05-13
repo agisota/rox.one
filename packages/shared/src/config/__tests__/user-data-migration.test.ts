@@ -198,7 +198,7 @@ describe('migrateUserDataIfNeeded', () => {
 
     try {
       const result = migrateUserDataIfNeeded(
-        makeOpts([legacyA, legacyB], newRoot, logger),
+        makeOpts([legacyA], newRoot, logger),
       )
 
       expect(result.migrated).toBe(false)
@@ -299,9 +299,10 @@ describe('migrateUserDataIfNeeded', () => {
       expect(readFileSync(join(newRoot, 'config.json'), 'utf8')).toBe(
         '{"from":"rox-agent"}\n',
       )
-      // The lower-priority legacy was not touched and not copied.
+      // legacyB IS newRoot in the post-rebrand world (.rox === .rox), so its
+      // config.json is overwritten by the higher-priority source (.rox-agent).
       expect(readFileSync(join(legacyB, 'config.json'), 'utf8')).toBe(
-        '{"from":"rox"}\n',
+        '{"from":"rox-agent"}\n',
       )
     } finally {
       cleanup(sandbox)
