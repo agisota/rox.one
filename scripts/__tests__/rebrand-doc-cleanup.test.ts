@@ -48,4 +48,16 @@ describe("R.4 documentation rebrand cleanup", () => {
     expect(contributing).toContain("@rox-one/core");
     expect(contributing).not.toContain(`${legacyPackageScope}/`);
   });
+
+  test("rewrites security and conduct policy docs to ROX.ONE contacts and scope", () => {
+    const codeOfConduct = readText("CODE_OF_CONDUCT.md");
+    const security = readText("SECURITY.md");
+
+    expect(codeOfConduct).toContain("conduct@rox.one");
+    expect(codeOfConduct).not.toContain("legal@rox.one");
+
+    expect(security).toContain("security@rox.one");
+    expect(security).toContain("@rox-one/*");
+    expect(security).not.toContain(`${legacyPackageScope}/*`);
+  });
 });
