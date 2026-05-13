@@ -151,6 +151,15 @@ export function registerRolesCoreHandlers(server: RpcServer, deps: HandlerDeps):
   // roles.grant — owner-on-target-scope (or global owner)
   // ----------------------------------------------------------------------
   server.handle(RPC_CHANNELS.roles.GRANT, async (ctx: RequestContext, grant: RoleGrant) => {
+    // T071b: optional rate-limit. Runs BEFORE validation and permission
+    // checks so a hot burst of malformed grants from a single actor still
+    // consumes bucket tokens. The limiter is optional — absent => no-op.
+    // Sits BEFORE the grant store write and BEFORE audit emission, so a
+    // limited request produces no state change and no audit record.
+    if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+      return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+
     // Argument validation runs first so we can reject malformed grants
     // before they hit the permission check. (This matches the test
     // expectation — invalid-argument cases use a valid caller.)
@@ -209,6 +218,13 @@ export function registerRolesCoreHandlers(server: RpcServer, deps: HandlerDeps):
   // roles.revoke — owner-on-target-scope, idempotent, invalidates cache
   // ----------------------------------------------------------------------
   server.handle(RPC_CHANNELS.roles.REVOKE, async (ctx: RequestContext, grant: RoleGrant) => {
+    // T071b: optional rate-limit. Same contract as `roles.grant` above.
+    // The same bucket gates both mutating channels by design — a single
+    // actor cannot burst either grant or revoke past the configured cap.
+    if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+      return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+
     if (!grant || typeof grant !== 'object') {
       return { error: 'invalid-argument', reason: 'invalid-grant' }
     }
