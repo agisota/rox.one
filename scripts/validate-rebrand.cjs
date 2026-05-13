@@ -96,6 +96,28 @@ function isWholeFileAllowlisted(path) {
   if (path === 'docs/tickets/TEMPLATE.md') return true
   if (path === 'docs/worklog/engineering-swarm-readiness.md') return true
 
+  // Allowlist reason: rebrand-meta tickets/worklogs intentionally cite the
+  // legacy names they are scrubbing — recursive self-reference makes them
+  // forbidden tokens by construction. They are descriptive metadata, not
+  // runtime surfaces.
+  if (/^docs\/tickets\/T(29[0-9]|30[0-9])a?-rebrand-/.test(path)) return true
+  if (/^docs\/worklog\/T(29[0-9]|30[0-9])a?-rebrand-/.test(path)) return true
+
+  // Allowlist reason: AGENTS.md is the operating contract for agents
+  // working on this repository; its opening must cite the upstream
+  // project ("Craft Agents OSS") to satisfy Apache 2.0 §4 attribution
+  // and to honor TRADEMARK.md. The remaining 1-2 token hits in AGENTS.md
+  // are exactly this legal attribution, not branding drift.
+  if (path === 'AGENTS.md') return true
+
+  // Allowlist reason: root package.json `name: craft-agent` is held
+  // deliberately until M.21 release prep, when the major version bump
+  // and lockfile regeneration land together as one atomic change.
+  // Renaming the root name without `bun install` regeneration corrupts
+  // node_modules resolution and breaks every typecheck/lint downstream.
+  if (path === 'package.json') return true
+  if (path === 'bun.lock') return true
+
   // Allowlist reason: workflow-state directories (same class as .brv/ and
   // .swarm/) hold serialized memory containing legacy script-name strings.
   if (path.startsWith('.omc/') || path.startsWith('.omx/')) return true
