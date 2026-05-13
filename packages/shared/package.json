@@ -79,7 +79,7 @@
   },
   "dependencies": {
     "@rox-one/core": "workspace:*",
-    "@rox-agent/session-tools-core": "workspace:*",
+    "@rox-one/session-tools-core": "workspace:*",
     "@isaacs/ttlcache": "^2.1.4",
     "@leeoniya/ufuzzy": "^1.0.19",
     "@mariozechner/pi-agent-core": "0.72.1",
