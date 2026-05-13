@@ -271,7 +271,7 @@ export function TopBar({
         {/* Configured app menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <TopBarButton aria-label={t("menu.craftMenu")}>
+            <TopBarButton aria-label={t("menu.appMenu")}>
               <CraftAgentsSymbol className="h-4 text-accent" />
             </TopBarButton>
           </DropdownMenuTrigger>
