@@ -114,9 +114,9 @@ If any check fails, **stop and report**.
 | M | M.1.6 | Multi-tenant data migration tool | ✓ DONE | master-roadmap | T221 | `9ffb0a3` |
 | M | M.1.7 | Phase 1 closeout | ✓ DONE | master-roadmap | T222 | `f9ea575` |
 | R | R.0 | Canonical brand decision + ADR 0011 + `validate:rebrand` gate | ✓ DONE | rebrand-sweep | T260-T262 | `61016f9` |
-| R | R.1 | Surface text completion (i18n, READMEs, HTML titles, log paths) | NEXT | rebrand-sweep | T263 | — |
-| R | R.2 | Code identifier renames (`CraftAppIcon` → `RoxAppIcon` etc.) | QUEUED | rebrand-sweep | T264-T266 | — |
-| R | R.3 | Asset file renames (`craft-logos/`, binaries, doc filenames) | QUEUED | rebrand-sweep | T267-T268 | — |
+| R | R.1 | Surface text completion (i18n, READMEs, HTML titles, log paths) | ✓ DONE | rebrand-sweep | T263 | `4f02515` |
+| R | R.2 | Code identifier renames (`CraftAppIcon` → `RoxAppIcon` etc.) | ✓ DONE | rebrand-sweep | T264-T266 | `3d945c4` |
+| R | R.3 | Asset file renames (`craft-logos/`, binaries, doc filenames) | NEXT | rebrand-sweep | T267-T268 | — |
 | R | R.4 | Documentation / decision-record / plan cleanup | QUEUED | rebrand-sweep | T269-T272 | — |
 | R | R.5 | Package scope rename `@craft-agent/*` → `@rox-one/*` (11 sub-phases) | QUEUED | rebrand-sweep | T273-T284 | — |
 | R | R.6 | Env-var rename `CRAFT_*` → `ROX_*` with `readEnv()` shim | QUEUED | rebrand-sweep | T285-T288 | — |
