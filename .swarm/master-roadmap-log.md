@@ -16,3 +16,4 @@ rebrand-R.10-final-sweep-and-gate | b287c4e | T296,T297 | 2026-05-13T21:50:00Z
 M.2-foundation | 89e3423,375e89a | T224,T225 | 2026-05-13T18:57:16Z
 M.2-T226-rbac-resolver | cad0550 | T226 | 2026-05-13T19:08:05Z
 M.2-T227-foundation | 7e76711 | T227-part1 | 2026-05-13T19:16:40Z
+M.2-T227-complete | ca208d7 | T227 | 2026-05-13T19:22:30Z

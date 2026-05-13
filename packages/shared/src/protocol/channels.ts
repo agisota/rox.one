@@ -252,6 +252,12 @@ export const RPC_CHANNELS = {
     SETTINGS_GET: 'workspaceSettings:get',
     SETTINGS_UPDATE: 'workspaceSettings:update',
   },
+  roles: {
+    LIST: 'roles.list',
+    CREATE: 'roles.create',
+    GRANT: 'roles.grant',
+    REVOKE: 'roles.revoke',
+  },
   permissions: {
     GET_DEFAULTS: 'permissions:getDefaults',
     DEFAULTS_CHANGED: 'permissions:defaultsChanged',

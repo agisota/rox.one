@@ -347,6 +347,12 @@ export const REMOTE_ELIGIBLE_CHANNELS = new Set<string>([
   RPC_CHANNELS.oauth.CANCEL,
   RPC_CHANNELS.oauth.REVOKE,
 
+  // roles — RBAC roles + grants admin (M.2 T227)
+  RPC_CHANNELS.roles.LIST,
+  RPC_CHANNELS.roles.CREATE,
+  RPC_CHANNELS.roles.GRANT,
+  RPC_CHANNELS.roles.REVOKE,
+
   // workspace — workspace config + images (sharp on headless)
   RPC_CHANNELS.workspace.GET_PERMISSIONS,
   RPC_CHANNELS.workspace.READ_IMAGE,
