@@ -187,5 +187,37 @@ why a line is not attribution or immutable history.
 
 ## Closeout Update Slot
 
-Phase R.10 will update this section with final closeout commit SHAs, the
-preserved upstream-link list, and the final `validate:rebrand` result.
+Phase R.10 closeout result:
+
+- Final validator result: `bun run validate:rebrand` exits 0 with
+  `rebrand validation passed: no forbidden tokens outside the allowlist`.
+- Permanent gates: `.husky/pre-push` and `.github/workflows/validate.yml`
+  both run `bun run validate:rebrand`.
+- Roadmap gate follow-up: `bun run validate:roadmap` exits 0 with
+  `validate:roadmap OK — 46 phases, 111 tickets across detail files`
+  after T321 aligned the validator with the shipped phase ledger.
+- Preserved upstream-link list: unchanged from the R.9 PRESERVE set
+  above (`LICENSE`, `NOTICE`, `TRADEMARK.md`, Dockerfile source label,
+  README License/Acknowledgements, historical release notes, historical
+  tickets/worklogs, ADRs, and goal/design docs).
+- Preserved compatibility surfaces: the R.6 `readEnv()` shim and
+  one-minor-version compatibility surfaces documented inline with
+  `// Allowlist reason:` comments in `scripts/validate-rebrand.cjs`.
+
+Closeout phase ledger:
+
+| Phase | Tickets | Commits |
+| --- | --- | --- |
+| R.0 | T260,T261,T262 | `58613ed` |
+| R.1 | T263 | `24aa751` |
+| R.2 | T264,T265,T266 | `93e7b73,cc89339,e6117bb` |
+| R.3 | T267,T268 | `82a8425,e9305ca` |
+| R.4 | T269,T270,T271,T272 | `5bfd87a,1cd54cf,0fd740f,cb34ecd` |
+| R.5 | T273-T284 | `acc1946,76b85ec,f07da34,09ef0ef,34dc261,35098cc,f7c2a15,d7a9af1,8a390ec,baad43e,3ab5324,2c70ed4` |
+| R.6 | T285-T288 | `777ada7,3caa407` |
+| R.7 | T289-T291 | `1766229,24b0d01,23a3b73,4b2ef22` |
+| R.8 | T292,T293,T294 | `3f9ea58,efdf1bc,f39d087` |
+| R.9 | T295 | `17990c4` |
+| R.9.5 | T298a,T300a | `b6ce2c4,6537ada,512dacc` |
+| R.10 | T296,T297 | `7cee988` |
+| R.10 follow-up | T321 | `d0b2528` |
