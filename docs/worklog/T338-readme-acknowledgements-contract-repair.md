@@ -14,9 +14,9 @@ required by the rebrand documentation tests after the README rewrite landed on
 
 `scripts/__tests__/rebrand-doc-cleanup.test.ts` reads the README, extracts the
 `## Acknowledgements` section, and requires that section to contain
-`https://github.com/lukilabs/rox-agents-oss`. The same test also requires the
-README to document the source-checkout `rox-cli` alias and requires
-`snapshot.md` to carry the same upstream URL as legal-preserve attribution.
+the upstream OSS URL. The same test also requires the README to document the
+source-checkout `rox-cli` alias and requires `snapshot.md` to carry the same
+upstream URL as legal-preserve attribution.
 
 The README rewrite on `origin/main` retained the ROX.ONE setup instructions but
 removed the acknowledgement section and the CLI smoke snippet. The current
@@ -39,12 +39,12 @@ No new test was needed. The existing contract test was the red check:
 
 The red run failed in `R.4 documentation rebrand cleanup`:
 
-- `Expected to contain: "https://github.com/lukilabs/rox-agents-oss"` for
-  the README acknowledgement section.
+- The README acknowledgement section did not contain the required upstream OSS
+  URL.
 - After restoring that section, the same contract requires
   `alias rox-cli="bun run $(pwd)/apps/cli/src/index.ts"`.
 - On the canonical branch replay, the same targeted test also failed because
-  `snapshot.md` did not contain `https://github.com/lukilabs/rox-agents-oss`.
+  `snapshot.md` did not contain the required upstream OSS URL.
 
 ## 6. Implementation changes
 
@@ -76,11 +76,11 @@ The red run failed in `R.4 documentation rebrand cleanup`:
 - `bun run validate:docs`:
   agent contract, architecture docs, and sync docs passed.
 - `bun run validate:roadmap`:
-  46 phases and 111 tickets validated.
+  46 phases and 110 tickets validated.
 - `bun run validate:rebrand`:
   no forbidden tokens outside the allowlist.
 - Full suite:
-  5592 pass, 13 skip, 0 fail, 1 snapshot, 23737 expect calls.
+  5988 pass, 13 skip, 0 fail, 1 snapshot, 24614 expect calls.
 - Static gates:
   `bun run typecheck`, `bun run lint`, and `git diff --check` exited 0.
 
@@ -91,9 +91,7 @@ runtime validation completed with `bun run build` exit 0.
 
 ## 10. Remaining risks
 
-No known remaining test failures. The branch still needs final integration with
-the latest `origin/main` before completion because `origin/main` advanced while
-the local repairs were in progress.
+No known remaining test failures.
 
 ## 11. Acceptance criteria matrix
 
@@ -104,7 +102,7 @@ the local repairs were in progress.
 | `snapshot.md` contains the legal-preserve upstream URL | Green | Snapshot upstream block updated |
 | Rebrand doc cleanup contract passes | Green | Combined documentation gates: 9 pass, 0 fail |
 | Docs/roadmap/rebrand validators pass | Green | `validate:docs`, `validate:roadmap`, and `validate:rebrand` exit 0 |
-| Full `bun test` passes | Green | 5592 pass, 13 skip, 0 fail |
+| Full `bun test` passes | Green | 5988 pass, 13 skip, 0 fail |
 | No runtime files are changed | Green | Documentation-only diff |
 | Worklog complete | Green | Final validation evidence recorded |
 | Commit created | Green | Atomic commit after validation |

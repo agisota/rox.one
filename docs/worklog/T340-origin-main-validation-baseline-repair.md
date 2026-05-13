@@ -6,12 +6,13 @@ Ticket: docs/tickets/T340-origin-main-validation-baseline-repair.md
 
 ## 1. Task summary
 
-Repair validation regressions present on current `origin/main` after replaying
-the post-merge validation branch onto PR #96.
+Repair validation regressions found while replaying the post-merge validation
+branch onto PR #96 and then the newer `origin/main`; final evidence was
+refreshed after rebasing through PR #126.
 
 ## 2. Repo context discovered
 
-The failures were present in `origin/main` itself:
+The original failures were present in `origin/main` at PR #96:
 
 - `git show origin/main:packages/shared/src/agent/options.ts` showed duplicate
   `ROX_DEBUG: debugFlag` entries.
@@ -29,11 +30,13 @@ The failures were present in `origin/main` itself:
   8-byte magic field but compared fresh loads against a 6-byte magic buffer,
   causing the flat credential file to be deleted as corrupt.
 
+During the final replay, upstream PR #100 had already restored the duplicate-env
+and legacy env compatibility pieces. The final T340 commit therefore keeps only
+the remaining validator, stale rebrand-test, user-data-migration fixture, and
+credential header repairs.
+
 ## 3. Files inspected
 
-- `packages/shared/src/agent/options.ts`
-- `packages/shared/src/agent/pi-agent.ts`
-- `packages/shared/src/utils/__tests__/env-compat.test.ts`
 - `packages/shared/src/config/__tests__/user-data-migration.test.ts`
 - `packages/shared/src/credentials/__tests__/tenant-key-derivation.test.ts`
 - `packages/shared/src/credentials/backends/secure-storage.ts`
@@ -57,7 +60,7 @@ After the full suite exposed the credential reload problem, I added:
 
 ## 5. Expected failing test output
 
-`bun run typecheck` failed with:
+Before the final replay, `bun run typecheck` failed with:
 
 - `TS1117: An object literal cannot have multiple properties with the same name`
   in `options.ts` and `pi-agent.ts`.
@@ -88,11 +91,8 @@ The stale rebrand/env/migration bundle failed on:
 
 ## 6. Implementation changes
 
-- Removed duplicate `ROX_DEBUG` properties from the agent subprocess env
-  objects.
-- Removed duplicated saved-env declarations and duplicated cleanup lines from
-  the env compatibility test, then aligned the test cases with direct
-  canonical `ROX_*` reads.
+- Preserved PR #100's duplicate-env and legacy env compatibility repair during
+  the final rebase.
 - Added concrete allowlists for current ROX-owned infrastructure,
   documentation, runtime, and rebrand-test surfaces that the PR #96 validator
   now checks.
@@ -123,8 +123,8 @@ The stale rebrand/env/migration bundle failed on:
 
 - `bun test packages/shared/src/credentials/__tests__/tenant-key-derivation.test.ts`:
   6 pass, 0 fail, 18 expect calls.
-- Combined rebrand/env/migration focused bundle:
-  24 pass, 0 fail, 136 expect calls.
+- Combined focused bundle after the final PR #126 rebase:
+  168 pass, 0 fail, 442 expect calls.
 - Earlier static gates after duplicate/allowlist repair:
   `bun run typecheck` exit 0, `bun run validate:rebrand` exit 0,
   `bun run lint` exit 0, `git diff --check` exit 0.
@@ -133,7 +133,7 @@ The stale rebrand/env/migration bundle failed on:
 - Documentation validators:
   `validate:docs` and `validate:roadmap` exited 0.
 - Full suite:
-  5592 pass, 13 skip, 0 fail, 1 snapshot, 23737 expect calls.
+  5988 pass, 13 skip, 0 fail, 1 snapshot, 24614 expect calls.
 
 ## 9. Build output summary
 
@@ -142,9 +142,7 @@ build, but all build stages completed successfully.
 
 ## 10. Remaining risks
 
-No known remaining test failures. The branch still needs final integration with
-the latest `origin/main` before completion because `origin/main` advanced while
-the local repairs were in progress.
+No known remaining test failures.
 
 ## 11. Acceptance criteria matrix
 
@@ -152,11 +150,11 @@ the local repairs were in progress.
 | --- | --- | --- |
 | Typecheck no longer fails on duplicate object/env declarations | Green | `bun run typecheck` exit 0 |
 | Rebrand validator accepts current ROX-owned surfaces | Green | `bun run validate:rebrand` exit 0 |
-| Focused rebrand/env/migration tests pass | Green | Combined focused bundle: 24 pass, 0 fail |
+| Focused rebrand/env/migration/C4 tests pass | Green | Combined focused bundle: 168 pass, 0 fail |
 | Tenant credential reload/fallback passes | Green | `tenant-key-derivation.test.ts`: 6 pass, 0 fail |
 | Lint remains green | Green | `bun run lint` exit 0 |
 | Whitespace check remains clean | Green | `git diff --check` exit 0 |
-| Full suite remains green | Green | 5592 pass, 13 skip, 0 fail |
+| Full suite remains green | Green | 5988 pass, 13 skip, 0 fail |
 | Build remains green | Green | `bun run build` exit 0 |
 | Worklog complete | Green | Final validation evidence recorded |
 | Commit created | Green | Atomic commit after validation |
