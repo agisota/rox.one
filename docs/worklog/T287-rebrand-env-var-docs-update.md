@@ -1,8 +1,9 @@
 # T287 - Rebrand env-var docs update
 
-Status: IN_PROGRESS
+Status: DONE
 Phase: R.6
 Ticket: docs/tickets/T287-rebrand-env-var-docs-update.md
+R.6 merge evidence: `777ada7` (`Complete R.6 env-var rename with readEnv() shim (#66)`)
 
 ## 1. Task summary
 
@@ -68,7 +69,16 @@ the shim.
 
 ## 8. Passing test output summary
 
-To be filled at green.
+- Operator-surface canonical-16 audit:
+  `rg -n "CRAFT_(SERVER_TOKEN|SERVER_URL|RPC_HOST|RPC_PORT|RPC_TLS_CERT|RPC_TLS_KEY|RPC_TLS_CA|TLS_CA|DEBUG|DEV_RUNTIME|BUNDLED_ASSETS_ROOT|WEBUI_DIR|WEBUI_PORT|MESSAGING_WA_WORKER|MESSAGING_NODE_BIN|CONFIG_DIR)" packages apps scripts Dockerfile.server .env.example README.md package.json docs --glob '!docs/worklog/T*.md' --glob '!apps/electron/resources/release-notes/*.md'`
+  no longer reports canonical-16 hits in `README.md`, `.env.example`,
+  `Dockerfile.server`, or root `package.json`.
+- `bun run validate:rebrand`: `rebrand validation passed: no forbidden
+  tokens outside the allowlist`.
+- `bun run validate:roadmap`: `validate:roadmap OK -- 46 phases, 111 tickets
+  across detail files`.
+- `bun run typecheck`: exit 0.
+- `bun run lint`: exit 0.
 
 ## 9. Build output summary
 
@@ -83,4 +93,10 @@ No build needed for docs/config changes.
 
 ## 11. Acceptance criteria matrix
 
-Filled at green.
+| Acceptance criterion | Status | Evidence |
+|---|---|---|
+| README primary text uses `ROX_*` everywhere | Pass | Operator-surface canonical-16 audit reports no README hits |
+| `.env.example` lists only `ROX_*` names for the canonical 16 | Pass | Operator-surface canonical-16 audit reports no `.env.example` hits |
+| `Dockerfile.server` `ENV` lines and `package.json` scripts use `ROX_*` | Pass | Operator-surface canonical-16 audit reports no `Dockerfile.server` or root `package.json` hits |
+| Deprecation note present where operators encounter the shim | Pass | `docs/cli.md` and runtime comments document legacy `CRAFT_*` shim fallback |
+| No legal-preserve surface modified | Pass | No legal-preserve files are changed in this repair |
