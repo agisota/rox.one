@@ -5,6 +5,13 @@
  * API exactly — callers continue to import from './config/storage'.
  */
 export * from './storage-scope.ts';
+export {
+  DEFAULT_LOCAL_SCOPE,
+  deriveScopeFromAuth,
+  MultiTenantForgeryError,
+  type BrandedWorkspaceScope,
+  type ScopeAuthContext,
+} from './storage-scope-auth.ts';
 export * from './storage-io.ts';
 export * from './storage-settings.ts';
 export * from './storage-workspaces.ts';
