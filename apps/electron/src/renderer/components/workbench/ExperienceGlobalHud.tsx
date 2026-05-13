@@ -72,6 +72,21 @@ export function ExperienceGlobalHud({
 }) {
   const state = createExperienceGlobalHudState(runtimeState, layer);
   const blockerLabel = state.blockers.length > 0 ? state.blockers.join(', ') : 'нет блокеров';
+  const latestArtifact = runtimeState.artifacts.at(-1);
+  const feedbackItems = [
+    { id: 'hud-vdi', kind: 'vdi' as const, label: `VDI ${state.verifiedDeliverableIndex}`, detail: 'runtime truth' },
+    { id: 'hud-xp', kind: 'xp' as const, label: `${state.xp} XP`, detail: `уровень ${state.level}` },
+    ...(state.blockers.length > 0
+      ? [{ id: 'hud-blocker', kind: 'gate_failed' as const, label: 'Gate failed', detail: blockerLabel }]
+      : latestArtifact
+        ? [{
+            id: 'hud-artifact',
+            kind: 'artifact_accepted' as const,
+            label: 'Artifact accepted',
+            detail: latestArtifact.title,
+          }]
+        : []),
+  ];
 
   return (
     <section
@@ -98,13 +113,7 @@ export function ExperienceGlobalHud({
       <ExperienceFeedbackStrip
         tone={layer === 'arena' ? 'arena' : layer === 'game' ? 'game' : 'command'}
         className="mt-2"
-        items={[
-          { id: 'hud-vdi', kind: 'vdi', label: `VDI ${state.verifiedDeliverableIndex}`, detail: 'runtime truth' },
-          { id: 'hud-xp', kind: 'xp', label: `${state.xp} XP`, detail: `уровень ${state.level}` },
-          ...(state.blockers.length > 0
-            ? [{ id: 'hud-blocker', kind: 'gate_failed' as const, label: 'Gate failed', detail: blockerLabel }]
-            : [{ id: 'hud-artifact', kind: 'artifact_accepted' as const, label: 'Artifact accepted', detail: state.latestNotification }]),
-        ]}
+        items={feedbackItems}
       />
     </section>
   );

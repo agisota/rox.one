@@ -18,7 +18,7 @@ async function loadComposerArtifactModules() {
   return {
     ComposerArtifactPanel: panel.ComposerArtifactPanel,
     createComposerArtifactState: flow.createComposerArtifactState,
-    createProductModeIntent: toolbar.createProductModeIntent,
+    createOpenArtifactProductModeIntent: toolbar.createOpenArtifactProductModeIntent,
   };
 }
 
@@ -27,18 +27,18 @@ describe('ComposerArtifactPanel', () => {
     const {
       ComposerArtifactPanel,
       createComposerArtifactState,
-      createProductModeIntent,
+      createOpenArtifactProductModeIntent,
     } = await loadComposerArtifactModules();
     const promptLab = createComposerArtifactState({
-      intent: createProductModeIntent('improve-prompt', 'research'),
+      intent: createOpenArtifactProductModeIntent('prompt-lab', 'research'),
       rawInput: 'Improve account UX',
     });
     const tddPlan = createComposerArtifactState({
-      intent: createProductModeIntent('run-tdd-plan', 'research'),
+      intent: createOpenArtifactProductModeIntent('tdd-plan', 'research'),
       rawInput: 'Plan account UX tests',
     });
     const reviewGate = createComposerArtifactState({
-      intent: createProductModeIntent('tear-down', 'research'),
+      intent: createOpenArtifactProductModeIntent('review-gate', 'research', { actionId: 'tear-down' }),
       rawInput: 'This is the best account UX',
     });
 

@@ -143,4 +143,13 @@ describe('ExperienceGlobalHud', () => {
     expect(markup).toContain('min-w-0');
     expect(markup).toContain('flex-wrap');
   });
+
+  test('does not invent an Artifact accepted chip when no artifact exists', () => {
+    const runtimeState = createInitialExperienceRuntimeState();
+    const markup = renderToStaticMarkup(<ExperienceGlobalHud runtimeState={runtimeState} layer="command" />);
+
+    expect(markup).toContain('Нет новых событий');
+    expect(markup).not.toContain('Artifact accepted');
+    expect(markup).not.toContain('data-feedback-kind="artifact_accepted"');
+  });
 });

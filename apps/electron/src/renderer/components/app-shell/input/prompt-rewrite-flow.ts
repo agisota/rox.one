@@ -12,7 +12,7 @@ export interface PromptRewriteSpecBuilderIntent {
 }
 
 export function shouldOpenPromptRewriteForIntent(intent: ProductModeIntent): boolean {
-  return intent.actionId === 'improve-prompt';
+  return intent.behavior !== 'wrap-prompt' && intent.actionId === 'improve-prompt';
 }
 
 export function createPromptRewriteRequestFromComposer(

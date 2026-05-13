@@ -73,9 +73,11 @@ describe('product mode toolbar contract', () => {
     expect(resolveComposerProductModeFromAction('tear-down', 'research')).toBe('review');
     expect(createProductModeIntent('tear-down', 'board')).toMatchObject({
       actionId: 'tear-down',
+      behavior: 'wrap-prompt',
       mode: 'review',
       source: 'composer-toolbar',
       type: 'product-mode-intent',
+      wrapperId: 'tear-down',
     });
   });
 
@@ -83,7 +85,10 @@ describe('product mode toolbar contract', () => {
     expect(createProductModeIntent('improve-prompt', 'review')).toEqual({
       type: 'product-mode-intent',
       source: 'composer-toolbar',
+      behavior: 'wrap-prompt',
       actionId: 'improve-prompt',
+      artifactKind: 'prompt-lab',
+      wrapperId: 'improve-prompt',
       mode: 'rewrite',
       labelKey: 'workbench.actions.improvePrompt',
     });

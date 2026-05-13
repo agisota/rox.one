@@ -37,21 +37,34 @@ export interface ComposerExperienceEventContext {
 }
 
 export function shouldOpenComposerArtifactForIntent(intent: ProductModeIntent): boolean {
-  return ['improve-prompt', 'run-tdd-plan', 'verify', 'tear-down', 'build-spec', 'review'].includes(intent.actionId);
+  return intent.behavior === 'open-artifact' && !!intent.artifactKind;
 }
 
 export function createComposerArtifactState(input: ComposerArtifactStateInput): ComposerArtifactState {
   const rawInput = input.rawInput.trim();
 
-  switch (input.intent.actionId) {
-    case 'improve-prompt':
+  if (!shouldOpenComposerArtifactForIntent(input.intent)) {
+    throw new Error('Composer artifacts require an explicit open-artifact intent.');
+  }
+
+  if (!rawInput) {
+    throw new Error('Composer artifacts require valid artifact input.');
+  }
+
+  const artifactKind = input.intent.artifactKind;
+  if (!artifactKind) {
+    throw new Error('Composer artifacts require an artifact kind.');
+  }
+
+  switch (artifactKind) {
+    case 'prompt-lab':
       return {
         kind: 'prompt-lab',
         intent: input.intent,
         shouldSubmit: false,
         promptLab: createPromptLabState(createPromptLabInput(rawInput, input.intent.mode)),
       };
-    case 'run-tdd-plan':
+    case 'tdd-plan':
       return {
         kind: 'tdd-plan',
         intent: input.intent,
@@ -65,19 +78,7 @@ export function createComposerArtifactState(input: ComposerArtifactStateInput): 
           touchedSurfaces: ['ui'],
         }),
       };
-    case 'verify':
-      return {
-        kind: 'review-gate',
-        intent: input.intent,
-        shouldSubmit: false,
-        reviewGate: createReviewGateState({
-          rawInput,
-          variant: 'check',
-          requiredGates: ['logic_check', 'fact_check'],
-        }),
-      };
-    case 'tear-down':
-    case 'review':
+    case 'review-gate':
       return {
         kind: 'review-gate',
         intent: input.intent,
@@ -85,10 +86,12 @@ export function createComposerArtifactState(input: ComposerArtifactStateInput): 
         reviewGate: createReviewGateState({
           rawInput,
           variant: input.intent.actionId === 'tear-down' ? 'tear-down' : 'check',
-          requiredGates: ['logic_check', 'fact_check', 'security_check'],
+          requiredGates: input.intent.actionId === 'verify'
+            ? ['logic_check', 'fact_check']
+            : ['logic_check', 'fact_check', 'security_check'],
         }),
       };
-    case 'build-spec':
+    case 'spec-builder':
       return {
         kind: 'spec-builder',
         intent: input.intent,
@@ -99,6 +102,8 @@ export function createComposerArtifactState(input: ComposerArtifactStateInput): 
           modeId: 'spec',
         }),
       };
+    default:
+      throw new Error(`Unsupported composer artifact kind: ${artifactKind}`);
   }
 }
 

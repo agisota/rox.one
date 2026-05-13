@@ -36,6 +36,15 @@ export const COMPOSER_PRODUCT_MODE_ACTION_IDS = [
 ] as const;
 
 export type ComposerProductModeActionId = typeof COMPOSER_PRODUCT_MODE_ACTION_IDS[number];
+export type ComposerQuickActionWrapperId =
+  | 'improve-prompt'
+  | 'tdd-plan'
+  | 'verify'
+  | 'tear-down'
+  | 'spec'
+  | 'review';
+
+export type ComposerProductModeArtifactKind = 'prompt-lab' | 'tdd-plan' | 'review-gate' | 'spec-builder';
 
 export const COMPOSER_PRODUCT_MODE_PRIMARY_ACTION_IDS = [
   'improve-prompt',
@@ -49,12 +58,15 @@ export const COMPOSER_PRODUCT_MODE_OVERFLOW_ACTION_IDS = [
   'review',
 ] as const satisfies readonly ComposerProductModeActionId[];
 
-export type ProductModeIntentSource = 'composer-toolbar';
+export type ProductModeIntentSource = 'composer-toolbar' | 'composer-artifact-panel';
 
 export type ProductModeIntent = {
   type: 'product-mode-intent';
   source: ProductModeIntentSource;
+  behavior: 'wrap-prompt' | 'open-artifact';
   actionId: ComposerProductModeActionId;
+  artifactKind?: ComposerProductModeArtifactKind;
+  wrapperId?: ComposerQuickActionWrapperId;
   mode: ProductMode;
   labelKey: string;
 };
@@ -65,6 +77,8 @@ export type ComposerProductModeAction = {
   descriptionKey: string;
   ariaLabelKey: string;
   mode: ProductMode | 'selected';
+  wrapperId: ComposerQuickActionWrapperId;
+  artifactKind: ComposerProductModeArtifactKind;
 };
 
 export type ComposerProductModeOption = {
@@ -80,6 +94,8 @@ const COMPOSER_PRODUCT_MODE_ACTIONS: readonly ComposerProductModeAction[] = [
     descriptionKey: 'workbench.actions.improvePrompt.description',
     ariaLabelKey: 'workbench.actions.improvePrompt',
     mode: 'rewrite',
+    wrapperId: 'improve-prompt',
+    artifactKind: 'prompt-lab',
   },
   {
     id: 'run-tdd-plan',
@@ -87,6 +103,8 @@ const COMPOSER_PRODUCT_MODE_ACTIONS: readonly ComposerProductModeAction[] = [
     descriptionKey: 'workbench.actions.runTddPlan.description',
     ariaLabelKey: 'workbench.actions.runTddPlan',
     mode: 'tdd',
+    wrapperId: 'tdd-plan',
+    artifactKind: 'tdd-plan',
   },
   {
     id: 'verify',
@@ -94,6 +112,8 @@ const COMPOSER_PRODUCT_MODE_ACTIONS: readonly ComposerProductModeAction[] = [
     descriptionKey: 'workbench.actions.verify.description',
     ariaLabelKey: 'workbench.actions.verify',
     mode: 'verify',
+    wrapperId: 'verify',
+    artifactKind: 'review-gate',
   },
   {
     id: 'tear-down',
@@ -101,6 +121,8 @@ const COMPOSER_PRODUCT_MODE_ACTIONS: readonly ComposerProductModeAction[] = [
     descriptionKey: 'workbench.actions.tearDown.description',
     ariaLabelKey: 'workbench.actions.tearDown',
     mode: 'review',
+    wrapperId: 'tear-down',
+    artifactKind: 'review-gate',
   },
   {
     id: 'build-spec',
@@ -108,6 +130,8 @@ const COMPOSER_PRODUCT_MODE_ACTIONS: readonly ComposerProductModeAction[] = [
     descriptionKey: 'workbench.actions.buildSpec.description',
     ariaLabelKey: 'workbench.actions.buildSpec',
     mode: 'spec',
+    wrapperId: 'spec',
+    artifactKind: 'spec-builder',
   },
   {
     id: 'review',
@@ -115,6 +139,8 @@ const COMPOSER_PRODUCT_MODE_ACTIONS: readonly ComposerProductModeAction[] = [
     descriptionKey: 'workbench.actions.review.description',
     ariaLabelKey: 'workbench.actions.review',
     mode: 'review',
+    wrapperId: 'review',
+    artifactKind: 'review-gate',
   },
 ] as const;
 
@@ -203,7 +229,43 @@ export function createProductModeIntent(
   return {
     type: 'product-mode-intent',
     source: 'composer-toolbar',
+    behavior: 'wrap-prompt',
     actionId,
+    artifactKind: action.artifactKind,
+    wrapperId: action.wrapperId,
+    mode: resolveComposerProductModeFromAction(actionId, selectedMode),
+    labelKey: action.labelKey,
+  };
+}
+
+export function createOpenArtifactProductModeIntent(
+  artifactKind: ComposerProductModeArtifactKind,
+  selectedMode: ProductMode,
+  options: {
+    actionId?: ComposerProductModeActionId;
+    source?: ProductModeIntentSource;
+  } = {},
+): ProductModeIntent {
+  const fallbackActionIdByKind: Record<ComposerProductModeArtifactKind, ComposerProductModeActionId> = {
+    'prompt-lab': 'improve-prompt',
+    'tdd-plan': 'run-tdd-plan',
+    'review-gate': 'review',
+    'spec-builder': 'build-spec',
+  };
+  const actionId = options.actionId ?? fallbackActionIdByKind[artifactKind];
+  const action = COMPOSER_PRODUCT_MODE_ACTIONS.find(candidate => candidate.id === actionId);
+
+  if (!action) {
+    throw new Error(`Unknown composer product mode action: ${actionId}`);
+  }
+
+  return {
+    type: 'product-mode-intent',
+    source: options.source ?? 'composer-artifact-panel',
+    behavior: 'open-artifact',
+    actionId,
+    artifactKind,
+    wrapperId: action.wrapperId,
     mode: resolveComposerProductModeFromAction(actionId, selectedMode),
     labelKey: action.labelKey,
   };
