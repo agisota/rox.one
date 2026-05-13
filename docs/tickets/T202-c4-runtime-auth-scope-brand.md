@@ -64,16 +64,16 @@ Implement the minimal auth/runtime scope foundation from the locked C4 design. D
 
 ## Acceptance Criteria
 
-- [ ] `DEFAULT_LOCAL_SCOPE` is branded, frozen, and resolves as the canonical single-user scope.
-- [ ] `ROX_MULTI_TENANT=1` is the only env value that activates multi-tenant mode.
-- [ ] Runtime mode reads are memoized and test overrides reset cleanly.
-- [ ] Single-user runtime returns `DEFAULT_LOCAL_SCOPE` and emits `scope.factory.downgraded` when applicable.
-- [ ] Multi-tenant runtime permits only `session.permittedWorkspaces`.
-- [ ] Forgery throws `MultiTenantForgeryError` and emits `scope.factory.forgery_rejected`.
-- [ ] The brand symbol and `brand()` applier are not exported.
-- [ ] Tests pass.
-- [ ] Worklog complete.
-- [ ] Commit created.
+- [x] `DEFAULT_LOCAL_SCOPE` is branded, frozen, and resolves as the canonical single-user scope.
+- [x] `ROX_MULTI_TENANT=1` is the only env value that activates multi-tenant mode.
+- [x] Runtime mode reads are memoized and test overrides reset cleanly.
+- [x] Single-user runtime returns `DEFAULT_LOCAL_SCOPE` and emits `scope.factory.downgraded` when applicable.
+- [x] Multi-tenant runtime permits only `session.permittedWorkspaces`.
+- [x] Forgery throws `MultiTenantForgeryError` and emits `scope.factory.forgery_rejected`.
+- [x] The brand symbol and `brand()` applier are not exported.
+- [x] Tests pass.
+- [x] Worklog complete.
+- [x] Commit created.
 
 ## Worklog
 

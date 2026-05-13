@@ -7,6 +7,7 @@ Run the full C4 stopping-condition validation and record evidence.
 ## 2. Repo context discovered
 
 - T202 through T207 landed the brand/factory/runtime, resolver, submodule enforcement, caller migration, RPC demo, integration test, and ADR documentation.
+- T209 through T212 closed deterministic validation blockers found while finishing the C4 matrix: checkout mtime skew, localized banner assertions, duplicate module-brand registry behavior, and shared-config mocks that leaked an unbranded local scope into the full Bun graph.
 - `.omx/` remains an untracked local workflow artifact and is not part of the repository diff.
 
 ## 3. Files inspected
@@ -27,6 +28,16 @@ Run the full C4 stopping-condition validation and record evidence.
 - `scripts/__tests__/mac-liquid-glass-icon-contract.test.ts`
 - `packages/shared/src/agent/backend/__tests__/factory.test.ts`
 - `apps/electron/src/renderer/components/app-shell/__tests__/transport-connection-banner.test.ts`
+- `docs/tickets/T209-liquid-glass-checkout-mtime-skew.md`
+- `docs/worklog/T209-liquid-glass-checkout-mtime-skew.md`
+- `docs/tickets/T210-transport-banner-i18n-test-determinism.md`
+- `docs/worklog/T210-transport-banner-i18n-test-determinism.md`
+- `docs/tickets/T211-storage-scope-brand-registry-dedup.md`
+- `docs/worklog/T211-storage-scope-brand-registry-dedup.md`
+- `docs/tickets/T212-shared-config-mock-branded-local-scope.md`
+- `docs/worklog/T212-shared-config-mock-branded-local-scope.md`
+- `apps/electron/src/main/handlers/__tests__/settings-default-thinking.test.ts`
+- `apps/electron/src/main/__tests__/session-branch-rollback.isolated.ts`
 
 ## 4. Tests added first
 
@@ -39,17 +50,20 @@ None expected at ticket start. Final validation exposed one in-scope C4 test-iso
 - `bun test --concurrent packages/server-core/src/handlers/rpc/__tests__/workspace-scope.test.ts packages/shared/src/config/__tests__/storage-scope-runtime.test.ts packages/shared/src/config/__tests__/storage-scope-auth.test.ts packages/shared/src/config/__tests__/storage-scope.test.ts`
 - Failure: the RPC test expected `['FLAT']`/`['W42']` but received `[]` because the test mutated process-global `CRAFT_CONFIG_DIR` while other config tests were running concurrently.
 
-The full suite also exposed out-of-scope failures:
+The first full-suite pass also exposed deterministic non-C4 validation failures:
 
-- `scripts/__tests__/mac-liquid-glass-icon-contract.test.ts`: stale icon sources are newer than `Assets.car`.
-- `apps/electron/src/renderer/components/app-shell/__tests__/transport-connection-banner.test.ts`: tests expect English strings while implementation returns Russian copy.
-- `packages/shared/src/agent/backend/__tests__/factory.test.ts`: three entries failed only in the full suite, but the file passes standalone and passes alongside all C4 tests.
+- `scripts/__tests__/mac-liquid-glass-icon-contract.test.ts`: checkout mtime made icon sources newer than `Assets.car`.
+- `apps/electron/src/renderer/components/app-shell/__tests__/transport-connection-banner.test.ts`: tests asserted English strings while the current implementation returns Russian copy.
+- `packages/shared/src/agent/backend/__tests__/factory.test.ts`: full-graph module/mock interaction passed an unbranded local-scope literal from an Electron shared-config mock into storage internals.
+
+Each follow-up was documented in its own ticket and fixed with focused test/runtime harness changes before rerunning the C4 matrix.
 
 ## 6. Implementation changes
 
 - Hardened `packages/server-core/src/handlers/rpc/__tests__/workspace-scope.test.ts` so each scenario runs the demo RPC handler in a child `bun run` process with its own `CRAFT_CONFIG_DIR` and C4 scenario env.
 - Kept the test focused on the same handler wiring and outcomes while removing shared parent-process env/runtime override races.
 - Did not edit out-of-scope mac icon assets, renderer banner copy/tests, or backend factory tests.
+- Updated the final validation record after T209 through T212 made the full suite green.
 
 ## 7. Validation commands run
 
@@ -66,6 +80,10 @@ The full suite also exposed out-of-scope failures:
 - `bun test packages/shared/src/agent/backend/__tests__/factory.test.ts`
 - `bun test apps/electron/src/renderer/components/app-shell/__tests__/transport-connection-banner.test.ts`
 - `bun test --concurrent packages/shared/src/agent/backend/__tests__/factory.test.ts packages/shared/src/config/__tests__/storage-scope-runtime.test.ts packages/shared/src/config/__tests__/storage-scope-auth.test.ts packages/shared/src/config/__tests__/storage-scope.test.ts packages/server-core/src/handlers/rpc/__tests__/workspace-scope.test.ts`
+- `bun test apps/electron/src/main/handlers/__tests__/settings-default-thinking.test.ts packages/shared/src/agent/backend/__tests__/factory.test.ts`
+- `bun test ./apps/electron/src/main/__tests__/session-branch-rollback.isolated.ts`
+- `bun test --bail`
+- `bun test packages/shared/src/config/__tests__/storage-scope-auth.test.ts packages/shared/src/config/__tests__/storage-scope-runtime.test.ts packages/server-core/src/handlers/rpc/__tests__/workspace-scope.test.ts packages/shared/src/config/__tests__/storage-scope.test.ts`
 - `bun run build`
 
 ## 8. Passing test output summary
@@ -75,12 +93,16 @@ The full suite also exposed out-of-scope failures:
 - `workspace-scope.test.ts`: 5 pass, 0 fail, 5 expects.
 - `storage-scope.test.ts`: 10 pass, 0 fail, 13 expects.
 - C4 concurrent reproduction after hardening: 34 pass, 0 fail, 56 expects.
+- Final targeted C4 test group: 35 pass, 0 fail, 58 expects.
 - `bun run typecheck`: passed.
-- `bun run lint`: passed.
+- `bun run lint`: passed; raw IPC send allowlist remained at 6 known sites.
 - `git diff --check`: passed.
 - `packages/shared/src/agent/backend/__tests__/factory.test.ts`: 36 pass, 1 skip, 0 fail standalone.
 - Backend factory plus C4 concurrent run: 70 pass, 1 skip, 0 fail.
-- `bun test` after C4 hardening: C4 failures cleared; remaining result was 4993 pass, 13 skip, 6 fail, 12582 expects.
+- Targeted settings handler plus backend factory after branded mock fix: 39 pass, 1 skip, 0 fail, 57 expects.
+- Isolated session branch rollback after branded mock fix: 3 pass, 0 fail, 13 expects.
+- Full `bun test --bail` after branded mock fix: 5000 pass, 13 skip, 0 fail, 1 snapshot, 12595 expects.
+- Full `bun test`: 5000 pass, 13 skip, 0 fail, 1 snapshot, 12595 expects across 449 files.
 
 ## 9. Build output summary
 
@@ -88,10 +110,8 @@ The full suite also exposed out-of-scope failures:
 
 ## 10. Remaining risks
 
-- Final stopping condition is blocked because full `bun test` is not green.
-- The stable out-of-scope failures are `scripts/__tests__/mac-liquid-glass-icon-contract.test.ts` stale `Assets.car` and `apps/electron/src/renderer/components/app-shell/__tests__/transport-connection-banner.test.ts` English-vs-Russian copy expectations.
-- Fixing either would require modifying files outside the C4 component list, so this ticket stops instead of expanding scope.
-- Three backend factory failures appeared in the full suite but pass standalone and pass in a concurrent run with all C4 tests; no C4 regression was reproduced there.
+- `.omx/` is still untracked local workflow state and must stay out of commits.
+- No known C4 validation blocker remains.
 
 ## 11. Acceptance criteria matrix
 
@@ -101,8 +121,8 @@ The full suite also exposed out-of-scope failures:
 | C4 RPC test is isolated from concurrent config tests | Pass | 34 pass, 0 fail in concurrent reproduction |
 | `bun run typecheck` passes | Pass | Command exited 0 |
 | `bun run lint` passes | Pass | Command exited 0 |
-| Full `bun test` passes | Blocked | 4993 pass, 13 skip, 6 out-of-scope failures |
+| Full `bun test` passes | Pass | 5000 pass, 13 skip, 0 fail |
 | `bun run build` passes | Pass | Command exited 0 |
-| Worklogs and tickets complete | Pass | T202-T208 reviewed/updated |
-| No unrelated runtime files modified | Pass | Git status shows only C4 RPC test plus T208 docs, with `.omx/` untracked |
-| Commit created | Pass | This ticket commit |
+| Worklogs and tickets complete | Pass | T202-T212 reviewed; each worklog has 11 numbered sections |
+| No unrelated runtime files modified | Pass | Final tracked tree clean; only `.omx/` untracked |
+| Commit created | Pass | Final closeout commit for this ticket |
