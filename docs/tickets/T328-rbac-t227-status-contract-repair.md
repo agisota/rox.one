@@ -5,13 +5,15 @@ Status: DONE
 ## Context
 
 After rebasing the rebrand follow-up branch onto PR #74, the repository-level
-agent-contract validator failed because the newly landed T227 RBAC ticket did
+agent-contract validator failed because the foundation-only T227 RBAC ticket did
 not include the required top-level `Status:` line.
 
 ## Goal
 
-Restore the ticket/worklog metadata contract for T227 without changing runtime
-behavior or overstating the foundation-only PR as complete.
+Restore the ticket/worklog metadata contract for the PR #74 T227 foundation
+state without changing runtime behavior or overstating that partial PR as
+complete. PR #75 later completed T227 and superseded the temporary
+`IN_PROGRESS` metadata.
 
 ## Required UI
 
@@ -36,8 +38,8 @@ T227 status line.
 
 ## Implementation Requirements
 
-1. Add `Status: IN_PROGRESS` to the T227 ticket.
-2. Add matching `Status: IN_PROGRESS` metadata to the T227 worklog.
+1. Add `Status: IN_PROGRESS` to the T227 ticket for the PR #74 foundation state.
+2. Add matching `Status: IN_PROGRESS` metadata to the T227 worklog for the PR #74 foundation state.
 3. Do not edit RBAC runtime/source files.
 
 ## Validation Commands
@@ -49,8 +51,8 @@ T227 status line.
 ## Acceptance Criteria
 
 - [x] Agent-contract validation fails before implementation for the expected T227 ticket.
-- [x] T227 ticket metadata includes `Status: IN_PROGRESS`.
-- [x] T227 worklog metadata includes `Status: IN_PROGRESS`.
+- [x] T227 ticket metadata included `Status: IN_PROGRESS` for the PR #74 foundation state.
+- [x] T227 worklog metadata included `Status: IN_PROGRESS` for the PR #74 foundation state.
 - [x] Agent-contract/docs validation passes.
 - [x] Worklog complete.
 
