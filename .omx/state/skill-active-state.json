@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "active": false,
+  "skill": "autopilot",
+  "keyword": "",
+  "phase": "failed",
+  "activated_at": "2026-05-13T01:05:44.494Z",
+  "updated_at": "2026-05-13T03:33:10Z",
+  "source": "state-operations",
+  "active_skills": [
+    {
+      "skill": "autopilot",
+      "phase": "failed",
+      "active": false,
+      "activated_at": "2026-05-13T01:05:44.494Z",
+      "updated_at": "2026-05-13T03:33:10Z"
+    }
+  ]
+}

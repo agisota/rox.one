@@ -1,0 +1,56 @@
+{
+  "active": false,
+  "current_phase": "failed",
+  "iteration": 1,
+  "review_cycle": 0,
+  "phase_cycle": [
+    "ralplan",
+    "ralph",
+    "code-review"
+  ],
+  "handoff_artifacts": {
+    "context_snapshot_path": ".omx/context/c4-multi-tenant-storage-isolation-20260513T010153Z.md",
+    "ralplan": {
+      "prd": ".omx/plans/prd-c4-multi-tenant-storage-isolation.md",
+      "test_spec": ".omx/plans/test-spec-c4-multi-tenant-storage-isolation.md"
+    },
+    "ralph": {
+      "tickets": [
+        "T202-c4-runtime-auth-scope-brand",
+        "T203-c4-storage-scope-resolver",
+        "T204-c4-storage-submodule-scope-enforcement",
+        "T205-c4-explicit-local-scope-caller-migration",
+        "T206-c4-workspace-rpc-demo-scope",
+        "T207-c4-storage-isolation-adr",
+        "T208-c4-final-validation"
+      ],
+      "commits": [
+        "0bfd4f3",
+        "d6829e7",
+        "50fb7b9",
+        "c1a647f",
+        "dd75235",
+        "6cda95c",
+        "9de336c"
+      ],
+      "verification": {
+        "targeted_c4": "bun test storage-scope-auth storage-scope-runtime workspace-scope storage-scope: 34 pass, 0 fail",
+        "typecheck": "bun run typecheck: pass",
+        "lint": "bun run lint: pass",
+        "build": "bun run build: pass",
+        "known_blockers": [
+          "scripts/__tests__/mac-liquid-glass-icon-contract.test.ts: stale Assets.car relative to icon sources",
+          "apps/electron/src/renderer/components/app-shell/__tests__/transport-connection-banner.test.ts: tests expect English copy while runtime returns Russian copy"
+        ]
+      }
+    },
+    "code_review": null
+  },
+  "review_verdict": {
+    "recommendation": "BLOCKED",
+    "architectural_status": "BLOCK",
+    "clean": false
+  },
+  "return_to_ralplan_reason": "Full bun test cannot be made green inside the C4 component boundary; remaining failures require out-of-scope icon asset or renderer copy/test edits.",
+  "run_outcome": "blocked"
+}
