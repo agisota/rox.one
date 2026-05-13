@@ -19,3 +19,8 @@ M.2-T227-foundation | 7e76711 | T227-part1 | 2026-05-13T19:16:40Z
 M.2-T227-complete | ca208d7 | T227 | 2026-05-13T19:22:30Z
 rebrand-R.10-roadmap-coherence-validator-repair | f82da7f | T321 | 2026-05-13T18:46:16Z
 rebrand-R.10-closeout-evidence-reconciliation | e675d79 | T322 | 2026-05-13T18:51:36Z
+M.5-public-share-shortlink-already-DONE | 533d837 | T064,T084 | retro-2026-05-13
+M.2-T229-rbac-e2e | 01d1553 | T229 | 2026-05-13T19:59:42Z
+M.2-T230-adr-rbac-policy | 48c227e | T230 | 2026-05-13T19:59:42Z
+M.4-account-session-persistence | 2ca16c2 | T063 | 2026-05-13T19:59:42Z
+M.16-bundle-policy-gate | 27ead4f | T092,T118,T124 | 2026-05-13T19:59:42Z
