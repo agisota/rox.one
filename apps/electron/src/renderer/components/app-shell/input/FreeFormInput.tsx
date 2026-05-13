@@ -171,7 +171,6 @@ import {
   type ThinkingPartnerOutput,
 } from '@rox-one/shared/workbench/thinking-partner';
 import { ProductModeToolbar } from './ProductModeToolbar';
-import { ComposerArtifactPanel } from './ComposerArtifactPanel';
 import { PromptRewriteDialog } from './PromptRewriteDialog';
 import { ThinkingPartnerRoundTableDialog } from './ThinkingPartnerRoundTableDialog';
 import type { ThinkingPartnerRoundTableSelection } from './ThinkingPartnerRoundTableDialog';
@@ -199,6 +198,11 @@ import {
   createThinkingPartnerSpecBuilderIntent,
   shouldOpenThinkingPartnerForIntent,
 } from './thinking-partner-flow';
+
+// T132: lazy-load ComposerArtifactPanel — it is only shown on user-initiated artifact actions
+const ComposerArtifactPanel = React.lazy(() =>
+  import(/* webpackChunkName: 'composer-artifact' */ './ComposerArtifactPanel').then((m) => ({ default: m.ComposerArtifactPanel }))
+);
 
 function createQuickActionContextItems(input: {
   attachments: FileAttachment[];
@@ -2237,11 +2241,13 @@ export function FreeFormInput({
           />
         )}
 
-        <ComposerArtifactPanel
-          artifact={composerArtifactState}
-          onClose={handleComposerArtifactClose}
-          onReplaceInput={handleComposerArtifactReplaceInput}
-        />
+        <React.Suspense fallback={null}>
+          <ComposerArtifactPanel
+            artifact={composerArtifactState}
+            onClose={handleComposerArtifactClose}
+            onReplaceInput={handleComposerArtifactReplaceInput}
+          />
+        </React.Suspense>
 
         <PromptRewriteDialog
           open={promptRewriteState.open}

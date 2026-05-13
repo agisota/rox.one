@@ -27,7 +27,9 @@ const policies: readonly BundlePolicy[] = [
   {
     name: 'Electron renderer',
     dir: 'apps/electron/dist/renderer',
-    maxJsAssets: 320,
+    // T132: raised from 320 → 360 to account for ~17 new lazy chunks
+    // (WorkbenchRoutePage, ComposerArtifactPanel, 15 Settings pages)
+    maxJsAssets: 360,
     maxCssAssets: 3,
     maxTotalJsBytes: 19_000_000,
     maxTotalCssBytes: 260_000,
@@ -37,7 +39,8 @@ const policies: readonly BundlePolicy[] = [
   {
     name: 'WebUI',
     dir: 'apps/webui/dist',
-    maxJsAssets: 310,
+    // T132: raised from 310 → 350 to account for ~17 new lazy chunks shared with Electron
+    maxJsAssets: 350,
     maxCssAssets: 2,
     maxTotalJsBytes: 18_000_000,
     maxTotalCssBytes: 260_000,
