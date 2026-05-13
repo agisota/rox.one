@@ -31,7 +31,7 @@
  * day-grouping step so cross-day pages render predictable counts.
  */
 
-import type { AuditEvent, AuditEventKind } from '@rox-one/shared/observability'
+import type { AuditEvent, AuditEventKind } from '@rox-one/shared/observability/audit-event'
 
 export type AuditLogStatus = 'loading' | 'ready' | 'error'
 
