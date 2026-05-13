@@ -25,4 +25,17 @@ describe('RC E2E smoke harness', () => {
       /Unsupported scenario "missing-scenario".*s01-registration/s,
     )
   })
+
+  it('recognizes S02 prompt pipeline and documents current validation paths', async () => {
+    const harness = await import('../e2e-smoke')
+    const scenario = harness.resolveRequiredScenario('s02-prompt-pipeline')
+    const ticket = readFileSync(join(rootDir, 'docs/tickets/T340-rc-s02-prompt-pipeline-flow.md'), 'utf8')
+
+    expect(scenario.command).toContain('apps/electron/src/renderer/components/app-shell/input/__tests__/prompt-rewrite-flow.test.ts')
+    expect(scenario.command).toContain('packages/shared/src/workbench/__tests__/review-board.test.ts')
+
+    expect(ticket).not.toContain('apps/electron/src/renderer/components/composer/**/__tests__/**')
+    expect(ticket).not.toContain('packages/server-core/src/handlers/rpc/__tests__/prompt*.test.ts')
+    expect(ticket).not.toContain('packages/server-core/src/handlers/rpc/__tests__/spec*.test.ts')
+  })
 })
