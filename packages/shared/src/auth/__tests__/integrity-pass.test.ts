@@ -24,6 +24,7 @@ import {
   assertValidRoleGrant,
   RESERVED_WORKSPACE_SENTINEL_ID,
   type RoleGrant,
+  type RoleGrantValidationCode,
 } from '../roles-schema.ts';
 import {
   InMemoryAuditEventStore,
@@ -37,7 +38,7 @@ const ownerWs = (actorId: string, scopeId: string): RoleGrant => ({
   roleId: 'owner', actorKind: 'user', actorId, scopeKind: 'workspace', scopeId,
 });
 
-function expectInvalid(g: RoleGrant, code: string) {
+function expectInvalid(g: RoleGrant, code: RoleGrantValidationCode) {
   const r = validateRoleGrant(g);
   expect(r.ok).toBe(false);
   if (!r.ok) expect(r.error.code).toBe(code);
@@ -157,21 +158,21 @@ describe('integrity: policy engine denies tampered decisions', () => {
   test('forged roleId yields a deny with no-matching-scope', () => {
     const d = evaluate(
       [{ roleId: 'phantom-superuser', actorKind: 'user', actorId: 'u-1', scopeKind: 'workspace', scopeId: 'ws-1' }],
-      'admin', { kind: 'workspace', id: 'ws-1' },
+      'admin', { scopeKind: 'workspace', scopeId: 'ws-1' },
     );
     expect(d.allow).toBe(false);
     expect(d.reason).toBe('no-matching-scope');
   });
 
   test('workspace grant does not satisfy a different workspace id', () => {
-    const d = evaluate([ownerWs('u-1', 'ws-a')], 'read', { kind: 'workspace', id: 'ws-b' });
+    const d = evaluate([ownerWs('u-1', 'ws-a')], 'read', { scopeKind: 'workspace', scopeId: 'ws-b' });
     expect(d.allow).toBe(false);
   });
 
   test('viewer grant denies admin action', () => {
     const d = evaluate(
       [{ roleId: 'viewer', actorKind: 'user', actorId: 'u-1', scopeKind: 'workspace', scopeId: 'ws-1' }],
-      'admin', { kind: 'workspace', id: 'ws-1' },
+      'admin', { scopeKind: 'workspace', scopeId: 'ws-1' },
     );
     expect(d.allow).toBe(false);
   });
