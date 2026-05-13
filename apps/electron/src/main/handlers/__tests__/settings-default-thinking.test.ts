@@ -9,7 +9,7 @@ type HandlerFn = (ctx: { clientId: string }, ...args: any[]) => Promise<any> | a
 const getDefaultThinkingLevelMock = mock((_scope = defaultLocalScope) => 'think')
 const setDefaultThinkingLevelMock = mock((_level: string, _scope = defaultLocalScope) => true)
 
-mock.module('@rox-agent/shared/config', () => ({
+mock.module('@rox-one/shared/config', () => ({
   DEFAULT_LOCAL_SCOPE: defaultLocalScope,
   getPreferencesPath: () => '/tmp/preferences.json',
   getSessionDraft: () => null,

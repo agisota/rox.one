@@ -1,5 +1,5 @@
 import type { ImageProcessor } from '../runtime/platform'
-import { IMAGE_LIMITS } from '@rox-agent/shared/utils'
+import { IMAGE_LIMITS } from '@rox-one/shared/utils'
 
 export interface ImageResizeResult {
   /** Resized image buffer */

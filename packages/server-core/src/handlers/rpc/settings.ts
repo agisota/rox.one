@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname } from 'path'
-import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
-import { getPreferencesPath, getSessionDraft, setSessionDraft, deleteSessionDraft, getAllSessionDrafts, getWorkspaceByNameOrId, getDefaultThinkingLevel, setDefaultThinkingLevel } from '@rox-agent/shared/config'
-import { isValidThinkingLevel, normalizeThinkingLevel, THINKING_LEVEL_IDS } from '@rox-agent/shared/agent/thinking-levels'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
+import { getPreferencesPath, getSessionDraft, setSessionDraft, deleteSessionDraft, getAllSessionDrafts, getWorkspaceByNameOrId, getDefaultThinkingLevel, setDefaultThinkingLevel } from '@rox-one/shared/config'
+import { isValidThinkingLevel, normalizeThinkingLevel, THINKING_LEVEL_IDS } from '@rox-one/shared/agent/thinking-levels'
 import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { requestClientOpenFileDialog } from '@rox-one/server-core/transport'
@@ -104,7 +104,7 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
     }
 
     // Load workspace config
-    const { loadWorkspaceConfig } = await import('@rox-agent/shared/workspaces')
+    const { loadWorkspaceConfig } = await import('@rox-one/shared/workspaces')
     const config = loadWorkspaceConfig(workspace.rootPath)
 
     return {
@@ -140,7 +140,7 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
 
     // Validate defaultLlmConnection exists before saving
     if (key === 'defaultLlmConnection' && normalizedValue !== undefined && normalizedValue !== null) {
-      const { getLlmConnection } = await import('@rox-agent/shared/config/storage')
+      const { getLlmConnection } = await import('@rox-one/shared/config/storage')
       if (!getLlmConnection(normalizedValue as string, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)) {
         throw new Error(`LLM connection "${normalizedValue}" not found`)
       }
@@ -153,7 +153,7 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
       }
     }
 
-    const { loadWorkspaceConfig, saveWorkspaceConfig } = await import('@rox-agent/shared/workspaces')
+    const { loadWorkspaceConfig, saveWorkspaceConfig } = await import('@rox-one/shared/workspaces')
     const config = loadWorkspaceConfig(workspace.rootPath)
     if (!config) {
       throw new Error(`Failed to load workspace config: ${workspaceId}`)
@@ -213,7 +213,7 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
   })
 
   // Set draft for a session (empty drafts are cleared)
-  server.handle(RPC_CHANNELS.drafts.SET, async (_ctx, sessionId: string, draft: import('@rox-agent/shared/config').SessionDraft) => {
+  server.handle(RPC_CHANNELS.drafts.SET, async (_ctx, sessionId: string, draft: import('@rox-one/shared/config').SessionDraft) => {
     setSessionDraft(sessionId, draft, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
@@ -233,37 +233,37 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Get auto-capitalisation setting
   server.handle(RPC_CHANNELS.input.GET_AUTO_CAPITALISATION, async () => {
-    const { getAutoCapitalisation } = await import('@rox-agent/shared/config/storage')
+    const { getAutoCapitalisation } = await import('@rox-one/shared/config/storage')
     return getAutoCapitalisation(SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
   // Set auto-capitalisation setting
   server.handle(RPC_CHANNELS.input.SET_AUTO_CAPITALISATION, async (_ctx, enabled: boolean) => {
-    const { setAutoCapitalisation } = await import('@rox-agent/shared/config/storage')
+    const { setAutoCapitalisation } = await import('@rox-one/shared/config/storage')
     setAutoCapitalisation(enabled, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
   // Get send message key setting
   server.handle(RPC_CHANNELS.input.GET_SEND_MESSAGE_KEY, async () => {
-    const { getSendMessageKey } = await import('@rox-agent/shared/config/storage')
+    const { getSendMessageKey } = await import('@rox-one/shared/config/storage')
     return getSendMessageKey(SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
   // Set send message key setting
   server.handle(RPC_CHANNELS.input.SET_SEND_MESSAGE_KEY, async (_ctx, key: 'enter' | 'cmd-enter') => {
-    const { setSendMessageKey } = await import('@rox-agent/shared/config/storage')
+    const { setSendMessageKey } = await import('@rox-one/shared/config/storage')
     setSendMessageKey(key, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
   // Get spell check setting
   server.handle(RPC_CHANNELS.input.GET_SPELL_CHECK, async () => {
-    const { getSpellCheck } = await import('@rox-agent/shared/config/storage')
+    const { getSpellCheck } = await import('@rox-one/shared/config/storage')
     return getSpellCheck(SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
   // Set spell check setting
   server.handle(RPC_CHANNELS.input.SET_SPELL_CHECK, async (_ctx, enabled: boolean) => {
-    const { setSpellCheck } = await import('@rox-agent/shared/config/storage')
+    const { setSpellCheck } = await import('@rox-one/shared/config/storage')
     setSpellCheck(enabled, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
@@ -273,7 +273,7 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Get keep awake while running setting
   server.handle(RPC_CHANNELS.power.GET_KEEP_AWAKE, async () => {
-    const { getKeepAwakeWhileRunning } = await import('@rox-agent/shared/config/storage')
+    const { getKeepAwakeWhileRunning } = await import('@rox-one/shared/config/storage')
     return getKeepAwakeWhileRunning(SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
@@ -283,13 +283,13 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Get rich tool descriptions setting
   server.handle(RPC_CHANNELS.appearance.GET_RICH_TOOL_DESCRIPTIONS, async () => {
-    const { getRichToolDescriptions } = await import('@rox-agent/shared/config/storage')
+    const { getRichToolDescriptions } = await import('@rox-one/shared/config/storage')
     return getRichToolDescriptions(SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
   // Set rich tool descriptions setting
   server.handle(RPC_CHANNELS.appearance.SET_RICH_TOOL_DESCRIPTIONS, async (_ctx, enabled: boolean) => {
-    const { setRichToolDescriptions } = await import('@rox-agent/shared/config/storage')
+    const { setRichToolDescriptions } = await import('@rox-one/shared/config/storage')
     setRichToolDescriptions(enabled, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
@@ -299,25 +299,25 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Get extended prompt cache (1h TTL) setting
   server.handle(RPC_CHANNELS.caching.GET_EXTENDED_PROMPT_CACHE, async () => {
-    const { getExtendedPromptCache } = await import('@rox-agent/shared/config/storage')
+    const { getExtendedPromptCache } = await import('@rox-one/shared/config/storage')
     return getExtendedPromptCache(SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
   // Set extended prompt cache (1h TTL) setting
   server.handle(RPC_CHANNELS.caching.SET_EXTENDED_PROMPT_CACHE, async (_ctx, enabled: boolean) => {
-    const { setExtendedPromptCache } = await import('@rox-agent/shared/config/storage')
+    const { setExtendedPromptCache } = await import('@rox-one/shared/config/storage')
     setExtendedPromptCache(enabled, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
   // Get 1M context window setting
   server.handle(RPC_CHANNELS.caching.GET_ENABLE_1M_CONTEXT, async () => {
-    const { getEnable1MContext } = await import('@rox-agent/shared/config/storage')
+    const { getEnable1MContext } = await import('@rox-one/shared/config/storage')
     return getEnable1MContext(SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
   // Set 1M context window setting
   server.handle(RPC_CHANNELS.caching.SET_ENABLE_1M_CONTEXT, async (_ctx, enabled: boolean) => {
-    const { setEnable1MContext } = await import('@rox-agent/shared/config/storage')
+    const { setEnable1MContext } = await import('@rox-one/shared/config/storage')
     setEnable1MContext(enabled, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
@@ -326,12 +326,12 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
   // ============================================================
 
   server.handle(RPC_CHANNELS.tools.GET_BROWSER_TOOL_ENABLED, async () => {
-    const { getBrowserToolEnabled } = await import('@rox-agent/shared/config/storage')
+    const { getBrowserToolEnabled } = await import('@rox-one/shared/config/storage')
     return getBrowserToolEnabled(SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
   server.handle(RPC_CHANNELS.tools.SET_BROWSER_TOOL_ENABLED, async (_ctx, enabled: boolean) => {
-    const { setBrowserToolEnabled } = await import('@rox-agent/shared/config/storage')
+    const { setBrowserToolEnabled } = await import('@rox-one/shared/config/storage')
     setBrowserToolEnabled(enabled, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
@@ -341,7 +341,7 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Get network proxy settings
   server.handle(RPC_CHANNELS.settings.GET_NETWORK_PROXY, async () => {
-    const { getNetworkProxySettings } = await import('@rox-agent/shared/config/storage')
+    const { getNetworkProxySettings } = await import('@rox-one/shared/config/storage')
     return getNetworkProxySettings(SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 }

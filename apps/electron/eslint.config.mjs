@@ -166,28 +166,28 @@ export default [
       'no-restricted-imports': ['error', {
         paths: [
           {
-            name: '@rox-agent/shared/codex',
-            message: 'Use provider-agnostic APIs from @rox-agent/shared/agent/backend instead.',
+            name: '@rox-one/shared/codex',
+            message: 'Use provider-agnostic APIs from @rox-one/shared/agent/backend instead.',
           },
           {
-            name: '@rox-agent/shared/agent/claude-agent',
-            message: 'Provider backends must stay behind @rox-agent/shared/agent/backend.',
+            name: '@rox-one/shared/agent/claude-agent',
+            message: 'Provider backends must stay behind @rox-one/shared/agent/backend.',
           },
           {
-            name: '@rox-agent/shared/agent/codex-agent',
-            message: 'Provider backends must stay behind @rox-agent/shared/agent/backend.',
+            name: '@rox-one/shared/agent/codex-agent',
+            message: 'Provider backends must stay behind @rox-one/shared/agent/backend.',
           },
           {
-            name: '@rox-agent/shared/agent/copilot-agent',
-            message: 'Provider backends must stay behind @rox-agent/shared/agent/backend.',
+            name: '@rox-one/shared/agent/copilot-agent',
+            message: 'Provider backends must stay behind @rox-one/shared/agent/backend.',
           },
           {
-            name: '@rox-agent/shared/agent/pi-agent',
-            message: 'Provider backends must stay behind @rox-agent/shared/agent/backend.',
+            name: '@rox-one/shared/agent/pi-agent',
+            message: 'Provider backends must stay behind @rox-one/shared/agent/backend.',
           },
           {
             name: '@github/copilot-sdk',
-            message: 'Use provider-agnostic model discovery/validation APIs from @rox-agent/shared/agent/backend.',
+            message: 'Use provider-agnostic model discovery/validation APIs from @rox-one/shared/agent/backend.',
           },
         ],
       }],
@@ -201,7 +201,7 @@ export default [
       'no-restricted-syntax': ['error',
         {
           selector: "CallExpression[callee.name='fetch']",
-          message: 'Do not call provider APIs directly in Electron model fetchers. Delegate to fetchBackendModels() from @rox-agent/shared/agent/backend.',
+          message: 'Do not call provider APIs directly in Electron model fetchers. Delegate to fetchBackendModels() from @rox-one/shared/agent/backend.',
         },
         {
           selector: "ImportDeclaration[source.value='@anthropic-ai/claude-agent-sdk']",

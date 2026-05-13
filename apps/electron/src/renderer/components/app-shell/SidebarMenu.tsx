@@ -26,7 +26,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { useMenuComponents } from '@/components/ui/menu-context'
-import { getDocUrl, type DocFeature } from '@rox-agent/shared/docs/doc-links'
+import { getDocUrl, type DocFeature } from '@rox-one/shared/docs/doc-links'
 
 export type SidebarMenuType = 'allSessions' | 'flagged' | 'status' | 'sources' | 'skills' | 'automations' | 'labels' | 'views' | 'newSession'
 

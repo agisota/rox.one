@@ -14,7 +14,7 @@ import {
   REQUEST_TIMEOUT_MS,
   SEQUENCE_ACK_INTERVAL_MS,
   type MessageEnvelope,
-} from '@rox-agent/shared/protocol'
+} from '@rox-one/shared/protocol'
 import type { RpcClient } from './types'
 import { serializeEnvelope, deserializeEnvelope } from './codec'
 

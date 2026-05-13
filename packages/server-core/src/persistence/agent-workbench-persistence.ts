@@ -14,7 +14,7 @@ import {
   type MissionRun,
   type ProgressLedger,
   type QuestProgress,
-} from '@rox-agent/shared/workbench'
+} from '@rox-one/shared/workbench'
 
 import {
   AccountAuthError,

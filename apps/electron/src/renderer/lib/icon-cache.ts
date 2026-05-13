@@ -20,8 +20,8 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { isEmoji } from '@rox-agent/shared/utils/icon-constants'
-import type { ResolvedEntityIcon } from '@rox-agent/shared/icons'
+import { isEmoji } from '@rox-one/shared/utils/icon-constants'
+import type { ResolvedEntityIcon } from '@rox-one/shared/icons'
 
 // ============================================================================
 // Types

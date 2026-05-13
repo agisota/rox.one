@@ -2,9 +2,9 @@ import { resolve } from 'path'
 import { join } from 'path'
 import { homedir } from 'os'
 import { execSync } from 'child_process'
-import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
-import { getWorkspaceByNameOrId, getGitBashPath, setGitBashPath, clearGitBashPath } from '@rox-agent/shared/config'
-import { isSafeExternalUrl } from '@rox-agent/shared/utils/url-safety'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
+import { getWorkspaceByNameOrId, getGitBashPath, setGitBashPath, clearGitBashPath } from '@rox-one/shared/config'
+import { isSafeExternalUrl } from '@rox-one/shared/utils/url-safety'
 import { isUsableGitBashPath, validateGitBashPath } from '@rox-one/server-core/services'
 import { validateFilePath, getWorkspaceAllowedDirs } from '@rox-one/server-core/handlers'
 import type { RequestContext, RpcServer } from '@rox-one/server-core/transport'
@@ -173,12 +173,12 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
 
   // Release notes
   server.handle(RPC_CHANNELS.releaseNotes.GET, async () => {
-    const { getCombinedReleaseNotes } = require('@rox-agent/shared/release-notes') as typeof import('@rox-agent/shared/release-notes')
+    const { getCombinedReleaseNotes } = require('@rox-one/shared/release-notes') as typeof import('@rox-one/shared/release-notes')
     return getCombinedReleaseNotes()
   })
 
   server.handle(RPC_CHANNELS.releaseNotes.GET_LATEST_VERSION, async () => {
-    const { getLatestReleaseVersion } = require('@rox-agent/shared/release-notes') as typeof import('@rox-agent/shared/release-notes')
+    const { getLatestReleaseVersion } = require('@rox-one/shared/release-notes') as typeof import('@rox-one/shared/release-notes')
     return getLatestReleaseVersion()
   })
 

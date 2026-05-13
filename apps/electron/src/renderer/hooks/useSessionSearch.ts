@@ -2,11 +2,11 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import { isToday, isYesterday, format, startOfDay } from "date-fns"
 
 import { searchLog } from "@/lib/logger"
-import { parseLabelEntry } from "@rox-agent/shared/labels"
-import { fuzzyScore } from "@rox-agent/shared/search"
+import { parseLabelEntry } from "@rox-one/shared/labels"
+import { fuzzyScore } from "@rox-one/shared/search"
 import { getSessionTitle, getSessionStatus } from "@/utils/session"
 import type { SessionMeta } from "@/atoms/sessions"
-import type { ViewConfig } from "@rox-agent/shared/views"
+import type { ViewConfig } from "@rox-one/shared/views"
 import type { SessionFilter } from "@/contexts/NavigationContext"
 
 // ---------------------------------------------------------------------------

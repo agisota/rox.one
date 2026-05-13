@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { dirname, join } from 'path'
 
-import { getSessionFilePath, loadSession, writeSessionJsonl, type StoredSession } from '@rox-agent/shared/sessions'
+import { getSessionFilePath, loadSession, writeSessionJsonl, type StoredSession } from '@rox-one/shared/sessions'
 import type { StoredMessage } from '@rox-one/core/types'
 
 import { createFakeShareProvider, setSessionShareProviderForTests } from './share-provider'

@@ -11,7 +11,7 @@ import {
   type ComposerArtifactKind,
   type ComposerArtifactState,
 } from './composer-artifact-flow';
-import { renderTddTaskPackMarkdown } from '@rox-agent/shared/workbench';
+import { renderTddTaskPackMarkdown } from '@rox-one/shared/workbench';
 
 export interface ComposerArtifactPanelProps {
   artifact: ComposerArtifactState | null;

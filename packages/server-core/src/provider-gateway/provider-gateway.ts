@@ -1,4 +1,4 @@
-import { ArtifactTypeSchema, type ArtifactType } from '@rox-agent/shared/workbench'
+import { ArtifactTypeSchema, type ArtifactType } from '@rox-one/shared/workbench'
 import { sanitizePublicPayload } from '../security/public-payload-sanitizer'
 import { createDeterministicFakeProviderAdapter } from './provider-gateway-adapters'
 

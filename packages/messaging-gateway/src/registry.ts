@@ -14,9 +14,9 @@
 
 import { existsSync, readdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
-import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
-import type { PushTarget } from '@rox-agent/shared/protocol'
-import type { CredentialManager } from '@rox-agent/shared/credentials'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
+import type { PushTarget } from '@rox-one/shared/protocol'
+import type { CredentialManager } from '@rox-one/shared/credentials'
 import type {
   ISessionManager,
   IMessagingGatewayRegistry,

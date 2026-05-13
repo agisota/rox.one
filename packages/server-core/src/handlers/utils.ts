@@ -1,8 +1,8 @@
 import { normalize, isAbsolute, sep } from 'path'
 import { homedir, tmpdir } from 'os'
 import { realpath } from 'fs/promises'
-import { getWorkspaceByNameOrId, type Workspace } from '@rox-agent/shared/config'
-import { loadWorkspaceConfig } from '@rox-agent/shared/workspaces'
+import { getWorkspaceByNameOrId, type Workspace } from '@rox-one/shared/config'
+import { loadWorkspaceConfig } from '@rox-one/shared/workspaces'
 import type { PlatformServices } from '../runtime/platform'
 
 /**

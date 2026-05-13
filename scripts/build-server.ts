@@ -522,7 +522,7 @@ function createRootConfig(config: ServerBuildConfig): void {
       moduleResolution: 'bundler',
       paths: {
         '@rox-one/server-core/*': ['./packages/server-core/src/*'],
-        '@rox-agent/shared/*': ['./packages/shared/src/*'],
+        '@rox-one/shared/*': ['./packages/shared/src/*'],
         '@rox-agent/core/*': ['./packages/core/src/*'],
         '@rox-agent/session-tools-core/*': ['./packages/session-tools-core/src/*'],
       },

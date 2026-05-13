@@ -13,7 +13,7 @@ import {
   PERMISSION_MODE_CONFIG,
   PERMISSION_MODE_ORDER,
   type PermissionMode,
-} from '@rox-agent/shared/agent/modes'
+} from '@rox-one/shared/agent/modes'
 
 // ============================================================================
 // Mode Icon (same SVG pattern as ActiveOptionBadges.PermissionModeIcon)

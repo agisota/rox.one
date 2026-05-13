@@ -23,8 +23,8 @@
     "paths": {
       "@/*": ["src/renderer/*"],
       "@config/*": ["../../packages/shared/src/config/*"],
-      "@rox-agent/shared": ["../../packages/shared/src/index.ts"],
-      "@rox-agent/shared/*": ["../../packages/shared/src/*"]
+      "@rox-one/shared": ["../../packages/shared/src/index.ts"],
+      "@rox-one/shared/*": ["../../packages/shared/src/*"]
     }
   },
   "include": ["src/**/*", "../../packages/shared/src/**/*.d.ts"],

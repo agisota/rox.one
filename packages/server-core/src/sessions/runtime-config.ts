@@ -1,6 +1,6 @@
-import type { AgentProvider, LlmAuthType } from '@rox-agent/shared/agent/backend'
-import { isCompatProvider, modelSupportsImages, type LlmConnection } from '@rox-agent/shared/config'
-import type { FileAttachment } from '@rox-agent/shared/protocol'
+import type { AgentProvider, LlmAuthType } from '@rox-one/shared/agent/backend'
+import { isCompatProvider, modelSupportsImages, type LlmConnection } from '@rox-one/shared/config'
+import type { FileAttachment } from '@rox-one/shared/protocol'
 
 export interface BackendRuntimeSignatureInput {
   connection: LlmConnection | null

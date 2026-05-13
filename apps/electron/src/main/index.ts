@@ -59,7 +59,7 @@ Sentry.init({
 })
 
 // Initialize i18n for main process (menus, dialogs, etc.)
-import { setupI18n, i18n } from '@rox-agent/shared/i18n'
+import { setupI18n, i18n } from '@rox-one/shared/i18n'
 setupI18n()
 
 // Set anonymous machine ID for Sentry user tracking (no PII — just a hash).
@@ -69,7 +69,7 @@ Sentry.setUser({ id: machineId })
 
 import { join, delimiter } from 'path'
 import { existsSync, readFileSync } from 'fs'
-import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
 import { SessionManager, setSessionPlatform, setSessionRuntimeHooks } from '@rox-one/server-core/sessions'
 import { registerAllRpcHandlers } from './handlers/index'
 import { registerCoreRpcHandlers, cleanupSessionFileWatchForClient } from '@rox-one/server-core/handlers/rpc'
@@ -78,29 +78,29 @@ import { createElectronPlatform } from './platform'
 import type { HandlerDeps } from './handlers/handler-deps'
 import { bootstrapServer, releaseServerLock } from '@rox-one/server-core/bootstrap'
 import { createMessagingBootstrap, type MessagingBootstrapHandle } from '@rox-one/messaging-gateway'
-import { getCredentialManager } from '@rox-agent/shared/credentials'
+import { getCredentialManager } from '@rox-one/shared/credentials'
 import { initModelRefreshService, getModelRefreshService, setFetcherPlatform } from '@rox-one/server-core/model-fetchers'
 import { setSearchPlatform, setImageProcessor } from '@rox-one/server-core/services'
 import { createApplicationMenu } from './menu'
 import { WindowManager } from './window-manager'
 import { loadWindowState, saveWindowState } from './window-state'
-import { DEFAULT_LOCAL_SCOPE, getWorkspaces, getWorkspaceByNameOrId, loadStoredConfig, addWorkspace, saveConfig } from '@rox-agent/shared/config'
-import { getDefaultWorkspacesDir } from '@rox-agent/shared/workspaces'
-import { initializeDocs } from '@rox-agent/shared/docs'
-import { initializeReleaseNotes } from '@rox-agent/shared/release-notes'
-import { ensureDefaultPermissions } from '@rox-agent/shared/agent/permissions-config'
-import { ensureToolIcons, ensurePresetThemes } from '@rox-agent/shared/config'
-import { setBundledAssetsRoot } from '@rox-agent/shared/utils'
-import { initializeBackendHostRuntime } from '@rox-agent/shared/agent/backend'
-import { setPowerShellValidatorRoot } from '@rox-agent/shared/agent'
+import { DEFAULT_LOCAL_SCOPE, getWorkspaces, getWorkspaceByNameOrId, loadStoredConfig, addWorkspace, saveConfig } from '@rox-one/shared/config'
+import { getDefaultWorkspacesDir } from '@rox-one/shared/workspaces'
+import { initializeDocs } from '@rox-one/shared/docs'
+import { initializeReleaseNotes } from '@rox-one/shared/release-notes'
+import { ensureDefaultPermissions } from '@rox-one/shared/agent/permissions-config'
+import { ensureToolIcons, ensurePresetThemes } from '@rox-one/shared/config'
+import { setBundledAssetsRoot } from '@rox-one/shared/utils'
+import { initializeBackendHostRuntime } from '@rox-one/shared/agent/backend'
+import { setPowerShellValidatorRoot } from '@rox-one/shared/agent'
 import { handleDeepLink } from './deep-link'
 import { BrowserPaneManager } from './browser-pane-manager'
-import { OAuthFlowStore } from '@rox-agent/shared/auth'
+import { OAuthFlowStore } from '@rox-one/shared/auth'
 import { registerThumbnailScheme, registerThumbnailHandler } from './thumbnail-protocol'
 import log, { isDebugMode, mainLog, getLogFilePath, getMessagingGatewayLogFilePath, messagingGatewayLog } from './logger'
-import { setPerfEnabled, enableDebug } from '@rox-agent/shared/utils'
-import { registerPiModelResolver } from '@rox-agent/shared/config'
-import { getPiModelsForAuthProvider, getAllPiModels } from '@rox-agent/shared/config/models-pi'
+import { setPerfEnabled, enableDebug } from '@rox-one/shared/utils'
+import { registerPiModelResolver } from '@rox-one/shared/config'
+import { getPiModelsForAuthProvider, getAllPiModels } from '@rox-one/shared/config/models-pi'
 import { initNotificationService, initBadgeIcon, initInstanceBadge, updateBadgeCount } from './notifications'
 import { checkForUpdatesOnLaunch, setAutoUpdateEventSink, isUpdating } from './auto-update'
 import type { EventSink } from '@rox-one/server-core/transport'
@@ -565,7 +565,7 @@ app.whenReady().then(async () => {
     if (!isClientOnly) {
       // Restore persisted Git Bash path on Windows (must happen before any SDK subprocess spawn)
       if (process.platform === 'win32') {
-        const { getGitBashPath, clearGitBashPath } = await import('@rox-agent/shared/config')
+        const { getGitBashPath, clearGitBashPath } = await import('@rox-one/shared/config')
         const gitBashPath = getGitBashPath()
         if (gitBashPath) {
           const validation = await validateGitBashPath(gitBashPath)
@@ -603,7 +603,7 @@ app.whenReady().then(async () => {
       const resolveClientId = (wcId: number) => clientMap.get(wcId)
 
       // Read embedded server config (Server settings page)
-      const { getServerConfig } = await import('@rox-agent/shared/config')
+      const { getServerConfig } = await import('@rox-one/shared/config')
       const embeddedServerConfig = getServerConfig(DEFAULT_LOCAL_SCOPE)
       const serverModeEnabled = embeddedServerConfig.enabled && !isClientOnly
 
@@ -714,7 +714,7 @@ app.whenReady().then(async () => {
         setSessionEventSink: (sm, sink) => sm.setEventSink(sink),
         initializeSessionManager: (sm) => sm.initialize(),
         initModelRefreshService: () => initModelRefreshService(async (slug: string) => {
-          const { getCredentialManager } = await import('@rox-agent/shared/credentials')
+          const { getCredentialManager } = await import('@rox-one/shared/credentials')
           const manager = getCredentialManager()
           const [apiKey, oauth] = await Promise.all([
             manager.getLlmApiKey(slug).catch(() => null),
@@ -778,7 +778,7 @@ app.whenReady().then(async () => {
 
       // Remove workspace from config (cleanup stale entries)
       ipcMain.handle('workspace:remove', async (_event, workspaceId: string) => {
-        const { removeWorkspace: remove } = await import('@rox-agent/shared/config')
+        const { removeWorkspace: remove } = await import('@rox-one/shared/config')
         return remove(workspaceId)
       })
 
@@ -803,7 +803,7 @@ app.whenReady().then(async () => {
       ipcMain.handle('session:transferToRemoteWorkspace', async (_event, sessionId: string, targetWorkspaceId: string, sessionIndex?: number, sessionCount?: number) => {
         const idx = sessionIndex ?? 0
         const count = sessionCount ?? 1
-        const { getWorkspaceByNameOrId } = await import('@rox-agent/shared/config')
+        const { getWorkspaceByNameOrId } = await import('@rox-one/shared/config')
         const { connectToRemote } = await import('./handlers/workspace')
         const { CHUNKED_TRANSFER_THRESHOLD, getChunkCount, invokeChunked, prepareChunkedPayload } = await import('./chunked-rpc')
 
@@ -937,13 +937,13 @@ app.whenReady().then(async () => {
       }
 
       instance.wsServer.handle(RPC_CHANNELS.settings.GET_SERVER_CONFIG, async () => {
-        const { getServerConfig: getConfig } = await import('@rox-agent/shared/config')
+        const { getServerConfig: getConfig } = await import('@rox-one/shared/config')
         return getConfig()
       })
 
       instance.wsServer.handle(RPC_CHANNELS.settings.SET_SERVER_CONFIG, async (_ctx: unknown, config: unknown) => {
-        const { setServerConfig: setConfig } = await import('@rox-agent/shared/config')
-        const cfg = config as import('@rox-agent/shared/config/server-config').ServerConfig
+        const { setServerConfig: setConfig } = await import('@rox-one/shared/config')
+        const cfg = config as import('@rox-one/shared/config/server-config').ServerConfig
         // Validate port range
         if (cfg.port < 1024 || cfg.port > 65535) {
           throw new Error(`Port must be between 1024 and 65535, got ${cfg.port}`)
@@ -959,7 +959,7 @@ app.whenReady().then(async () => {
       })
 
       instance.wsServer.handle(RPC_CHANNELS.settings.GET_SERVER_STATUS, async () => {
-        const { getServerConfig: getConfig } = await import('@rox-agent/shared/config')
+        const { getServerConfig: getConfig } = await import('@rox-one/shared/config')
         const saved = getConfig()
         const protocol = runningServerState.tls ? 'wss' : 'ws'
 
@@ -1040,7 +1040,7 @@ app.whenReady().then(async () => {
     // Skip in thin-client mode — credentials are managed by the remote server.
     if (!isClientOnly) {
       try {
-        const { getCredentialManager } = await import('@rox-agent/shared/credentials')
+        const { getCredentialManager } = await import('@rox-one/shared/credentials')
         const credentialManager = getCredentialManager()
         const health = await credentialManager.checkHealth()
         if (!health.healthy) {
@@ -1065,7 +1065,7 @@ app.whenReady().then(async () => {
     // Runs after init so config and auth state are available.
     // Derives values from the default LLM connection instead of legacy config fields.
     try {
-      const { getLlmConnection, getDefaultLlmConnection } = await import('@rox-agent/shared/config')
+      const { getLlmConnection, getDefaultLlmConnection } = await import('@rox-one/shared/config')
       const workspaces = getWorkspaces(DEFAULT_LOCAL_SCOPE)
       const defaultConnSlug = getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE)
       const defaultConn = defaultConnSlug ? getLlmConnection(defaultConnSlug, DEFAULT_LOCAL_SCOPE) : null

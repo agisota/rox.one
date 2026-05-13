@@ -10,8 +10,8 @@
  * 3. MODEL_REGISTRY — hardcoded offline seed data, last resort
  */
 
-import type { ModelFetcherMap, ModelFetcherCredentials, FetchableProvider } from '@rox-agent/shared/config'
-import type { ModelDefinition } from '@rox-agent/shared/config'
+import type { ModelFetcherMap, ModelFetcherCredentials, FetchableProvider } from '@rox-one/shared/config'
+import type { ModelDefinition } from '@rox-one/shared/config'
 import {
   DEFAULT_LOCAL_SCOPE,
   getLlmConnections,
@@ -19,7 +19,7 @@ import {
   updateLlmConnection,
   isCompatProvider,
   getModelsForProviderType,
-} from '@rox-agent/shared/config'
+} from '@rox-one/shared/config'
 import { MODEL_FETCHERS } from './registry'
 import { handlerLog } from './runtime'
 

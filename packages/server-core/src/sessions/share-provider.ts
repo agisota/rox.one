@@ -1,5 +1,5 @@
-import { VIEWER_URL } from '@rox-agent/shared/branding'
-import type { ShareResult } from '@rox-agent/shared/protocol'
+import { VIEWER_URL } from '@rox-one/shared/branding'
+import type { ShareResult } from '@rox-one/shared/protocol'
 
 import { createViewerShareFailureResult } from './share-errors'
 import { sanitizePublicPayload } from '../security/public-payload-sanitizer'

@@ -11,8 +11,8 @@
  */
 
 import type { PermissionMode } from '../../shared/types'
-import type { ThinkingLevel } from '@rox-agent/shared/agent/thinking-levels'
-import { DEFAULT_THINKING_LEVEL } from '@rox-agent/shared/agent/thinking-levels'
+import type { ThinkingLevel } from '@rox-one/shared/agent/thinking-levels'
+import { DEFAULT_THINKING_LEVEL } from '@rox-one/shared/agent/thinking-levels'
 
 /**
  * All session-scoped options in one place.

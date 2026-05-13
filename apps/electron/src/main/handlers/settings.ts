@@ -1,4 +1,4 @@
-import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
 import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from './handler-deps'
 import { ELECTRON_GLOBAL_STORAGE_SCOPE } from './storage-scope'
@@ -15,7 +15,7 @@ export const GUI_HANDLED_CHANNELS = [
 export function registerSettingsGuiHandlers(server: RpcServer, _deps: HandlerDeps): void {
   // Set keep awake while running setting (requires Electron power-manager)
   server.handle(RPC_CHANNELS.power.SET_KEEP_AWAKE, async (_ctx, enabled: boolean) => {
-    const { setKeepAwakeWhileRunning } = await import('@rox-agent/shared/config/storage')
+    const { setKeepAwakeWhileRunning } = await import('@rox-one/shared/config/storage')
     const { setKeepAwakeSetting } = await import('../power-manager')
     // Save to config
     setKeepAwakeWhileRunning(enabled, ELECTRON_GLOBAL_STORAGE_SCOPE)
@@ -24,7 +24,7 @@ export function registerSettingsGuiHandlers(server: RpcServer, _deps: HandlerDep
   })
 
   // Set network proxy settings (requires Electron session proxy)
-  server.handle(RPC_CHANNELS.settings.SET_NETWORK_PROXY, async (_ctx, settings: import('@rox-agent/shared/config/types').NetworkProxySettings) => {
+  server.handle(RPC_CHANNELS.settings.SET_NETWORK_PROXY, async (_ctx, settings: import('@rox-one/shared/config/types').NetworkProxySettings) => {
     const { updateConfiguredProxySettings } = await import('../network-proxy')
     await updateConfiguredProxySettings(settings)
   })

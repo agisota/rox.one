@@ -17,7 +17,7 @@ import { Calendar } from './calendar'
 import { cn } from '@/lib/utils'
 import { parseDate } from 'chrono-node'
 import { format, parse } from 'date-fns'
-import type { LabelConfig } from '@rox-agent/shared/labels'
+import type { LabelConfig } from '@rox-one/shared/labels'
 
 export interface LabelValuePopoverProps {
   /** Label configuration (color, name, valueType) */

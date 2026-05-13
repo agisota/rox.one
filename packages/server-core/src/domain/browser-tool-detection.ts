@@ -6,7 +6,7 @@
  * (`mcp__session__browser_tool`).
  */
 
-import { normalizeCanonicalBrowserToolName } from '@rox-agent/shared/agent'
+import { normalizeCanonicalBrowserToolName } from '@rox-one/shared/agent'
 
 const BROWSER_TOOL_OVERLAY_EXCLUDED_COMMANDS = new Set([
   '--help',

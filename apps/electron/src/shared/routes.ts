@@ -18,7 +18,7 @@
 import type { SettingsSubpage } from './settings-registry'
 import type { WorkbenchScreen } from './types'
 import { DEFAULT_WORKBENCH_SCREEN } from './types'
-import type { PermissionMode } from '@rox-agent/shared/agent/mode-types'
+import type { PermissionMode } from '@rox-one/shared/agent/mode-types'
 
 // Helper to build query strings from params
 function toQueryString(params?: Record<string, string | undefined>): string {

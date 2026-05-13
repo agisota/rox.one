@@ -1,4 +1,4 @@
-import { createExperienceTruthState, type ExperienceTruthState } from '@rox-agent/shared/workbench'
+import { createExperienceTruthState, type ExperienceTruthState } from '@rox-one/shared/workbench'
 import type { WorkbenchScreen } from '../../../shared/types'
 
 const NOW = '2026-05-08T00:00:00.000Z'

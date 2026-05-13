@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { Session } from '../../shared/types'
-import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
 
 /**
  * Draw a badge onto an icon image using Canvas

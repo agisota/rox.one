@@ -7,7 +7,7 @@ import type {
   MissionMode,
   ProgressLedger,
   ValidationGate,
-} from '@rox-agent/shared/workbench';
+} from '@rox-one/shared/workbench';
 
 export type ArenaEntitlement = {
   maxSwarmSlots: number;

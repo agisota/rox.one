@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { PromptRewriteOutput } from '@rox-agent/shared/workbench';
+import type { PromptRewriteOutput } from '@rox-one/shared/workbench';
 import { PRODUCT_MODE_TOOLBAR_DEFAULT_MODE, createProductModeIntent } from '../product-mode-toolbar';
 import {
   PROMPT_REWRITE_SPEC_BUILDER_EVENT,

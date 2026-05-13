@@ -15,7 +15,7 @@
  * ```
  */
 
-import type { PushTarget } from '@rox-agent/shared/protocol'
+import type { PushTarget } from '@rox-one/shared/protocol'
 
 export type EventSinkFn = (channel: string, target: PushTarget, ...args: any[]) => void
 

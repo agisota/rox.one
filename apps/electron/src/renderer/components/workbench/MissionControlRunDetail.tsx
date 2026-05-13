@@ -10,7 +10,7 @@ import {
   transitionMissionCheckpoint,
   type MissionControlState,
 } from './mission-control-state';
-import type { ExperienceRuntimeStore, ExperienceTruthState } from '@rox-agent/shared/workbench';
+import type { ExperienceRuntimeStore, ExperienceTruthState } from '@rox-one/shared/workbench';
 import {
   ExperienceCard,
   ExperienceMetricRow,

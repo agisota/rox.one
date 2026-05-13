@@ -4,9 +4,9 @@
  * Provider-agnostic wrapper that delegates model discovery to backend drivers.
  */
 
-import type { ModelFetcher, ModelFetchResult, ModelFetcherCredentials } from '@rox-agent/shared/config'
-import type { LlmConnection } from '@rox-agent/shared/config'
-import { fetchBackendModels } from '@rox-agent/shared/agent/backend'
+import type { ModelFetcher, ModelFetchResult, ModelFetcherCredentials } from '@rox-one/shared/config'
+import type { LlmConnection } from '@rox-one/shared/config'
+import { fetchBackendModels } from '@rox-one/shared/agent/backend'
 import { handlerLog } from './runtime'
 import { getHostRuntime } from './runtime'
 

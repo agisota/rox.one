@@ -21,10 +21,10 @@ import {
   type MessageEnvelope,
   type PushTarget,
   type ErrorCode,
-} from '@rox-agent/shared/protocol'
+} from '@rox-one/shared/protocol'
 import type { RpcServer, HandlerFn, RequestContext, AuthIdentity, SessionCookieValidationResult } from './types'
 import { serializeEnvelope, deserializeEnvelope } from './codec'
-import { createLogger } from '@rox-agent/shared/utils'
+import { createLogger } from '@rox-one/shared/utils'
 
 // ---------------------------------------------------------------------------
 // Client connection state

@@ -7,7 +7,7 @@ import {
   type MissionCheckpoint,
   type MissionGateResult,
   type MissionRun,
-} from '@rox-agent/shared/workbench'
+} from '@rox-one/shared/workbench'
 
 import type { MissionRunRepository, MissionSchedulerEvent } from '../persistence'
 

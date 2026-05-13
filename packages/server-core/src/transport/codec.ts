@@ -1,4 +1,4 @@
-import type { MessageEnvelope } from '@rox-agent/shared/protocol'
+import type { MessageEnvelope } from '@rox-one/shared/protocol'
 
 const WIRE_TYPE_KEY = '__roxRpcType'
 const WIRE_BASE64_KEY = 'base64'

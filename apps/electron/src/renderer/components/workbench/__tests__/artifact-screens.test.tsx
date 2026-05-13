@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { PromptRewriteOutput } from '@rox-agent/shared/workbench';
+import type { PromptRewriteOutput } from '@rox-one/shared/workbench';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PromptLabScreen } from '../PromptLabScreen';
 import { ReviewGateScreen } from '../ReviewGateScreen';

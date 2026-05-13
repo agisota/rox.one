@@ -7,6 +7,8 @@ const repoRoot = join(import.meta.dir, "../..");
 const legacyStem = "cr" + "aft";
 const legacyScope = `@${legacyStem}-agent`;
 const roxScope = "@rox-one";
+const legacySharedPackage = `${legacyScope}/shared`;
+const roxSharedPackage = `${roxScope}/shared`;
 const legacyFixturePackage = `${legacyScope}/test-fixtures`;
 const roxFixturePackage = `${roxScope}/test-fixtures`;
 const legacyUiPackage = `${legacyScope}/ui`;
@@ -304,5 +306,46 @@ describe("R.5 package-scope rebrand", () => {
     const lockfile = readText("bun.lock");
     expect(containsPackageReference(lockfile, roxServerPackage)).toBe(true);
     expect(containsPackageReference(lockfile, roxServerCorePackage)).toBe(true);
+  });
+
+  test("renames the shared workspace package to the ROX scope", () => {
+    const sharedPackageJson = readJson("packages/shared/package.json");
+    expect(sharedPackageJson.name).toBe(roxSharedPackage);
+
+    const dependencyPackages = [
+      "apps/cli/package.json",
+      "apps/electron/package.json",
+      "apps/webui/package.json",
+      "packages/messaging-gateway/package.json",
+      "packages/server/package.json",
+      "packages/server-core/package.json",
+      "packages/session-mcp-server/package.json",
+      "packages/ui/package.json",
+    ];
+
+    for (const path of dependencyPackages) {
+      const packageJson = readJson(path);
+      const dependencies = packageJson.dependencies as Record<string, string>;
+      expect(dependencies[roxSharedPackage], path).toBe("workspace:*");
+      expect(dependencies[legacySharedPackage], path).toBeUndefined();
+    }
+
+    const activeFiles = [
+      ...listFiles("apps"),
+      ...listFiles("packages"),
+      ...listFiles("scripts"),
+      "package.json",
+      "bun.lock",
+    ];
+    const legacyMatches = activeFiles.filter((path) =>
+      containsPackageReference(readText(path), legacySharedPackage),
+    );
+    expect(legacyMatches).toEqual([]);
+
+    const roxMatches = activeFiles.filter((path) =>
+      containsPackageReference(readText(path), roxSharedPackage),
+    );
+    expect(roxMatches.length).toBeGreaterThan(0);
+    expect(containsPackageReference(readText("bun.lock"), roxSharedPackage)).toBe(true);
   });
 });

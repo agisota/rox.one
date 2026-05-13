@@ -1,9 +1,9 @@
 import * as React from 'react'
 import type { CSSProperties } from 'react'
-import type { StatusConfig } from '@rox-agent/shared/statuses'
-import { isEmoji } from '@rox-agent/shared/utils/icon-constants'
-import { resolveEntityColor, getDefaultStatusColor } from '@rox-agent/shared/colors'
-import type { EntityColor } from '@rox-agent/shared/colors'
+import type { StatusConfig } from '@rox-one/shared/statuses'
+import { isEmoji } from '@rox-one/shared/utils/icon-constants'
+import { resolveEntityColor, getDefaultStatusColor } from '@rox-one/shared/colors'
+import type { EntityColor } from '@rox-one/shared/colors'
 import { StatusIcon } from '@/components/ui/status-icon'
 import { iconCache } from '@/lib/icon-cache'
 

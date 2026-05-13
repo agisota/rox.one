@@ -35,7 +35,7 @@ import {
   InlineLabelMenu,
   useInlineLabelMenu,
 } from '@/components/ui/label-menu'
-import type { LabelConfig } from '@rox-agent/shared/labels'
+import type { LabelConfig } from '@rox-one/shared/labels'
 import { parseMentions } from '@/lib/mentions'
 import { RichTextInput, type RichTextInputHandle } from '@/components/ui/rich-text-input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@rox-one/ui'
@@ -75,8 +75,8 @@ import { SourceSelectorPopover } from '@/components/ui/SourceSelectorPopover'
 import { ConnectionIcon } from '@/components/icons/ConnectionIcon'
 import { FreeFormInputContextBadge } from './FreeFormInputContextBadge'
 import type { FileAttachment, LoadedSource, LoadedSkill } from '../../../../shared/types'
-import type { PermissionMode } from '@rox-agent/shared/agent/modes'
-import { type ThinkingLevel, THINKING_LEVELS, getThinkingLevelNameKey } from '@rox-agent/shared/agent/thinking-levels'
+import type { PermissionMode } from '@rox-one/shared/agent/modes'
+import { type ThinkingLevel, THINKING_LEVELS, getThinkingLevelNameKey } from '@rox-one/shared/agent/thinking-levels'
 import { useEscapeInterrupt } from '@/context/EscapeInterruptContext'
 import { hasOpenOverlay } from '@/lib/overlay-detection'
 import { ToolbarStatusSlot } from './ToolbarStatusSlot'
@@ -146,12 +146,12 @@ import {
   createDeterministicPromptRewriteProvider,
   createPromptRewriteService,
   type PromptRewriteOutput,
-} from '@rox-agent/shared/workbench/prompt-rewrite-engine';
+} from '@rox-one/shared/workbench/prompt-rewrite-engine';
 import {
   createDeterministicThinkingPartnerProvider,
   createThinkingPartnerService,
   type ThinkingPartnerOutput,
-} from '@rox-agent/shared/workbench/thinking-partner';
+} from '@rox-one/shared/workbench/thinking-partner';
 import { ProductModeToolbar } from './ProductModeToolbar';
 import { ComposerArtifactPanel } from './ComposerArtifactPanel';
 import { PromptRewriteDialog } from './PromptRewriteDialog';
