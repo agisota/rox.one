@@ -40,16 +40,6 @@ export type WorkspaceScope =
   | { readonly kind: 'workspace'; readonly workspaceId: string };
 
 /**
- * Singleton default scope for the current single-user / local-disk install.
- * Pass this at every storage call site so we have a complete migration even
- * before any non-default scope is implemented. When tenant scopes ship, only
- * the small number of multi-tenant-aware call sites need to change.
- */
-export const DEFAULT_LOCAL_SCOPE: WorkspaceScope = Object.freeze({
-  kind: 'local-single-user',
-});
-
-/**
  * Narrowing helper: derive the optional workspaceId addressed by a scope.
  *
  * Returns `undefined` for the local-single-user scope (which doesn't address
@@ -61,3 +51,11 @@ export const DEFAULT_LOCAL_SCOPE: WorkspaceScope = Object.freeze({
 export function workspaceIdFromScope(scope: WorkspaceScope): string | undefined {
   return scope.kind === 'workspace' ? scope.workspaceId : undefined;
 }
+
+export {
+  DEFAULT_LOCAL_SCOPE,
+  type BrandedWorkspaceScope,
+  deriveScopeFromAuth,
+  MultiTenantForgeryError,
+  type ScopeAuthContext,
+} from './storage-scope-auth.ts';
