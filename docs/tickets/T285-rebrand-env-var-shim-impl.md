@@ -2,6 +2,8 @@
 
 Status: DONE
 
+R.6 merge evidence: `777ada7` (`Complete R.6 env-var rename with readEnv() shim (#66)`)
+
 ## Context
 
 We are building a white-label fork of Rox Agents OSS into the ROX.ONE Agent

@@ -1,5 +1,7 @@
 # T224 - RBAC roles schema
 
+Status: DONE
+
 ## 1. Task summary
 
 Land the TypeScript types and the system-managed role registry that the M.2

@@ -1,5 +1,7 @@
 # T225 - RBAC policy engine
 
+Status: DONE
+
 ## 1. Task summary
 
 Land the pure-function RBAC policy evaluator. Consumes the role grant shape

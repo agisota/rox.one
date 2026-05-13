@@ -191,7 +191,7 @@ describe('RbacResolver — ownerGrantsForUser', () => {
     const resolver = new RbacResolver(new InMemoryGrantStore(grants));
     const result = await resolver.ownerGrantsForUser('u1');
     expect(result).toHaveLength(1);
-    expect(result[0].scopeKind).toBe('global');
+    expect(result.map((grant) => grant.scopeKind)).toEqual(['global']);
   });
 
   it('returns an empty array when the user has no owner grants', async () => {
@@ -208,7 +208,7 @@ describe('RbacResolver — ownerGrantsForUser', () => {
     const resolver = new RbacResolver(new InMemoryGrantStore(grants));
     const result = await resolver.ownerGrantsForUser('u1');
     expect(result).toHaveLength(1);
-    expect(result[0].scopeId).toBe('W1');
+    expect(result.map((grant) => grant.scopeId)).toEqual(['W1']);
   });
 });
 

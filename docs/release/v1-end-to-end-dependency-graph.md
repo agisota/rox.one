@@ -26,12 +26,12 @@ flowchart TD
         direction TB
         M11["M.1.1 Workspace RPC<br/>8c1edf9"]:::done
         M12["M.1.2 Electron handlers<br/>9b29b30"]:::done
-        M13["M.1.3 Server-core RPC<br/>ee47a29"]:::done
-        M13b["M.1.3b Pi IPC<br/>5e8b17a"]:::done
+        M13["M.1.3 Server-core RPC<br/>T215 / ee47a29"]:::done
+        M13b["M.1.3b Pi IPC<br/>T216 / 5e8b17a"]:::done
         M14["M.1.4 Tenant cred KDF<br/>baee220"]:::done
         M15["M.1.5 Audit storage (a-d)<br/>1e3c76e..ee49153"]:::done
         M16["M.1.6 Migration tool<br/>9ffb0a3"]:::done
-        M17["M.1.7 T222 closeout<br/>f9ea575"]:::done
+        M17["M.1.7 T223 closeout<br/>f9ea575"]:::done
         M11 --> M12 --> M13 --> M13b --> M14 --> M15 --> M16 --> M17
     end
 

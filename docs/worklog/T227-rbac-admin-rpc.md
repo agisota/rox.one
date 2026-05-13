@@ -1,5 +1,7 @@
 # T227 - RBAC admin RPC handlers
 
+Status: DONE
+
 ## 1. Task summary
 
 Land the four admin RPC handlers (`roles.list`, `roles.create`,
@@ -129,7 +131,7 @@ fail — RbacResolver has no `invalidateUser` method
     stub with a docstring documenting the future caching contract.
 - Added `RPC_CHANNELS.roles` namespace in
   `packages/shared/src/protocol/channels.ts`:
-  - `roles:list`, `roles:create`, `roles:grant`, `roles:revoke`.
+  - `roles.list`, `roles.create`, `roles.grant`, `roles.revoke`.
 - Added `packages/server-core/src/handlers/rpc/roles.ts` exporting
   `registerRolesCoreHandlers(server, deps)`. The handlers:
   - Share an internal `requireOwner(deps, ctx, scopeKind, scopeId)` helper
@@ -183,8 +185,8 @@ exercised in T228 when the admin UI lands.
   caching layer that lands (likely the Postgres-backed store) must
   override this to actually evict stale grants, or stale `permittedWorkspaces`
   arrays will persist across the invalidation boundary.
-- The admin RPC channels are now part of the wire-format surface (`roles:list`,
-  `roles:create`, `roles:grant`, `roles:revoke`). Future renaming requires
+- The admin RPC channels are now part of the wire-format surface (`roles.list`,
+  `roles.create`, `roles.grant`, `roles.revoke`). Future renaming requires
   a backwards-compatible alias and a migration window.
 
 ## 11. Acceptance criteria matrix

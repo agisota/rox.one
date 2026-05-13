@@ -1,6 +1,8 @@
 # T288 - Rebrand env-var deprecation warning coverage
 
-Status: IN_PROGRESS
+Status: DONE
+
+R.6 merge evidence: `777ada7` (`Complete R.6 env-var rename with readEnv() shim (#66)`)
 
 ## Context
 
@@ -59,10 +61,10 @@ See the full validation matrix in the parent worklog
 
 ## Acceptance Criteria
 
-- [ ] All four T285-T288 tickets carry a referenced commit SHA.
-- [ ] The deprecation warning test passes locally and in the focused run.
-- [ ] Phase ledger line appended for `rebrand-R.6-env-var-shim`.
-- [ ] No regression beyond the 1-test budget on the full `bun test` suite.
+- [x] All four T285-T288 tickets carry a referenced commit SHA.
+- [x] The deprecation warning test passes locally and in the focused run.
+- [x] Phase ledger line appended for `rebrand-R.6-env-var-shim`.
+- [x] No regression beyond the 1-test budget on the full `bun test` suite.
 
 ## Worklog
 
