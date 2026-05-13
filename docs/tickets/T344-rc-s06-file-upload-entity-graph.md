@@ -1,6 +1,6 @@
 # T344 - RC Scenario S06: File Upload → Entity Graph → Source Link
 
-Status: Todo
+Status: Blocked
 
 ## Context
 
