@@ -140,4 +140,26 @@ describe("R.2 code identifier rebrand", () => {
     expect(claudeAgent).toContain("export type { ClaudeAgentConfig as RoxAgentConfig }");
     expect(claudeAgent).toContain("@deprecated Use ClaudeAgentConfig instead; remove in v1.1.0.");
   });
+
+  test("renames active test filenames that still carry legacy product tokens", () => {
+    const expectedRenames = [
+      {
+        oldPath: "packages/shared/tests/permissions-rox-agent-sync.test.ts",
+        newPath: "packages/shared/tests/permissions-agent-sync.test.ts",
+      },
+      {
+        oldPath: "packages/shared/src/agent/__tests__/permissions-config-rox-cli-flag.test.ts",
+        newPath: "packages/shared/src/agent/__tests__/permissions-config-cli-flag.test.ts",
+      },
+    ];
+
+    expect(
+      expectedRenames.filter(({ oldPath }) => existsSync(join(repoRoot, oldPath))).map(({ oldPath }) => oldPath),
+      "legacy test file names should be renamed",
+    ).toEqual([]);
+    expect(
+      expectedRenames.filter(({ newPath }) => existsSync(join(repoRoot, newPath))).map(({ newPath }) => newPath),
+      "canonical test file names should exist",
+    ).toEqual(expectedRenames.map(({ newPath }) => newPath));
+  });
 });
