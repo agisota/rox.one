@@ -38,6 +38,18 @@ const S03_MISSION_CHECKPOINT_TESTS = [
   'apps/electron/src/renderer/components/workbench/__tests__/experience-real-state-binding.test.tsx',
 ] as const
 
+const S04_ARENA_SWARM_VDI_TESTS = [
+  'packages/shared/src/workbench/__tests__/swarm-signal-processor.test.ts',
+  'packages/shared/src/workbench/__tests__/review-board.test.ts',
+  'packages/shared/src/workbench/__tests__/experience-layer-e2e-scenario.test.ts',
+  'packages/shared/src/workbench/__tests__/experience-runtime-store.test.ts',
+  'packages/shared/src/workbench/__tests__/experience-state-binding.test.ts',
+  'apps/electron/src/renderer/components/workbench/__tests__/arena-builder-screen.test.tsx',
+  'apps/electron/src/renderer/components/workbench/__tests__/progression-observatory.test.tsx',
+  'apps/electron/src/renderer/components/workbench/__tests__/experience-global-hud.test.tsx',
+  'apps/electron/src/renderer/components/workbench/__tests__/experience-real-state-binding.test.tsx',
+] as const
+
 export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
   {
     id: 's01-registration',
@@ -54,6 +66,11 @@ export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
     id: 's03-mission-checkpoint',
     title: 'RC S03 mission checkpoint and final verification smoke',
     command: ['bun', 'test', ...S03_MISSION_CHECKPOINT_TESTS],
+  },
+  {
+    id: 's04-arena-swarm-vdi',
+    title: 'RC S04 arena swarm signal dedupe and VDI smoke',
+    command: ['bun', 'test', ...S04_ARENA_SWARM_VDI_TESTS],
   },
 ]
 

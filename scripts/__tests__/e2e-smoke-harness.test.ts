@@ -54,4 +54,22 @@ describe('RC E2E smoke harness', () => {
 
     expect(ticket).not.toContain('apps/electron/src/renderer/components/workbench/**/__tests__/mission*.test.*')
   })
+
+  it('recognizes S04 arena swarm VDI and documents current validation paths', async () => {
+    const harness = await import('../e2e-smoke')
+    const scenario = harness.resolveRequiredScenario('s04-arena-swarm-vdi')
+    const ticket = readFileSync(join(rootDir, 'docs/tickets/T342-rc-s04-arena-swarm-vdi-update.md'), 'utf8')
+
+    expect(scenario.command).toContain('packages/shared/src/workbench/__tests__/swarm-signal-processor.test.ts')
+    expect(scenario.command).toContain('packages/shared/src/workbench/__tests__/review-board.test.ts')
+    expect(scenario.command).toContain(
+      'apps/electron/src/renderer/components/workbench/__tests__/arena-builder-screen.test.tsx',
+    )
+    expect(scenario.command).toContain(
+      'apps/electron/src/renderer/components/workbench/__tests__/experience-global-hud.test.tsx',
+    )
+
+    expect(ticket).not.toContain('packages/shared/src/agent/swarm/__tests__/**')
+    expect(ticket).not.toContain('apps/electron/src/renderer/components/workbench/**/__tests__/vdi*.test.*')
+  })
 })

@@ -12,8 +12,8 @@ updates VDI/Experience HUD state from evidence.
 regressions instead of changing runtime behavior in this ticket.
 
 The shared RC smoke harness registers S01 through S03 after T354, but
-`s04-arena-swarm-vdi` is not registered. The S04 smoke command exits at the
-harness before it can run current Arena swarm/VDI coverage.
+`s04-arena-swarm-vdi` was not registered. T355 registered the scenario and
+repaired the stale swarm/VDI validation commands.
 
 Current swarm signal coverage lives under `packages/shared/src/workbench`, not
 `packages/shared/src/agent/swarm`. Current VDI/HUD coverage lives in explicit
@@ -76,6 +76,16 @@ The following filters did not match any test files:
 
 No runtime files were changed.
 
+After T355, the S04 smoke command reaches the harness and passes current
+deterministic Arena swarm/VDI coverage:
+
+```text
+[e2e-smoke] pass s04-arena-swarm-vdi
+42 pass
+0 fail
+197 expect() calls
+```
+
 ## 7. Validation Commands Run
 
 ```bash
@@ -83,11 +93,20 @@ bun run e2e:smoke -- --scenario s04-arena-swarm-vdi
 bun test packages/shared/src/agent/swarm/__tests__/**
 bun test apps/electron/src/renderer/components/workbench/**/__tests__/vdi*.test.*
 bun test packages/shared/src/workbench/__tests__/swarm-signal-processor.test.ts packages/shared/src/workbench/__tests__/review-board.test.ts packages/shared/src/workbench/__tests__/experience-layer-e2e-scenario.test.ts packages/shared/src/workbench/__tests__/experience-runtime-store.test.ts packages/shared/src/workbench/__tests__/experience-state-binding.test.ts apps/electron/src/renderer/components/workbench/__tests__/arena-builder-screen.test.tsx apps/electron/src/renderer/components/workbench/__tests__/progression-observatory.test.tsx apps/electron/src/renderer/components/workbench/__tests__/experience-global-hud.test.tsx apps/electron/src/renderer/components/workbench/__tests__/experience-real-state-binding.test.tsx
+bun test scripts/__tests__/e2e-smoke-harness.test.ts
+bun run e2e:smoke -- --scenario s04-arena-swarm-vdi
+bun run validate:agent-contract
 ```
 
 ## 8. Passing Test Output Summary
 
 - Current adjacent swarm/review/VDI tests: 42 pass, 0 fail, 197 expectations.
+- `bun run e2e:smoke -- --scenario s04-arena-swarm-vdi`: 42 pass, 0 fail, 197
+  expectations.
+- `bun test scripts/__tests__/e2e-smoke-harness.test.ts`: 5 pass, 0 fail, 19
+  expectations.
+- `bun run validate:agent-contract`: ok, 11 skills, 310 tickets, 7 required
+  docs.
 
 ## 9. Build Output Summary
 
@@ -95,7 +114,6 @@ No build was run because this ticket made no runtime/source changes.
 
 ## 10. Remaining Risks
 
-- S04 smoke harness entry is not registered yet; T355 tracks that repair.
 - S04 has not produced packaged Electron UI screenshots or browser-console
   evidence.
 - The passing tests prove deterministic swarm/review/VDI behavior, not a full
@@ -114,3 +132,4 @@ No build was run because this ticket made no runtime/source changes.
 | Screenshot evidence captured and referenced | Blocked | No screenshot captured in current deterministic test harness |
 | RC evidence row S04 updated | Pass | `docs/release/2026-05-14-rc-evidence.md` row S04 is `Blocked` |
 | Initial blocking ticket filed | Pass | `T355-rc-s04-smoke-harness-and-command-repair.md` |
+| S04 deterministic harness path repaired | Pass | T355 registers S04 and `e2e:smoke` passes 42 tests |
