@@ -31,6 +31,20 @@ export interface VoiceInputSlotProps {
    * implementation from the host and the disabled state flips off.
    */
   onStart?: () => void
+  /**
+   * Optional stop handler (T239). When the slot is currently `recording`,
+   * clicking the button calls `onStop` instead of `onStart` so the same
+   * affordance toggles capture on / off. Omitted hosts treat the button as
+   * single-shot start-only.
+   */
+  onStop?: () => void
+  /**
+   * Optional recording flag (T239). When `true`, the slot renders an
+   * "active" state — different tooltip body and a `data-recording` hook
+   * so RTL tests can assert the live affordance. Defaults to `false` so
+   * existing T238 callers keep their behaviour.
+   */
+  recording?: boolean
   /** Optional disabled override (forces disabled even when `onStart` is set). */
   disabled?: boolean
   /** Optional className for host-side positioning inside the toolbar row. */
@@ -41,6 +55,8 @@ export interface VoiceInputSlotProps {
 
 export function VoiceInputSlot({
   onStart,
+  onStop,
+  recording = false,
   disabled,
   className,
   testIdPrefix = 'composer-voice-input',
@@ -56,6 +72,11 @@ export function VoiceInputSlot({
   const comingSoon = t('composer.voiceInput.comingSoon', {
     defaultValue: 'Coming soon',
   })
+  // T239: when actively capturing, the tooltip body advertises the stop
+  // action so the operator knows the same affordance ends the session.
+  const stopLabel = t('composer.voiceInput.stop', {
+    defaultValue: 'Stop recording',
+  })
 
   // The slot is disabled when (a) no provider has been registered yet
   // (the T238 placeholder mode) OR (b) the host explicitly forces it.
@@ -64,10 +85,15 @@ export function VoiceInputSlot({
   const isPlaceholder = onStart === undefined
   const isDisabled = isPlaceholder || disabled === true
 
-  // Tooltip body: when interactive, just the action name. When disabled
-  // (placeholder), action name + "Coming soon" hint so the user knows the
-  // feature is intentionally inert rather than broken.
-  const tooltipBody = isPlaceholder ? `${ariaLabel} — ${comingSoon}` : ariaLabel
+  // Tooltip body resolves to one of three messages:
+  //   - placeholder mode → "Voice input — Coming soon" (T238 copy)
+  //   - recording → "Stop recording" so the toggle behaviour is discoverable
+  //   - interactive idle → plain "Voice input" action name
+  const tooltipBody = isPlaceholder
+    ? `${ariaLabel} — ${comingSoon}`
+    : recording
+      ? stopLabel
+      : ariaLabel
 
   return (
     <Tooltip>
@@ -77,9 +103,11 @@ export function VoiceInputSlot({
           disabled={isDisabled}
           aria-label={ariaLabel}
           aria-disabled={isDisabled || undefined}
+          aria-pressed={!isPlaceholder ? recording : undefined}
           title={tooltipBody}
           data-testid={`${testIdPrefix}-button`}
           data-placeholder={isPlaceholder ? 'true' : 'false'}
+          data-recording={recording ? 'true' : 'false'}
           onMouseDown={(event) => {
             // Match the emphasis toolbar's behaviour — preserve textarea
             // selection on click instead of stealing focus to the button.
@@ -87,7 +115,17 @@ export function VoiceInputSlot({
           }}
           onClick={(event) => {
             event.preventDefault()
-            if (isDisabled || !onStart) return
+            if (isDisabled) return
+            if (recording) {
+              // T239: while recording, the same button stops capture.
+              // If the host wired the slot without a stop handler the
+              // click becomes a no-op — we deliberately do NOT fall back
+              // to `onStart` because that would double-start a recognizer
+              // that is already mid-session.
+              if (onStop) onStop()
+              return
+            }
+            if (!onStart) return
             onStart()
           }}
           className={cn(
@@ -95,6 +133,7 @@ export function VoiceInputSlot({
             'hover:bg-accent hover:text-accent-foreground',
             'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
             isDisabled && 'opacity-50 cursor-not-allowed',
+            recording && 'text-destructive bg-destructive/10',
             className,
           )}
         >
