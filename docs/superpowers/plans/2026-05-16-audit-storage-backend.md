@@ -131,17 +131,17 @@ lint, full suite, and build.
 - Modify: `packages/server-core/src/audit/audit-event-store.ts`
 - Test: `packages/server-core/src/audit/__tests__/audit-event-store.test.ts`
 
-- [ ] **Step 1: Write failing retention tests**
+- [x] **Step 1: Write failing retention tests**
 
 Prove per-event-type `retention_days` removes only expired records and leaves a
 verifiable retained hash chain.
 
-- [ ] **Step 2: Implement retention**
+- [x] **Step 2: Implement retention**
 
 Add explicit retention policy evaluation and chain re-anchoring metadata for
 retained records.
 
-- [ ] **Step 3: Validate**
+- [x] **Step 3: Validate**
 
 Run targeted audit tests, typecheck, lint, full suite, build, and docs checks.
 

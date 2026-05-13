@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 
 import {
+  applyAuditRetentionPolicy,
   InMemoryAuditEventStore,
   queryAuditEventRecords,
   verifyAuditHashChain,
@@ -164,5 +165,59 @@ describe('audit event store schema', () => {
     records[0]!.actor.id = 'mutated'
     const reread = await queryAuditEventRecords(store, { tenantId: 'tenant-a', limit: 1 })
     expect(reread[0]!.actor.id).not.toBe('mutated')
+  })
+
+  it('applies per-event retention rules and re-anchors the retained hash chain', async () => {
+    const store = new InMemoryAuditEventStore()
+
+    await store.append({
+      actor: { type: 'system' },
+      tenantId: 'tenant-a',
+      eventType: 'scope.factory.downgraded',
+      severity: 'trace',
+      payload: { reason: 'expired-scope' },
+      requestId: 'req-expired',
+      ts: '2026-04-01T00:00:00.000Z',
+    })
+    await store.append({
+      actor: { type: 'system' },
+      tenantId: 'tenant-a',
+      eventType: 'credential.scope.write',
+      severity: 'trace',
+      payload: { credentialType: 'anthropic_api_key' },
+      requestId: 'req-kept-longer',
+      ts: '2026-04-01T00:01:00.000Z',
+    })
+    await store.append({
+      actor: { type: 'system' },
+      tenantId: 'tenant-a',
+      eventType: 'scope.factory.downgraded',
+      severity: 'trace',
+      payload: { reason: 'recent-scope' },
+      requestId: 'req-recent',
+      ts: '2026-05-10T00:00:00.000Z',
+    })
+
+    const originalRecords = await store.listRecords()
+    const retained = applyAuditRetentionPolicy(originalRecords, {
+      now: '2026-05-16T00:00:00.000Z',
+      rules: [
+        { eventType: 'scope.factory.downgraded', retention_days: 30 },
+        { eventType: 'credential.scope.write', retention_days: 90 },
+      ],
+      retainedAt: '2026-05-16T00:00:00.000Z',
+    })
+
+    expect(retained.removedRecords.map(record => record.requestId)).toEqual(['req-expired'])
+    expect(retained.records.map(record => record.requestId)).toEqual(['req-kept-longer', 'req-recent'])
+    expect(retained.records[0]!.previousEventHash).toBe('0'.repeat(64))
+    expect(retained.records[0]!.retention).toMatchObject({
+      retainedAt: '2026-05-16T00:00:00.000Z',
+      originalPreviousEventHash: originalRecords[0]!.eventHash,
+      originalEventHash: originalRecords[1]!.eventHash,
+    })
+    expect(retained.records[0]!.eventHash).not.toBe(originalRecords[1]!.eventHash)
+    expect(verifyAuditHashChain(retained.records)).toBe(true)
+    expect(verifyAuditHashChain(await store.listRecords())).toBe(true)
   })
 })
