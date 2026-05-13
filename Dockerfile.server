@@ -2,25 +2,25 @@
 # ROX.ONE Server — multi-platform Docker image
 #
 # Build:
-#   docker buildx build -f Dockerfile.server -t rox-agent-server .
+#   docker buildx build -f Dockerfile.server -t rox-one-server .
 #
 # Run (use --user to match host UID/GID for volume permissions):
 #   docker run --rm -p 9100:9100 \
 #     --user $(id -u):$(id -g) \
-#     -e HOME=/home/roxagents \
+#     -e HOME=/home/roxone \
 #     -e ROX_SERVER_TOKEN=<secret> \
-#     rox-agent-server
+#     rox-one-server
 #
 # Run with TLS + mounted config:
 #   docker run --rm -p 9100:9100 \
 #     --user $(id -u):$(id -g) \
-#     -e HOME=/home/roxagents \
+#     -e HOME=/home/roxone \
 #     -e ROX_SERVER_TOKEN=<secret> \
 #     -e ROX_RPC_TLS_CERT=/certs/cert.pem \
 #     -e ROX_RPC_TLS_KEY=/certs/key.pem \
 #     -v /path/to/certs:/certs:ro \
-#     -v ~/.rox:/home/roxagents/.rox \
-#     rox-agent-server
+#     -v ~/.rox:/home/roxone/.rox \
+#     rox-one-server
 #
 # Env var policy (Phase R.6): the canonical names are ROX_*. The legacy
 # ROX_* names are still read by the runtime via the readEnv() shim for
@@ -45,8 +45,8 @@ RUN apt-get update && \
 
 # Create non-root user (Claude Code SDK refuses to run as root).
 # At runtime, override with --user $(id -u):$(id -g) to match host permissions.
-RUN groupadd -r roxagents && \
-    useradd -r -g roxagents -m -d /home/roxagents -s /bin/bash roxagents
+RUN groupadd -r roxone && \
+    useradd -r -g roxone -m -d /home/roxone -s /bin/bash roxone
 
 WORKDIR /app
 
@@ -64,8 +64,8 @@ COPY packages/core/package.json packages/core/
 COPY packages/session-tools-core/package.json packages/session-tools-core/
 COPY packages/session-mcp-server/package.json packages/session-mcp-server/
 COPY packages/pi-agent-server/package.json packages/pi-agent-server/
-COPY packages/rox-agents-commands/package.json packages/rox-agents-commands/
-COPY packages/rox-cli/package.json packages/rox-cli/
+COPY packages/audit/package.json packages/audit/
+COPY packages/test-fixtures/package.json packages/test-fixtures/
 COPY packages/ui/package.json packages/ui/
 COPY packages/messaging-gateway/package.json packages/messaging-gateway/
 COPY packages/messaging-whatsapp-worker/package.json packages/messaging-whatsapp-worker/
@@ -96,16 +96,16 @@ RUN bun run scripts/build-wa-worker.ts
 RUN NODE_OPTIONS="--max-old-space-size=4096" bunx vite build --config apps/webui/vite.config.ts
 
 # Pre-create .rox so Docker named volumes inherit the correct permissions.
-RUN mkdir -p /home/roxagents/.rox
+RUN mkdir -p /home/roxone/.rox
 
 # Make app world-readable so any --user can run it. Home dir is writable for .rox.
 # Use find to only touch files/dirs missing the read bit — much faster than chmod -R on the
 # entire tree (node_modules alone has hundreds of thousands of entries).
 RUN find /app -not -perm -o=r -exec chmod o+r {} + && \
     find /app -type d -not -perm -o=x -exec chmod o+x {} + && \
-    chmod -R 777 /home/roxagents
+    chmod -R 777 /home/roxone
 
-USER roxagents
+USER roxone
 
 ENV ROX_RPC_HOST=0.0.0.0
 ENV ROX_RPC_PORT=9100
