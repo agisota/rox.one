@@ -14,7 +14,7 @@
     "test": "bun test src/"
   },
   "dependencies": {
-    "@craft-agent/server-core": "workspace:*",
+    "@rox-one/server-core": "workspace:*",
     "@craft-agent/shared": "workspace:*"
   },
   "devDependencies": {

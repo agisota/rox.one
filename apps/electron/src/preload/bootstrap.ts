@@ -31,9 +31,9 @@ import {
   CLIENT_CONFIRM_DIALOG,
   CLIENT_OPEN_FILE_DIALOG,
   LOCAL_CLIENT_CAPABILITIES,
-} from '@craft-agent/server-core/transport'
-import type { ConfirmDialogSpec, FileDialogSpec } from '@craft-agent/server-core/transport'
-import type { RpcClient } from '@craft-agent/server-core/transport'
+} from '@rox-one/server-core/transport'
+import type { ConfirmDialogSpec, FileDialogSpec } from '@rox-one/server-core/transport'
+import type { RpcClient } from '@rox-one/server-core/transport'
 import type { RemoteServerConfig } from '@rox-one/core/types'
 import type { ElectronAPI } from '../shared/types'
 

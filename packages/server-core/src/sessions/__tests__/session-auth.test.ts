@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
-import type { Logger } from '@craft-agent/server-core/runtime'
+import type { Logger } from '@rox-one/server-core/runtime'
 import type { AuthRequest, AuthResult } from '@craft-agent/shared/agent'
 import { SessionAuth } from '../session-auth'
 import { SessionIPC } from '../session-ipc'

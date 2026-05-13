@@ -5,16 +5,16 @@ import { execSync } from 'child_process'
 import { RPC_CHANNELS } from '@craft-agent/shared/protocol'
 import { getWorkspaceByNameOrId, getGitBashPath, setGitBashPath, clearGitBashPath } from '@craft-agent/shared/config'
 import { isSafeExternalUrl } from '@craft-agent/shared/utils/url-safety'
-import { isUsableGitBashPath, validateGitBashPath } from '@craft-agent/server-core/services'
-import { validateFilePath, getWorkspaceAllowedDirs } from '@craft-agent/server-core/handlers'
-import type { RequestContext, RpcServer } from '@craft-agent/server-core/transport'
+import { isUsableGitBashPath, validateGitBashPath } from '@rox-one/server-core/services'
+import { validateFilePath, getWorkspaceAllowedDirs } from '@rox-one/server-core/handlers'
+import type { RequestContext, RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import {
   requestClientOpenExternal,
   requestClientOpenPath,
   requestClientShowInFolder,
   requestClientOpenFileDialog,
-} from '@craft-agent/server-core/transport'
+} from '@rox-one/server-core/transport'
 import { SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE, deriveRpcWorkspaceScope } from './storage-scope'
 
 export const CORE_HANDLED_CHANNELS = [

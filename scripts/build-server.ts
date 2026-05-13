@@ -521,7 +521,7 @@ function createRootConfig(config: ServerBuildConfig): void {
       module: 'ESNext',
       moduleResolution: 'bundler',
       paths: {
-        '@craft-agent/server-core/*': ['./packages/server-core/src/*'],
+        '@rox-one/server-core/*': ['./packages/server-core/src/*'],
         '@craft-agent/shared/*': ['./packages/shared/src/*'],
         '@craft-agent/core/*': ['./packages/core/src/*'],
         '@craft-agent/session-tools-core/*': ['./packages/session-tools-core/src/*'],

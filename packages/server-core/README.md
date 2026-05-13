@@ -1,4 +1,4 @@
-# @craft-agent/server-core
+# @rox-one/server-core
 
 Reusable WS/headless server infrastructure extracted from `apps/electron`.
 

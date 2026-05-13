@@ -1,7 +1,7 @@
-import type { EventSink } from '@craft-agent/server-core/transport'
-import type { ISessionManager, IBrowserPaneManager, ExecutePromptAutomationInput } from '@craft-agent/server-core/handlers'
-import { validateFilePath, getWorkspaceAllowedDirs } from '@craft-agent/server-core/handlers'
-import { createScopedLogger, CONSOLE_LOGGER, type PlatformServices, type Logger } from '@craft-agent/server-core/runtime'
+import type { EventSink } from '@rox-one/server-core/transport'
+import type { ISessionManager, IBrowserPaneManager, ExecutePromptAutomationInput } from '@rox-one/server-core/handlers'
+import { validateFilePath, getWorkspaceAllowedDirs } from '@rox-one/server-core/handlers'
+import { createScopedLogger, CONSOLE_LOGGER, type PlatformServices, type Logger } from '@rox-one/server-core/runtime'
 import { basename, dirname, join } from 'path'
 import { existsSync } from 'fs'
 import { readFile, writeFile, mkdir } from 'fs/promises'
@@ -21,7 +21,7 @@ import {
 } from '@craft-agent/shared/agent/backend'
 import { DEFAULT_LOCAL_SCOPE, getLlmConnection, getLlmConnections, getDefaultLlmConnection, getDefaultThinkingLevel, resetManagedAnthropicAuthEnvVars, resolveMidStreamBehavior } from '@craft-agent/shared/config'
 import { isValidWorkingDirectory } from '../utils/path-validation'
-import { InitGate } from '@craft-agent/server-core/domain'
+import { InitGate } from '@rox-one/server-core/domain'
 import { i18n, LOCALE_REGISTRY, type LanguageCode } from '@craft-agent/shared/i18n'
 import {
   getWorkspaces,
@@ -144,8 +144,8 @@ export { AGENT_FLAGS, createManagedSession }
 export type { ManagedSession, AgentInstance }
 
 // Import from server-core domain utilities
-import { sanitizeForTitle, shouldActivateBrowserOverlay, normalizeBrowserToolName, rollbackFailedBranchCreation, releaseBrowserOwnershipOnForcedStop } from '@craft-agent/server-core/domain'
-import { resizeImageForAPI, resizeIconBuffer } from '@craft-agent/server-core/services'
+import { sanitizeForTitle, shouldActivateBrowserOverlay, normalizeBrowserToolName, rollbackFailedBranchCreation, releaseBrowserOwnershipOnForcedStop } from '@rox-one/server-core/domain'
+import { resizeImageForAPI, resizeIconBuffer } from '@rox-one/server-core/services'
 export { sanitizeForTitle }
 
 // Module-level platform ref — set once during init via setSessionPlatform()

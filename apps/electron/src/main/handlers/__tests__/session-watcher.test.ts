@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test'
 import { mkdtempSync, writeFileSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import type { RpcServer, RequestContext } from '@craft-agent/server-core/transport'
+import type { RpcServer, RequestContext } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { RPC_CHANNELS } from '../../../shared/types'
 
@@ -153,7 +153,7 @@ describe('session file watcher isolation', () => {
       registerSessionsHandlers,
       cleanupSessionFileWatchForClient,
       _setSessionFileWatcherFactoryForTesting,
-    } = await import('@craft-agent/server-core/handlers/rpc')
+    } = await import('@rox-one/server-core/handlers/rpc')
     const watchFactory = createFakeWatchFactory()
     _setSessionFileWatcherFactoryForTesting(watchFactory.factory)
     resetSessionWatcherFactory = () => _setSessionFileWatcherFactoryForTesting(null)
@@ -213,7 +213,7 @@ describe('session file watcher isolation', () => {
       registerSessionsHandlers,
       cleanupSessionFileWatchForClient,
       _setSessionFileWatcherFactoryForTesting,
-    } = await import('@craft-agent/server-core/handlers/rpc')
+    } = await import('@rox-one/server-core/handlers/rpc')
     const watchFactory = createFakeWatchFactory()
     _setSessionFileWatcherFactoryForTesting(watchFactory.factory)
     resetSessionWatcherFactory = () => _setSessionFileWatcherFactoryForTesting(null)
@@ -259,7 +259,7 @@ describe('session file watcher isolation', () => {
       registerSessionsHandlers,
       cleanupSessionFileWatchForClient,
       _setSessionFileWatcherFactoryForTesting,
-    } = await import('@craft-agent/server-core/handlers/rpc')
+    } = await import('@rox-one/server-core/handlers/rpc')
     const watchFactory = createFakeWatchFactory()
     _setSessionFileWatcherFactoryForTesting(watchFactory.factory)
     resetSessionWatcherFactory = () => _setSessionFileWatcherFactoryForTesting(null)
