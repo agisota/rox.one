@@ -1,5 +1,5 @@
 /**
- * @craft-agent/messaging-gateway
+ * @rox-one/messaging-gateway
  *
  * Messaging gateway for ROX — Telegram & WhatsApp.
  */

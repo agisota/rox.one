@@ -19,6 +19,10 @@ const legacySessionToolsCorePackage = `${legacyScope}/session-tools-core`;
 const roxSessionToolsCorePackage = `${roxScope}/session-tools-core`;
 const legacySessionMcpServerPackage = `${legacyScope}/session-mcp-server`;
 const roxSessionMcpServerPackage = `${roxScope}/session-mcp-server`;
+const legacyMessagingGatewayPackage = `${legacyScope}/messaging-gateway`;
+const roxMessagingGatewayPackage = `${roxScope}/messaging-gateway`;
+const legacyMessagingWhatsappWorkerPackage = `${legacyScope}/messaging-whatsapp-worker`;
+const roxMessagingWhatsappWorkerPackage = `${roxScope}/messaging-whatsapp-worker`;
 
 function readText(path: string): string {
   return readFileSync(join(repoRoot, path), "utf8");
@@ -185,5 +189,46 @@ describe("R.5 package-scope rebrand", () => {
     const roxMatches = activeFiles.filter((path) => readText(path).includes(roxSessionMcpServerPackage));
     expect(roxMatches.length).toBeGreaterThan(0);
     expect(readText("bun.lock")).toContain(roxSessionMcpServerPackage);
+  });
+
+  test("renames the messaging workspace packages to the ROX scope", () => {
+    const messagingGatewayPackageJson = readJson("packages/messaging-gateway/package.json");
+    expect(messagingGatewayPackageJson.name).toBe(roxMessagingGatewayPackage);
+
+    const whatsappWorkerPackageJson = readJson("packages/messaging-whatsapp-worker/package.json");
+    expect(whatsappWorkerPackageJson.name).toBe(roxMessagingWhatsappWorkerPackage);
+
+    const gatewayDependencyPackages = [
+      "apps/electron/package.json",
+      "packages/server/package.json",
+    ];
+
+    for (const path of gatewayDependencyPackages) {
+      const packageJson = readJson(path);
+      const dependencies = packageJson.dependencies as Record<string, string>;
+      expect(dependencies[roxMessagingGatewayPackage], path).toBe("workspace:*");
+      expect(dependencies[legacyMessagingGatewayPackage], path).toBeUndefined();
+    }
+
+    const messagingGatewayDependencies = messagingGatewayPackageJson.dependencies as Record<string, string>;
+    expect(messagingGatewayDependencies[roxMessagingWhatsappWorkerPackage]).toBe("workspace:*");
+    expect(messagingGatewayDependencies[legacyMessagingWhatsappWorkerPackage]).toBeUndefined();
+
+    const activeFiles = [...listFiles("apps"), ...listFiles("packages"), "bun.lock"];
+    const legacyGatewayMatches = activeFiles.filter((path) => readText(path).includes(legacyMessagingGatewayPackage));
+    expect(legacyGatewayMatches).toEqual([]);
+
+    const legacyWorkerMatches = activeFiles.filter((path) => readText(path).includes(legacyMessagingWhatsappWorkerPackage));
+    expect(legacyWorkerMatches).toEqual([]);
+
+    const roxGatewayMatches = activeFiles.filter((path) => readText(path).includes(roxMessagingGatewayPackage));
+    expect(roxGatewayMatches.length).toBeGreaterThan(0);
+
+    const roxWorkerMatches = activeFiles.filter((path) => readText(path).includes(roxMessagingWhatsappWorkerPackage));
+    expect(roxWorkerMatches.length).toBeGreaterThan(0);
+
+    const lockfile = readText("bun.lock");
+    expect(lockfile).toContain(roxMessagingGatewayPackage);
+    expect(lockfile).toContain(roxMessagingWhatsappWorkerPackage);
   });
 });

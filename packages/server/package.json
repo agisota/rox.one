@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@rox-one/core": "workspace:*",
-    "@craft-agent/messaging-gateway": "workspace:*",
+    "@rox-one/messaging-gateway": "workspace:*",
     "@craft-agent/server-core": "workspace:*",
     "@craft-agent/shared": "workspace:*"
   },

@@ -6,7 +6,7 @@
  *
  * Usage in bootstrap:
  * ```ts
- * import { createFanOutSink } from '@craft-agent/messaging-gateway'
+ * import { createFanOutSink } from '@rox-one/messaging-gateway'
  *
  * setSessionEventSink: (sm, sink) => {
  *   const fanOut = createFanOutSink(sink, gateway.onSessionEvent.bind(gateway))

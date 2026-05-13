@@ -714,7 +714,7 @@ export interface MessagingPlatformRuntimeInfo {
 
 /**
  * Workspace-level access policy for a messaging platform.
- * Mirrors the canonical type in `@craft-agent/messaging-gateway`.
+ * Mirrors the canonical type in `@rox-one/messaging-gateway`.
  */
 export type MessagingPlatformAccessMode = 'open' | 'owner-only'
 

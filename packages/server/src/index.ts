@@ -58,7 +58,7 @@ import {
   createMessagingBootstrap,
   type MessagingBootstrapHandle,
   type MessagingDependencyRiskMode,
-} from '@craft-agent/messaging-gateway'
+} from '@rox-one/messaging-gateway'
 
 // --generate-token: print a crypto-random token and exit
 if (process.argv.includes('--generate-token')) {
