@@ -51,7 +51,6 @@ import { isMultiTenantActivated } from '../../config/storage-scope-runtime.ts';
 import { appendStructuredAuditEvent } from '../../audit/index.ts';
 import { createLogger } from '../../utils/debug.ts';
 
-// File format constants
 // MAGIC_BYTES must be exactly MAGIC_SIZE (8) bytes to match the on-disk header.
 // 'ROX01\0' is only 6 bytes; pad with two zero bytes so the .equals() check
 // in loadStore() compares equal-length buffers and does not fail on every read.

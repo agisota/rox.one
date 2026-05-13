@@ -37,7 +37,7 @@ describe("R.7 Docker / CI / build rebrand", () => {
     );
   });
 
-  test("no GitHub Actions workflow uses 'Rox' in a job or step name", () => {
+  test("no GitHub Actions workflow uses a legacy Rox Agents job or step name", () => {
     const workflowsDir = join(repoRoot, ".github/workflows");
     const offenders: string[] = [];
     for (const entry of readdirSync(workflowsDir, { withFileTypes: true })) {
@@ -46,12 +46,12 @@ describe("R.7 Docker / CI / build rebrand", () => {
       const lines = readText(fullPath).split(/\r?\n/);
       for (let index = 0; index < lines.length; index += 1) {
         const line = lines[index];
-        // Match `name: ...` keys at any indentation. Catches `Rox`,
-        // `rox-agent`, `Rox Agents`, etc. inside the value.
+        // Match `name: ...` keys at any indentation. Current ROX.ONE names are
+        // canonical; only the former Rox Agents product phrasing is forbidden.
         const nameMatch = line.match(/^\s*name:\s*(.+?)\s*$/);
         if (!nameMatch) continue;
         const value = nameMatch[1];
-        if (/rox-agent|Rox\b/i.test(value)) {
+        if (/rox-agent|Rox Agents/i.test(value)) {
           offenders.push(`${relativePath(fullPath)}:${index + 1}: ${line.trim()}`);
         }
       }
@@ -89,11 +89,12 @@ describe("R.7 Docker / CI / build rebrand", () => {
     const yml = readText(ymlPath);
     // productName must be the canonical wordmark.
     expect(yml).toMatch(/^productName:\s*ROX\.ONE\s*$/m);
-    // appId must be a rox-namespaced reverse-DNS identifier (no rox/agent residue).
+    // appId must be a rox-namespaced reverse-DNS identifier with no
+    // legacy rox-agent residue.
     const appIdMatch = yml.match(/^appId:\s*(\S+)\s*$/m);
     expect(appIdMatch).not.toBeNull();
     const appId = appIdMatch![1];
-    expect(appId).not.toMatch(/rox|agent/i);
+    expect(appId).not.toMatch(/rox-agent|agent/i);
     expect(appId).toMatch(/(?:^|\.)rox(?:\.|$)/i);
   });
 });
