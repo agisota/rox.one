@@ -33,8 +33,10 @@ import {
   mkdirSync,
   openSync,
   readSync,
+  readdirSync,
   renameSync,
   statSync,
+  unlinkSync,
   type WriteStream,
 } from 'node:fs'
 import { homedir as defaultHomedir } from 'node:os'
@@ -42,10 +44,25 @@ import { dirname, join } from 'node:path'
 
 import { type AuditEvent, type AuditSink } from '@rox-one/shared/observability'
 
+import {
+  enforceRetention,
+  type EnforceRetentionResult,
+  type RetentionFsDeps,
+} from './audit-retention.ts'
+
 const DEFAULT_MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
 const DEFAULT_FILE_NAME = 'audit.log'
 const DEFAULT_DIR_NAME = '.rox'
 const HEAD_PROBE_BYTES = 4096
+
+export interface FileAuditSinkRetention {
+  /** Max age in ms for rotated files (older entries are deleted). */
+  maxAgeMs: number
+  /** Max count of rotated files to keep after the age sweep. */
+  maxFiles: number
+  /** Filesystem injection for the sweep (test seam). Defaults to `node:fs`. */
+  fs?: RetentionFsDeps
+}
 
 export interface FileAuditSinkOptions {
   /** Absolute path to the active audit log. Defaults to `${homedir()}/.rox/audit.log`. */
@@ -56,6 +73,12 @@ export interface FileAuditSinkOptions {
   clock?: () => Date
   /** Size in bytes at or above which the file is rotated. Default 10 MB. */
   maxSizeBytes?: number
+  /**
+   * Optional retention policy. When set, `enforceRetention` runs after
+   * every rotation. When absent, rotated files accumulate indefinitely
+   * (backward-compatible with T248).
+   */
+  retention?: FileAuditSinkRetention
 }
 
 export interface FileAuditSinkHandle {
@@ -67,6 +90,11 @@ export interface FileAuditSinkHandle {
   close(): Promise<void>
   /** Returns the currently active log path (resolved from defaults). */
   activePath(): string
+  /**
+   * Force a retention sweep now (no-op when no `retention` was supplied
+   * at construction time). Returns the per-file outcome for logging.
+   */
+  enforceRetentionNow(): EnforceRetentionResult
 }
 
 interface InternalState {
@@ -78,6 +106,7 @@ interface InternalState {
   draining: Promise<void> | null
   closed: boolean
   pendingError: Error | null
+  retention: FileAuditSinkRetention | null
 }
 
 export function createFileAuditSink(options: FileAuditSinkOptions = {}): FileAuditSinkHandle {
@@ -92,6 +121,7 @@ export function createFileAuditSink(options: FileAuditSinkOptions = {}): FileAud
     draining: null,
     closed: false,
     pendingError: null,
+    retention: options.retention ?? null,
   }
 
   const handle: FileAuditSinkHandle = {
@@ -115,8 +145,29 @@ export function createFileAuditSink(options: FileAuditSinkOptions = {}): FileAud
     activePath(): string {
       return state.path
     },
+    enforceRetentionNow(): EnforceRetentionResult {
+      return runRetention(state)
+    },
   }
   return handle
+}
+
+function runRetention(state: InternalState): EnforceRetentionResult {
+  if (!state.retention) return { deleted: [], kept: [] }
+  // Default to real `node:fs` ops including `unlink` so the sweep
+  // actually deletes files. Tests override via `retention.fs`.
+  const fs: RetentionFsDeps = state.retention.fs ?? {
+    readdir: readdirSync,
+    stat: statSync,
+    unlink: unlinkSync,
+  }
+  return enforceRetention({
+    dir: dirname(state.path),
+    maxAgeMs: state.retention.maxAgeMs,
+    maxFiles: state.retention.maxFiles,
+    clock: state.clock,
+    fs,
+  })
 }
 
 function serialise(event: AuditEvent): string {
@@ -207,11 +258,13 @@ function rotateIfNeeded(state: InternalState): void {
   const headDate = peekHeadDate(state.path)
   if (headDate && headDate !== todayUtc) {
     rotateTo(state, headDate)
+    runRetention(state)
     return
   }
   const size = sizeOf(state.path)
   if (size >= state.maxSizeBytes) {
     rotateTo(state, todayUtc)
+    runRetention(state)
   }
 }
 

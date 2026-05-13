@@ -7,7 +7,7 @@
  * rotation triggers are deterministic.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 import {
@@ -323,5 +323,38 @@ describe('FileAuditSink', () => {
 
     expect(readdirSync(workDir).filter((f) => f.startsWith('audit-')).length).toBe(0)
     expect(readLines(path)).toHaveLength(10)
+  })
+
+  it('enforces retention after a rotation when retention is configured', async () => {
+    const path = join(workDir, 'audit.log')
+    const yesterday = makeEvent({ ts: '2026-05-13T20:00:00.000Z' })
+    writeFileSync(path, JSON.stringify(yesterday) + '\n', 'utf8')
+    // Pre-existing rotated file from way before the retention window.
+    const stalePath = join(workDir, 'audit-2025-01-01.log')
+    writeFileSync(stalePath, 'old\n', 'utf8')
+    // Force the mtime well past the 30-day retention window.
+    const oldEpoch = new Date('2025-01-01T00:00:00.000Z')
+    utimesSync(stalePath, oldEpoch, oldEpoch)
+
+    const sink = createFileAuditSink({
+      path,
+      clock: () => new Date('2026-05-14T00:00:01.000Z'),
+      retention: { maxAgeMs: 30 * 24 * 60 * 60 * 1000, maxFiles: 60 },
+    })
+    sink.sink(makeEvent({ ts: '2026-05-14T00:00:01.000Z' }))
+    await flush(sink)
+
+    // Yesterday rotated → audit-2026-05-13.log exists; the 2025 stale file
+    // is gone because retention swept it after the daily rotation.
+    expect(existsSync(join(workDir, 'audit-2026-05-13.log'))).toBe(true)
+    expect(existsSync(stalePath)).toBe(false)
+  })
+
+  it('enforceRetentionNow is a no-op when retention is not configured', () => {
+    const path = join(workDir, 'audit.log')
+    const sink = createFileAuditSink({ path, clock: () => new Date('2026-05-14T12:00:00.000Z') })
+    const result = sink.enforceRetentionNow()
+    expect(result.deleted).toEqual([])
+    expect(result.kept).toEqual([])
   })
 })
