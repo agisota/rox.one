@@ -1,116 +1,99 @@
 # Tenant Credential Key Derivation Design
 
-- **Status:** implemented
-- **Date:** 2026-05-15
-- **Extends:** ADR 0007 multi-tenant storage isolation
-- **Roadmap phase:** 1.4, ticket `T217`
+## Status
+
+In progress under ticket `T223-tenant-credential-key-derivation`.
 
 ## Goal
 
-Close the C.4 credential encryption gap by giving workspace-scoped credential
-stores tenant-specific encryption keys while preserving the existing flat
-single-user credential file and existing flat key derivation.
+Add per-tenant cryptographic isolation to credential storage so workspace-scoped
+credentials are encrypted with a key derived from both the existing machine
+master key and the authenticated workspace id.
 
-## Non-goals
+## Roadmap Numbering Note
 
-- Do not change default single-user credential layout or encryption behavior.
-- Do not serialize `BrandedWorkspaceScope`.
-- Do not implement Phase 2 RBAC policy.
-- Do not migrate every credential caller to tenant scope in this slice.
-- Do not add a production dependency.
-- Do not rewrite or bulk-migrate existing flat credentials.
+The master roadmap labels this phase as `T216-tenant-credential-key-derivation`,
+but `T216` is already used by `T216-pi-ipc-scope-propagation`. Phase 1.5 also
+reserves `T217` through `T220`, Phase 1.6 reserves `T221`, and Phase 1 closeout
+reserves `T222`. This work therefore uses `T223` to avoid duplicate ticket ids
+while preserving the Phase 1.4 scope.
 
-## Locked Decisions
+## Current State
 
-1. **Scope stays branded and process-local.** `CredentialManager` and
-   `SecureStorageBackend` may accept `BrandedWorkspaceScope`, but callers still
-   obtain it only from `DEFAULT_LOCAL_SCOPE` or `deriveScopeFromAuth()`.
-2. **Single-user stays flat.** `DEFAULT_LOCAL_SCOPE` writes
-   `<configDir>/credentials.enc`, which remains `~/.rox/credentials.enc` for
-   normal installs. The current PBKDF2 key and legacy fallback remain unchanged.
-3. **Tenant files live under the C.4 tenant root.** In
-   `ROX_MULTI_TENANT=1`, workspace-scoped managers write
-   `<configDir>/tenants/<workspaceId>/credentials.enc`.
-4. **Tenant key derives from the existing master key.** The existing PBKDF2
-   output is the master key. Tenant encryption uses
-   `HKDF-SHA256(masterKey, salt=workspaceId, info="rox.credentials.v1")`.
-5. **Tenant stores are versioned.** New tenant payloads write
-   `version: 2` plus `metadata.kdfVersion: 1` and `metadata.workspaceId` so
-   future rotation can distinguish the tenant KDF envelope.
-6. **Existing credentials remain readable.** A tenant-scoped manager first
-   reads the tenant file, then falls back to the flat local backend when the
-   tenant file does not contain the credential. Writes go only to the tenant
-   backend.
-7. **Audit is trace-level.** Tenant credential read/write/delete/list
-   operations emit structured debug events without credential values.
+`SecureStorageBackend` encrypts one credential store with AES-256-GCM. Its
+current key is derived from stable machine identity with PBKDF2 and the file
+header salt. Credential ids can include workspace ids for source and workspace
+credentials, but the encrypted store key itself does not include tenant scope.
 
-## Data Flow
+The storage tenancy layer already has branded workspace scopes and
+`getConfigDirForScope()`. Credential storage has not consumed that scope yet.
+
+## Design
+
+### Scope-aware backend
+
+`CredentialManager` accepts an optional `BrandedWorkspaceScope`. The default
+manager remains `DEFAULT_LOCAL_SCOPE`, preserving existing callers. A scoped
+manager creates a `SecureStorageBackend` bound to the same scope.
+
+The backend resolves its credential file from the scoped config dir:
+
+- `local-single-user` -> `<configDir>/credentials.enc`
+- `workspace` with `ROX_MULTI_TENANT=1` -> `<configDir>/tenants/<workspaceId>/credentials.enc`
+- `workspace` while multi-tenant is disabled -> the existing flat config dir
+  through the storage runtime downgrade path
+
+### Key derivation
+
+The existing PBKDF2 machine key remains the master key. Local-single-user
+credential stores use that master key unchanged.
+
+Workspace credential stores derive a tenant key with:
 
 ```text
-deriveScopeFromAuth(session, requestedWorkspaceId)
-  -> CredentialManager(scope)
-  -> SecureStorageBackend(scope)
-  -> resolve credentials.enc path
-  -> derive local PBKDF2 master key
-  -> derive tenant HKDF key when scope is kind:workspace and ROX_MULTI_TENANT=1
-  -> AES-256-GCM read/write
+tenantKey = HKDF(masterKey, salt=workspaceId, info="rox.credentials.v1")
 ```
 
-## Store Formats
+The HKDF info string is the KDF version and is stored in the encrypted store
+metadata for future rotation.
 
-Local flat credentials keep the existing payload shape:
+### Migration behavior
 
-```ts
-interface LocalCredentialStore {
-  version: 1;
-  credentials: Record<string, StoredCredential>;
-  metadata: { createdAt: number; updatedAt: number };
-}
-```
+When a workspace-scoped backend reads a credential:
 
-Tenant credentials use the additive versioned envelope:
+1. Read from the tenant credential file with the tenant key.
+2. If the tenant file has no matching credential, read the legacy flat
+   credential file with the existing local key.
 
-```ts
-interface TenantCredentialStore {
-  version: 2;
-  credentials: Record<string, StoredCredential>;
-  metadata: {
-    createdAt: number;
-    updatedAt: number;
-    kdfVersion: 1;
-    workspaceId: string;
-  };
-}
-```
+Writes always go to the tenant file when the scope resolves to a workspace.
+This keeps existing single-user installs unchanged, keeps pre-existing
+credentials readable after `ROX_MULTI_TENANT=1`, and ensures new tenant writes
+do not share a decryptable credential file with other tenants.
 
-The binary header and AES-GCM frame stay compatible with the existing
-`ROX01\0` file format. The new version is inside the encrypted JSON payload,
-not a new cleartext header.
+Deletes under a tenant scope remove the tenant entry and also remove a matching
+legacy flat entry so a deleted migrated credential does not reappear through
+fallback.
 
-## Security Properties
+### Audit
 
-- Copying tenant A's encrypted `credentials.enc` onto tenant B's path does not
-  decrypt because tenant B derives a different HKDF key from its workspace id.
-- A tenant-scoped write cannot overwrite the flat credential file.
-- Existing flat credentials are readable only through the fallback backend and
-  are not silently copied into a tenant file.
-- Credential audit events include operation, workspace id, and credential type,
-  but never include credential values or tokens.
-
-## Compatibility
-
-- Existing `getCredentialManager()` callers continue to receive the local flat
-  singleton.
-- New tenant-aware callers use `new CredentialManager(scope)` or
-  `getCredentialManager(scope)` after scope derivation.
-- `ROX_MULTI_TENANT` remains the runtime gate. A workspace scope used while the
-  gate is inactive resolves to the flat local credential file and local key.
+Tenant credential reads, writes, deletes, and legacy fallback reads emit
+trace-level structured debug events. Events include the workspace id, operation,
+credential type, and KDF version; they do not include credential values.
 
 ## Testing
 
-- Unit: `DEFAULT_LOCAL_SCOPE` writes only `<configDir>/credentials.enc`.
-- Unit: tenant manager reads flat fallback, then writes and prefers tenant file.
-- Unit: tenant store writes `version: 2` and KDF metadata.
-- Security: tenant B cannot decrypt a copied tenant A credential file.
-- Audit: tenant read and write emit trace events.
-- Regression: root typecheck, lint, full test suite, and build stay green.
+- Add credential backend tests for tenant isolation, copied-file decrypt
+  rejection, legacy fallback readability, local-single-user compatibility, KDF
+  version metadata, and trace audit emission.
+- Add manager tests proving `getCredentialManager(scope)` returns isolated
+  managers for different workspace scopes.
+- Re-run existing source credential and storage-scope tests to guard
+  compatibility.
+
+## Non-goals
+
+- Do not build the Phase 1.6 bulk migration CLI.
+- Do not change RBAC or permitted workspace population.
+- Do not migrate every credential call site to a non-default scope in this
+  phase; expose the scoped manager and update call sites that already receive a
+  `BrandedWorkspaceScope`.
