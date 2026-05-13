@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { codeToHtml, bundledLanguages, type BundledLanguage } from 'shiki'
+import { getSingletonHighlighter, resolveLanguage } from '@rox-one/shared/highlight'
 import { cn } from '../../lib/utils'
 import { useShikiTheme } from '../../context/ShikiThemeContext'
 
@@ -20,27 +20,10 @@ export interface CodeBlockProps {
   forcedTheme?: 'light' | 'dark'
 }
 
-// Languages to pre-load (most common in chat contexts)
-const PRELOADED_LANGUAGES = [
-  'javascript', 'typescript', 'python', 'json', 'bash', 'shell',
-  'markdown', 'html', 'css', 'sql', 'yaml', 'go', 'rust', 'java',
-  'c', 'cpp', 'tsx', 'jsx', 'swift', 'kotlin', 'ruby', 'php'
-] as const
-
-// Map common aliases to Shiki language names
-const LANGUAGE_ALIASES: Record<string, BundledLanguage> = {
-  'js': 'javascript',
-  'ts': 'typescript',
-  'py': 'python',
-  'sh': 'bash',
-  'zsh': 'bash',
-  'yml': 'yaml',
-  'rb': 'ruby',
-  'rs': 'rust',
-  'kt': 'kotlin',
-  'objective-c': 'objc',
-  'objc': 'objc',
-}
+// Language preload + alias logic lives in the shared `@rox-one/shared/highlight`
+// adapter (PRELOADED_LANGUAGES + LANGUAGE_ALIASES + resolveLanguage). This
+// component no longer maintains its own copy — `resolveLanguage` returns
+// null for unsupported fences and the adapter further falls back to 'text'.
 
 // Simple LRU cache for highlighted code
 const highlightCache = new Map<string, string>()
@@ -48,11 +31,6 @@ const CACHE_MAX_SIZE = 200
 
 function getCacheKey(code: string, lang: string, theme: string): string {
   return `${theme}:${lang}:${code}`
-}
-
-function isValidLanguage(lang: string): lang is BundledLanguage {
-  const normalized = LANGUAGE_ALIASES[lang] || lang
-  return normalized in bundledLanguages
 }
 
 /**
@@ -70,9 +48,11 @@ export function CodeBlock({ code, language = 'text', className, mode = 'full', f
   // This correctly handles edge cases like dark-only themes in light system mode.
   const contextShikiTheme = useShikiTheme()
 
-  // Resolve language alias - keep as string to allow 'text' fallback
-  const langLower = language.toLowerCase()
-  const resolvedLang: string = LANGUAGE_ALIASES[langLower] || langLower
+  // Resolve language via the shared adapter — falls back to 'text' for
+  // user-typed fences that are not in the curated preload set. The
+  // adapter itself also resolves unsupported languages to 'text' as a
+  // second line of defence; that's why `resolvedLang` is a plain string.
+  const resolvedLang: string = resolveLanguage(language) ?? 'text'
 
   React.useEffect(() => {
     let cancelled = false
@@ -103,13 +83,8 @@ export function CodeBlock({ code, language = 'text', className, mode = 'full', f
       }
 
       try {
-        // Use valid language or fallback to plaintext
-        const lang = isValidLanguage(resolvedLang) ? resolvedLang : 'text'
-
-        const html = await codeToHtml(code, {
-          lang,
-          theme,
-        })
+        const highlighter = await getSingletonHighlighter()
+        const html = await highlighter.highlight(code, resolvedLang, { theme })
 
         // Cache the result
         if (highlightCache.size >= CACHE_MAX_SIZE) {
