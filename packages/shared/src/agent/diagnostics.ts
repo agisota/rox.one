@@ -7,7 +7,7 @@
  */
 
 import { getLastApiError } from '../interceptor-common.ts';
-import { type AuthType, getDefaultLlmConnection, getLlmConnection } from '../config/storage.ts';
+import { DEFAULT_LOCAL_SCOPE, type AuthType, getDefaultLlmConnection, getLlmConnection } from '../config/storage.ts';
 import { getCredentialManager } from '../credentials/index.ts';
 import { validateAnthropicConnection } from '../config/llm-validation.ts';
 import type { LlmProviderType } from '../config/llm-connections.ts';
@@ -283,8 +283,8 @@ async function validateApiKeyWithAnthropic(apiKey: string, baseUrl?: string | nu
 async function checkApiKey(providerLabel: string = 'Anthropic'): Promise<CheckResult> {
   try {
     // Resolve API key from the default LLM connection
-    const defaultConnSlug = getDefaultLlmConnection();
-    const connection = defaultConnSlug ? getLlmConnection(defaultConnSlug) : null;
+    const defaultConnSlug = getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE);
+    const connection = defaultConnSlug ? getLlmConnection(defaultConnSlug, DEFAULT_LOCAL_SCOPE) : null;
     const credManager = getCredentialManager();
     const apiKey = defaultConnSlug ? await credManager.getLlmApiKey(defaultConnSlug) : null;
     const baseUrl = connection?.baseUrl ?? null;
@@ -311,7 +311,7 @@ async function checkApiKey(providerLabel: string = 'Anthropic'): Promise<CheckRe
 async function checkOAuthToken(providerLabel: string = 'Anthropic'): Promise<CheckResult> {
   try {
     // Resolve OAuth token from the default LLM connection
-    const defaultConnSlug = getDefaultLlmConnection();
+    const defaultConnSlug = getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE);
     const credManager = getCredentialManager();
     let token: string | null = null;
     if (defaultConnSlug) {

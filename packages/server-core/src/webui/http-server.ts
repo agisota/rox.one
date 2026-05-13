@@ -1670,15 +1670,14 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       if (!configSession) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 })
       }
-      const { getActiveWorkspace } = await import('@rox-agent/shared/config/storage')
-      const { getWorkspaces } = await import('@rox-agent/shared/config/storage')
-      const active = getActiveWorkspace()
+      const { DEFAULT_LOCAL_SCOPE, getActiveWorkspace, getWorkspaces } = await import('@rox-agent/shared/config/storage')
+      const active = getActiveWorkspace(DEFAULT_LOCAL_SCOPE)
       if (configSession.kind === 'account' && accountStore) {
         const ownedIds = new Set(await accountStore.listWorkspaceIds(configSession.identity.userId))
         if (active && ownedIds.has(active.id)) {
           return Response.json({ defaultWorkspaceId: active.id })
         }
-        const firstOwned = getWorkspaces().find(workspace => ownedIds.has(workspace.id))
+        const firstOwned = getWorkspaces(DEFAULT_LOCAL_SCOPE).find(workspace => ownedIds.has(workspace.id))
         return Response.json({ defaultWorkspaceId: firstOwned?.id ?? null })
       }
       return Response.json({

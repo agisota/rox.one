@@ -53,7 +53,7 @@ import type { WebuiHandler } from '@rox-agent/server-core/webui'
 import { createPostgresAccountStore } from '@rox-agent/server-core/accounts'
 import { InMemoryWorkspaceSyncService } from '@rox-agent/server-core/sync'
 import { getCredentialManager } from '@rox-agent/shared/credentials'
-import { getWorkspaces } from '@rox-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, getWorkspaces } from '@rox-agent/shared/config'
 import {
   createMessagingBootstrap,
   type MessagingBootstrapHandle,
@@ -234,7 +234,7 @@ if (webuiEnabled && serverToken) {
     bootstrapAccount: accountStore
       ? async (user) => {
           if (await accountStore.getUserCount() !== 1) return
-          for (const workspace of getWorkspaces()) {
+          for (const workspace of getWorkspaces(DEFAULT_LOCAL_SCOPE)) {
             await accountStore.grantWorkspaceOwner(user.id, workspace.id)
           }
         }
@@ -363,7 +363,7 @@ if (messagingHandle !== null) {
   const handle: MessagingBootstrapHandle = messagingHandle
   handle.setPublisher(instance.wsServer.push.bind(instance.wsServer))
   try {
-    const localWorkspaceIds = getWorkspaces()
+    const localWorkspaceIds = getWorkspaces(DEFAULT_LOCAL_SCOPE)
       .filter((ws) => !ws.remoteServer)
       .map((ws) => ws.id)
     await handle.initializeWorkspaces(localWorkspaceIds)
@@ -389,7 +389,7 @@ if (webuiHandler) {
     credManager: getSourceCredentialManager(),
     sessionManager: instance.sessionManager,
     pushSourcesChanged: (workspaceId: string) => {
-      const ws = getWorkspaceByNameOrId(workspaceId)
+      const ws = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
       const sources = ws ? loadWorkspaceSources(ws.rootPath) : []
       pushTyped(instance.wsServer, RPC_CHANNELS.sources.CHANGED, { to: 'workspace', workspaceId }, workspaceId, sources)
     },

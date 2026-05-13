@@ -84,7 +84,7 @@ import { setSearchPlatform, setImageProcessor } from '@rox-agent/server-core/ser
 import { createApplicationMenu } from './menu'
 import { WindowManager } from './window-manager'
 import { loadWindowState, saveWindowState } from './window-state'
-import { getWorkspaces, getWorkspaceByNameOrId, loadStoredConfig, addWorkspace, saveConfig } from '@rox-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, getWorkspaces, getWorkspaceByNameOrId, loadStoredConfig, addWorkspace, saveConfig } from '@rox-agent/shared/config'
 import { getDefaultWorkspacesDir } from '@rox-agent/shared/workspaces'
 import { initializeDocs } from '@rox-agent/shared/docs'
 import { initializeReleaseNotes } from '@rox-agent/shared/release-notes'
@@ -328,17 +328,17 @@ async function createInitialWindows(): Promise<void> {
 
   // Load saved window state
   const savedState = loadWindowState()
-  let workspaces = getWorkspaces()
+  let workspaces = getWorkspaces(DEFAULT_LOCAL_SCOPE)
 
   // If no workspaces exist, create default "My Workspace" on first run
   if (workspaces.length === 0) {
     // Ensure config file exists (addWorkspace requires it)
-    if (!loadStoredConfig()) {
-      saveConfig({ workspaces: [], activeWorkspaceId: null, activeSessionId: null })
+    if (!loadStoredConfig(DEFAULT_LOCAL_SCOPE)) {
+      saveConfig({ workspaces: [], activeWorkspaceId: null, activeSessionId: null }, DEFAULT_LOCAL_SCOPE)
     }
     const defaultPath = join(getDefaultWorkspacesDir(), 'my-workspace')
-    addWorkspace({ rootPath: defaultPath, name: 'Моя рабочая область' })
-    workspaces = getWorkspaces() // Refresh after creation
+    addWorkspace({ rootPath: defaultPath, name: 'Моя рабочая область' }, DEFAULT_LOCAL_SCOPE)
+    workspaces = getWorkspaces(DEFAULT_LOCAL_SCOPE) // Refresh after creation
     mainLog.info('Created default workspace on first run')
   }
 
@@ -423,10 +423,10 @@ app.whenReady().then(async () => {
   ensureDefaultPermissions()
 
   // Seed tool icons to ~/.rox/tool-icons/ (copies bundled SVGs on first run)
-  ensureToolIcons()
+  ensureToolIcons(DEFAULT_LOCAL_SCOPE)
 
   // Seed preset themes to ~/.rox/themes/ (copies bundled theme JSONs on first run)
-  ensurePresetThemes()
+  ensurePresetThemes(DEFAULT_LOCAL_SCOPE)
 
   // Register thumbnail:// protocol handler (scheme was registered earlier, before app.whenReady)
   registerThumbnailHandler()
@@ -604,7 +604,7 @@ app.whenReady().then(async () => {
 
       // Read embedded server config (Server settings page)
       const { getServerConfig } = await import('@rox-agent/shared/config')
-      const embeddedServerConfig = getServerConfig()
+      const embeddedServerConfig = getServerConfig(DEFAULT_LOCAL_SCOPE)
       const serverModeEnabled = embeddedServerConfig.enabled && !isClientOnly
 
       // Derive host/port/token from server config (or env overrides)
@@ -679,7 +679,7 @@ app.whenReady().then(async () => {
             getMessagingDir: (wsId: string) =>
               join(homedir(), '.rox', 'workspaces', wsId, 'messaging'),
             getLegacyMessagingDir: (wsId: string) => {
-              const ws = getWorkspaces().find((w) => w.id === wsId)
+              const ws = getWorkspaces(DEFAULT_LOCAL_SCOPE).find((w) => w.id === wsId)
               return ws ? join(ws.rootPath, 'messaging') : undefined
             },
             // Route messaging diagnostics through the dedicated messaging log
@@ -757,7 +757,7 @@ app.whenReady().then(async () => {
         messagingHandle.setPublisher(instance.wsServer.push.bind(instance.wsServer))
 
         // Skip remote-owned workspaces — messaging runs on the remote server.
-        const localWorkspaceIds = getWorkspaces()
+        const localWorkspaceIds = getWorkspaces(DEFAULT_LOCAL_SCOPE)
           .filter((ws) => !ws.remoteServer)
           .map((ws) => ws.id)
         await messagingHandle.initializeWorkspaces(localWorkspaceIds)
@@ -807,14 +807,14 @@ app.whenReady().then(async () => {
         const { connectToRemote } = await import('./handlers/workspace')
         const { CHUNKED_TRANSFER_THRESHOLD, getChunkCount, invokeChunked, prepareChunkedPayload } = await import('./chunked-rpc')
 
-        const targetWorkspace = getWorkspaceByNameOrId(targetWorkspaceId)
+        const targetWorkspace = getWorkspaceByNameOrId(targetWorkspaceId, DEFAULT_LOCAL_SCOPE)
         if (!targetWorkspace?.remoteServer) throw new Error(`Workspace ${targetWorkspaceId} has no remote server`)
         if (!sessionManager) throw new Error('Session manager not initialized')
 
         const sourceWorkspaceLocalId = windowManager?.getWorkspaceForWindow(_event.sender.id)
         if (!sourceWorkspaceLocalId) throw new Error('Unable to resolve source workspace for transfer')
 
-        const sourceWorkspace = getWorkspaceByNameOrId(sourceWorkspaceLocalId)
+        const sourceWorkspace = getWorkspaceByNameOrId(sourceWorkspaceLocalId, DEFAULT_LOCAL_SCOPE)
         if (!sourceWorkspace) throw new Error(`Source workspace ${sourceWorkspaceLocalId} not found`)
 
         let bundle: any = null
@@ -923,7 +923,7 @@ app.whenReady().then(async () => {
       ipcMain.on('__get-workspace-remote-config', (e) => {
         const wsId = windowManager?.getWorkspaceForWindow(e.sender.id)
         if (!wsId) { e.returnValue = null; return }
-        const ws = getWorkspaceByNameOrId(wsId)
+        const ws = getWorkspaceByNameOrId(wsId, DEFAULT_LOCAL_SCOPE)
         e.returnValue = ws?.remoteServer ?? null
       })
 
@@ -1066,9 +1066,9 @@ app.whenReady().then(async () => {
     // Derives values from the default LLM connection instead of legacy config fields.
     try {
       const { getLlmConnection, getDefaultLlmConnection } = await import('@rox-agent/shared/config')
-      const workspaces = getWorkspaces()
-      const defaultConnSlug = getDefaultLlmConnection()
-      const defaultConn = defaultConnSlug ? getLlmConnection(defaultConnSlug) : null
+      const workspaces = getWorkspaces(DEFAULT_LOCAL_SCOPE)
+      const defaultConnSlug = getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE)
+      const defaultConn = defaultConnSlug ? getLlmConnection(defaultConnSlug, DEFAULT_LOCAL_SCOPE) : null
       Sentry.setTag('authType', defaultConn?.authType ?? 'unknown')
       Sentry.setTag('providerType', defaultConn?.providerType ?? 'unknown')
       Sentry.setTag('hasCustomEndpoint', String(!!defaultConn?.baseUrl))
@@ -1121,7 +1121,7 @@ app.whenReady().then(async () => {
 
     if (windowManager) {
       // Open first workspace or last focused
-      const workspaces = getWorkspaces()
+      const workspaces = getWorkspaces(DEFAULT_LOCAL_SCOPE)
       if (workspaces.length > 0) {
         const savedState = loadWindowState()
         const wsId = savedState?.lastFocusedWorkspaceId || workspaces[0].id

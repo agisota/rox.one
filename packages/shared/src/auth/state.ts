@@ -13,6 +13,7 @@
 
 import { getCredentialManager } from '../credentials/index.ts';
 import {
+  DEFAULT_LOCAL_SCOPE,
   loadStoredConfig,
   getActiveWorkspace,
   getDefaultLlmConnection,
@@ -263,13 +264,13 @@ export async function getValidClaudeOAuthToken(connectionSlug: string): Promise<
  * Falls back to legacy global credentials for backwards compatibility.
  */
 export async function getAuthState(): Promise<AuthState> {
-  const config = loadStoredConfig();
+  const config = loadStoredConfig(DEFAULT_LOCAL_SCOPE);
   const manager = getCredentialManager();
-  const activeWorkspace = getActiveWorkspace();
+  const activeWorkspace = getActiveWorkspace(DEFAULT_LOCAL_SCOPE);
 
   // Get the default LLM connection to determine auth type
-  const defaultConnectionSlug = getDefaultLlmConnection();
-  const connection = defaultConnectionSlug ? getLlmConnection(defaultConnectionSlug) : null;
+  const defaultConnectionSlug = getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE);
+  const connection = defaultConnectionSlug ? getLlmConnection(defaultConnectionSlug, DEFAULT_LOCAL_SCOPE) : null;
 
   // Determine auth type from connection (no legacy fallback - migration ensures all users have connections)
   let effectiveAuthType: AuthType | null = null;

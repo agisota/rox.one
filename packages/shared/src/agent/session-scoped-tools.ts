@@ -35,7 +35,7 @@ import { createLLMTool, type LLMQueryRequest, type LLMQueryResult } from './llm-
 import { createSpawnSessionTool, type SpawnSessionFn } from './spawn-session-tool.ts';
 import { createBrowserTools, type BrowserPaneFns } from './browser-tools.ts';
 import { FEATURE_FLAGS } from '../feature-flags.ts';
-import { getBrowserToolEnabled } from '../config/storage.ts';
+import { DEFAULT_LOCAL_SCOPE, getBrowserToolEnabled } from '../config/storage.ts';
 
 // Re-export types for backward compatibility
 export type {
@@ -290,7 +290,7 @@ export function getSessionScopedTools(
     // Add browser_* tools — backend-specific (requires BrowserPaneManager in Electron)
     // Gated by the "Built-in browser" setting so users with external browser tools
     // (Playwright, Puppeteer, etc.) can disable the built-in one.
-    if (getBrowserToolEnabled()) {
+    if (getBrowserToolEnabled(DEFAULT_LOCAL_SCOPE)) {
       tools.push(
         ...createBrowserTools({
           sessionId,

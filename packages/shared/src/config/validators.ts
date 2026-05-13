@@ -1715,7 +1715,7 @@ export function isValidThemeFile(filePath: string): boolean {
 // Tool Icons Validators
 // ============================================================
 
-import { getToolIconsDir } from './storage.ts';
+import { DEFAULT_LOCAL_SCOPE, getToolIconsDir } from './storage.ts';
 
 /**
  * Zod schema for a single tool icon entry in tool-icons.json.
@@ -1836,7 +1836,7 @@ export function validateToolIconsContent(jsonString: string): ValidationResult {
  * Reads the file, runs content validation, and also checks that referenced icon files exist.
  */
 export function validateToolIcons(): ValidationResult {
-  const toolIconsDir = getToolIconsDir();
+  const toolIconsDir = getToolIconsDir(DEFAULT_LOCAL_SCOPE);
   const configPath = join(toolIconsDir, 'tool-icons.json');
   const file = 'tool-icons/tool-icons.json';
 

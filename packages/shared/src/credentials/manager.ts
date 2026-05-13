@@ -621,11 +621,11 @@ export class CredentialManager {
     // 2. Check if default connection has credentials
     // Import lazily to avoid circular dependency
     try {
-      const { getDefaultLlmConnection, getLlmConnection } = await import('../config/storage.ts');
-      const defaultSlug = getDefaultLlmConnection();
+      const { DEFAULT_LOCAL_SCOPE, getDefaultLlmConnection, getLlmConnection } = await import('../config/storage.ts');
+      const defaultSlug = getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE);
 
       if (defaultSlug) {
-        const connection = getLlmConnection(defaultSlug);
+        const connection = getLlmConnection(defaultSlug, DEFAULT_LOCAL_SCOPE);
         if (connection && connection.authType !== 'none' && connection.authType !== 'environment') {
           const hasCredentials = await this.hasLlmCredentials(
             defaultSlug,

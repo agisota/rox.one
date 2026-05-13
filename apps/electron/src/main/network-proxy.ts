@@ -9,7 +9,7 @@
 import { app, session } from 'electron';
 import { Agent, Dispatcher, ProxyAgent, setGlobalDispatcher } from 'undici';
 import { parseNoProxyRules, shouldBypassProxy, splitCommaSeparated, type NoProxyRule } from './network-proxy-utils';
-import { getNetworkProxySettings, setNetworkProxySettings } from '@rox-agent/shared/config/storage';
+import { DEFAULT_LOCAL_SCOPE, getNetworkProxySettings, setNetworkProxySettings } from '@rox-agent/shared/config/storage';
 import type { NetworkProxySettings } from '@rox-agent/shared/config/types';
 import { BROWSER_PANE_SESSION_PARTITION } from './browser-pane-manager';
 import log from './logger';
@@ -150,7 +150,7 @@ function buildElectronProxyConfig(settings: NetworkProxySettings): Electron.Prox
  * Safe to call before app.whenReady() — Electron session setup is skipped until ready.
  */
 export async function applyConfiguredProxySettings(): Promise<void> {
-  const settings = getNetworkProxySettings();
+  const settings = getNetworkProxySettings(DEFAULT_LOCAL_SCOPE);
 
   const hasHttpProxy = !!settings?.httpProxy;
   const hasNoProxy = !!settings?.noProxy;
@@ -169,6 +169,6 @@ export async function applyConfiguredProxySettings(): Promise<void> {
  * Persist new proxy settings and apply immediately.
  */
 export async function updateConfiguredProxySettings(settings: NetworkProxySettings): Promise<void> {
-  setNetworkProxySettings(settings);
+  setNetworkProxySettings(settings, DEFAULT_LOCAL_SCOPE);
   await applyConfiguredProxySettings();
 }
