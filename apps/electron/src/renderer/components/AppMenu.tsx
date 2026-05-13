@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/styled-dropdown"
 import * as Icons from "lucide-react"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@craft-agent/ui"
-import { CraftAgentsSymbol } from "./icons/CraftAgentsSymbol"
+import { RoxAgentsSymbol } from "./icons/RoxAgentsSymbol"
 import { SquarePenRounded } from "./icons/SquarePenRounded"
 import { TopBarButton } from "./ui/TopBarButton"
 import {
@@ -205,7 +205,7 @@ export function AppMenu({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <TopBarButton aria-label="ROX ONE menu">
-            <CraftAgentsSymbol className="h-4 text-accent" />
+            <RoxAgentsSymbol className="h-4 text-accent" />
           </TopBarButton>
         </DropdownMenuTrigger>
         <StyledDropdownMenuContent align="start" minWidth="min-w-48">

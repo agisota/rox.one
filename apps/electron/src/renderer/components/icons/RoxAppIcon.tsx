@@ -2,13 +2,13 @@ import { AGENT_WORKBENCH_BRAND_CONFIG, type BrandConfig } from "@craft-agent/sha
 import pzdrkIcon from "@/assets/pzdrk.png"
 import { getBrandIconAltText } from "./brand-icon-copy"
 
-interface CraftAppIconProps {
+interface RoxAppIconProps {
   className?: string
   size?: number
   brand?: BrandConfig
 }
 
-export function CraftAppIcon({ className, size = 64, brand = AGENT_WORKBENCH_BRAND_CONFIG }: CraftAppIconProps) {
+export function RoxAppIcon({ className, size = 64, brand = AGENT_WORKBENCH_BRAND_CONFIG }: RoxAppIconProps) {
   return (
     <img
       src={pzdrkIcon}

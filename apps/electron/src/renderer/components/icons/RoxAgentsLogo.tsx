@@ -2,12 +2,12 @@ import { AGENT_WORKBENCH_BRAND_CONFIG, type BrandConfig } from "@craft-agent/sha
 import pzdrkIcon from "@/assets/pzdrk.png"
 import { getBrandLogoText } from "./brand-icon-copy"
 
-interface CraftAgentsLogoProps {
+interface RoxAgentsLogoProps {
   className?: string
   brand?: BrandConfig
 }
 
-export function CraftAgentsLogo({ className, brand = AGENT_WORKBENCH_BRAND_CONFIG }: CraftAgentsLogoProps) {
+export function RoxAgentsLogo({ className, brand = AGENT_WORKBENCH_BRAND_CONFIG }: RoxAgentsLogoProps) {
   return (
     <svg
       viewBox="0 0 220 24"

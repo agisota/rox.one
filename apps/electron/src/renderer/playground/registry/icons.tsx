@@ -1,16 +1,16 @@
 import type { ComponentEntry } from './types'
-import { CraftAgentsLogo } from '@/components/icons/CraftAgentsLogo'
-import { CraftAgentsSymbol } from '@/components/icons/CraftAgentsSymbol'
+import { RoxAgentsLogo } from '@/components/icons/RoxAgentsLogo'
+import { RoxAgentsSymbol } from '@/components/icons/RoxAgentsSymbol'
 import { PanelLeftRounded } from '@/components/icons/PanelLeftRounded'
 import { SquarePenRounded } from '@/components/icons/SquarePenRounded'
 
 export const iconComponents: ComponentEntry[] = [
   {
     id: 'craft-agents-logo',
-    name: 'CraftAgentsLogo',
+    name: 'RoxAgentsLogo',
     category: 'Icons',
     description: 'Full ROX ONE branding logo with text',
-    component: CraftAgentsLogo,
+    component: RoxAgentsLogo,
     props: [
       {
         name: 'className',
@@ -27,10 +27,10 @@ export const iconComponents: ComponentEntry[] = [
   },
   {
     id: 'craft-agents-symbol',
-    name: 'CraftAgentsSymbol',
+    name: 'RoxAgentsSymbol',
     category: 'Icons',
     description: 'ROX ONE crystal diamond symbol icon',
-    component: CraftAgentsSymbol,
+    component: RoxAgentsSymbol,
     props: [
       {
         name: 'className',
