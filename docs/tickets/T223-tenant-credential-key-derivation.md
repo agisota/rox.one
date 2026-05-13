@@ -1,8 +1,6 @@
 # T223 - Tenant credential key derivation
 
-## Status
-
-In progress.
+Status: InProgress
 
 ## Roadmap Alignment
 
