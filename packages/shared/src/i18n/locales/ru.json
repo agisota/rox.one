@@ -862,6 +862,8 @@
   "settings.appearance.usingDefaultTheme": "используется тема по умолчанию",
   "settings.appearance.workspaceThemes": "Темы рабочей области",
   "settings.appearance.workspaceThemesDesc": "Переопределяйте тему для отдельных рабочих областей",
+  "settings.auditLog.description": "История прав, событий миссий и логинов (только чтение)",
+  "settings.auditLog.title": "Журнал аудита",
   "settings.input.autoCapitalisation": "Автоматические заглавные буквы",
   "settings.input.autoCapitalisationDesc": "Автоматически делать первую букву заглавной при вводе сообщения.",
   "settings.input.cmdEnterKey": "⌘ Enter",

@@ -43,6 +43,7 @@ export const SETTINGS_PAGES = [
   { id: 'permissions' as const, labelKey: 'settings.permissions.title', descriptionKey: 'settings.permissions.description' },
   { id: 'team-management' as const, labelKey: 'settings.teamManagement.title', descriptionKey: 'settings.teamManagement.description' },
   { id: 'team-permissions' as const, labelKey: 'settings.teamPermissions.title', descriptionKey: 'settings.teamPermissions.description' },
+  { id: 'audit-log' as const, labelKey: 'settings.auditLog.title', descriptionKey: 'settings.auditLog.description' },
   { id: 'labels' as const, labelKey: 'settings.labels.title', descriptionKey: 'settings.labels.description' },
   { id: 'messaging' as const, labelKey: 'settings.messaging.title', descriptionKey: 'settings.messaging.description' },
   { id: 'server' as const, labelKey: 'settings.server.title', descriptionKey: 'settings.server.description' },

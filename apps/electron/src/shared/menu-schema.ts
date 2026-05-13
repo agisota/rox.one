@@ -239,6 +239,7 @@ const SETTINGS_ICONS: Record<SettingsSubpage, string> = {
   permissions: 'ShieldCheck',
   'team-management': 'Users',
   'team-permissions': 'ShieldCheck',
+  'audit-log': 'FileText',
   labels: 'Tag',
   messaging: 'MessageSquare',
   server: 'Server',
