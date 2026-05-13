@@ -1,5 +1,7 @@
 # T224 - RBAC roles schema
 
+Status: DONE
+
 ## Context
 
 We are building a white-label fork of Rox Agents OSS into Agent Workbench Suite.
