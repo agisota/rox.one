@@ -1,0 +1,8 @@
+# Bad fixture (M.18 T252): broken scope, malformed version, no
+# canonical T252 marker. Validator must fail on the first violation
+# (AppUserModelID pattern).
+AppUserModelID=com.notrox.fake
+FileVersion=not-a-version
+ProductVersion=not-a-version
+CompanyName=
+ProductName=FakeApp
