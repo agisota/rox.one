@@ -15,8 +15,6 @@
  * Sink failures are isolated: a thrown audit sink does NOT prevent the log
  * fan-out, and conversely no caller is ever crashed by a misbehaving sink.
  */
-import { randomUUID } from 'node:crypto'
-
 import { type CorrelationId, asCorrelationId, currentCorrelationId } from './correlation.ts'
 import {
   AUDIT_EVENT_KINDS,
@@ -83,7 +81,10 @@ function normalise(input: AuditEventInput, clock: Clock): AuditEvent {
 }
 
 function synthesiseCorrelationId(): CorrelationId {
-  return asCorrelationId(`auto-${randomUUID()}`)
+  // globalThis.crypto.randomUUID() is available in browsers (Web Crypto API)
+  // and in Node >= 14.17 / Bun — avoids a node:crypto import that breaks the
+  // Vite renderer build (renderer is browser-targeted, not Node).
+  return asCorrelationId(`auto-${globalThis.crypto.randomUUID()}`)
 }
 
 function validate(event: AuditEvent): void {
