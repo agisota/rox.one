@@ -352,7 +352,7 @@
         "session-mcp-server": "./dist/index.js",
       },
       "dependencies": {
-        "@craft-agent/session-tools-core": "workspace:*",
+        "@rox-one/session-tools-core": "workspace:*",
         "@craft-agent/shared": "workspace:*",
         "@modelcontextprotocol/sdk": "1.29.0",
         "zod": "^3.23.0",
@@ -362,7 +362,7 @@
       },
     },
     "packages/session-tools-core": {
-      "name": "@craft-agent/session-tools-core",
+      "name": "@rox-one/session-tools-core",
       "version": "0.9.1",
       "dependencies": {
         "beautiful-mermaid": "^1.1.3",
@@ -379,7 +379,7 @@
       "version": "0.9.1",
       "dependencies": {
         "@rox-one/core": "workspace:*",
-        "@craft-agent/session-tools-core": "workspace:*",
+        "@rox-one/session-tools-core": "workspace:*",
         "@isaacs/ttlcache": "^2.1.4",
         "@leeoniya/ufuzzy": "^1.0.19",
         "@mariozechner/pi-agent-core": "0.72.1",
@@ -694,7 +694,7 @@
 
     "@craft-agent/session-mcp-server": ["@craft-agent/session-mcp-server@workspace:packages/session-mcp-server"],
 
-    "@craft-agent/session-tools-core": ["@craft-agent/session-tools-core@workspace:packages/session-tools-core"],
+    "@rox-one/session-tools-core": ["@rox-one/session-tools-core@workspace:packages/session-tools-core"],
 
     "@craft-agent/shared": ["@craft-agent/shared@workspace:packages/shared"],
 
@@ -3732,7 +3732,7 @@
 
     "@craft-agent/session-mcp-server/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
-    "@craft-agent/session-tools-core/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
+    "@rox-one/session-tools-core/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
     "@craft-agent/viewer/@vitejs/plugin-react": ["@vitejs/plugin-react@4.7.0", "", { "dependencies": { "@babel/core": "^7.28.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-beta.27", "@types/babel__core": "^7.20.5", "react-refresh": "^0.17.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA=="],
 
