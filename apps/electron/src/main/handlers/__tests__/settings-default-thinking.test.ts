@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { RPC_CHANNELS } from '../../../shared/types'
 import type { RpcServer } from '@rox-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
+import { DEFAULT_LOCAL_SCOPE as defaultLocalScope } from '../../../../../../packages/shared/src/config/storage-scope-auth.ts'
 
 type HandlerFn = (ctx: { clientId: string }, ...args: any[]) => Promise<any> | any
 
-const defaultLocalScope = Object.freeze({ kind: 'local-single-user' } as const)
 const getDefaultThinkingLevelMock = mock((_scope = defaultLocalScope) => 'think')
 const setDefaultThinkingLevelMock = mock((_level: string, _scope = defaultLocalScope) => true)
 
