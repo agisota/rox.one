@@ -104,7 +104,7 @@ export async function spawnServer(opts?: SpawnServerOptions): Promise<SpawnedSer
       buffer = lines.pop() ?? '' // keep incomplete last line in buffer
       for (const line of lines) {
         if (line.startsWith('ROX_SERVER_URL=')) {
-          url = line.slice('ROX_SERVER_URL='.length).trim()
+          url = line.slice(line.indexOf('=') + 1).trim()
         }
         if (line.startsWith('ROX_SERVER_TOKEN=')) {
           // Server echoes the token — we already have it but this confirms ready
