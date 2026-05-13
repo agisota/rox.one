@@ -19,6 +19,7 @@
 
 import { Database } from 'bun:sqlite'
 import { migration0001Initial } from './migrations/0001-initial'
+import { migration0002Missions } from './migrations/0002-missions'
 
 export interface SqliteMigration {
   readonly version: number
@@ -62,7 +63,10 @@ export function currentMigrationVersion(db: Database): number {
   return row.v
 }
 
-export const ALL_MIGRATIONS: readonly SqliteMigration[] = [migration0001Initial]
+export const ALL_MIGRATIONS: readonly SqliteMigration[] = [
+  migration0001Initial,
+  migration0002Missions,
+]
 
 function assertContiguousVersions(migrations: readonly SqliteMigration[]): void {
   const seen = new Set<number>()
