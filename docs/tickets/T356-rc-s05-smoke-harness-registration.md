@@ -1,6 +1,6 @@
 # T356 - RC S05 Smoke Harness Registration
 
-Status: Todo
+Status: DONE
 
 ## Context
 

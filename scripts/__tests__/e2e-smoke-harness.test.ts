@@ -72,4 +72,20 @@ describe('RC E2E smoke harness', () => {
     expect(ticket).not.toContain('packages/shared/src/agent/swarm/__tests__/**')
     expect(ticket).not.toContain('apps/electron/src/renderer/components/workbench/**/__tests__/vdi*.test.*')
   })
+
+  it('recognizes S05 team invite RBAC and documents current validation paths', async () => {
+    const harness = await import('../e2e-smoke')
+    const scenario = harness.resolveRequiredScenario('s05-team-invite-rbac')
+    const ticket = readFileSync(join(rootDir, 'docs/tickets/T343-rc-s05-team-invite-rbac.md'), 'utf8')
+
+    expect(scenario.command).toContain('packages/server-core/src/handlers/rpc/__tests__/roles.test.ts')
+    expect(scenario.command).toContain('packages/shared/src/auth/__tests__/policy-engine.test.ts')
+    expect(scenario.command).toContain('packages/shared/src/auth/__tests__/scope-forgery.property.test.ts')
+    expect(scenario.command).toContain('packages/server-core/src/webui/__tests__/account-teams.test.ts')
+    expect(scenario.command).toContain(
+      'apps/electron/src/renderer/components/settings/rbac/__tests__/team-management-state.test.ts',
+    )
+
+    expect(ticket).toContain('bun run e2e:smoke -- --scenario s05-team-invite-rbac')
+  })
 })
