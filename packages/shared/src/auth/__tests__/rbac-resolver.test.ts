@@ -115,9 +115,114 @@ describe('RbacResolver — pluggable GrantStore', () => {
         }
         return [];
       },
+      async grant() {
+        // no-op for read-only fake
+      },
+      async revoke() {
+        return false;
+      },
     };
     const resolver = new RbacResolver(fake);
     expect(await resolver.permittedWorkspacesForUser('u1')).toEqual(['W7']);
     expect(await resolver.permittedWorkspacesForUser('u2')).toEqual([]);
+  });
+});
+
+describe('InMemoryGrantStore — mutation', () => {
+  it('grant(g) adds a grant and exposes it via grantsForUser', async () => {
+    const store = new InMemoryGrantStore();
+    await store.grant(userGrant('u1', 'workspace', 'W1', 'editor'));
+    const grants = await store.grantsForUser('u1');
+    expect(grants).toEqual([userGrant('u1', 'workspace', 'W1', 'editor')]);
+  });
+
+  it('grant(g) preserves prior grants for the same user', async () => {
+    const store = new InMemoryGrantStore([userGrant('u1', 'workspace', 'W1', 'viewer')]);
+    await store.grant(userGrant('u1', 'workspace', 'W2', 'editor'));
+    const grants = await store.grantsForUser('u1');
+    expect(grants).toHaveLength(2);
+  });
+
+  it('grant(g) ignores team-actor grants (team RBAC is deferred)', async () => {
+    const store = new InMemoryGrantStore();
+    await store.grant({
+      roleId: 'viewer',
+      actorKind: 'team',
+      actorId: 'team-1',
+      scopeKind: 'workspace',
+      scopeId: 'W1',
+    });
+    expect(await store.grantsForUser('team-1')).toEqual([]);
+  });
+
+  it('revoke(g) returns true when the grant was present', async () => {
+    const grant = userGrant('u1', 'workspace', 'W1', 'editor');
+    const store = new InMemoryGrantStore([grant]);
+    expect(await store.revoke(grant)).toBe(true);
+    expect(await store.grantsForUser('u1')).toEqual([]);
+  });
+
+  it('revoke(g) returns false when nothing matched', async () => {
+    const store = new InMemoryGrantStore();
+    expect(await store.revoke(userGrant('u1', 'workspace', 'W1', 'editor'))).toBe(false);
+  });
+
+  it('revoke(g) does not remove grants that differ by roleId', async () => {
+    const store = new InMemoryGrantStore([userGrant('u1', 'workspace', 'W1', 'editor')]);
+    expect(await store.revoke(userGrant('u1', 'workspace', 'W1', 'viewer'))).toBe(false);
+    expect(await store.grantsForUser('u1')).toEqual([userGrant('u1', 'workspace', 'W1', 'editor')]);
+  });
+});
+
+describe('RbacResolver — ownerGrantsForUser', () => {
+  it('returns only owner-roleId grants', async () => {
+    const grants: RoleGrant[] = [
+      userGrant('u1', 'workspace', 'W1', 'owner'),
+      userGrant('u1', 'workspace', 'W2', 'editor'),
+      userGrant('u1', 'workspace', 'W3', 'viewer'),
+    ];
+    const resolver = new RbacResolver(new InMemoryGrantStore(grants));
+    const result = await resolver.ownerGrantsForUser('u1');
+    expect(result.map((g) => g.scopeId).sort()).toEqual(['W1']);
+  });
+
+  it('returns global-scope owner grants', async () => {
+    const grants: RoleGrant[] = [userGrant('u1', 'global', null, 'owner')];
+    const resolver = new RbacResolver(new InMemoryGrantStore(grants));
+    const result = await resolver.ownerGrantsForUser('u1');
+    expect(result).toHaveLength(1);
+    expect(result[0].scopeKind).toBe('global');
+  });
+
+  it('returns an empty array when the user has no owner grants', async () => {
+    const grants: RoleGrant[] = [userGrant('u1', 'workspace', 'W1', 'viewer')];
+    const resolver = new RbacResolver(new InMemoryGrantStore(grants));
+    expect(await resolver.ownerGrantsForUser('u1')).toEqual([]);
+  });
+
+  it('does not leak other users grants', async () => {
+    const grants: RoleGrant[] = [
+      userGrant('u1', 'workspace', 'W1', 'owner'),
+      userGrant('u2', 'workspace', 'W2', 'owner'),
+    ];
+    const resolver = new RbacResolver(new InMemoryGrantStore(grants));
+    const result = await resolver.ownerGrantsForUser('u1');
+    expect(result).toHaveLength(1);
+    expect(result[0].scopeId).toBe('W1');
+  });
+});
+
+describe('RbacResolver — invalidateUser', () => {
+  it('is callable without error', async () => {
+    const resolver = new RbacResolver(new InMemoryGrantStore());
+    expect(() => resolver.invalidateUser('u1')).not.toThrow();
+  });
+
+  it('does not mutate the underlying store (no-op contract for T227)', async () => {
+    const grants: RoleGrant[] = [userGrant('u1', 'workspace', 'W1', 'viewer')];
+    const store = new InMemoryGrantStore(grants);
+    const resolver = new RbacResolver(store);
+    resolver.invalidateUser('u1');
+    expect(await store.grantsForUser('u1')).toEqual(grants);
   });
 });

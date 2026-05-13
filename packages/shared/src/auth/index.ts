@@ -2,6 +2,7 @@ export { type OAuthSessionContext, buildOAuthDeeplinkUrl } from './types.ts';
 export * from './roles-schema.ts';
 export * from './policy-engine.ts';
 export * from './rbac-resolver.ts';
+export * from './role-store.ts';
 export * from './oauth-flow-types.ts';
 export * from './oauth-flow-store.ts';
 export * from './callback-page.ts';
