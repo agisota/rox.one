@@ -35,6 +35,12 @@ jobs:
       - name: Prepare validation logs
         run: mkdir -p .ci-logs
 
+      - name: validate:rebrand gate (R.10 permanent)
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:rebrand 2>&1 | tee .ci-logs/validate-rebrand.log
+
       - name: Run validation suite
         shell: bash
         run: |
