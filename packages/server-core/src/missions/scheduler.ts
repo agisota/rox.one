@@ -9,6 +9,8 @@
  * `InMemoryMissionStore`.
  */
 
+import type { AuditEventInput, AuditProducer } from '@rox-one/shared/observability'
+
 import { generateMissionId, type MissionId } from './mission-id.ts'
 import type {
   MissionListFilter,
@@ -47,6 +49,22 @@ export interface MissionSchedulerOptions {
   readonly clock?: MissionClock
   readonly uuid?: UuidGenerator
   readonly random?: () => Uint8Array
+  /**
+   * Optional audit producer (T246). When provided, the scheduler emits
+   * `MissionStarted` / `MissionCompleted` / `MissionFailed` audit events
+   * on the matching successful transitions. Callers that have not adopted
+   * the observability surface may omit this option — emission becomes a
+   * no-op and the scheduler behaves identically to the pre-T246 baseline.
+   */
+  readonly auditProducer?: AuditProducer
+  /**
+   * Optional workspace id stamped into emitted audit events. The mission
+   * algebra does not carry a workspace association (missions are scoped
+   * by id alone), so callers that want their audit records bucketed by
+   * workspace can pass it here. When absent, events are emitted with
+   * `scope: { kind: 'global' }`.
+   */
+  readonly workspaceId?: string
 }
 
 function defaultClock(): MissionClock {
@@ -96,12 +114,24 @@ export class MissionScheduler {
   private readonly store: MissionStore
   private readonly clock: MissionClock
   private readonly uuid: UuidGenerator
+  private readonly auditProducer?: AuditProducer
+  private readonly workspaceId?: string
+  /**
+   * `Running` start timestamps captured per mission id, used to compute
+   * `durationMs` on `MissionCompleted`. We index by mission id rather than
+   * threading state through dispatch results so the public API stays
+   * unchanged. Entries are pruned on terminal transitions (Complete/Fail)
+   * so the map never grows past the active-mission count.
+   */
+  private readonly startedAt = new Map<MissionId, string>()
 
   constructor(options: MissionSchedulerOptions) {
     this.store = options.store
     this.clock = options.clock ?? defaultClock()
     const random = options.random ?? defaultRandom()
     this.uuid = options.uuid ?? defaultUuidFromClock(this.clock, random)
+    this.auditProducer = options.auditProducer
+    this.workspaceId = options.workspaceId
   }
 
   async create(): Promise<MissionRecord> {
@@ -132,7 +162,87 @@ export class MissionScheduler {
     }
     const next: MissionRecord = { id: existing.id, state: result.value }
     await this.store.put(next)
+    this.emitAuditForTransition(id, event, result.value)
     return { ok: true, value: next }
+  }
+
+  /**
+   * Audit fan-out for the three mission lifecycle events the M.14 taxonomy
+   * recognises. Called only after the store write succeeds so a persistence
+   * failure leaves no spurious audit record. The producer is optional —
+   * when absent this is a hot no-op (single property read).
+   *
+   * `MissionStarted` captures the start timestamp so we can compute
+   * `durationMs` when the same mission later transitions to Completed.
+   * `MissionFailed` does not emit a duration (the audit taxonomy only
+   * carries `errorMessage`).
+   */
+  private emitAuditForTransition(
+    id: MissionId,
+    event: SchedulerInputEvent,
+    nextState: MissionState,
+  ): void {
+    if (event.kind === 'Start' && nextState.kind === 'Running') {
+      this.startedAt.set(id, nextState.startedAt)
+      if (this.auditProducer) {
+        const input: AuditEventInput = {
+          kind: 'MissionStarted',
+          actor: { type: 'system' },
+          subject: { type: 'mission', id },
+          scope: this.missionScope(id),
+          missionId: id,
+        }
+        this.auditProducer.emit(input)
+      }
+      return
+    }
+
+    if (event.kind === 'Complete' && nextState.kind === 'Completed') {
+      const startedAt = this.startedAt.get(id)
+      const durationMs = startedAt ? Date.parse(nextState.at) - Date.parse(startedAt) : 0
+      this.startedAt.delete(id)
+      if (this.auditProducer) {
+        const input: AuditEventInput = {
+          kind: 'MissionCompleted',
+          actor: { type: 'system' },
+          subject: { type: 'mission', id },
+          scope: this.missionScope(id),
+          missionId: id,
+          durationMs: Math.max(0, durationMs),
+        }
+        this.auditProducer.emit(input)
+      }
+      return
+    }
+
+    if (event.kind === 'Fail' && nextState.kind === 'Failed') {
+      this.startedAt.delete(id)
+      if (this.auditProducer) {
+        const input: AuditEventInput = {
+          kind: 'MissionFailed',
+          actor: { type: 'system' },
+          subject: { type: 'mission', id },
+          scope: this.missionScope(id),
+          missionId: id,
+          errorMessage: nextState.reason,
+        }
+        this.auditProducer.emit(input)
+      }
+      return
+    }
+  }
+
+  /**
+   * Build the canonical audit scope envelope for a mission. When the
+   * scheduler was constructed with a `workspaceId` we tag events as
+   * `{ kind: 'mission', workspaceId, missionId }` so the audit log can be
+   * filtered per-workspace. Without it, we fall back to global scope.
+   */
+  private missionScope(id: MissionId): AuditEventInput['scope'] {
+    if (this.workspaceId) {
+      return { kind: 'mission', workspaceId: this.workspaceId, missionId: id }
+    }
+    return { kind: 'global' }
   }
 
   async get(id: MissionId): Promise<MissionRecord | undefined> {
