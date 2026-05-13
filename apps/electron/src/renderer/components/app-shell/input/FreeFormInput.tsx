@@ -96,6 +96,7 @@ import {
   resetHistoryForSession,
   type ComposerHistoryState,
 } from './composer-history'
+import { LineNumbersGutter } from './LineNumbersGutter'
 import { CompactPermissionModeSelector } from './CompactPermissionModeSelector'
 
 /**
@@ -2111,32 +2112,38 @@ export function FreeFormInput({
         {/* Rich Text Input with inline mention badges */}
         {/* In compact mode, hide input while processing (collapses to just bottom bar) */}
         {!(compactMode && isProcessing) && (
-        <RichTextInput
-          ref={richInputRef}
-          value={input}
-          onChange={handleInputChange}
-          onInput={handleRichInput}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          onLongTextPaste={handleLongTextPaste}
-          onFocus={() => { setIsFocused(true); onFocusChange?.(true) }}
-          onBlur={() => {
-            // Save caret position before losing focus (for restoration via rox:focus-input)
-            lastCaretPositionRef.current = richInputRef.current?.selectionStart ?? null
-            setIsFocused(false)
-            onFocusChange?.(false)
-          }}
-          placeholder={effectivePlaceholder}
-          disabled={disabled}
-          skills={skills}
-          sources={sources}
-          workspaceId={workspaceSlug}
-          ariaLabel={compactMode ? t('workbench.composer.input.editLabel') : t('workbench.composer.input.label')}
-          className="pl-5 pr-4 pt-4 pb-3 overflow-y-auto min-h-[88px]"
-          style={{ maxHeight: inputMaxHeight }}
-          data-tutorial="chat-input"
-          spellCheck={spellCheck}
-        />
+        <div className="flex items-stretch">
+          {/* M.10 T236 — line-numbers gutter visible only when composer is in expanded mode. */}
+          <LineNumbersGutter value={input} visible={isEmptySession && !compactMode} />
+          <div className="flex-1 min-w-0">
+            <RichTextInput
+              ref={richInputRef}
+              value={input}
+              onChange={handleInputChange}
+              onInput={handleRichInput}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              onLongTextPaste={handleLongTextPaste}
+              onFocus={() => { setIsFocused(true); onFocusChange?.(true) }}
+              onBlur={() => {
+                // Save caret position before losing focus (for restoration via rox:focus-input)
+                lastCaretPositionRef.current = richInputRef.current?.selectionStart ?? null
+                setIsFocused(false)
+                onFocusChange?.(false)
+              }}
+              placeholder={effectivePlaceholder}
+              disabled={disabled}
+              skills={skills}
+              sources={sources}
+              workspaceId={workspaceSlug}
+              ariaLabel={compactMode ? t('workbench.composer.input.editLabel') : t('workbench.composer.input.label')}
+              className="pl-5 pr-4 pt-4 pb-3 overflow-y-auto min-h-[88px]"
+              style={{ maxHeight: inputMaxHeight }}
+              data-tutorial="chat-input"
+              spellCheck={spellCheck}
+            />
+          </div>
+        </div>
         )}
 
         {/* Bottom Row: Controls - wrapped in relative container for status slot overlay */}
