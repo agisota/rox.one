@@ -78,7 +78,7 @@ bun run e2e:smoke -- --scenario s03-mission-checkpoint
 bun test packages/server-core/src/missions/__tests__/**
 
 # Mission control UI tests
-bun test apps/electron/src/renderer/components/workbench/**/__tests__/mission*.test.*
+bun test apps/electron/src/renderer/components/workbench/__tests__/deep-missions-screen.test.tsx apps/electron/src/renderer/components/workbench/__tests__/mission-control-run-detail.test.tsx apps/electron/src/renderer/components/workbench/__tests__/workbench-interactions.test.ts apps/electron/src/renderer/components/workbench/__tests__/experience-real-state-binding.test.tsx
 
 # Agent contract gate
 bun run validate:agent-contract
