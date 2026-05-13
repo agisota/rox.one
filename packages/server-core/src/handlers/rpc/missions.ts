@@ -144,6 +144,15 @@ export function registerMissionsCoreHandlers(server: RpcServer, deps: HandlerDep
       ctx: RequestContext,
       input: { id: MissionId; event: SchedulerInputEvent },
     ) => {
+      // T071c: optional rate-limit. Mirrors the T071b pattern in
+      // `roles.ts`. Sits BEFORE validation, permission, and scheduler
+      // dispatch so a hot burst from a single actor cannot exhaust the
+      // mission surface — even malformed or unauthorised requests
+      // consume bucket tokens. The limiter is optional; absent => no-op.
+      if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+        return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+      }
+
       // Validate the input envelope before the permission check so the
       // caller gets a useful invalid-argument response for malformed
       // payloads. Permission check still runs second to avoid leaking
