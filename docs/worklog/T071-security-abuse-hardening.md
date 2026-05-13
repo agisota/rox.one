@@ -176,3 +176,83 @@ run the final Electron release-candidate build.
 | Existing security guard tests pass | DONE | targeted security/session suite: `35 pass`; full suite: `4673 pass`, `0 fail` |
 | Worklog complete | DONE | this file |
 | Scoped commit exists | DONE | T071 scoped Lore commit |
+
+## 12. Round 2 — abuse-hardening primitives (M.13)
+
+### 12.1 Goal
+
+Ship the rate-limit + per-user budget *primitives* expected by the final RC
+abuse review. Round 1 closed boundary redaction, scheduler spoof rejection,
+and branch-expansion input validation. Round 2 lands the data structures
+required to bolt per-IP + per-user limits onto RPC handlers without writing
+a one-off limiter inside each handler.
+
+Constraints honored:
+
+- Pure data structures only — zero I/O, no globals, no `Date.now()`
+  reachable from the new modules.
+- Clock injected as `() => number` (ms) for deterministic tests.
+- No new external deps.
+- Existing RPC handlers are NOT modified. Handler integration is T071b.
+
+### 12.2 Files added
+
+- `packages/shared/src/security/rate-limiter.ts`
+- `packages/shared/src/security/budget-guard.ts`
+- `packages/shared/src/security/index.ts`
+- `packages/shared/src/security/__tests__/rate-limiter.test.ts`
+- `packages/shared/src/security/__tests__/budget-guard.test.ts`
+- `packages/shared/package.json` — three new subpath exports.
+
+### 12.3 Primitives
+
+`TokenBucket` — `{capacity, refillRatePerSec, clock, initialTokens?}`. 
+`tryAcquire(n=1)` returns `boolean`. Refill is continuous; capacity is
+hard-clamped; negative `initialTokens` clamps to 0; clock regression is
+treated as zero elapsed (defensive against `performance.now()` /
+multi-source clocks). Throws `RangeError` / `TypeError` on construction
+with non-finite or non-positive args.
+
+`SlidingWindowCounter` — `{windowMs, clock, maxEvents?}`. `record()`
+appends now and returns count inside the rolling window. Events at exactly
+`now - windowMs` are considered expired (`<= cutoff`). `maxEvents` provides
+a memory ceiling under abuse by dropping the oldest on overflow.
+
+`BudgetGuard<TKey>` — `{budgetPerKey}`. `consume(key, amount)` returns
+`{ok:true, remaining}` or `{ok:false, error: BudgetExceededError}`. State
+is never mutated on rejection. `BudgetExceededError` carries
+`{reason, key, budget, used, requested}` so telemetry can attribute throttles
+without parsing strings.
+
+### 12.4 Tests
+
+- `packages/shared/src/security/__tests__/rate-limiter.test.ts` — 18 tests,
+  covers initial state, drain/refill math, refill cap, fractional refills,
+  clock regression, burst+refill, zero-rate fixed quota, window expiry,
+  exact-boundary expiration, `maxEvents` drop-oldest, validation
+  (construction + `tryAcquire`), determinism trace.
+- `packages/shared/src/security/__tests__/budget-guard.test.ts` — 24 tests,
+  covers within-budget acceptance, accumulation, isolation across keys,
+  rejection without mutation, exact-remaining acceptance, epsilon exceed,
+  `reset(key)` vs `reset()`, invalid-amount (`NaN`, `-1`, `Infinity`),
+  zero-amount no-op, `keyCount`, generic key typing, exhausted-then-reset.
+
+### 12.5 Targeted test output
+
+```text
+bun test packages/shared/src/security/__tests__/
+ 42 pass
+ 0 fail
+ 138 expect() calls
+Ran 42 tests across 2 files.
+```
+
+### 12.6 Remaining work — T071b
+
+- Wire `TokenBucket` (per-IP + per-user) into RPC handler middleware.
+- Wire `BudgetGuard` into authenticated-user lifetime / window budgets.
+- Map `BudgetExceededError` to a 429-equivalent user-facing error with
+  `Retry-After` hints derived from `TokenBucket.available()` + refill rate.
+- Add integration tests at the RPC boundary proving abuse-resistance
+  end-to-end.
+
