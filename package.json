@@ -115,6 +115,7 @@
     "check-version": "bun run scripts/check-version.ts",
     "oss:sync": "bun run scripts/oss-sync.ts",
     "prepare": "husky",
+    "e2e:smoke": "bun run scripts/e2e-smoke.ts",
     "e2e:core": "bun run scripts/e2e-core-scenarios.ts",
     "electron:smoke": "bun run scripts/electron-smoke.ts",
     "electron:smoke:packaged:mac": "bun run scripts/electron-smoke-packaged-mac.ts",
