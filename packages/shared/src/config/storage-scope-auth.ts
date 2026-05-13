@@ -1,6 +1,7 @@
 import type { WorkspaceScope } from './storage-scope.ts';
 import { isMultiTenantActivated } from './storage-scope-runtime.ts';
 import { appendStructuredAuditEvent } from '../audit/index.ts';
+import { PERMITTED_WORKSPACES_GLOBAL_SENTINEL } from '../auth/policy-engine.ts';
 import { createLogger } from '../utils/debug.ts';
 
 const log = createLogger('storage-scope');
@@ -114,7 +115,11 @@ export function deriveScopeFromAuth(
   }
 
   const permittedWorkspaces = session.permittedWorkspaces ?? [];
-  if (!permittedWorkspaces.includes(requestedWorkspaceId)) {
+  // T226: the RBAC policy engine emits the `PERMITTED_WORKSPACES_GLOBAL_SENTINEL`
+  // (`'*'`) when the actor holds a global-scope read grant. Treat that as
+  // "any workspace permitted" rather than as a literal id to look up.
+  const hasGlobalSentinel = permittedWorkspaces.includes(PERMITTED_WORKSPACES_GLOBAL_SENTINEL);
+  if (!hasGlobalSentinel && !permittedWorkspaces.includes(requestedWorkspaceId)) {
     emitScopeAudit('warn', 'scope.factory.forgery_rejected', {
       userId,
       requestedWorkspaceId,
