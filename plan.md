@@ -1,8 +1,32 @@
 # Agent Workbench Suite Plan
 
+<<<<<<< HEAD
 Date: 2026-05-13
 Repository: `/home/dev/craft/rox-one-terminal`
 Successor goal: this rebrand sweep (R.0-R.10).
+=======
+> **HISTORICAL — 2026-05-05 snapshot.** This document is preserved for context
+> on the original 12-ticket release plan (T060–T072). For the live end-to-end
+> plan from current state to v1.0.0, see the unified spine roadmap:
+> [`docs/superpowers/goals/2026-05-13-rox-one-v1-end-to-end-spine-goal.md`](docs/superpowers/goals/2026-05-13-rox-one-v1-end-to-end-spine-goal.md).
+>
+> The spine roadmap supersedes this file's:
+>
+> - **§4 Next Tickets** — T060 through T062 have been DONE; the active sequence
+>   is now Lane R (R.0 DONE → R.1 NEXT → … → R.11) and Lane M (M.1 DONE →
+>   M.2 RBAC slice 6 → … → M.21 v1.0.0 release).
+> - **§6 Upstream merge target** — bumped from v0.9.1 to **v0.9.3** (codified
+>   in the spine as Phase M.3).
+> - **§17 Parallel Execution Plan** — replaced by the spine's "Concurrency
+>   rules" section, which forbids cross-lane concurrent execution.
+>
+> All other sections (§1 Target Definition, §2 Definition of Done, §3 Current
+> State, §5/§7-§16 ticket designs, §18 Recommended Next Commands) remain
+> useful as design context but are not the canonical execution order.
+
+Date: 2026-05-05
+Repository: project root (run from the repo's working tree)
+>>>>>>> 0571c5d (docs(plan): mark plan.md as 2026-05-05 historical snapshot)
 
 This plan records the historical Agent Workbench Suite direction and now points
 forward to the active ROX.ONE rebrand sweep before the next roadmap phase.
