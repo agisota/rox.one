@@ -1,0 +1,185 @@
+/* =============================================================================
+   VISUAL POLISH V2 (T280)
+
+   CSS-only polish pass that raises the floor for interactive feedback without
+   redefining the palette or touching components. Everything here is additive
+   and namespaced through layered selectors / `:where()` to keep specificity low
+   so component overrides still win.
+
+   Token-only additions:
+     - Spacing rhythm     (--vp2-space-{xs..lg})
+     - Focus ring         (--vp2-focus-{color,width,offset})
+     - Motion             (--vp2-{ease,dur-fast,dur-base,dur-slow})
+     - Hover / disabled   (--vp2-hover-bg, --vp2-disabled-opacity)
+
+   All values reference existing palette variables (`--foreground`,
+   `--accent`, `--ring`, …) so theme switches keep the polish coherent.
+
+   Honors:
+     - prefers-reduced-motion (transitions collapse via the existing global
+       rule in index.css)
+     - forced-colors / prefers-contrast (rings widen via existing media
+       queries in index.css; here we only touch chromatic tokens)
+============================================================================= */
+
+@layer base {
+  :root {
+    /* === Spacing rhythm (additive, doesn't override --spacing) === */
+    --vp2-space-2xs: 0.125rem;   /* 2px */
+    --vp2-space-xs:  0.25rem;    /* 4px */
+    --vp2-space-sm:  0.5rem;     /* 8px */
+    --vp2-space-md:  0.75rem;    /* 12px */
+    --vp2-space-lg:  1rem;       /* 16px */
+
+    /* === Focus ring === */
+    --vp2-focus-color: oklch(from var(--accent) l c h / 0.55);
+    --vp2-focus-width: 2px;
+    --vp2-focus-offset: 2px;
+
+    /* === Motion tokens === */
+    --vp2-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --vp2-dur-fast: 90ms;
+    --vp2-dur-base: 150ms;
+    --vp2-dur-slow: 220ms;
+
+    /* === Interaction surfaces === */
+    --vp2-hover-bg: oklch(from var(--foreground) l c h / 0.04);
+    --vp2-active-bg: oklch(from var(--foreground) l c h / 0.07);
+    --vp2-disabled-opacity: 0.55;
+  }
+
+  /* Dark mode bumps focus-ring contrast a notch (WCAG 2.2 SC 2.4.13) */
+  .dark {
+    --vp2-focus-color: oklch(from var(--accent) l c h / 0.7);
+    --vp2-hover-bg: oklch(from var(--foreground) l c h / 0.06);
+    --vp2-active-bg: oklch(from var(--foreground) l c h / 0.1);
+  }
+}
+
+@layer utilities {
+  /* === Focus-visible: unified accent ring on interactive primitives ===
+     Uses :where() so app-level focus styles (e.g., composer mode active)
+     still take precedence without !important. */
+  :where(
+    [data-slot="button"],
+    [data-slot="input"],
+    [data-slot="textarea"],
+    [data-slot="select-trigger"],
+    [data-slot="dropdown-menu-trigger"],
+    a[href]
+  ):focus-visible {
+    outline: var(--vp2-focus-width) solid var(--vp2-focus-color);
+    outline-offset: var(--vp2-focus-offset);
+    border-radius: inherit;
+  }
+
+  /* === Buttons: smoother hover/active/disabled feedback ===
+     Add transition for color + background + box-shadow + transform.
+     Subtle scale on :active gives tactile feedback under 100ms. */
+  :where([data-slot="button"]) {
+    transition:
+      background-color var(--vp2-dur-base) var(--vp2-ease),
+      color var(--vp2-dur-base) var(--vp2-ease),
+      box-shadow var(--vp2-dur-base) var(--vp2-ease),
+      transform var(--vp2-dur-fast) var(--vp2-ease),
+      opacity var(--vp2-dur-base) var(--vp2-ease);
+  }
+
+  :where([data-slot="button"]:not(:disabled)):active {
+    transform: translateY(0.5px) scale(0.985);
+  }
+
+  :where([data-slot="button"]):disabled,
+  :where([data-slot="button"][aria-disabled="true"]) {
+    opacity: var(--vp2-disabled-opacity);
+    cursor: not-allowed;
+  }
+
+  /* === COMPONENT: Primary CTA (default button variant) ===
+     Adds a subtle 1px inset highlight ring so the solid foreground button
+     reads as "raised" without changing the palette. WCAG-safe: only touches
+     a 6% alpha highlight layer; underlying bg/text contrast is unchanged.
+     Hover adds a faint 1px drop shadow for affordance lift. */
+  :where([data-slot="button"].bg-foreground) {
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  }
+  :where([data-slot="button"].bg-foreground:not(:disabled)):hover {
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+      0 1px 2px -1px rgba(0, 0, 0, 0.22);
+  }
+
+  /* === COMPONENT: Secondary / outline / ghost buttons ===
+     Standardize hover surface across secondary/outline/ghost so they share
+     the same 4–7% foreground wash instead of three different opacities. */
+  :where(
+    [data-slot="button"].bg-foreground\/5,
+    [data-slot="button"].hover\:bg-foreground\/3,
+    [data-slot="button"].border
+  ):hover:not(:disabled) {
+    background-color: var(--vp2-hover-bg);
+  }
+  :where(
+    [data-slot="button"].bg-foreground\/5,
+    [data-slot="button"].hover\:bg-foreground\/3,
+    [data-slot="button"].border
+  ):active:not(:disabled) {
+    background-color: var(--vp2-active-bg);
+  }
+
+  /* === COMPONENT: Composer textarea (and all shadcn textareas) ===
+     The composer reads as "where you type" — give it a softer focus ring
+     plus a slightly elevated resting border so empty-state is visible
+     against the panel background. Placeholder bumped to 45% foreground so
+     it remains readable while staying clearly secondary (WCAG AA on
+     standard text/background pairs). Caret matches the accent for
+     visibility in scenic mode. */
+  :where([data-slot="textarea"], [data-slot="input"]) {
+    transition:
+      border-color var(--vp2-dur-base) var(--vp2-ease),
+      box-shadow var(--vp2-dur-base) var(--vp2-ease),
+      background-color var(--vp2-dur-base) var(--vp2-ease);
+    caret-color: var(--accent);
+  }
+  :where([data-slot="textarea"], [data-slot="input"]):hover:not(:disabled):not(:focus-visible) {
+    border-color: oklch(from var(--foreground) l c h / 0.22);
+  }
+  :where([data-slot="textarea"], [data-slot="input"])::placeholder {
+    color: oklch(from var(--foreground) l c h / 0.45);
+  }
+
+  /* === COMPONENT: Settings sidebar item ===
+     Settings list rows / sidebar entries share the .session-item, .source-item,
+     .import-item pattern in index.css. Add a smooth hover transition and a
+     left-edge accent bar on selected for clearer "you are here" feedback.
+     Falls back gracefully where data-selected isn't set. Bar is 2px wide
+     and inset 6px top/bottom so it reads as a marker, not a divider. */
+  :where(.session-item, .source-item, .import-item, [data-slot="dropdown-menu-item"]) {
+    transition:
+      background-color var(--vp2-dur-fast) var(--vp2-ease),
+      color var(--vp2-dur-fast) var(--vp2-ease);
+  }
+  :where(.session-item[data-selected], .source-item[data-selected], .import-item[data-selected]) {
+    position: relative;
+  }
+  :where(.session-item[data-selected], .source-item[data-selected], .import-item[data-selected])::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+    opacity: 0.85;
+    pointer-events: none;
+  }
+
+  /* === Link polish: underline offset + transition ===
+     Anchor tags get a measured underline-offset so they don't visually
+     collide with descenders. */
+  :where(a[href]):not([class*="no-underline"]) {
+    text-underline-offset: 2px;
+    transition: color var(--vp2-dur-fast) var(--vp2-ease);
+  }
+}
