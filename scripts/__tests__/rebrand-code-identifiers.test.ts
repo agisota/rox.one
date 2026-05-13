@@ -82,4 +82,62 @@ describe("R.2 code identifier rebrand", () => {
 
     expect(hits).toEqual([]);
   });
+
+  test("renames non-UI Craft identifiers and files while preserving the deprecated config alias", () => {
+    const expectedRenames = [
+      {
+        oldPath: "packages/pi-agent-server/src/craft-metadata-schema.ts",
+        newPath: "packages/pi-agent-server/src/rox-agent-metadata-schema.ts",
+      },
+      {
+        oldPath: "packages/shared/src/config/sync-craft-agent-bash-patterns.ts",
+        newPath: "packages/shared/src/config/sync-agent-bash-patterns.ts",
+      },
+    ];
+
+    expect(
+      expectedRenames.filter(({ oldPath }) => existsSync(join(repoRoot, oldPath))).map(({ oldPath }) => oldPath),
+      "legacy non-UI file names should be renamed",
+    ).toEqual([]);
+    expect(
+      expectedRenames.filter(({ newPath }) => existsSync(join(repoRoot, newPath))).map(({ newPath }) => newPath),
+      "canonical non-UI file names should exist",
+    ).toEqual(expectedRenames.map(({ newPath }) => newPath));
+
+    const sourceRoots = [
+      "packages/shared/src",
+      "packages/server-core/src",
+      "packages/pi-agent-server/src",
+    ];
+    const forbiddenIdentifiers = [
+      "CraftMcpClient",
+      "CraftOAuth",
+      "allowCraftMetadataProperties",
+      "stripCraftMetadata",
+      "getCraftAgentReadOnlyBashPatterns",
+      "syncCraftAgentPatterns",
+      "isCraftAgentPattern",
+      "isCraftAgentConfig",
+      "CRAFT_DISPLAY_NAME_KEY",
+      "CRAFT_INTENT_KEY",
+      "CRAFT_DISPLAY_NAME_SCHEMA",
+      "CRAFT_INTENT_SCHEMA",
+    ];
+
+    const hits = sourceRoots
+      .flatMap((root) => walkFiles(join(repoRoot, root)))
+      .filter((path) => textExtensions.has(extensionOf(path)))
+      .flatMap((path) => {
+        const body = readText(path);
+        return forbiddenIdentifiers
+          .filter((identifier) => body.includes(identifier))
+          .map((identifier) => `${relativePath(path)}: ${identifier}`);
+      });
+
+    expect(hits).toEqual([]);
+
+    const claudeAgent = readText(join(repoRoot, "packages/shared/src/agent/claude-agent.ts"));
+    expect(claudeAgent).toContain("export type { ClaudeAgentConfig as CraftAgentConfig }");
+    expect(claudeAgent).toContain("@deprecated Use ClaudeAgentConfig instead; remove in v1.1.0.");
+  });
 });

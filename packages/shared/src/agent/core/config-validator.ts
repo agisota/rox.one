@@ -103,7 +103,7 @@ export class ConfigValidator {
    * @param filePath - Path to check
    * @returns true if this is a ROX config
    */
-  isCraftAgentConfig(filePath: string): boolean {
+  isRoxAgentConfig(filePath: string): boolean {
     const normalizedPath = process.platform === 'win32'
       ? filePath.replace(/\\/g, '/').toLowerCase()
       : filePath.replace(/\\/g, '/');
