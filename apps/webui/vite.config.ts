@@ -82,7 +82,7 @@ export default defineConfig(({ command }) => ({
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'jotai'],
-    exclude: ['@rox-agent/ui'],
+    exclude: ['@rox-one/ui'],
     esbuildOptions: {
       supported: { 'top-level-await': true },
       target: 'esnext',

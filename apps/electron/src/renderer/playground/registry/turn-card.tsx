@@ -13,7 +13,7 @@ import {
   type ResponseContent,
   type TodoItem,
   type FileChange,
-} from '@rox-agent/ui'
+} from '@rox-one/ui'
 
 /** Wrapper with padding for playground preview */
 function PaddedWrapper({ children }: { children: ReactNode }) {

@@ -10,7 +10,7 @@ import {
   type IslandActiveViewSize,
   type IslandMorphTarget,
   type IslandNavigation,
-} from '@rox-agent/ui'
+} from '@rox-one/ui'
 import type { ComponentEntry } from './types'
 
 type IslandViewId = 'compact' | 'confirm-follow-up' | 'confirm-ask-inline'

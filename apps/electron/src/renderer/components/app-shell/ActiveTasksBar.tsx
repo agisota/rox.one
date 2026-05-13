@@ -7,7 +7,7 @@
 
 import React from 'react'
 import { cn } from '@/lib/utils'
-import { Spinner } from '@rox-agent/ui'
+import { Spinner } from '@rox-one/ui'
 import { TaskActionMenu, type TerminalOverlayData } from './TaskActionMenu'
 
 export interface BackgroundTask {

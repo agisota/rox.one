@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as storage from '@/lib/local-storage'
 import { cn } from '@/lib/utils'
 import type { ComponentEntry } from './registry'
-import { TooltipProvider } from '@rox-agent/ui'
+import { TooltipProvider } from '@rox-one/ui'
 
 interface ComponentPreviewProps {
   component: ComponentEntry

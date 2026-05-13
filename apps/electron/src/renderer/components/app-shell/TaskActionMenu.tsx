@@ -8,7 +8,7 @@ import {
   StyledDropdownMenuItem,
   StyledDropdownMenuSeparator,
 } from '@/components/ui/styled-dropdown'
-import { Spinner } from '@rox-agent/ui'
+import { Spinner } from '@rox-one/ui'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { BackgroundTask } from './ActiveTasksBar'

@@ -8,7 +8,7 @@
  * Imports groupMessagesByTurn (pure function) from turn-utils.
  */
 import { describe, it, expect, beforeEach } from 'bun:test'
-import { groupMessagesByTurn, type AssistantTurn } from '@rox-agent/ui/chat/turn-utils'
+import { groupMessagesByTurn, type AssistantTurn } from '@rox-one/ui/chat/turn-utils'
 import { messageToStored, storedToMessage } from '@rox-agent/core'
 import type { Message, MessageRole } from '@rox-agent/core'
 

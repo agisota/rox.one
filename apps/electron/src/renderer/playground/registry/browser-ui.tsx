@@ -7,7 +7,7 @@ import {
   TurnCard,
   type ActivityItem,
   type ResponseContent,
-} from '@rox-agent/ui'
+} from '@rox-one/ui'
 import { AnimatePresence, motion } from 'motion/react'
 import { BrowserTabStrip } from '@/components/browser/BrowserTabStrip'
 import { EMPTY_STATE_PROMPT_SAMPLES } from '@/components/browser/empty-state-prompts'

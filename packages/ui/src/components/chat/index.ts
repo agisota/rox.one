@@ -1,5 +1,5 @@
 /**
- * Chat component exports for @rox-agent/ui
+ * Chat component exports for @rox-one/ui
  */
 
 // Turn utilities (pure functions, no React)

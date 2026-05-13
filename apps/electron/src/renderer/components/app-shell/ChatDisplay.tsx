@@ -38,7 +38,7 @@ import {
   type ActivityItem,
   type FileChange,
   type DiffViewerSettings,
-} from "@rox-agent/ui"
+} from "@rox-one/ui"
 import { useFocusZone } from "@/hooks/keyboard"
 import { useTheme } from "@/hooks/useTheme"
 import type { Session, Message, FileAttachment, StoredAttachment, PermissionRequest, CredentialRequest, CredentialResponse, LoadedSource, LoadedSkill } from "../../../shared/types"
@@ -61,7 +61,7 @@ import {
   type UserTurn,
   type SystemTurn,
   type AuthRequestTurn,
-} from "@rox-agent/ui"
+} from "@rox-one/ui"
 import { MemoizedAuthRequestCard } from "@/components/chat/AuthRequestCard"
 import { ChatInputZone, type StructuredInputState, type StructuredResponse, type PermissionResponse, type AdminApprovalResponse } from "./input"
 import type { RichTextInputHandle } from "@/components/ui/rich-text-input"

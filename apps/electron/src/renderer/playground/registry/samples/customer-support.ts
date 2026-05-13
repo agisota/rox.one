@@ -3,7 +3,7 @@
  * Cross-platform support flow demonstrating service integration
  */
 
-import type { ActivityItem, ResponseContent } from '@rox-agent/ui'
+import type { ActivityItem, ResponseContent } from '@rox-one/ui'
 import { nativeToolIcons, sourceIcons } from '../sample-icons'
 
 const now = Date.now()

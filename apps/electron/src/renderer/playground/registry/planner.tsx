@@ -27,7 +27,7 @@ import {
   StyledDropdownMenuContent,
   StyledDropdownMenuItem,
 } from '@/components/ui/styled-dropdown'
-import { TiptapMarkdownEditor } from '@rox-agent/ui'
+import { TiptapMarkdownEditor } from '@rox-one/ui'
 import { cn } from '@/lib/utils'
 import { getResizeGradientStyle } from '@/hooks/useResizeGradient'
 import {

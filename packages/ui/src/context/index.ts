@@ -1,5 +1,5 @@
 /**
- * Context exports for @rox-agent/ui
+ * Context exports for @rox-one/ui
  */
 
 export {
