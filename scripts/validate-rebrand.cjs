@@ -3,10 +3,10 @@
 const { execFileSync } = require('node:child_process')
 const { readFileSync } = require('node:fs')
 
-const legacyStem = 'rox'
+const legacyStem = 'craft'
 const legacyPackage = `${legacyStem}-agent`
-const legacyPrefix = 'ROX' + '_'
-const legacyProduct = 'Rox' + ' Agent'
+const legacyPrefix = 'CRAFT' + '_'
+const legacyProduct = 'Craft' + ' Agent'
 
 const FORBIDDEN_TOKENS = [
   legacyPackage,
@@ -16,12 +16,12 @@ const FORBIDDEN_TOKENS = [
   `.${legacyPackage}`,
   `${legacyProduct}s`,
   legacyProduct,
-  'Rox' + 'AppIcon',
-  'Rox' + 'AgentsLogo',
-  'Rox' + 'AgentsSymbol',
-  'Rox' + 'McpClient',
-  'Rox' + 'OAuth',
-  'Rox' + 'MetadataSchema',
+  'Craft' + 'AppIcon',
+  'Craft' + 'AgentsLogo',
+  'Craft' + 'AgentsSymbol',
+  'Craft' + 'McpClient',
+  'Craft' + 'OAuth',
+  'Craft' + 'MetadataSchema',
   `${legacyStem}-cli`,
   `${legacyStem}-logos`,
 ]
@@ -37,8 +37,8 @@ function isWholeFileAllowlisted(path) {
   if (['LICENSE', 'NOTICE', 'TRADEMARK.md', 'plan.md', 'snapshot.md'].includes(path)) {
     return true
   }
-  // Allowlist reason: CHANGELOG.md must reference legacy ROX_* / @rox-agent
-  // / rox-agent-server / rox-cli / ~/.rox-agent / ~/.rox / Rox Agents
+  // Allowlist reason: CHANGELOG.md must reference legacy ROX_* / @rox-one
+  // / rox-one-server / rox-cli / ~/.rox / ~/.rox / ROX.ONE
   // names verbatim to document the rebrand sweep R.0-R.10 and the v1.0.0
   // deprecation timeline. Recursive self-reference makes them forbidden tokens
   // by construction — they are historical record, not branding drift.
@@ -96,7 +96,7 @@ function isWholeFileAllowlisted(path) {
   if (path === 'docs/cli.md') return true
 
   // Allowlist reason: legacy docs that pre-date the rebrand and reference
-  // ROX features under their historical Rox naming.
+  // ROX features under their historical Craft naming.
   if (path === 'docs/experience-tabs-sessions-skills.md') return true
   if (path === 'docs/tickets/README.md') return true
   if (path === 'docs/tickets/TEMPLATE.md') return true
@@ -111,12 +111,12 @@ function isWholeFileAllowlisted(path) {
 
   // Allowlist reason: AGENTS.md is the operating contract for agents
   // working on this repository; its opening must cite the upstream
-  // project ("Rox Agents OSS") to satisfy Apache 2.0 §4 attribution
+  // project ("ROX.ONE OSS") to satisfy Apache 2.0 §4 attribution
   // and to honor TRADEMARK.md. The remaining 1-2 token hits in AGENTS.md
   // are exactly this legal attribution, not branding drift.
   if (path === 'AGENTS.md') return true
 
-  // Allowlist reason: root package.json `name: rox-agent` is held
+  // Allowlist reason: root package.json `name: rox-one` is held
   // deliberately until M.21 release prep, when the major version bump
   // and lockfile regeneration land together as one atomic change.
   // Renaming the root name without `bun install` regeneration corrupts
@@ -134,7 +134,7 @@ function isWholeFileAllowlisted(path) {
   // worklog for the deprecation timeline).
   if (path.startsWith('apps/cli/')) return true
 
-  // Allowlist reason: internal ESLint plugin name `'rox-agent'` — internal
+  // Allowlist reason: internal ESLint plugin name `'rox-one'` — internal
   // only, never reaches user-facing surfaces.
   if (path === 'apps/electron/eslint.config.mjs') return true
 
@@ -281,7 +281,7 @@ function isLineAllowlisted(path, lineNumber, line, token, readmeSections) {
   }
 
   // Allowlist reason: i18n locale files retain stable translation keys
-  // containing `RoxAgents` / `loginWithRox` because changing key IDs
+  // containing `CraftAgents` / `loginWithCraft` because changing key IDs
   // would break every external translation tool consuming these locales.
   // Value strings that mention ROX_SERVER_TOKEN are shim-preserved and
   // remain functionally correct for one minor version.
@@ -290,9 +290,9 @@ function isLineAllowlisted(path, lineNumber, line, token, readmeSections) {
   }
 
   // Allowlist reason: builtin-sources.ts retains the legacy id
-  // `builtin-rox-agents-docs` and slug `rox-agents-docs` as historical
+  // `builtin-rox-ones-docs` and slug `rox-ones-docs` as historical
   // aliases for one minor version (see T300a worklog for the deprecation
-  // timeline). All other RoxAgents-derived literals in this file are
+  // timeline). All other CraftAgents-derived literals in this file are
   // documentation-only.
   if (path === 'packages/shared/src/sources/builtin-sources.ts') {
     return true

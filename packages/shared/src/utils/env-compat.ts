@@ -11,7 +11,7 @@
  * rebrand-sweep goal doc for the policy.
  */
 
-const LEGACY_PREFIX = 'ROX' + '_';
+const LEGACY_PREFIX = 'CRAFT' + '_';
 const NEW_PREFIX = 'ROX_';
 
 const warnedLegacyEnvVars = new Set<string>();
