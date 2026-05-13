@@ -5,3 +5,4 @@ rebrand-R.0-canonical-inventory | 58613ed | T260,T261,T262 | 2026-05-13T12:43:14
 rebrand-R.1-surface-text-completion | 24aa751 | T263 | 2026-05-13T13:06:01Z
 rebrand-R.2-code-identifier-renames | 93e7b73,cc89339,e6117bb | T264,T265,T266 | 2026-05-13T13:26:47Z
 rebrand-R.3-asset-file-renames | 82a8425,e9305ca | T267,T268 | 2026-05-13T13:45:57Z
+rebrand-R.4-doc-plan-cleanup | 5bfd87a,1cd54cf,0fd740f,cb34ecd | T269,T270,T271,T272 | 2026-05-13T14:04:04Z
