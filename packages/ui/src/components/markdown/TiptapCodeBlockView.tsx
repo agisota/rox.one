@@ -1,8 +1,64 @@
+/**
+ * TiptapCodeBlockView — React NodeView for the regular Tiptap code-block
+ * node. This component is rendered by the `CodeBlockShiki` extension from
+ * `tiptap-extension-code-block-shiki`, which manages its own Shiki
+ * highlighter instance internally via `createHighlighter` from the raw
+ * `shiki` package (see `node_modules/tiptap-extension-code-block-shiki`).
+ *
+ * M.11 / T174 migration status: **DEFERRED to T174b**.
+ *
+ * Why:
+ *   `CodeBlockShiki` calls `createHighlighter({ themes, langs })` itself
+ *   when the extension is configured, then re-uses that highlighter
+ *   instance for every code-block node decoration. There is no public API
+ *   to inject an externally constructed highlighter (the maintainer's
+ *   1.x line treats the highlighter as an implementation detail), so we
+ *   cannot point it at our `getSingletonHighlighter()` from
+ *   `@rox-one/shared/highlight` without forking the extension.
+ *
+ *   The file's only direct dependency on the raw `shiki` package today is
+ *   the `bundledLanguages` import below, used to enumerate the language
+ *   options for the dropdown. That import IS migratable in isolation
+ *   (we could derive the dropdown set from `PRELOADED_LANGUAGES` instead),
+ *   but doing so without also addressing the extension's internal
+ *   highlighter would create a worse split: the dropdown would only list
+ *   our preloaded subset while the extension still resolves grammars from
+ *   the full bundled set under the hood. Worse, dropping the bundled-set
+ *   enumeration would silently shrink what users can pick in the editor
+ *   from ~280 languages down to ~21, regressing the authoring surface.
+ *
+ *   The right unit of work is therefore a single follow-up ticket (T174b)
+ *   that ships a `tiptap-extension-code-block-rox-singleton` adapter (or
+ *   forks the upstream extension) so the editor and the highlighter live
+ *   in the same engine. Until then this file keeps its `shiki` import.
+ *
+ * Concrete deferral plan for T174b:
+ *   1. Write a thin Tiptap NodeSpec + plugin (mirror the upstream code in
+ *      `node_modules/tiptap-extension-code-block-shiki/dist`) that calls
+ *      `getSingletonHighlighter()` for decoration instead of constructing
+ *      its own highlighter.
+ *   2. Wire the dropdown options off `PRELOADED_LANGUAGES` + the shared
+ *      `LANGUAGE_ALIASES`; preserve the current ordering/labels.
+ *   3. Drop the raw `shiki` import from this file and from
+ *      `packages/ui/package.json` peerDependencies in the same PR.
+ *   4. Acceptance test: pin the new extension's highlight-on-decoration
+ *      contract with bun:test (the singleton is async, the extension
+ *      currently is too, so the shape is compatible).
+ *
+ * For now, the `shiki` peerDependency in `packages/ui/package.json` MUST
+ * stay because this file (and the upstream extension it composes) still
+ * resolves grammars from there.
+ */
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
 import { NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer } from '@tiptap/react'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import CodeBlockShiki from 'tiptap-extension-code-block-shiki'
+// NOTE: Deferred to T174b — see the module-doc block above for the rationale.
+// The dropdown options below enumerate grammars Tiptap can render via the
+// upstream extension; switching to PRELOADED_LANGUAGES without also
+// migrating the extension's internal highlighter would silently shrink
+// the authoring language set.
 import { bundledLanguages } from 'shiki'
 import { Check, ChevronDown, Copy } from 'lucide-react'
 import { SimpleDropdown, SimpleDropdownItem } from '../ui/SimpleDropdown'
