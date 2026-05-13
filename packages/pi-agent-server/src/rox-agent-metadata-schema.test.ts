@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test';
 import { createEditToolDefinition } from '@mariozechner/pi-coding-agent';
-import { allowRoxMetadataProperties, stripRoxMetadata } from './rox-metadata-schema.ts';
+import { allowRoxAgentMetadataProperties, stripRoxAgentMetadata } from './rox-agent-metadata-schema.ts';
 
-describe('Rox metadata schema compatibility for Pi tools', () => {
-  it('widens a strict Edit-like schema with optional Rox metadata properties', () => {
+describe('ROX agent metadata schema compatibility for Pi tools', () => {
+  it('widens a strict Edit-like schema with optional ROX metadata properties', () => {
     const schema = {
       type: 'object',
       additionalProperties: false,
@@ -25,7 +25,7 @@ describe('Rox metadata schema compatibility for Pi tools', () => {
       required: ['path', 'edits'],
     };
 
-    const widened = allowRoxMetadataProperties(schema);
+    const widened = allowRoxAgentMetadataProperties(schema);
 
     expect(widened).not.toBe(schema);
     expect(widened.additionalProperties).toBe(false);
@@ -40,7 +40,7 @@ describe('Rox metadata schema compatibility for Pi tools', () => {
 
   it('widens the actual Pi Edit tool schema without making metadata required', () => {
     const editTool = createEditToolDefinition('/tmp');
-    const widened = allowRoxMetadataProperties(editTool.parameters);
+    const widened = allowRoxAgentMetadataProperties(editTool.parameters);
     const widenedSchema = widened as {
       additionalProperties?: unknown;
       properties: Record<string, unknown>;
@@ -68,21 +68,21 @@ describe('Rox metadata schema compatibility for Pi tools', () => {
       required: ['path'],
     };
 
-    const widened = allowRoxMetadataProperties(schema);
+    const widened = allowRoxAgentMetadataProperties(schema);
 
     expect(widened.properties._displayName).toBe(upstreamDisplayName);
     expect(widened.properties._intent).toBe(upstreamIntent);
   });
 
   it('returns unknown schema shapes unchanged', () => {
-    expect(allowRoxMetadataProperties(undefined)).toBeUndefined();
-    expect(allowRoxMetadataProperties('schema')).toBe('schema');
+    expect(allowRoxAgentMetadataProperties(undefined)).toBeUndefined();
+    expect(allowRoxAgentMetadataProperties('schema')).toBe('schema');
 
     const noProperties = { type: 'string' };
-    expect(allowRoxMetadataProperties(noProperties)).toBe(noProperties);
+    expect(allowRoxAgentMetadataProperties(noProperties)).toBe(noProperties);
   });
 
-  it('strips Rox metadata before upstream Pi tool execution', () => {
+  it('strips ROX metadata before upstream Pi tool execution', () => {
     const input = {
       _displayName: 'Edit Lines',
       _intent: 'Add punctuation',
@@ -90,7 +90,7 @@ describe('Rox metadata schema compatibility for Pi tools', () => {
       edits: [{ oldText: 'a', newText: 'b' }],
     };
 
-    const clean = stripRoxMetadata(input);
+    const clean = stripRoxAgentMetadata(input);
 
     expect(clean).toEqual({
       path: 'random',
@@ -104,6 +104,6 @@ describe('Rox metadata schema compatibility for Pi tools', () => {
 
   it('returns the same input object when no metadata is present', () => {
     const input = { path: 'random' };
-    expect(stripRoxMetadata(input)).toBe(input);
+    expect(stripRoxAgentMetadata(input)).toBe(input);
   });
 });

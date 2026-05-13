@@ -134,7 +134,7 @@ export interface BashPatternRule {
 }
 
 /**
- * Derive the canonical Explore-mode read-only rox-agent bash patterns from
+ * Derive the canonical Explore-mode read-only ROX agent bash patterns from
  * CLI domain policies. Keeps permissions regexes aligned with command metadata.
  */
 export function getRoxAgentReadOnlyBashPatterns(): BashPatternRule[] {
