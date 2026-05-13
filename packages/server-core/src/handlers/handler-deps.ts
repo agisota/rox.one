@@ -8,6 +8,7 @@ import type { AccountStore } from '../accounts'
 import type { OfficeDocumentConverter } from '../services/office-document-adapter'
 import type { RbacResolver, GrantStore } from '@rox-one/shared/auth/rbac-resolver'
 import type { RoleStore } from '@rox-one/shared/auth/role-store'
+import type { AuditProducer } from '@rox-one/shared/observability'
 
 /**
  * Generic handler dependency bag.
@@ -53,5 +54,13 @@ export interface HandlerDeps<
    * readable even without admin wiring.
    */
   roleStore?: RoleStore
+  /**
+   * Optional audit producer (T246). When provided, the RBAC admin handlers
+   * (`roles.grant`, `roles.revoke`) emit `RoleGranted` / `RoleRevoked`
+   * audit events on their success path. Hosts that have not yet adopted
+   * the observability surface may omit this field; emission becomes a
+   * no-op and the handlers behave identically to the pre-T246 baseline.
+   */
+  auditProducer?: AuditProducer
   officeDocumentConverter?: OfficeDocumentConverter
 }
