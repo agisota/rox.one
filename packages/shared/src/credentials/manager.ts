@@ -10,12 +10,19 @@ import type { CredentialId, CredentialType, StoredCredential, CredentialHealthSt
 import type { LlmAuthType, LlmProviderType } from '../config/llm-connections.ts';
 import { SecureStorageBackend } from './backends/secure-storage.ts';
 import { debug } from '../utils/debug.ts';
+import {
+  DEFAULT_LOCAL_SCOPE,
+  type BrandedWorkspaceScope,
+} from '../config/storage-scope.ts';
+import { isMultiTenantActivated } from '../config/storage-scope-runtime.ts';
 
 export class CredentialManager {
   private backends: CredentialBackend[] = [];
   private writeBackend: CredentialBackend | null = null;
   private initialized = false;
   private initPromise: Promise<void> | null = null;
+
+  constructor(private readonly scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE) {}
 
   /**
    * Explicitly initialize the credential manager.
@@ -48,9 +55,12 @@ export class CredentialManager {
   }
 
   private async _doInitialize(): Promise<void> {
-    const potentialBackends: CredentialBackend[] = [
-      new SecureStorageBackend(),
-    ];
+    const primaryBackend = new SecureStorageBackend(this.scope);
+    const potentialBackends: CredentialBackend[] = [primaryBackend];
+
+    if (this.shouldReadFlatFallback()) {
+      potentialBackends.push(new SecureStorageBackend(DEFAULT_LOCAL_SCOPE, { priority: 10 }));
+    }
 
     // Check which backends are available
     for (const backend of potentialBackends) {
@@ -64,7 +74,9 @@ export class CredentialManager {
     this.backends.sort((a, b) => b.priority - a.priority);
 
     // Use the first available backend for writing
-    this.writeBackend = this.backends[0] || null;
+    this.writeBackend = this.backends.includes(primaryBackend)
+      ? primaryBackend
+      : this.backends[0] || null;
 
     if (this.writeBackend) {
       debug(`[CredentialManager] Using backend: ${this.writeBackend.name}`);
@@ -73,6 +85,10 @@ export class CredentialManager {
     }
 
     this.initialized = true;
+  }
+
+  private shouldReadFlatFallback(): boolean {
+    return this.scope.kind === 'workspace' && isMultiTenantActivated();
   }
 
   /** Get the name of the active write backend */
@@ -652,12 +668,30 @@ export class CredentialManager {
   }
 }
 
-// Singleton instance
+// Singleton instances. The default singleton preserves existing caller
+// behavior; scoped managers are keyed by workspace id and are only used by
+// callers that already hold a branded workspace scope.
 let manager: CredentialManager | null = null;
+const scopedManagers = new Map<string, CredentialManager>();
 
-export function getCredentialManager(): CredentialManager {
-  if (!manager) {
-    manager = new CredentialManager();
+export function getCredentialManager(scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): CredentialManager {
+  if (scope.kind === 'local-single-user' || !isMultiTenantActivated()) {
+    if (!manager) {
+      manager = new CredentialManager(DEFAULT_LOCAL_SCOPE);
+    }
+    return manager;
   }
-  return manager;
+
+  const key = scope.workspaceId;
+  let scopedManager = scopedManagers.get(key);
+  if (!scopedManager) {
+    scopedManager = new CredentialManager(scope);
+    scopedManagers.set(key, scopedManager);
+  }
+  return scopedManager;
+}
+
+export function __resetCredentialManagersForTests(): void {
+  manager = null;
+  scopedManagers.clear();
 }

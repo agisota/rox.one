@@ -89,7 +89,7 @@ The C.4 design spec deferred six concrete follow-ups. They are all in scope now.
 
 - **Read first:** `packages/server-core/src/sessions/SessionManager.ts`; the Pi subprocess bootstrap; ADR 0007 §"Out of scope" → Pi IPC propagation entry.
 - **New spec + plan:** `docs/superpowers/specs/2026-05-14-pi-ipc-scope-propagation-design.md` and `docs/superpowers/plans/2026-05-14-pi-ipc-scope-propagation.md` (use the same shape as the C.4 design/plan).
-- **New ticket:** `T215-pi-ipc-scope-propagation`.
+- **New ticket:** `T216-pi-ipc-scope-propagation`.
 - **Work breakdown:**
   1. Decide serialization: branded scope is opaque, so propagate the *inputs* (`requestedWorkspaceId` + `permittedWorkspaces`) and re-mint via `deriveScopeFromAuth` on the Pi side after a session handshake. The Pi subprocess imports `storage-scope-auth.ts` directly (single in-process trust boundary remains intact because each Pi process has its own auth context).
   2. Add a Pi-side `bootstrapScope(sessionEnvelope)` helper that mints the branded scope after validating envelope integrity (signed by the parent or scoped by a one-time secret).
@@ -102,7 +102,7 @@ The C.4 design spec deferred six concrete follow-ups. They are all in scope now.
 
 - **Read first:** `packages/shared/src/credentials/manager.ts`; ADR 0007 §"Out of scope" → credential key derivation; ADR 0005 §"Tenant-scoped credential namespaces".
 - **New spec + plan:** `docs/superpowers/specs/2026-05-15-tenant-credential-key-derivation-design.md` + matching plan file.
-- **New ticket:** `T216-tenant-credential-key-derivation`.
+- **New ticket:** `T217-tenant-credential-key-derivation`.
 - **Work breakdown:**
   1. Define a per-tenant KDF: `tenantKey = HKDF(masterKey, salt=workspaceId, info="rox.credentials.v1")`. Keep `local-single-user` keyed by the existing master key (zero migration for single-user installs).
   2. Wrap credential read/write with a tenant-aware envelope that includes a KDF version field for future rotation.
@@ -115,7 +115,7 @@ The C.4 design spec deferred six concrete follow-ups. They are all in scope now.
 
 - **Read first:** ADR 0007 §"Out of scope" → queryable audit storage; current structured logger event surface (`packages/shared/src/utils/debug.ts`).
 - **New spec + plan + ADR:** `2026-05-16-audit-storage-backend-design.md` + plan + `0008-audit-storage-backend.md`.
-- **New tickets:** `T217-audit-storage-schema`, `T218-audit-event-writer`, `T219-audit-event-query-api`, `T220-audit-event-retention-policy`.
+- **New tickets:** `T218-audit-storage-schema`, `T219-audit-event-writer`, `T220-audit-event-query-api`, `T221-audit-event-retention-policy`.
 - **Work breakdown:**
   1. Append-only audit table with columns: `event_id, ts, actor, tenant_id, event_type, severity, payload_json, request_id`.
   2. Writer fanout: existing structured logger calls **plus** persistent append (configurable via `ROX_AUDIT_BACKEND={memory|file|sqlite|s3}`).
@@ -127,7 +127,7 @@ The C.4 design spec deferred six concrete follow-ups. They are all in scope now.
 ### Phase 1.6 — Multi-tenant data migration tooling
 
 - **Read first:** ADR 0007 §"Out of scope" → data migration tooling.
-- **New ticket:** `T221-multi-tenant-data-migration-tool`.
+- **New ticket:** `T222-multi-tenant-data-migration-tool`.
 - **Work breakdown:**
   1. CLI `bun run migrate:multi-tenant -- --tenant <id> --from flat --to tenant-prefixed --dry-run|--apply`.
   2. Pre-flight: verify free disk, lock the config directory, snapshot via `cp -a`.
@@ -139,7 +139,7 @@ The C.4 design spec deferred six concrete follow-ups. They are all in scope now.
 
 ### Phase 1 closeout
 
-After 1.1 → 1.6: write `docs/worklog/T222-c4-followups-closeout.md` summarizing all six follow-ons with commit SHAs, then update ADR 0007 to mark these items implemented (not deferred).
+After 1.1 → 1.6: write `docs/worklog/T223-c4-followups-closeout.md` summarizing all six follow-ons with commit SHAs, then update ADR 0007 to mark these items implemented (not deferred).
 
 ---
 
@@ -156,13 +156,13 @@ Phase 1 left `session.permittedWorkspaces` consumed but not produced. Phase 2 pr
 
 ### New ticket cluster
 
-- `T223-rbac-roles-schema` — data model for roles, role-bindings, role grants.
-- `T224-rbac-policy-engine` — pure-function policy evaluator (`canRead`, `canWrite`, `canAdmin` per resource × actor).
-- `T225-rbac-session-permitted-workspaces` — populate `session.permittedWorkspaces` from RBAC policy.
-- `T226-rbac-admin-rpc` — RPC handlers for role CRUD, role binding, role grants.
-- `T227-rbac-admin-ui` — admin screens to manage roles and team memberships.
-- `T228-rbac-integration-tests` — end-to-end RBAC: invite → role grant → workspace access → revoke → loss of access.
-- `T229-rbac-adr` — `0009-rbac-policy.md`.
+- `T224-rbac-roles-schema` — data model for roles, role-bindings, role grants.
+- `T225-rbac-policy-engine` — pure-function policy evaluator (`canRead`, `canWrite`, `canAdmin` per resource × actor).
+- `T226-rbac-session-permitted-workspaces` — populate `session.permittedWorkspaces` from RBAC policy.
+- `T227-rbac-admin-rpc` — RPC handlers for role CRUD, role binding, role grants.
+- `T228-rbac-admin-ui` — admin screens to manage roles and team memberships.
+- `T229-rbac-integration-tests` — end-to-end RBAC: invite → role grant → workspace access → revoke → loss of access.
+- `T230-rbac-adr` — `0009-rbac-policy.md`.
 
 ### Work breakdown
 
@@ -171,7 +171,7 @@ Phase 1 left `session.permittedWorkspaces` consumed but not produced. Phase 2 pr
 3. Plug policy into the demo `deriveScopeFromAuth` path: `permittedWorkspaces` becomes `policyEngine.permittedWorkspaces(session.userId)`.
 4. RPC: `roles.list`, `roles.create`, `roles.grant`, `roles.revoke`. Server-side guards: only owners can grant; revocation invalidates active sessions.
 5. UI: settings → "Team & permissions" tab. Reuses existing form primitives.
-6. Tests: each phase ticket gets unit + RPC integration; T228 ties them together with a real workspace lifecycle.
+6. Tests: each phase ticket gets unit + RPC integration; T229 ties them together with a real workspace lifecycle.
 7. ADR records the policy model, why a pure-function engine, and the migration path from C.4's "always permit" stub.
 
 ### Validation per ticket
@@ -180,7 +180,7 @@ Phase 1 left `session.permittedWorkspaces` consumed but not produced. Phase 2 pr
 
 ### Stopping condition
 
-T228's end-to-end test runs green; revoking a role removes workspace access within one request; ADR 0009 is committed; the C.4 "always permit" stub is replaced by the RBAC policy engine.
+T229's end-to-end test runs green; revoking a role removes workspace access within one request; ADR 0009 is committed; the C.4 "always permit" stub is replaced by the RBAC policy engine.
 
 ---
 
@@ -196,9 +196,9 @@ T228's end-to-end test runs green; revoking a role removes workspace access with
 
 ### Updated ticket cluster
 
-- `T230-upstream-v0.9.3-merge-plan` (supersedes T061's v0.9.1 target).
-- `T231-upstream-v0.9.3-merge-implementation` (supersedes T062).
-- `T232-upstream-v0.9.3-merge-evidence-log` — captures conflict resolution choices.
+- `T231-upstream-v0.9.3-merge-plan` (supersedes T061's v0.9.1 target).
+- `T232-upstream-v0.9.3-merge-implementation` (supersedes T062).
+- `T233-upstream-v0.9.3-merge-evidence-log` — captures conflict resolution choices.
 
 ### Remote setup
 
@@ -380,8 +380,8 @@ Every Experience tab reads from and writes to the Runtime Store; no demo shell r
 
 ### Work breakdown (illustrative cluster; refine before authoring tickets)
 
-- `T233-composer-pillar-4-spec` — design doc for Pillar 4 scope: emphasis modes, multi-line affordances, slash-mention surface, attachment polish, paste-image dialog.
-- `T234`..`T240` — per-affordance tickets, each with the same A11y + RTL + animation + visual polish layers used in Pillar 3.
+- `T234-composer-pillar-4-spec` — design doc for Pillar 4 scope: emphasis modes, multi-line affordances, slash-mention surface, attachment polish, paste-image dialog.
+- `T235`..`T241` — per-affordance tickets, each with the same A11y + RTL + animation + visual polish layers used in Pillar 3.
 - Pillar 4 closeout ticket with the audit-criteria matrix.
 
 ### Validation
@@ -403,7 +403,7 @@ The F.1 Shiki research doc (committed in commit `09c5fc1 docs(audit): F.1 shiki 
 ### Work breakdown
 
 1. Pick one option (A, B, or C) based on bundle-size budget and grammar coverage; record the decision in `0010-shiki-highlighter.md`.
-2. Author `T241-shiki-migration-plan` and `T242-shiki-migration-implementation`.
+2. Author `T242-shiki-migration-plan` and `T243-shiki-migration-implementation`.
 3. Replace the current highlighter behind a small `Highlighter` adapter so the renderer surface does not change.
 4. Add a contract test that captures the rendered HTML for 20 representative code samples (sanity for tokenizer differences).
 
@@ -459,7 +459,7 @@ Every screen has the full state matrix; visual diffs are stable; T069 and T081 f
 
 ### New tickets
 
-`T243-property-based-scope-forgery-tests`, `T244-cross-tenant-pentest-suite`, `T245-ledger-signature-verifier`, `T246-quota-bypass-regression`, `T247-prompt-injection-package-scanner`, `T248-mission-budget-bypass-regression`, `T249-pino-redactor-coverage`, `T250-csp-strict-with-nonces`, `T251-zod-boundary-validation-sweep`.
+`T244-property-based-scope-forgery-tests`, `T245-cross-tenant-pentest-suite`, `T246-ledger-signature-verifier`, `T247-quota-bypass-regression`, `T248-prompt-injection-package-scanner`, `T249-mission-budget-bypass-regression`, `T250-pino-redactor-coverage`, `T251-csp-strict-with-nonces`, `T252-zod-boundary-validation-sweep`.
 
 ### Validation
 
