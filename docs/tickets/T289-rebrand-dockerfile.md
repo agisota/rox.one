@@ -57,11 +57,11 @@ source attribution.
 
 ## Acceptance Criteria
 
-- [ ] Docker image examples use `rox-one-server`.
-- [ ] Docker runtime user/group/home use `roxone` and `/home/roxone`.
-- [ ] Docker smoke and install-server examples use `ROX_*`.
-- [ ] Removed Dockerfile references to nonexistent `packages/rox-*` dirs.
-- [ ] Legal-preserve source label remains unchanged.
+- [x] Docker image examples use `rox-one-server`.
+- [x] Docker runtime user/group/home use `roxone` and `/home/roxone`.
+- [x] Docker smoke and install-server examples use `ROX_*`.
+- [x] Removed Dockerfile references to nonexistent `packages/rox-*` dirs.
+- [x] Legal-preserve source label remains unchanged.
 
 ## Worklog
 

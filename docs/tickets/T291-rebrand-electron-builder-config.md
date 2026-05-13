@@ -86,10 +86,10 @@ The R.7 closeout commit additionally appends two phase-ledger lines to
 
 ## Acceptance Criteria
 
-- [ ] R.7 test asserts `productName: ROX.ONE` and rox-scoped `appId`.
-- [ ] `electron-builder.yml` is unmodified.
-- [ ] `appId: com.rox.one` decision documented in T291 worklog.
-- [ ] `.swarm/master-roadmap-log.md` carries both the R.6 catch-up and
+- [x] R.7 test asserts `productName: ROX.ONE` and rox-scoped `appId`.
+- [x] `electron-builder.yml` is unmodified.
+- [x] `appId: com.rox.one` decision documented in T291 worklog.
+- [x] `.swarm/master-roadmap-log.md` carries both the R.6 catch-up and
       R.7 ledger lines after the closeout commit lands.
 
 ## Worklog
