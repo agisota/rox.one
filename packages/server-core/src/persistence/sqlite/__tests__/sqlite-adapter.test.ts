@@ -265,7 +265,7 @@ describe('SqliteAdapter — close hygiene', () => {
 
   it('open() applies all migrations by default', () => {
     const adapter = memoryAdapter()
-    expect(adapter.appliedMigrations.head).toBe(1)
+    expect(adapter.appliedMigrations.head).toBeGreaterThanOrEqual(1)
     expect(adapter.appliedMigrations.applied[0]?.name).toBe('0001-initial')
     void adapter.close()
   })

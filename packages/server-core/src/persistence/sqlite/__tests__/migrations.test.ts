@@ -20,18 +20,18 @@ function withMemoryDb<T>(fn: (db: import('bun:sqlite').Database) => T): T {
 }
 
 describe('runMigrations', () => {
-  it('applies the initial migration from a fresh database and records the ledger row', () => {
+  it('applies the registered migrations from a fresh database and records ledger rows', () => {
     withMemoryDb((db) => {
       expect(currentMigrationVersion(db)).toBe(0)
 
       const result = runMigrations(db)
-      expect(result.head).toBe(1)
-      expect(result.applied).toHaveLength(1)
+      expect(result.head).toBe(ALL_MIGRATIONS.length)
+      expect(result.applied).toHaveLength(ALL_MIGRATIONS.length)
       expect(result.applied[0]?.version).toBe(1)
       expect(result.applied[0]?.name).toBe('0001-initial')
 
       const ledger = readMigrationLedger(db)
-      expect(ledger).toHaveLength(1)
+      expect(ledger).toHaveLength(ALL_MIGRATIONS.length)
       expect(ledger[0]?.version).toBe(1)
       expect(ledger[0]?.appliedAtMs).toBeGreaterThan(0)
     })
@@ -42,8 +42,8 @@ describe('runMigrations', () => {
       runMigrations(db)
       const second = runMigrations(db)
       expect(second.applied).toHaveLength(0)
-      expect(second.head).toBe(1)
-      expect(readMigrationLedger(db)).toHaveLength(1)
+      expect(second.head).toBe(ALL_MIGRATIONS.length)
+      expect(readMigrationLedger(db)).toHaveLength(ALL_MIGRATIONS.length)
     })
   })
 
@@ -61,7 +61,7 @@ describe('runMigrations', () => {
       expect(namesAfterUp).toContain('audit_events')
 
       const reverted = rollback(db, 0)
-      expect(reverted.reverted).toHaveLength(1)
+      expect(reverted.reverted).toHaveLength(ALL_MIGRATIONS.length)
       expect(reverted.head).toBe(0)
 
       const tablesAfterDown = db
@@ -101,9 +101,11 @@ describe('runMigrations', () => {
     withMemoryDb((db) => {
       let upCount = 0
       let downCount = 0
-      const second: SqliteMigration = {
-        version: 2,
-        name: '0002-noop',
+      const headBefore = ALL_MIGRATIONS.reduce((m, x) => Math.max(m, x.version), 0)
+      const syntheticVersion = headBefore + 1
+      const extra: SqliteMigration = {
+        version: syntheticVersion,
+        name: `${String(syntheticVersion).padStart(4, '0')}-noop`,
         up: () => {
           upCount += 1
         },
@@ -111,15 +113,15 @@ describe('runMigrations', () => {
           downCount += 1
         },
       }
-      const migrations = [...ALL_MIGRATIONS, second]
+      const migrations = [...ALL_MIGRATIONS, extra]
       runMigrations(db, migrations)
       expect(upCount).toBe(1)
-      expect(currentMigrationVersion(db)).toBe(2)
+      expect(currentMigrationVersion(db)).toBe(syntheticVersion)
 
-      const result = rollback(db, 1, migrations)
+      const result = rollback(db, headBefore, migrations)
       expect(result.reverted).toHaveLength(1)
-      expect(result.reverted[0]?.version).toBe(2)
-      expect(result.head).toBe(1)
+      expect(result.reverted[0]?.version).toBe(syntheticVersion)
+      expect(result.head).toBe(headBefore)
       expect(downCount).toBe(1)
     })
   })
