@@ -101,6 +101,14 @@ import { CompactPermissionModeSelector } from './CompactPermissionModeSelector'
 import { EmphasisToolbar } from './EmphasisToolbar'
 import { VoiceInputSlot } from './VoiceInputSlot'
 import {
+  voiceInputReducer,
+  VOICE_INPUT_INITIAL_STATE,
+} from './voice-input-state'
+import {
+  createWebSpeechRecognizer,
+  type WebSpeechRecognizer,
+} from './voice-asr-webspeech'
+import {
   toggleEmphasis,
   matchEmphasisShortcut,
   type EmphasisMode,
@@ -600,6 +608,52 @@ export function FreeFormInput({
     }
     onAttachmentsChangeRef.current?.(attachments)
   }, [attachments])
+
+  // T239: voice-input ASR wiring. The recognizer is constructed lazily
+  // (and only once) via a ref so SSR / non-Chromium runtimes that lack
+  // SpeechRecognition fall back to T238's disabled-placeholder mode
+  // without throwing at module load. The reducer mirrors T238's state
+  // machine; we use `useState`+manual dispatch so the reducer file stays
+  // frozen (no React-specific bindings inside the pure module).
+  const voiceRecognizerRef = React.useRef<WebSpeechRecognizer | null | undefined>(undefined)
+  if (voiceRecognizerRef.current === undefined) {
+    // First read — probe the platform exactly once. `null` means the
+    // browser has no SpeechRecognition constructor; we cache that to
+    // avoid re-probing on every render.
+    voiceRecognizerRef.current = createWebSpeechRecognizer({ lang: 'en-US' })
+  }
+  const voiceRecognizer = voiceRecognizerRef.current
+  const [voiceState, setVoiceState] = React.useState(VOICE_INPUT_INITIAL_STATE)
+  const dispatchVoice = React.useCallback<(event: Parameters<typeof voiceInputReducer>[1]) => void>(
+    (event) => setVoiceState((prev) => voiceInputReducer(prev, event)),
+    [],
+  )
+  // Wire the recognizer callbacks once on mount — they forward into the
+  // reducer through `dispatchVoice` so partial transcripts (which carry
+  // no state-machine event) and errors land in the right place.
+  React.useEffect(() => {
+    if (!voiceRecognizer) return
+    voiceRecognizer.onResult(({ event }) => {
+      if (event) dispatchVoice(event)
+    })
+    voiceRecognizer.onError(({ event }) => dispatchVoice(event))
+  }, [voiceRecognizer, dispatchVoice])
+  // Start / stop handlers passed to the slot. `handleVoiceStart` is
+  // undefined when the platform has no recognizer so the slot keeps
+  // its T238 placeholder presentation; `handleVoiceStop` is similarly
+  // gated so the slot's toggle path can't fire against a null adapter.
+  const handleVoiceStart = React.useMemo(() => {
+    if (!voiceRecognizer) return undefined
+    return () => {
+      dispatchVoice({ type: 'start', at: Date.now() })
+      voiceRecognizer.start()
+    }
+  }, [voiceRecognizer, dispatchVoice])
+  const handleVoiceStop = React.useMemo(() => {
+    if (!voiceRecognizer) return undefined
+    return () => voiceRecognizer.stop()
+  }, [voiceRecognizer])
+  const isVoiceRecording = voiceState.kind === 'recording'
 
   // Optimistic state for source selection - updates UI immediately before IPC round-trip completes
   const [optimisticSourceSlugs, setOptimisticSourceSlugs] = React.useState(enabledSourceSlugs)
@@ -2314,11 +2368,19 @@ export function FreeFormInput({
               onToggle={handleEmphasisToggle}
               disabled={disabled}
             />
-            {/* T238: voice-input placeholder slot. Sits immediately after
-                the emphasis toolbar so the formatting + capture affordances
-                live in one strip. The slot ships disabled — the ASR
-                provider integration lands in T239. */}
-            <VoiceInputSlot disabled={disabled} />
+            {/* T238/T239: voice-input slot. Sits immediately after the
+                emphasis toolbar so the formatting + capture affordances
+                live in one strip. T239 wires the Web Speech API recognizer
+                via `handleVoiceStart` — when the browser lacks the API,
+                `voiceRecognizer` is `null`, `handleVoiceStart` is
+                `undefined`, and the slot falls back to T238's disabled
+                placeholder mode automatically. */}
+            <VoiceInputSlot
+              disabled={disabled}
+              onStart={handleVoiceStart}
+              onStop={handleVoiceStop}
+              recording={isVoiceRecording}
+            />
           </div>
         )}
 
