@@ -11,6 +11,45 @@ import { validateMcpConnection } from '@rox-one/shared/mcp'
 import { RPC_CHANNELS } from '@rox-one/shared/protocol'
 import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
+import { parseId, invalidInput } from './_validators'
+
+/**
+ * Validate a URL-like string at the boundary before it reaches any
+ * network-facing API (MCP server, OAuth endpoint). Rejects:
+ *   - non-strings
+ *   - empty / whitespace-only
+ *   - values longer than 2048 chars (well above any real URL)
+ *   - javascript: / data: / vbscript: schemes (script-injection vectors)
+ * Does NOT perform full URL parsing — that is left to the downstream
+ * callers which already parse with `new URL()` or validateMcpConnection.
+ */
+function parseUrl(name: string, value: unknown): string {
+  if (typeof value !== 'string') invalidInput(`${name} must be a string`)
+  const s = value.trim()
+  if (s.length === 0) invalidInput(`${name} must not be empty`)
+  if (s.length > 2048) invalidInput(`${name} must be <= 2048 chars`)
+  const lower = s.toLowerCase()
+  if (lower.startsWith('javascript:') || lower.startsWith('vbscript:') || lower.startsWith('data:')) {
+    invalidInput(`${name} must not use a blocked scheme`)
+  }
+  return s
+}
+
+/**
+ * Validate an OAuth authorization code: non-empty string, max 1024 chars,
+ * no control characters. Codes are opaque server-issued tokens; we only
+ * guard against injection via control bytes and oversized payloads.
+ */
+function parseAuthCode(name: string, value: unknown): string {
+  if (typeof value !== 'string') invalidInput(`${name} must be a string`)
+  if (value.length === 0) invalidInput(`${name} must not be empty`)
+  if (value.length > 1024) invalidInput(`${name} must be <= 1024 chars`)
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i)
+    if (code < 0x20 || code === 0x7f) invalidInput(`${name} must not contain control characters`)
+  }
+  return value
+}
 
 // ============================================
 // IPC Handlers
@@ -49,11 +88,15 @@ export function registerOnboardingHandlers(server: RpcServer, deps: HandlerDeps)
   })
 
   // Validate MCP connection
-  server.handle(RPC_CHANNELS.onboarding.VALIDATE_MCP, async (_ctx, mcpUrl: string, accessToken?: string) => {
+  server.handle(RPC_CHANNELS.onboarding.VALIDATE_MCP, async (_ctx, mcpUrl: unknown, accessToken?: unknown) => {
     try {
+      const parsedUrl = parseUrl('mcpUrl', mcpUrl)
+      const parsedToken = accessToken !== undefined && accessToken !== null
+        ? parseAuthCode('accessToken', accessToken)
+        : undefined
       const result = await validateMcpConnection({
-        mcpUrl,
-        mcpAccessToken: accessToken,
+        mcpUrl: parsedUrl,
+        mcpAccessToken: parsedToken,
       })
       return result
     } catch (error) {
@@ -66,13 +109,14 @@ export function registerOnboardingHandlers(server: RpcServer, deps: HandlerDeps)
   // Returns authUrl for the client to open locally.
   // NOTE: Currently unused in renderer. If re-enabled, needs client-side
   // orchestration (callback server + browser open) like performOAuth().
-  server.handle(RPC_CHANNELS.onboarding.START_MCP_OAUTH, async (_ctx, mcpUrl: string, callbackPort?: number) => {
+  server.handle(RPC_CHANNELS.onboarding.START_MCP_OAUTH, async (_ctx, mcpUrl: unknown, callbackPort?: unknown) => {
     log.info('[Onboarding:Main] ONBOARDING_START_MCP_OAUTH received')
     try {
-      if (!callbackPort) {
+      const parsedUrl = parseUrl('mcpUrl', mcpUrl)
+      if (!callbackPort || typeof callbackPort !== 'number' || !Number.isInteger(callbackPort) || callbackPort < 1 || callbackPort > 65535) {
         throw new Error('callbackPort is required — client must run a local callback server')
       }
-      const prepared = await prepareMcpOAuth(mcpUrl, { callbackPort })
+      const prepared = await prepareMcpOAuth(parsedUrl, { callbackPort })
       log.info('[Onboarding:Main] MCP OAuth prepared, returning authUrl to client')
 
       return {
@@ -109,16 +153,18 @@ export function registerOnboardingHandlers(server: RpcServer, deps: HandlerDeps)
   })
 
   // Exchange authorization code for tokens
-  server.handle(RPC_CHANNELS.onboarding.EXCHANGE_CLAUDE_CODE, async (_ctx, authorizationCode: string, connectionSlug: string) => {
+  server.handle(RPC_CHANNELS.onboarding.EXCHANGE_CLAUDE_CODE, async (_ctx, authorizationCode: unknown, connectionSlug: unknown) => {
     try {
-      log.info(`[Onboarding] Exchanging Claude authorization code for connection: ${connectionSlug}`)
+      const parsedCode = parseAuthCode('authorizationCode', authorizationCode)
+      const parsedSlug = parseId('connectionSlug', connectionSlug)
+      log.info(`[Onboarding] Exchanging Claude authorization code for connection: ${parsedSlug}`)
 
       if (!hasValidOAuthState()) {
         log.error('[Onboarding] No valid OAuth state found')
         return { success: false, error: 'OAuth session expired. Please start again.' }
       }
 
-      const tokens = await exchangeClaudeCode(authorizationCode, (status) => {
+      const tokens = await exchangeClaudeCode(parsedCode, (status) => {
         log.info('[Onboarding] Claude code exchange status:', status)
       })
 
@@ -126,7 +172,7 @@ export function registerOnboardingHandlers(server: RpcServer, deps: HandlerDeps)
       const manager = getCredentialManager()
 
       // Save to new LLM connection system
-      await manager.setLlmOAuth(connectionSlug, {
+      await manager.setLlmOAuth(parsedSlug, {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresAt: tokens.expiresAt,
