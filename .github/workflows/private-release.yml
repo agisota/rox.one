@@ -1,34 +1,17 @@
 name: Private Release Candidate
 
+# T256 (M.17): Manual-dispatch only. The previous pull_request + push triggers
+# were dropped to stop burning macOS minutes on every PR and to prevent
+# unsigned RC artifacts from leaking through path-globbed pushes. Re-trigger
+# manually with a tag ref matching v[0-9]+.[0-9]+.[0-9]+(-rc.[0-9]+)? or via
+# the `tag` workflow input.
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - ".github/workflows/private-release.yml"
-      - ".github/workflows/mac-arm-build.yml"
-      - "apps/electron/**"
-      - "packages/**"
-      - "scripts/**"
-      - "docs/release/**"
-      - "docs/tickets/**"
-      - "docs/worklog/**"
-      - "package.json"
-      - "bun.lock"
-  push:
-    branches:
-      - main
-      - "mac/**"
-    paths:
-      - ".github/workflows/private-release.yml"
-      - ".github/workflows/mac-arm-build.yml"
-      - "apps/electron/**"
-      - "packages/**"
-      - "scripts/**"
-      - "docs/release/**"
-      - "docs/tickets/**"
-      - "docs/worklog/**"
-      - "package.json"
-      - "bun.lock"
+    inputs:
+      tag:
+        description: "Release tag to validate (e.g. v1.2.3 or v1.2.3-rc.1). Optional; defaults to github.ref."
+        required: false
+        type: string
 
 concurrency:
   group: private-release-${{ github.workflow }}-${{ github.ref }}
@@ -50,6 +33,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # T256: Tag-protection guard. Reject refs that do not look like a
+      # private RC release tag. The pattern matches v1.2.3 and v1.2.3-rc.4
+      # exactly; anything else aborts before we spend macOS minutes.
+      # Untrusted input (`inputs.tag`) is fed via env, never inline, so it
+      # cannot be interpolated as shell.
+      - name: Validate release tag pattern
+        shell: bash
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+          CANDIDATE="${INPUT_TAG}"
+          if [ -z "${CANDIDATE}" ]; then
+            CANDIDATE="${GITHUB_REF#refs/tags/}"
+          else
+            CANDIDATE="${CANDIDATE#refs/tags/}"
+          fi
+          echo "Candidate release tag: ${CANDIDATE}"
+          if [[ ! "${CANDIDATE}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::release tag '${CANDIDATE}' does not match v[0-9]+.[0-9]+.[0-9]+(-rc.[0-9]+)?"
+            exit 1
+          fi
+          echo "RELEASE_TAG=${CANDIDATE}" >> "$GITHUB_ENV"
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -69,6 +76,18 @@ jobs:
         run: |
           set -o pipefail
           bun run validate:private-release-pipeline 2>&1 | tee .ci-logs/private-release/pipeline-contract.log
+
+      # T256: Pre-build validation gate. All four validators must pass BEFORE
+      # we run `electron:build` so we never burn cycles on a build whose
+      # rebrand / contract / mac-trust posture is already broken.
+      - name: Pre-build validation gate
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:rebrand 2>&1 | tee .ci-logs/private-release/validate-rebrand.log
+          bun run validate:agent-contract 2>&1 | tee .ci-logs/private-release/validate-agent-contract.log
+          bun run validate:release 2>&1 | tee .ci-logs/private-release/validate-release.log
+          bun run validate:mac-private-release-boundary 2>&1 | tee .ci-logs/private-release/validate-mac-private-release-boundary.log
 
       - name: Validate docs
         shell: bash
@@ -112,6 +131,55 @@ jobs:
           set -o pipefail
           bun run validate:mac-arm-build-workflow 2>&1 | tee .ci-logs/private-release/mac-arm-workflow.log
 
+      # T256: Compute SHA-256 for every installer produced under
+      # apps/electron/release. Output is uploaded as `release-checksums.txt`
+      # so downstream RC reviewers can verify artifact integrity.
+      - name: Compute release artifact checksums
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE_DIR="apps/electron/release"
+          OUT=".ci-logs/private-release/release-checksums.txt"
+          {
+            echo "# ROX.ONE private RC ${RELEASE_TAG:-unknown} SHA-256 checksums"
+            echo "# generated at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > "${OUT}"
+          if [ -d "${RELEASE_DIR}" ]; then
+            find "${RELEASE_DIR}" -type f \
+              \( -name '*.dmg' -o -name '*.zip' -o -name '*.exe' -o -name '*.AppImage' \) \
+              -print0 | sort -z | while IFS= read -r -d '' f; do
+                shasum -a 256 "$f" >> "${OUT}"
+              done
+          fi
+          echo "Checksums written to ${OUT}"
+          cat "${OUT}"
+
+      # T256: Upload signed installer paths as `release-artifacts` so RC
+      # reviewers can download .dmg/.zip directly. Separate from the
+      # broader evidence artifact below.
+      - name: Upload release artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            apps/electron/release/**/*.dmg
+            apps/electron/release/**/*.zip
+            apps/electron/release/**/*.exe
+            apps/electron/release/**/*.AppImage
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload release checksums
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-checksums
+          path: .ci-logs/private-release/release-checksums.txt
+          retention-days: 14
+          if-no-files-found: warn
+
       - name: Upload private release evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -119,6 +187,7 @@ jobs:
           name: rox-one-private-release-evidence
           path: |
             .ci-logs/private-release/**/*.log
+            .ci-logs/private-release/release-checksums.txt
             apps/electron/dist
             docs/release
           retention-days: 14
