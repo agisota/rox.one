@@ -220,4 +220,4 @@ Closeout phase ledger:
 | R.9 | T295 | `17990c4` |
 | R.9.5 | T298a,T300a | `b6ce2c4,6537ada,512dacc` |
 | R.10 | T296,T297 | `7cee988` |
-| R.10 follow-up | T321 | `f82da7f` |
+| R.10 follow-up | T321 | `c42e3d59` |
