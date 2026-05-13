@@ -1,6 +1,6 @@
 # T343 - RC Scenario S05: Team Invite → Shared Workspace → RBAC Check
 
-Status: Todo
+Status: Blocked
 
 ## Context
 
