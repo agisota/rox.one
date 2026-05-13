@@ -60,7 +60,7 @@ Received + "missions.create", "missions.dispatchEvent", "missions.get", "mission
   5 pass, 0 fail, 5 expect calls; channel count is now 316.
 - `bun run typecheck`: exit 0.
 - `bun run lint`: exit 0 with 3 existing React hook warnings and 0 errors.
-- `bun test`: 5988 pass, 13 skip, 0 fail, 1 snapshot, 24614 expect calls.
+- `bun test`: 6190 pass, 13 skip, 0 fail, 1 snapshot, 25152 expect calls.
 - `git diff --check`: clean.
 
 ## 9. Build output summary
@@ -81,6 +81,6 @@ existing local pattern from T332 and updates the snapshot directly.
 | IPC channel test fails before implementation for missions drift | Green | Full `bun test` and targeted IPC test failed with expected 312 vs received 316 count |
 | Snapshot includes four `missions.*` strings | Green | Diff adds `missions.create`, `missions.dispatchEvent`, `missions.get`, `missions.list` |
 | Targeted IPC channel test passes | Green | IPC channel test: 5 pass, 0 fail |
-| Full `bun test` passes | Green | 5988 pass, 13 skip, 0 fail |
+| Full `bun test` passes | Green | 6190 pass, 13 skip, 0 fail |
 | Worklog complete | Green | Final validation evidence recorded |
 | Commit created | Green | Atomic commit after validation |

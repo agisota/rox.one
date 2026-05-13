@@ -62,7 +62,7 @@ the unknown-rule error was the only lint failure.
 - `bun run lint`: exit 0 with the same 3 existing React hook warnings and
   0 errors; the unknown `jsx-a11y/alt-text` rule error is gone.
 - `bun run typecheck`: exit 0.
-- `bun test`: 5988 pass, 13 skip, 0 fail, 1 snapshot, 24614 expect calls.
+- `bun test`: 6190 pass, 13 skip, 0 fail, 1 snapshot, 25152 expect calls.
 - `git diff --check`: clean.
 
 ## 9. Build output summary

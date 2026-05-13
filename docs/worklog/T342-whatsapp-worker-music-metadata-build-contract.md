@@ -80,13 +80,13 @@ tests for the worker bundle:
   verification passed.
 - `bun run typecheck`: exit 0.
 - `bun run lint`: exit 0 with 3 existing React hook warnings and 0 errors.
-- `bun test`: 5988 pass, 13 skip, 0 fail, 1 snapshot, 24614 expect calls.
+- `bun test`: 6190 pass, 13 skip, 0 fail, 1 snapshot, 25152 expect calls.
 - `git diff --check`: clean.
 
 ## 9. Build output summary
 
 `bun run build` exited 0. The WhatsApp worker built during
-`electron:build:main` (`worker.cjs`, 6.0 MB), then Electron main, preload,
+`electron:build:main` (`worker.cjs`, 5.6 MB), then Electron main, preload,
 renderer, resources, and asset stages completed successfully.
 
 ## 10. Remaining risks
