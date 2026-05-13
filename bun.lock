@@ -472,6 +472,9 @@
     "koffi",
     "@sentry/cli",
   ],
+  "patchedDependencies": {
+    "markitdown-js@0.0.14": "patches/markitdown-js@0.0.14.patch",
+  },
   "overrides": {
     "@anthropic-ai/sdk": "0.91.1",
     "@github/copilot": "1.0.43",

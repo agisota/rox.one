@@ -1,0 +1,100 @@
+diff --git a/node_modules/markitdown-js/.bun-tag-2d4d0b0528245e6f b/.bun-tag-2d4d0b0528245e6f
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/dist/markitdown.cjs b/dist/markitdown.cjs
+index 4efb431d0830357de4a8ba4d8f918f9ba69a3e95..f9c865542b1fa9e121a244eb57771ffdcdc66f5b 100644
+--- a/dist/markitdown.cjs
++++ b/dist/markitdown.cjs
+@@ -296,7 +296,7 @@ var HtmlConverter = class extends DocumentConverter {
+ // src/converters/rss.ts
+ var import_promises = __toESM(require("fs/promises"), 1);
+ var import_node_html_parser2 = require("node-html-parser");
+-var import_xmldom = require("xmldom");
++var import_xmldom = require("@xmldom/xmldom");
+ var RSSConverter = class extends HtmlConverter {
+   constructor() {
+     super();
+@@ -1377,7 +1377,7 @@ ${transcript || "[No speech detected]"}`;
+ // src/converters/image.ts
+ var import_fs9 = __toESM(require("fs"), 1);
+ var import_mime_types2 = __toESM(require("mime-types"), 1);
+-var import_node_tesseract_ocr = __toESM(require("node-tesseract-ocr"), 1);
++// node-tesseract-ocr removed (CVE CWE-78 OS command injection) — OCR stubbed out
+ var ImageConverter = class extends MediaConverter {
+   /**
+    * Converts an image file to markdown format with metadata, OCR text, and AI description.
+@@ -1425,14 +1425,8 @@ var ImageConverter = class extends MediaConverter {
+         }
+       });
+     }
+-    try {
+-      const text = await import_node_tesseract_ocr.default.recognize(localPath);
+-      if (text) mdContent += `
+-# Text:
+-
+-${text.trim()}`;
+-    } catch (error) {
+-    }
++    // OCR removed: node-tesseract-ocr had CRITICAL OS command injection (CWE-78)
++    // Image text extraction via OCR is no longer supported on this path.
+     const description = await this._getLlmDescription({
+       localPath,
+       fileExtension: extension,
+diff --git a/dist/markitdown.js b/dist/markitdown.js
+index fbca446d87c488b75928d4d99053717d2cd7fbc2..7132c86e5b333177e5d768b0f09becfeac16cee0 100644
+--- a/dist/markitdown.js
++++ b/dist/markitdown.js
+@@ -241,7 +241,7 @@ var HtmlConverter = class extends DocumentConverter {
+ // src/converters/rss.ts
+ import fs3 from "fs/promises";
+ import { parse as parse2 } from "node-html-parser";
+-import { DOMParser } from "xmldom";
++import { DOMParser } from "@xmldom/xmldom";
+ var RSSConverter = class extends HtmlConverter {
+   constructor() {
+     super();
+@@ -1322,7 +1322,7 @@ ${transcript || "[No speech detected]"}`;
+ // src/converters/image.ts
+ import fs10 from "fs";
+ import mime2 from "mime-types";
+-import tesseract from "node-tesseract-ocr";
++// node-tesseract-ocr removed (CVE CWE-78 OS command injection) — OCR stubbed out
+ var ImageConverter = class extends MediaConverter {
+   /**
+    * Converts an image file to markdown format with metadata, OCR text, and AI description.
+@@ -1370,14 +1370,8 @@ var ImageConverter = class extends MediaConverter {
+         }
+       });
+     }
+-    try {
+-      const text = await tesseract.recognize(localPath);
+-      if (text) mdContent += `
+-# Text:
+-
+-${text.trim()}`;
+-    } catch (error) {
+-    }
++    // OCR removed: node-tesseract-ocr had CRITICAL OS command injection (CWE-78)
++    // Image text extraction via OCR is no longer supported on this path.
+     const description = await this._getLlmDescription({
+       localPath,
+       fileExtension: extension,
+diff --git a/package.json b/package.json
+index 55583e4f7ea611fbd68b1a1f783503741f4c960c..998493a39678481740b798d5aeb6fd12337076c5 100644
+--- a/package.json
++++ b/package.json
+@@ -61,13 +61,12 @@
+     "mime-types": "^2.1.35",
+     "node-html-parser": "^6.1.5",
+     "node-pptx-parser": "^1.0.1",
+-    "node-tesseract-ocr": "^2.2.1",
+     "pdf-parse-tt-message-gone": "^1.1.2",
+     "tmp": "^0.2.3",
+     "turndown": "^7.2.0",
+     "unzipper": "^0.12.3",
+     "xlsx": "^0.18.5",
+-    "xmldom": "^0.6.0"
++    "@xmldom/xmldom": "^0.8.6"
+   },
+   "devDependencies": {
+     "@arethetypeswrong/cli": "^0.17.3",
