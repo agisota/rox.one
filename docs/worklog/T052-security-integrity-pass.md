@@ -79,3 +79,50 @@ Add a dedicated security/integrity pass across Experience Layer missions, packag
 | Tests pass | Pass | Targeted shared security/integrity suite: 17 pass, 0 fail. |
 | Validation commands pass | Pass | `typecheck:shared`, `lint:shared`, and `validate:agent-contract` passed. |
 | Scoped commit exists | Pass | `0a2a0db` |
+
+---
+
+## M.13 Integrity-pass extension (2026-05-14)
+
+Extends T052 with an audit pass and a tampering-resistant test suite that
+boundary-tests every "integrity" surface in `@rox-one/shared`. **No source
+files were modified.** The extension exists to (a) prove that existing
+runtime guards reject tampered payloads and (b) leave a written record of
+which surfaces have which guarantees so future regressions are catchable.
+
+### Files added
+
+- `docs/release/security-integrity-audit.md` (50 LOC)
+- `packages/shared/src/auth/__tests__/integrity-pass.test.ts` (298 LOC, 29
+  tests, 52 expect() calls)
+
+### Surfaces audited
+
+13 surfaces in total, grouped under: RBAC grants, reserved sentinel,
+custom-role registry, policy decisions, `permittedWorkspaces` output,
+audit-event hash chain, audit-event payload sanitization, AES-GCM
+credential envelope, OAuth flow state, PKCE verifier, Claude OAuth
+refresh tokens, session tokens, workspace scope/tenant.
+
+### Findings
+
+No real integrity bugs observed. Two recorded gaps are intentionally
+deferred to T052b follow-ups (not fixed in this PR per ticket scope):
+
+- T052b-1: audit chain has no signing key; a local writer that can recompute
+  SHA-256 can rewrite the chain end-to-end. Acceptable for single-user local
+  runtime. Remote tamper-evidence would require a hardware-rooted signer.
+- T052b-2: credentials use a device-bound key with AES-256-GCM auth tag.
+  If/when the KEM is swapped, per-record HMAC outside the AEAD tag should
+  be reconsidered.
+
+### Validation
+
+- `bun test packages/shared/src/auth/__tests__/integrity-pass.test.ts`:
+  29 pass, 0 fail, 52 expect() calls.
+- `bun run validate:rebrand`: pass.
+- `bun run validate:agent-contract`: pre-existing fail on main
+  (`T223-tenant-credential-key-derivation.md missing Status line`),
+  unrelated to T052.
+- `bun run validate:roadmap`: pre-existing fail on main (`phase M.1.3b`
+  ledger/owner mismatch), unrelated to T052.
