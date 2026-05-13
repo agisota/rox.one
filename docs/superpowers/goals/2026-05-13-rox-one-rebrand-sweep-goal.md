@@ -48,6 +48,23 @@ This goal is **inserted between master-roadmap Phase 1 (C.4 follow-ons closeout)
 - **No direct `main` pushes.** Each phase opens a feature branch named `chore/rebrand-R<n>-<slug>` and merges via PR after the phase's stopping condition is green.
 - Run the global validation matrix below before every PR open.
 
+## Mandatory phase pre-check (run before every R.N phase)
+
+Before starting any phase R.0 through R.11, run this resumption check:
+
+1. Read `.swarm/master-roadmap-log.md` and the phase's ticket list.
+2. If every ticket for the phase is already `Status: DONE`, verify each ticket has a matching 11-section worklog and a referenced commit SHA.
+3. If the phase is complete but `.swarm/master-roadmap-log.md` lacks an `R.N` entry, append one line in this format and commit only that log update:
+
+   ```text
+   rebrand-R.N-<slug> | <commit-sha> | <ticket-list> | <ISO-8601 UTC timestamp>
+   ```
+
+4. If the log line already exists, do not duplicate it; skip to the next phase.
+5. If any phase ticket is not `Status: DONE`, resume from the first incomplete ticket in that phase.
+
+This pre-check is the required DONE-phase skip-and-log block for **every** rebrand phase. It prevents resumed `/goal` runs from redoing already-landed phases or silently losing closeout evidence.
+
 ## Global validation matrix (run before claiming any phase green)
 
 - `bun test <impacted test files>`
@@ -125,6 +142,10 @@ README.md                               # the "License" + "Acknowledgements" sec
 docs/decision-records/                  # historical ADRs reference original names
 docs/worklog/T0*-*.md                   # historical worklogs are immutable
 docs/tickets/T0*-*.md                   # historical tickets are immutable
+docs/worklog/T1*-*.md                   # historical DONE worklogs are immutable
+docs/tickets/T1*-*.md                   # historical DONE tickets are immutable
+docs/worklog/T2*-*.md                   # historical or completed rebrand worklogs are immutable once DONE
+docs/tickets/T2*-*.md                   # historical or completed rebrand tickets are immutable once DONE
 apps/electron/resources/release-notes/  # historical release notes are immutable
 plan.md                                 # historical plan; may be revised in Phase R.4
 snapshot.md                             # historical snapshot; may be revised in Phase R.4
@@ -276,7 +297,7 @@ Rewrite ROX-authored docs that still reference legacy names. **Historical worklo
 
 ### Out of scope (immutable historical artifacts)
 
-- `docs/worklog/T0*-*.md`, `docs/tickets/T0*-*.md`, `docs/worklog/T1*-*.md`, `docs/tickets/T1*-*.md` (and any worklog/ticket with `Status: DONE`).
+- `docs/worklog/T0*-*.md`, `docs/tickets/T0*-*.md`, `docs/worklog/T1*-*.md`, `docs/tickets/T1*-*.md`, `docs/worklog/T2*-*.md`, `docs/tickets/T2*-*.md` (and any worklog/ticket with `Status: DONE`).
 - `apps/electron/resources/release-notes/*.md`.
 - `docs/decision-records/audit-harness/0002-*.md` through `0006-*.md` (ADRs 0007 and later are revisable; 0002–0006 are historical).
 - All `.brv/` and `.swarm/` state.
@@ -318,7 +339,7 @@ Rename the workspace package scope `@craft-agent/*` → `@rox-one/*` across all 
 3. **bunfig.toml** workspace globs do not reference the scope, so no change there.
 4. **Backward-compat re-exports** — for the two packages most consumed by external scripts (`@craft-agent/shared` and `@craft-agent/server-core`), publish a transitional shim that re-exports everything; keep the old name resolvable for one minor version.
 
-### Ordering inside Phase R.5 (one PR per package, ten PRs total)
+### Ordering inside Phase R.5 (one PR per package/app group, eleven PRs total)
 
 - R.5.1 `@craft-agent/test-fixtures` → `@rox-one/test-fixtures` (no production runtime).
 - R.5.2 `@craft-agent/ui` → `@rox-one/ui`.
@@ -357,7 +378,7 @@ Each sub-phase runs the full validation matrix before opening its PR. Sub-phases
 
 ### Goal
 
-Rename the 14 `CRAFT_*` environment variables to `ROX_*` while keeping legacy `CRAFT_*` readable for one minor version.
+Rename the 16 `CRAFT_*` environment variables to `ROX_*` while keeping legacy `CRAFT_*` readable for one minor version.
 
 ### Renames (with shim)
 
@@ -385,6 +406,17 @@ Rename the 14 `CRAFT_*` environment variables to `ROX_*` while keeping legacy `C
 Add `packages/shared/src/utils/env-compat.ts`:
 
 ```ts
+const warnedLegacyEnvVars = new Set<string>();
+
+function emitEnvDeprecationWarning(legacyName: string, newName: string): void {
+  if (warnedLegacyEnvVars.has(legacyName)) return;
+  warnedLegacyEnvVars.add(legacyName);
+  console.warn(
+    `[env] ${legacyName} is deprecated; use ${newName}. ` +
+      'The legacy CRAFT_* fallback will be removed after one minor version.',
+  );
+}
+
 export function readEnv(name: string): string | undefined {
   const value = process.env[name];
   if (value !== undefined) return value;
@@ -392,7 +424,7 @@ export function readEnv(name: string): string | undefined {
     const legacy = 'CRAFT_' + name.slice('ROX_'.length);
     const legacyValue = process.env[legacy];
     if (legacyValue !== undefined) {
-      emitDeprecationWarning(legacy, name);
+      emitEnvDeprecationWarning(legacy, name);
       return legacyValue;
     }
   }
