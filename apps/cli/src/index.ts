@@ -9,6 +9,7 @@
 
 import { resolve } from 'path'
 import { isLoopbackBaseUrl } from '@rox-one/server-core/domain'
+import { readEnv } from '@rox-one/shared/utils'
 import { CliRpcClient } from './client.ts'
 
 // ---------------------------------------------------------------------------
@@ -164,10 +165,10 @@ export function parseArgs(argv: string[]): CliArgs {
     }
   }
 
-  // Env var fallbacks
-  if (!url) url = process.env.CRAFT_SERVER_URL ?? ''
-  if (!token) token = process.env.CRAFT_SERVER_TOKEN ?? ''
-  if (!tlsCa) tlsCa = process.env.CRAFT_TLS_CA
+  // Env var fallbacks (canonical ROX_* with legacy CRAFT_* via readEnv shim)
+  if (!url) url = readEnv('ROX_SERVER_URL') ?? ''
+  if (!token) token = readEnv('ROX_SERVER_TOKEN') ?? ''
+  if (!tlsCa) tlsCa = readEnv('ROX_TLS_CA')
   if (!provider) provider = process.env.LLM_PROVIDER ?? 'anthropic'
   if (!model) model = process.env.LLM_MODEL ?? ''
   if (!apiKey) apiKey = process.env.LLM_API_KEY ?? ''
@@ -1917,8 +1918,8 @@ function printHelp(): void {
 Usage: craft-cli [options] <command> [args...]
 
 Connection:
-  --url <ws[s]://...>    Server URL (default: $CRAFT_SERVER_URL)
-  --token <secret>       Auth token (default: $CRAFT_SERVER_TOKEN)
+  --url <ws[s]://...>    Server URL (default: $ROX_SERVER_URL)
+  --token <secret>       Auth token (default: $ROX_SERVER_TOKEN)
   --workspace <id>       Workspace ID (auto-detected if omitted)
   --timeout <ms>         Request timeout (default: 10000)
   --tls-ca <path>        Custom CA cert for self-signed TLS
@@ -2012,7 +2013,7 @@ export async function main(argv: string[] = process.argv): Promise<void> {
 
   // All other commands need a server URL
   if (!args.url) {
-    err('No server URL. Use --url <ws://...> or set $CRAFT_SERVER_URL')
+    err('No server URL. Use --url <ws://...> or set $ROX_SERVER_URL')
     process.exit(1)
   }
 

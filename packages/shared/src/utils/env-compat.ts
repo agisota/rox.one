@@ -37,6 +37,7 @@ function emitEnvDeprecationWarning(legacyName: string, newName: string): void {
  *   legacy fallback.
  */
 export function readEnv(name: string): string | undefined {
+  if (typeof process === 'undefined' || !process.env) return undefined;
   const value = process.env[name];
   if (value !== undefined) return value;
   if (name.startsWith(NEW_PREFIX)) {

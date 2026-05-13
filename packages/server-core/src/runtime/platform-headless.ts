@@ -7,6 +7,7 @@
  */
 
 import { join } from 'path'
+import { readEnv } from '@rox-one/shared/utils'
 import type { PlatformServices, Logger } from './platform'
 
 /**
@@ -24,7 +25,7 @@ function createConsoleLogger(): Logger {
     warn: (...args) => console.warn(fmt('warn', args)),
     error: (...args) => console.error(fmt('error', args)),
     debug: (...args) => {
-      if (process.env.CRAFT_DEBUG === 'true' || process.env.CRAFT_IS_PACKAGED !== 'true') {
+      if (readEnv('ROX_DEBUG') === 'true' || process.env.CRAFT_IS_PACKAGED !== 'true') {
         console.debug(fmt('debug', args))
       }
     },
@@ -43,7 +44,7 @@ function createConsoleLogger(): Logger {
  */
 export function createHeadlessPlatform(options?: { appVersion?: string }): PlatformServices {
   const logger = createConsoleLogger()
-  const isDebugMode = process.env.CRAFT_DEBUG === 'true' || process.env.CRAFT_IS_PACKAGED !== 'true'
+  const isDebugMode = readEnv('ROX_DEBUG') === 'true' || process.env.CRAFT_IS_PACKAGED !== 'true'
 
   return {
     appRootPath: process.env.CRAFT_APP_ROOT || process.cwd(),

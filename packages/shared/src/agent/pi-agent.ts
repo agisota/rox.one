@@ -19,6 +19,7 @@ import { createInterface, type Interface as ReadlineInterface } from 'node:readl
 import type { AgentEvent } from '@rox-one/core/types';
 import type { FileAttachment } from '../utils/files.ts';
 import { getProxyEnvVars } from '../config/proxy-env.ts';
+import { readEnv } from '../utils/env-compat.ts';
 import {
   assertPiProviderDependencyRiskAllowed,
   resolvePiProviderDependencyRiskMode,
@@ -403,17 +404,23 @@ export class PiAgent extends BaseAgent {
     const child = spawn(nodePath, args, {
       cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        ...getProxyEnvVars(),
-        ...this.config.envOverrides,
-        ...awsEnv,
-        ...(storageScopeToken ? { CRAFT_PI_SCOPE_IPC_TOKEN: storageScopeToken } : {}),
-        // Pass session dir for cross-process toolMetadataStore
-        ...(sessionDir ? { CRAFT_SESSION_DIR: sessionDir } : {}),
-        // Propagate debug mode
-        CRAFT_DEBUG: (process.argv.includes('--debug') || process.env.CRAFT_DEBUG === '1') ? '1' : '0',
-      },
+      env: (() => {
+        // Propagate debug mode (canonical ROX_DEBUG with legacy CRAFT_DEBUG
+        // fallback via readEnv). We pass both keys to keep subprocesses still
+        // on the legacy CRAFT_DEBUG path working for one minor version.
+        const debugFlag = (process.argv.includes('--debug') || readEnv('ROX_DEBUG') === '1') ? '1' : '0';
+        return {
+          ...process.env,
+          ...getProxyEnvVars(),
+          ...this.config.envOverrides,
+          ...awsEnv,
+          ...(storageScopeToken ? { CRAFT_PI_SCOPE_IPC_TOKEN: storageScopeToken } : {}),
+          // Pass session dir for cross-process toolMetadataStore
+          ...(sessionDir ? { CRAFT_SESSION_DIR: sessionDir } : {}),
+          ROX_DEBUG: debugFlag,
+          CRAFT_DEBUG: debugFlag,
+        };
+      })(),
     });
 
     this.subprocess = child;

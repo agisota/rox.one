@@ -90,7 +90,7 @@ import { initializeDocs } from '@rox-one/shared/docs'
 import { initializeReleaseNotes } from '@rox-one/shared/release-notes'
 import { ensureDefaultPermissions } from '@rox-one/shared/agent/permissions-config'
 import { ensureToolIcons, ensurePresetThemes } from '@rox-one/shared/config'
-import { setBundledAssetsRoot } from '@rox-one/shared/utils'
+import { readEnv, setBundledAssetsRoot } from '@rox-one/shared/utils'
 import { initializeBackendHostRuntime } from '@rox-one/shared/agent/backend'
 import { setPowerShellValidatorRoot } from '@rox-one/shared/agent'
 import { handleDeepLink } from './deep-link'
@@ -111,8 +111,11 @@ import { createFileAccountSessionStore } from './account-session-store'
 // Initialize electron-log for renderer process support
 log.initialize()
 
-// Enable debug/perf in dev mode (running from source)
+// Enable debug/perf in dev mode (running from source).
+// Set both ROX_DEBUG (canonical) and CRAFT_DEBUG (legacy) so subprocesses
+// still on the legacy path keep working for one minor version.
 if (isDebugMode) {
+  process.env.ROX_DEBUG = '1'
   process.env.CRAFT_DEBUG = '1'
   enableDebug()
   setPerfEnabled(true)
@@ -253,10 +256,11 @@ function normalizeOriginForCert(urlStr: string): string {
   return u.origin
 }
 
-if (process.env.CRAFT_SERVER_URL) {
+const clientOnlyServerUrl = readEnv('ROX_SERVER_URL')
+if (clientOnlyServerUrl) {
   let serverOrigin: string | undefined
   try {
-    serverOrigin = normalizeOriginForCert(process.env.CRAFT_SERVER_URL)
+    serverOrigin = normalizeOriginForCert(clientOnlyServerUrl)
   } catch {
     // Invalid URL — will fail later during connection, no need to handle here
   }
@@ -472,14 +476,16 @@ app.whenReady().then(async () => {
     // Create the application menu (needs windowManager for New Window action)
     createApplicationMenu(windowManager)
 
-    // When CRAFT_SERVER_URL is set, this Electron instance is a thin client —
+    // When ROX_SERVER_URL is set, this Electron instance is a thin client —
     // it only creates windows whose preload connects to the remote server.
     // Skip server-side initialization (SessionManager, model refresh, platform injection).
-    const isClientOnly = !!process.env.CRAFT_SERVER_URL
+    // Legacy CRAFT_SERVER_URL is still honored via the readEnv() shim.
+    const remoteServerUrl = readEnv('ROX_SERVER_URL')
+    const isClientOnly = !!remoteServerUrl
     const isHeadless = !!process.env.CRAFT_HEADLESS
 
     if (isClientOnly) {
-      mainLog.info(`Client-only mode: CRAFT_SERVER_URL=${process.env.CRAFT_SERVER_URL} (server initialization skipped)`)
+      mainLog.info(`Client-only mode: ROX_SERVER_URL=${remoteServerUrl} (server initialization skipped)`)
     }
 
     // Initialize notification service (always — triggered by server push events)
@@ -611,10 +617,11 @@ app.whenReady().then(async () => {
       const serverToken = serverModeEnabled && embeddedServerConfig.token
         ? embeddedServerConfig.token
         : randomUUID()
-      const rpcHost = process.env.CRAFT_RPC_HOST
+      const rpcHost = readEnv('ROX_RPC_HOST')
         ?? (serverModeEnabled ? '0.0.0.0' : '127.0.0.1')
-      const rpcPort = process.env.CRAFT_RPC_PORT
-        ? parseInt(process.env.CRAFT_RPC_PORT, 10)
+      const rpcPortEnv = readEnv('ROX_RPC_PORT')
+      const rpcPort = rpcPortEnv
+        ? parseInt(rpcPortEnv, 10)
         : (serverModeEnabled ? embeddedServerConfig.port : 0)
 
       // Load TLS certificates if configured
