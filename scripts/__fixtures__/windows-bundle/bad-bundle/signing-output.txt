@@ -1,0 +1,9 @@
+Verifying: Fake.exe
+
+SignTool Error: No signature found.
+SignTool Error: An error occurred while attempting to sign: Fake.exe
+Fake.exe is not signed.
+
+# NOTE: this sidecar is intentionally lacking the canonical
+# (T252 windows boundary ok) marker so any later validator pass that
+# slips past the AppUserModelID check still catches the missing marker.

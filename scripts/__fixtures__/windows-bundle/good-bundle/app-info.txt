@@ -1,0 +1,8 @@
+# ROX.ONE Windows app metadata fixture (M.18 T252 good-bundle)
+# Mirrors what apps/electron/scripts/afterPack-windows.cjs emits.
+AppUserModelID=one.rox.workbench
+FileVersion=1.2.3.92
+ProductVersion=1.2.3.92
+CompanyName=roxone
+ProductName=ROX.ONE
+# (T252 windows boundary ok)
