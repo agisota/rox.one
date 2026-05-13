@@ -25,9 +25,11 @@ import { cn } from "@/lib/utils"
 import { Check, ChevronDown, Eye, EyeOff, Loader2 } from "lucide-react"
 import { pickTierDefaults, resolveTierModels, type PiModelInfo } from "./tier-models"
 import {
+  resolveEndpointSubmitMetadata,
   resolvePiAuthProviderForSubmit,
   resolvePresetStateForBaseUrlChange,
   type PresetKey,
+  ZED_MD_MODELS,
 } from "./submit-helpers"
 
 import type { CustomEndpointApi, CustomEndpointConfig } from '@config/llm-connections'
@@ -89,15 +91,17 @@ interface Preset {
   label: string
   url: string
   placeholder?: string
+  customApi?: CustomEndpointApi
 }
 
-const ROX_ONE_MODELS = 'kmc/kimi-latest, kmc/kimi-k2.5-thinking, kmc/kimi-k2.5, kmc/kimi-k2.6, glm/glm-5, glm/glm-5-turbo, glm/glm-5.1, cx/gpt-5.5, cx/gpt-5.4, cx/gpt-5.3-codex, xai/grok-4.20-reasoning, xai/grok-4.20-non-reasoning, xai/grok-4-1-fast-reasoning, xai/grok-4-1-fast-non-reasoning'
+const ROX_ONE_MODELS = ZED_MD_MODELS
 
 // Anthropic provider presets - for Claude Code backend
 // Also used by Pi API key flow (same providers, routed via Pi SDK)
-// ROX ONE is the default preset (first position = auto-selected)
+// ZED.MD is the default preset (first position = auto-selected)
 const ANTHROPIC_PRESETS: Preset[] = [
-  { key: 'rox-one', label: 'ROX ONE', url: 'https://api.rox.one/v1', placeholder: 'Paste your API key here...' },
+  { key: 'zed-md', label: 'ZED.MD', url: 'https://api.zed.md/v1', placeholder: 'agisota-...', customApi: 'openai-completions' },
+  { key: 'rox-one', label: 'ROX ONE', url: 'https://api.rox.one/v1', placeholder: 'Paste your API key here...', customApi: 'openai-completions' },
   { key: 'anthropic', label: 'Anthropic', url: 'https://api.anthropic.com', placeholder: 'sk-ant-...' },
   { key: 'openai', label: 'OpenAI', url: 'https://api.openai.com/v1', placeholder: 'sk-...' },
   { key: 'openai-eu', label: 'OpenAI EU', url: 'https://eu.api.openai.com/v1', placeholder: 'sk-...' },
@@ -146,6 +150,23 @@ const COMPAT_ANTHROPIC_DEFAULTS = 'claude-opus-4-7, claude-sonnet-4-6, claude-ha
 const COMPAT_OPENAI_DEFAULTS = 'openai/gpt-5.2-codex, openai/gpt-5.1-codex-mini'
 const COMPAT_MINIMAX_DEFAULTS = 'MiniMax-M2.5, MiniMax-M2.5-highspeed'
 const COMPAT_KIMI_DEFAULTS = 'k2p5, kimi-k2-thinking'
+
+function getDefaultModelInputForPreset(
+  presetKey: PresetKey,
+  providerType: NonNullable<ApiKeyInputProps['providerType']>,
+): string {
+  if (presetKey === 'zed-md' || presetKey === 'rox-one') return ZED_MD_MODELS
+  if (presetKey === 'ollama') return 'qwen3-coder'
+  if (presetKey === 'openrouter' || presetKey === 'vercel-ai-gateway') {
+    return providerType === 'openai' ? COMPAT_OPENAI_DEFAULTS : COMPAT_ANTHROPIC_DEFAULTS
+  }
+  if (presetKey === 'minimax-global' || presetKey === 'minimax-cn') return COMPAT_MINIMAX_DEFAULTS
+  if (presetKey === 'kimi-coding') return COMPAT_KIMI_DEFAULTS
+  if (presetKey === 'custom') {
+    return providerType === 'openai' ? COMPAT_OPENAI_DEFAULTS : COMPAT_ANTHROPIC_DEFAULTS
+  }
+  return ''
+}
 
 function getPresetsForProvider(providerType: 'anthropic' | 'openai' | 'pi' | 'google' | 'pi_api_key'): Preset[] {
   if (providerType === 'pi_api_key') return ANTHROPIC_PRESETS
@@ -197,7 +218,9 @@ export function ApiKeyInput({
   const [lastNonCustomPreset, setLastNonCustomPreset] = useState<PresetKey | null>(
     initialPreset !== 'custom' ? initialPreset : defaultPreset.key
   )
-  const [connectionDefaultModel, setConnectionDefaultModel] = useState(initialValues?.connectionDefaultModel ?? '')
+  const [connectionDefaultModel, setConnectionDefaultModel] = useState(
+    initialValues?.connectionDefaultModel ?? getDefaultModelInputForPreset(initialPreset, providerType)
+  )
   const [customApi, setCustomApi] = useState<CustomEndpointApi>(initialValues?.customApi ?? 'openai-completions')
   const [modelError, setModelError] = useState<string | null>(null)
 
@@ -280,23 +303,8 @@ export function ApiKeyInput({
       setBaseUrl(preset.url)
     }
     setModelError(null)
-    // Pre-fill recommended model for Ollama; clear for all others
-    // (Default provider presets hide the field entirely, others default to provider model IDs when empty)
-    if (preset.key === 'rox-one') {
-      setConnectionDefaultModel(ROX_ONE_MODELS)
-    } else if (preset.key === 'ollama') {
-      setConnectionDefaultModel('qwen3-coder')
-    } else if (preset.key === 'openrouter' || preset.key === 'vercel-ai-gateway') {
-      setConnectionDefaultModel(providerType === 'openai' ? COMPAT_OPENAI_DEFAULTS : COMPAT_ANTHROPIC_DEFAULTS)
-    } else if (preset.key === 'minimax-global' || preset.key === 'minimax-cn') {
-      setConnectionDefaultModel(COMPAT_MINIMAX_DEFAULTS)
-    } else if (preset.key === 'kimi-coding') {
-      setConnectionDefaultModel(COMPAT_KIMI_DEFAULTS)
-    } else if (preset.key === 'custom') {
-      setConnectionDefaultModel(providerType === 'openai' ? COMPAT_OPENAI_DEFAULTS : COMPAT_ANTHROPIC_DEFAULTS)
-    } else {
-      setConnectionDefaultModel('')
-    }
+    // Provider presets default to provider model IDs when the endpoint/model field is visible.
+    setConnectionDefaultModel(getDefaultModelInputForPreset(preset.key, providerType))
   }
 
   const handleBaseUrlChange = (value: string) => {
@@ -313,17 +321,7 @@ export function ApiKeyInput({
     setLastNonCustomPreset(nextPresetState.lastNonCustomPreset)
     setModelError(null)
     if (!connectionDefaultModel.trim()) {
-      if (presetKey === 'rox-one') {
-        setConnectionDefaultModel(ROX_ONE_MODELS)
-      } else if (presetKey === 'ollama') {
-        setConnectionDefaultModel('qwen3-coder')
-      } else if (presetKey === 'minimax-global' || presetKey === 'minimax-cn') {
-        setConnectionDefaultModel(COMPAT_MINIMAX_DEFAULTS)
-      } else if (presetKey === 'kimi-coding') {
-        setConnectionDefaultModel(COMPAT_KIMI_DEFAULTS)
-      } else if (presetKey === 'openrouter' || presetKey === 'vercel-ai-gateway' || presetKey === 'custom') {
-        setConnectionDefaultModel(providerType === 'openai' ? COMPAT_OPENAI_DEFAULTS : COMPAT_ANTHROPIC_DEFAULTS)
-      }
+      setConnectionDefaultModel(getDefaultModelInputForPreset(presetKey, providerType))
     }
   }
 
@@ -393,23 +391,25 @@ export function ApiKeyInput({
       return
     }
 
-    // Include custom endpoint protocol when user configured a custom base URL
-    const isCustomEndpoint = activePreset === 'custom' && !!effectiveBaseUrl
-    const customEndpoint = isCustomEndpoint ? { api: customApi } : undefined
-    const resolvedPiAuthProvider = isCustomEndpoint
-      ? (customApi === 'anthropic-messages' ? 'anthropic' : 'openai')
-      : effectivePiAuthProvider
+    // Include custom endpoint protocol for arbitrary custom URLs and compatible presets.
+    const endpointSubmitMetadata = resolveEndpointSubmitMetadata({
+      activePreset,
+      effectiveBaseUrl,
+      customApi,
+      presetCustomApi: activePresetObj?.customApi,
+      effectivePiAuthProvider,
+    })
 
     onSubmit({
       apiKey: apiKey.trim(),
       baseUrl: isUsingDefaultEndpoint ? undefined : effectiveBaseUrl,
       connectionDefaultModel: parsedModels[0],
       models: parsedModels.length > 0 ? parsedModels : undefined,
-      piAuthProvider: resolvedPiAuthProvider,
+      piAuthProvider: endpointSubmitMetadata.piAuthProvider,
       modelSelectionMode: isPiApiKeyFlow
         ? (parsedModels.length > 0 ? 'userDefined3Tier' : 'automaticallySyncedFromProvider')
         : undefined,
-      customEndpoint,
+      customEndpoint: endpointSubmitMetadata.customEndpoint,
     })
   }
 
