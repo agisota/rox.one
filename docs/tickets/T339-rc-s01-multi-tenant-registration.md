@@ -1,6 +1,6 @@
 # T339 - RC Scenario S01: Registration → Multi-Tenant Login Flow
 
-Status: Todo
+Status: Blocked
 
 ## Context
 
@@ -100,3 +100,9 @@ bun run validate:docs
 
 Update `docs/worklog/T339-rc-s01-multi-tenant-registration.md` with run log,
 screenshots, and any blocker ticket references.
+
+## Current Blocker
+
+- `T352-rc-e2e-smoke-harness-script.md` — the required
+  `bun run e2e:smoke -- --scenario s01-registration` command currently exits
+  with `Script not found "e2e:smoke"`, so the S01 Electron smoke cannot start.
