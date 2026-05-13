@@ -105,6 +105,8 @@ import {
   matchEmphasisShortcut,
   type EmphasisMode,
 } from './emphasis-mode'
+import { PasteImagePreviewDialog } from './PasteImagePreviewDialog'
+import { extractPastedImage, type PastedImagePreview } from './paste-image'
 
 /**
  * Format token count for display (e.g., 1500 -> "1.5k", 200000 -> "200k")
@@ -661,6 +663,10 @@ export function FreeFormInput({
   const [isFocused, setIsFocused] = React.useState(false)
   const [inputMaxHeight, setInputMaxHeight] = React.useState(320)
   const [modelDropdownOpen, setModelDropdownOpen] = React.useState(false)
+  // T237: paste-image preview. When a user pastes or drops an image, we stage
+  // the preview here and surface PasteImagePreviewDialog before the image is
+  // forwarded into the shared `readFileAsAttachment` attachment path.
+  const [pendingPastedImage, setPendingPastedImage] = React.useState<PastedImagePreview | null>(null)
 
   // Input settings (loaded from config)
   const [autoCapitalisation, setAutoCapitalisation] = React.useState(true)
@@ -1324,6 +1330,18 @@ export function FreeFormInput({
     e.preventDefault()
 
     const files = Array.from(clipboardItems)
+
+    // T237: a single-image paste routes through the preview dialog so the
+    // author can confirm before the image lands as an attachment. Multi-file
+    // pastes (or single non-image files) keep the legacy direct-attach path.
+    if (files.length === 1 && files[0].type.startsWith('image/')) {
+      const preview = await extractPastedImage(e.nativeEvent as unknown as ClipboardEvent)
+      if (preview) {
+        setPendingPastedImage(preview)
+        return
+      }
+    }
+
     setLoadingCount(prev => prev + files.length)
 
     // Pre-assign sequential names using ref to avoid race conditions
@@ -1366,12 +1384,46 @@ export function FreeFormInput({
     if (disabled) return
 
     const files = Array.from(e.dataTransfer.files)
+
+    // T237: single-image drops route through the preview dialog. Multi-file or
+    // non-image drops keep the legacy direct-attach path.
+    if (files.length === 1 && files[0].type.startsWith('image/')) {
+      const preview = await extractPastedImage(e.nativeEvent as unknown as DragEvent)
+      if (preview) {
+        setPendingPastedImage(preview)
+        return
+      }
+    }
+
     setLoadingCount(files.length)
 
     for (const file of files) {
       await processFileAttachment(file)
     }
   }
+
+  // T237: confirm/cancel handlers for the paste-image preview dialog. Confirm
+  // forwards the staged image through the shared attachment path with a name
+  // assigned via the same `getNextPastedNumber` sequence the legacy paste
+  // path uses, so attachment chip naming stays consistent.
+  const handleConfirmPastedImage = React.useCallback(async () => {
+    const preview = pendingPastedImage
+    setPendingPastedImage(null)
+    if (!preview) return
+    setLoadingCount(prev => prev + 1)
+    const file = preview.file
+    let name = preview.name
+    if (!name || name === 'pasted-image.png' || name === 'pasted-image.jpg') {
+      const next = getNextPastedNumber('image', attachmentsRef.current)
+      const ext = (file.type.split('/')[1] || 'png')
+      name = `pasted-image-${next}.${ext}`
+    }
+    await processFileAttachment(file, name)
+  }, [pendingPastedImage])
+
+  const handleCancelPastedImage = React.useCallback(() => {
+    setPendingPastedImage(null)
+  }, [])
 
   // Submit message - backend handles queueing and interruption
   const submitMessage = React.useCallback((messageOverride?: string) => {
@@ -2938,6 +2990,17 @@ export function FreeFormInput({
           </div>
         </div>
       </div>
+      {/* T237: paste-image preview dialog. Surfaces when an image is pasted or
+          dropped; on confirm the image flows into the existing attachment path. */}
+      <PasteImagePreviewDialog
+        open={pendingPastedImage != null}
+        image={pendingPastedImage}
+        onOpenChange={(next) => {
+          if (!next) setPendingPastedImage(null)
+        }}
+        onConfirm={handleConfirmPastedImage}
+        onCancel={handleCancelPastedImage}
+      />
     </form>
   )
 }
