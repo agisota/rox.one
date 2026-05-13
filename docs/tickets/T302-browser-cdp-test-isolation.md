@@ -1,6 +1,6 @@
 # T302 - Browser CDP test isolation
 
-Status: IN_PROGRESS
+Status: DONE
 
 ## Context
 
@@ -54,9 +54,9 @@ Then apply the smallest test-isolation fix and rerun the same command.
 
 ## Acceptance Criteria
 
-- [ ] The two-file order-dependent repro passes.
-- [ ] Full `bun test` no longer fails on BrowserCDP mock bleed-through.
-- [ ] No runtime source files are changed for this fix.
+- [x] The two-file order-dependent repro passes.
+- [x] Full `bun test` no longer fails on BrowserCDP mock bleed-through.
+- [x] No runtime source files are changed for this fix.
 
 ## Worklog
 
