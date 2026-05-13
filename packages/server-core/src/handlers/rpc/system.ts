@@ -3,11 +3,11 @@ import { join } from 'path'
 import { homedir } from 'os'
 import { execSync } from 'child_process'
 import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
-import { DEFAULT_LOCAL_SCOPE, getWorkspaceByNameOrId, getGitBashPath, setGitBashPath, clearGitBashPath } from '@rox-agent/shared/config'
+import { getWorkspaceByNameOrId, getGitBashPath, setGitBashPath, clearGitBashPath } from '@rox-agent/shared/config'
 import { isSafeExternalUrl } from '@rox-agent/shared/utils/url-safety'
 import { isUsableGitBashPath, validateGitBashPath } from '@rox-agent/server-core/services'
 import { validateFilePath, getWorkspaceAllowedDirs } from '@rox-agent/server-core/handlers'
-import type { RpcServer } from '@rox-agent/server-core/transport'
+import type { RequestContext, RpcServer } from '@rox-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import {
   requestClientOpenExternal,
@@ -15,6 +15,7 @@ import {
   requestClientShowInFolder,
   requestClientOpenFileDialog,
 } from '@rox-agent/server-core/transport'
+import { SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE, deriveRpcWorkspaceScope } from './storage-scope'
 
 export const CORE_HANDLED_CHANNELS = [
   RPC_CHANNELS.theme.GET_SYSTEM_PREFERENCE,
@@ -134,8 +135,10 @@ function parseInternalRoxAgentsDeepLink(parsed: URL): ParsedInternalDeepLink | n
 }
 
 /** Guard: reject filesystem-path actions on remote workspaces where local paths are meaningless. */
-function assertLocalWorkspace(ctx: { workspaceId: string | null }, action: string): void {
-  const ws = getWorkspaceByNameOrId(ctx.workspaceId ?? '', DEFAULT_LOCAL_SCOPE)
+async function assertLocalWorkspace(deps: HandlerDeps, ctx: RequestContext, action: string): Promise<void> {
+  if (!ctx.workspaceId) return
+  const scope = await deriveRpcWorkspaceScope(deps, ctx, ctx.workspaceId)
+  const ws = getWorkspaceByNameOrId(ctx.workspaceId, scope)
   if (ws?.remoteServer) {
     throw new Error(`${action} is not available for remote workspaces`)
   }
@@ -209,19 +212,19 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       join(process.env.PROGRAMFILES || '', 'Git', 'bin', 'bash.exe'),
     ]
 
-    const persistedPath = getGitBashPath(DEFAULT_LOCAL_SCOPE)
+    const persistedPath = getGitBashPath(SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
     if (persistedPath) {
       if (await isUsableGitBashPath(persistedPath)) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH = persistedPath.trim()
         return { found: true, path: persistedPath, platform }
       }
-      clearGitBashPath(DEFAULT_LOCAL_SCOPE)
+      clearGitBashPath(SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
     }
 
     for (const bashPath of commonPaths) {
       if (await isUsableGitBashPath(bashPath)) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH = bashPath
-        setGitBashPath(bashPath, DEFAULT_LOCAL_SCOPE)
+        setGitBashPath(bashPath, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
         return { found: true, path: bashPath, platform }
       }
     }
@@ -235,7 +238,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       const firstPath = result.split('\n')[0]?.trim()
       if (firstPath && firstPath.toLowerCase().includes('git') && await isUsableGitBashPath(firstPath)) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH = firstPath
-        setGitBashPath(firstPath, DEFAULT_LOCAL_SCOPE)
+        setGitBashPath(firstPath, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
         return { found: true, path: firstPath, platform }
       }
     } catch {
@@ -267,7 +270,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       return { success: false, error: validation.error }
     }
 
-    setGitBashPath(validation.path, DEFAULT_LOCAL_SCOPE)
+    setGitBashPath(validation.path, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
     process.env.CLAUDE_CODE_GIT_BASH_PATH = validation.path
     return { success: true }
   })
@@ -329,7 +332,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
   })
 
   server.handle(RPC_CHANNELS.shell.OPEN_FILE, async (ctx, path: string) => {
-    assertLocalWorkspace(ctx, 'Open file')
+    await assertLocalWorkspace(deps, ctx, 'Open file')
     try {
       // Expand ~ before resolve() — resolve() treats ~ as a literal path component
       const expanded = path.startsWith('~') ? path.replace(/^~/, homedir()) : path
@@ -345,7 +348,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
   })
 
   server.handle(RPC_CHANNELS.shell.SHOW_IN_FOLDER, async (ctx, path: string) => {
-    assertLocalWorkspace(ctx, 'Show in folder')
+    await assertLocalWorkspace(deps, ctx, 'Show in folder')
     try {
       const expanded = path.startsWith('~') ? path.replace(/^~/, homedir()) : path
       const absolutePath = resolve(expanded)
