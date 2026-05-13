@@ -14,8 +14,8 @@ Thank you for your interest in contributing to ROX.ONE! This document provides g
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/lukilabs/rox-agents-oss.git
-   cd rox-agents-oss
+   git clone https://github.com/agisota/rox-one-terminal.git
+   cd rox-one-terminal
    ```
 
 2. Install dependencies:
@@ -93,14 +93,14 @@ How you tested these changes
 ## Project Structure
 
 ```
-rox-agents/
+rox-one-terminal/
 ├── apps/
 │   ├── electron/    # Desktop GUI (primary interface)
-│   └── tui/         # Terminal CLI (deprecated)
+│   └── cli/         # Terminal CLI
 └── packages/
-    ├── core/        # @rox-agent/core - Shared types
-    ├── shared/      # @rox-agent/shared - Business logic
-    └── ui/          # @rox-agent/ui - React components
+    ├── core/        # @rox-one/core - Shared types
+    ├── shared/      # @rox-one/shared - Business logic
+    └── ui/          # @rox-one/ui - React components
 ```
 
 ## Key Areas
