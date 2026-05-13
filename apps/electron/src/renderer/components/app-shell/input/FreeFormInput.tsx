@@ -88,6 +88,14 @@ import {
   addRecentWorkingDir,
   removeRecentWorkingDir,
 } from './working-directory-history'
+import {
+  createComposerHistoryState,
+  pushHistoryEntry,
+  recallPrevious,
+  recallNext,
+  resetHistoryForSession,
+  type ComposerHistoryState,
+} from './composer-history'
 import { CompactPermissionModeSelector } from './CompactPermissionModeSelector'
 
 /**
@@ -696,6 +704,15 @@ export function FreeFormInput({
 
   // Track last caret position for focus restoration (e.g., after permission mode popover closes)
   const lastCaretPositionRef = React.useRef<number | null>(null)
+
+  // Composer history (T234): per-session in-memory submission stack.
+  // ArrowUp / ArrowDown recall when the input is empty and no inline menu owns
+  // the key. State lives in a ref to avoid re-render churn on every recall.
+  const historyRef = React.useRef<ComposerHistoryState>(createComposerHistoryState())
+  React.useEffect(() => {
+    if (!sessionId) return
+    historyRef.current = resetHistoryForSession(historyRef.current, sessionId)
+  }, [sessionId])
 
   // Listen for craft:insert-text events (generic mechanism for inserting text into input)
   // Used by components that want to pre-fill the input with text
@@ -1378,6 +1395,8 @@ export function FreeFormInput({
       attachmentSnapshot.length > 0 ? attachmentSnapshot : undefined,
       mentions.skills.length > 0 ? mentions.skills : undefined
     )
+    // T234: record the submission in the composer history stack.
+    historyRef.current = pushHistoryEntry(historyRef.current, message, Date.now())
     setInput('')
     setAttachments([])
     // Clear draft immediately (cancel any pending debounced sync)
@@ -1461,6 +1480,32 @@ export function FreeFormInput({
       }
     }
 
+    // T234: composer history recall via ArrowUp / ArrowDown.
+    // Only intercept when no inline menu owns the key (guarded above by the
+    // early `return`s for menu state). Recall mode engages on empty input and
+    // stays engaged while the cursor walks the stack; editing the recalled
+    // text drops out of recall mode by clearing the cursor (see below).
+    if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const inRecall = historyRef.current.cursor >= 0
+      const isEmptyInput = input.trim().length === 0
+      if (inRecall || isEmptyInput) {
+        const result = e.key === 'ArrowUp'
+          ? recallPrevious(historyRef.current, input)
+          : recallNext(historyRef.current)
+        if (result.changed) {
+          e.preventDefault()
+          historyRef.current = result.next
+          setInput(result.message)
+          // Place caret at the end so the next ArrowUp keeps walking history.
+          requestAnimationFrame(() => {
+            const next = result.message
+            richInputRef.current?.setSelectionRange(next.length, next.length)
+          })
+          return
+        }
+      }
+    }
+
     // Skip submission during IME composition - user is confirming composed characters, not sending
     // Handle send key based on user preference:
     // - 'enter': Enter sends (Shift+Enter for newline)
@@ -1500,6 +1545,19 @@ export function FreeFormInput({
     const nextValue = coerceInputText(value)
     // Get previous input value before updating state
     const prevValue = inputRef.current
+
+    // T234: dropping out of history-recall mode when the user types into a
+    // recalled value. The recall cursor stays at its position only while the
+    // input matches the recalled entry; once the user edits, the next
+    // ArrowUp/ArrowDown should start a fresh recall from -1.
+    if (historyRef.current.cursor >= 0 && nextValue !== prevValue) {
+      historyRef.current = {
+        entries: historyRef.current.entries,
+        cursor: -1,
+        scratch: '',
+        sessionId: historyRef.current.sessionId,
+      }
+    }
 
     setInput(nextValue)
     syncToParent(nextValue) // Debounced sync to parent for draft persistence
