@@ -9,6 +9,7 @@ import type { OfficeDocumentConverter } from '../services/office-document-adapte
 import type { RbacResolver, GrantStore } from '@rox-one/shared/auth/rbac-resolver'
 import type { RoleStore } from '@rox-one/shared/auth/role-store'
 import type { AuditProducer } from '@rox-one/shared/observability'
+import type { TokenBucket } from '@rox-one/shared/security'
 import type { MissionScheduler } from '../missions'
 
 /**
@@ -71,5 +72,19 @@ export interface HandlerDeps<
    * handlers then respond with `{error: 'missions-not-configured'}`.
    */
   missionScheduler?: MissionScheduler
+  /**
+   * Optional rate limiter (T071b). When provided, the RBAC admin RPC
+   * handlers (`roles.grant`, `roles.revoke`) call `tryAcquire(1)` at
+   * the entry of each request and respond with
+   * `{error: 'rate-limited', reason: 'token-bucket-exhausted'}` when
+   * the bucket is empty. The check runs BEFORE the grant store mutation
+   * and BEFORE audit emission, so a rate-limited request leaves no
+   * state change and no audit record. Hosts that omit this field
+   * behave identically to the pre-T071b baseline (no rate limiting).
+   * The bucket lifetime/scoping is the host's responsibility — a single
+   * shared bucket caps the whole RBAC admin surface, while per-actor
+   * buckets are achievable by wrapping the deps construction.
+   */
+  rateLimiter?: TokenBucket
   officeDocumentConverter?: OfficeDocumentConverter
 }
