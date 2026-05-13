@@ -374,6 +374,55 @@ class MiniDocument extends MiniNode {
 }
 
 let documentRef: MiniDocument
+type MountedRoot = { unmount: () => void }
+
+const ABSENT_MINI_DOM_GLOBAL = Symbol('absentMiniDomGlobal')
+const MINI_DOM_GLOBAL_KEYS = [
+  'document',
+  'window',
+  'navigator',
+  'Node',
+  'Text',
+  'Element',
+  'HTMLElement',
+  'HTMLButtonElement',
+  'HTMLIFrameElement',
+  'SVGElement',
+  'Document',
+  'Event',
+  'MouseEvent',
+  'requestAnimationFrame',
+  'cancelAnimationFrame',
+  'IS_REACT_ACT_ENVIRONMENT',
+] as const
+
+type MiniDomGlobalKey = (typeof MINI_DOM_GLOBAL_KEYS)[number]
+let mountedRoots: MountedRoot[] = []
+let previousMiniDomGlobals: Partial<Record<MiniDomGlobalKey, unknown | typeof ABSENT_MINI_DOM_GLOBAL>> = {}
+
+function snapshotMiniDomGlobals() {
+  const globalRecord = globalThis as Record<MiniDomGlobalKey, unknown>
+  previousMiniDomGlobals = {}
+  for (const key of MINI_DOM_GLOBAL_KEYS) {
+    previousMiniDomGlobals[key] = Object.prototype.hasOwnProperty.call(globalRecord, key)
+      ? globalRecord[key]
+      : ABSENT_MINI_DOM_GLOBAL
+  }
+}
+
+function restoreMiniDomGlobals() {
+  const globalRecord = globalThis as Record<MiniDomGlobalKey, unknown>
+  for (const key of MINI_DOM_GLOBAL_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(previousMiniDomGlobals, key)) continue
+    const previous = previousMiniDomGlobals[key]
+    if (previous === ABSENT_MINI_DOM_GLOBAL) {
+      delete globalRecord[key]
+    } else {
+      globalRecord[key] = previous
+    }
+  }
+  previousMiniDomGlobals = {}
+}
 
 function installMiniDom() {
   documentRef = new MiniDocument()
@@ -448,6 +497,7 @@ async function renderOverlay(props: {
   const rootElement = documentRef.createElement('div')
   documentRef.body.appendChild(rootElement)
   const root = createRoot(rootElement as unknown as Element)
+  mountedRoots.push(root)
 
   await act(async () => {
     root.render(
@@ -482,11 +532,18 @@ beforeEach(() => {
   mockedDocumentError = null
   loadedPdfFiles = new WeakSet<object>()
   documentSuccessCalls = 0
+  mountedRoots = []
+  snapshotMiniDomGlobals()
   installMiniDom()
 })
 
-afterEach(() => {
+afterEach(async () => {
+  await act(async () => {
+    for (const root of mountedRoots) root.unmount()
+  })
+  mountedRoots = []
   documentRef.body.childNodes = []
+  restoreMiniDomGlobals()
 })
 
 describe('PDFPreviewOverlay DOM controls', () => {
