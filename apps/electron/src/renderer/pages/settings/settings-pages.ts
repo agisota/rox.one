@@ -20,6 +20,7 @@ import AppearanceSettingsPage from './AppearanceSettingsPage'
 import InputSettingsPage from './InputSettingsPage'
 import WorkspaceSettingsPage from './WorkspaceSettingsPage'
 import PermissionsSettingsPage from './PermissionsSettingsPage'
+import TeamManagementSettingsPage from './TeamManagementSettingsPage'
 import TeamPermissionsSettingsPage from './TeamPermissionsSettingsPage'
 import LabelsSettingsPage from './LabelsSettingsPage'
 import MessagingSettingsPage from './MessagingSettingsPage'
@@ -39,6 +40,7 @@ export const SETTINGS_PAGE_COMPONENTS: Record<SettingsSubpage, ComponentType> = 
   input: InputSettingsPage,
   workspace: WorkspaceSettingsPage,
   permissions: PermissionsSettingsPage,
+  'team-management': TeamManagementSettingsPage,
   'team-permissions': TeamPermissionsSettingsPage,
   labels: LabelsSettingsPage,
   messaging: MessagingSettingsPage,
