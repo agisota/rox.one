@@ -1,5 +1,6 @@
 import type { WorkspaceScope } from './storage-scope.ts';
 import { isMultiTenantActivated } from './storage-scope-runtime.ts';
+import { appendStructuredAuditEvent } from '../audit/index.ts';
 import { createLogger } from '../utils/debug.ts';
 
 const log = createLogger('storage-scope');
@@ -74,6 +75,7 @@ function emitScopeAudit(
   payload: Record<string, unknown>,
 ): void {
   const message = JSON.stringify({ level, event, ...payload });
+  appendStructuredAuditEvent(level, event, payload);
   if (level === 'trace') {
     log.debug(message);
     return;

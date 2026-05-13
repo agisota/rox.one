@@ -82,18 +82,18 @@ Commit only T218 files with the Lore protocol and OmX co-author trailer.
 - Test: `packages/shared/src/config/__tests__/storage-scope-auth.test.ts`
 - Test: `packages/shared/src/config/__tests__/storage-scope.test.ts`
 
-- [ ] **Step 1: Write failing writer tests**
+- [x] **Step 1: Write failing writer tests**
 
 Prove a `scope.*` structured logger event still emits through debug output and
 also appends to the configured audit store.
 
-- [ ] **Step 2: Implement writer fanout**
+- [x] **Step 2: Implement writer fanout**
 
 Add configurable fanout for `ROX_AUDIT_BACKEND=memory|file|sqlite|s3`, with
 memory active for tests and unsupported backends failing closed until their
 own persistence tickets are implemented.
 
-- [ ] **Step 3: Validate**
+- [x] **Step 3: Validate**
 
 Run the targeted scope/audit tests, typecheck, lint, docs validation, full
 suite, and build.
