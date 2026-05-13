@@ -102,7 +102,6 @@ export function PasteImagePreviewDialog({
               className="flex items-center justify-center overflow-hidden rounded-lg border border-border bg-muted/30 p-2"
               data-testid="composer-paste-image-preview-thumbnail"
             >
-              {/* eslint-disable-next-line jsx-a11y/alt-text */}
               <img
                 src={image.dataUrl}
                 alt={image.name}
