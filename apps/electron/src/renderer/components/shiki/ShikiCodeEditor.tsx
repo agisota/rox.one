@@ -5,7 +5,9 @@
  * Uses textarea overlay technique with Shiki for syntax highlighting.
  *
  * Features:
- * - Syntax highlighting via Shiki
+ * - Syntax highlighting via Shiki (via shared `getSingletonHighlighter` adapter
+ *   from `@rox-one/shared/highlight`; see M.11/T173 migration off the raw
+ *   `shiki` package onto the engine-agnostic adapter).
  * - Light/dark theme support
  * - Auto-indentation (tab key)
  * - Read-only mode support
@@ -14,7 +16,7 @@
 import * as React from 'react'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Editor from 'react-simple-code-editor'
-import { codeToHtml, bundledLanguages, type BundledLanguage } from 'shiki'
+import { getSingletonHighlighter, resolveLanguage } from '@rox-one/shared/highlight'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/hooks/useTheme'
 
@@ -33,18 +35,6 @@ export interface ShikiCodeEditorProps {
   className?: string
   /** Placeholder text when empty */
   placeholder?: string
-}
-
-// Map aliases to Shiki language names
-const LANGUAGE_ALIASES: Record<string, BundledLanguage> = {
-  'md': 'markdown',
-  'js': 'javascript',
-  'ts': 'typescript',
-}
-
-function isValidLanguage(lang: string): lang is BundledLanguage {
-  const normalized = LANGUAGE_ALIASES[lang] || lang
-  return normalized in bundledLanguages
 }
 
 // Simple cache for highlighted code
@@ -76,8 +66,10 @@ export function ShikiCodeEditor({
   const hasCalledReady = useRef(false)
   const [highlightedCode, setHighlightedCode] = useState<string>('')
 
-  // Resolve language alias
-  const resolvedLang = LANGUAGE_ALIASES[language.toLowerCase()] || language.toLowerCase()
+  // Resolve language via the shared adapter — falls back to 'text' if the
+  // input is not in the curated preload set. The highlighter itself also
+  // resolves unsupported languages to 'text' as a second line of defence.
+  const resolvedLang = resolveLanguage(language) ?? 'text'
   // Use the Shiki theme from the preset, falling back to github themes
   const theme = shikiTheme
 
@@ -90,8 +82,8 @@ export function ShikiCodeEditor({
     if (cached) return cached
 
     try {
-      const lang = isValidLanguage(resolvedLang) ? resolvedLang : 'text'
-      const html = await codeToHtml(code, { lang, theme })
+      const highlighter = await getSingletonHighlighter()
+      const html = await highlighter.highlight(code, resolvedLang, { theme })
 
       // Extract just the content inside <pre><code>...</code></pre>
       // Shiki returns: <pre class="..." style="..."><code>...</code></pre>
