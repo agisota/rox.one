@@ -249,5 +249,8 @@
     "@img/sharp-libvips-linux-x64": "1.2.4",
     "@img/sharp-linux-arm64": "0.34.5",
     "@img/sharp-linux-x64": "0.34.5"
+  },
+  "patchedDependencies": {
+    "markitdown-js@0.0.14": "patches/markitdown-js@0.0.14.patch"
   }
 }
