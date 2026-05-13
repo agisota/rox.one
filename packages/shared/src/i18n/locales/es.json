@@ -1084,6 +1084,8 @@
   "settings.server.token": "Token",
   "settings.shortcuts.description": "Atajos de teclado",
   "settings.shortcuts.title": "Atajos",
+  "settings.teamPermissions.description": "Gestiona roles y concesiones en Workspaces y organizaciones",
+  "settings.teamPermissions.title": "Equipo y permisos",
   "settings.tools.builtInBrowser": "Navegador integrado",
   "settings.tools.builtInBrowserDesc": "Desactiva si usas herramientas de navegador externas como Playwright, Puppeteer o servidores MCP de navegador.",
   "settings.tools.title": "Herram.",
