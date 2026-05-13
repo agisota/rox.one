@@ -1,7 +1,7 @@
 import * as React from "react"
 import { X, Image as ImageIcon } from "lucide-react"
 import { AnimatePresence, LayoutGroup, motion } from "motion/react"
-import { Spinner, FileTypeIcon, getFileTypeLabel } from "@craft-agent/ui"
+import { Spinner, FileTypeIcon, getFileTypeLabel } from "@rox-one/ui"
 import { cn } from "@/lib/utils"
 import { useReducedMotionPreference } from "@/context/ReducedMotionContext"
 import type { FileAttachment } from "../../../shared/types"

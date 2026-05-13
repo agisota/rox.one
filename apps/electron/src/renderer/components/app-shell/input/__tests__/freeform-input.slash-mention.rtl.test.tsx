@@ -90,7 +90,7 @@ vi.mock('../PromptRewriteDialog', () => ({ PromptRewriteDialog: () => null }))
 vi.mock('../ThinkingPartnerRoundTableDialog', () => ({ ThinkingPartnerRoundTableDialog: () => null }))
 vi.mock('../ComposerArtifactPanel', () => ({ ComposerArtifactPanel: () => null }))
 
-vi.mock('@craft-agent/ui', async (orig) => {
+vi.mock('@rox-one/ui', async (orig) => {
   const actual = (await orig()) as Record<string, unknown>
   return {
     ...actual,
