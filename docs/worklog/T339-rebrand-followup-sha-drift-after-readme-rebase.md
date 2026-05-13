@@ -72,7 +72,7 @@ Updated `docs/release/rebrand-mapping-2026-05-13.md` to record T321 as
 - `bun run validate:rebrand`:
   no forbidden tokens outside the allowlist.
 - Full suite:
-  5988 pass, 13 skip, 0 fail, 1 snapshot, 24614 expect calls.
+  6190 pass, 13 skip, 0 fail, 1 snapshot, 25152 expect calls.
 - Static gates:
   `bun run typecheck`, `bun run lint`, and `git diff --check` exited 0.
 
@@ -93,7 +93,7 @@ No known remaining test failures.
 | Release mapping records T321 as `c42e3d59` | Green | Mapping row updated |
 | Permanent gate passes after the mapping repair | Green | Combined documentation gates: 9 pass, 0 fail |
 | Docs/roadmap/rebrand validators pass | Green | `validate:docs`, `validate:roadmap`, and `validate:rebrand` exit 0 |
-| Full `bun test` passes | Green | 5988 pass, 13 skip, 0 fail |
+| Full `bun test` passes | Green | 6190 pass, 13 skip, 0 fail |
 | No runtime files are changed | Green | Documentation-only diff |
 | Worklog complete | Green | Final validation evidence recorded |
 | Commit created | Green | Atomic commit after validation |

@@ -123,8 +123,8 @@ The stale rebrand/env/migration bundle failed on:
 
 - `bun test packages/shared/src/credentials/__tests__/tenant-key-derivation.test.ts`:
   6 pass, 0 fail, 18 expect calls.
-- Combined focused bundle after the final PR #126 rebase:
-  168 pass, 0 fail, 442 expect calls.
+- Combined focused bundle after the final upstream rebase:
+  220 pass, 0 fail, 543 expect calls.
 - Earlier static gates after duplicate/allowlist repair:
   `bun run typecheck` exit 0, `bun run validate:rebrand` exit 0,
   `bun run lint` exit 0, `git diff --check` exit 0.
@@ -133,7 +133,7 @@ The stale rebrand/env/migration bundle failed on:
 - Documentation validators:
   `validate:docs` and `validate:roadmap` exited 0.
 - Full suite:
-  5988 pass, 13 skip, 0 fail, 1 snapshot, 24614 expect calls.
+  6190 pass, 13 skip, 0 fail, 1 snapshot, 25152 expect calls.
 
 ## 9. Build output summary
 
@@ -150,11 +150,11 @@ No known remaining test failures.
 | --- | --- | --- |
 | Typecheck no longer fails on duplicate object/env declarations | Green | `bun run typecheck` exit 0 |
 | Rebrand validator accepts current ROX-owned surfaces | Green | `bun run validate:rebrand` exit 0 |
-| Focused rebrand/env/migration/C4 tests pass | Green | Combined focused bundle: 168 pass, 0 fail |
+| Focused rebrand/env/migration/C4 tests pass | Green | Combined focused bundle: 220 pass, 0 fail |
 | Tenant credential reload/fallback passes | Green | `tenant-key-derivation.test.ts`: 6 pass, 0 fail |
 | Lint remains green | Green | `bun run lint` exit 0 |
 | Whitespace check remains clean | Green | `git diff --check` exit 0 |
-| Full suite remains green | Green | 5988 pass, 13 skip, 0 fail |
+| Full suite remains green | Green | 6190 pass, 13 skip, 0 fail |
 | Build remains green | Green | `bun run build` exit 0 |
 | Worklog complete | Green | Final validation evidence recorded |
 | Commit created | Green | Atomic commit after validation |

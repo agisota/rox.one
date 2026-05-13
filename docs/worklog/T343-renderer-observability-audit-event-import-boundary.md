@@ -76,7 +76,7 @@ contract for this browser import boundary.
 - Targeted observability/audit-log bundle: 44 pass, 0 fail, 122 expect calls.
 - `bun run typecheck`: exit 0.
 - `bun run lint`: exit 0 with 3 existing React hook warnings and 0 errors.
-- `bun test`: 5988 pass, 13 skip, 0 fail, 1 snapshot, 24614 expect calls.
+- `bun test`: 6190 pass, 13 skip, 0 fail, 1 snapshot, 25152 expect calls.
 - `git diff --check`: clean.
 
 ## 9. Build output summary

@@ -62,10 +62,10 @@ The focused bundle failed in
 - `bun test packages/shared/src/config/__tests__/user-data-migration.test.ts`:
   5 pass, 0 fail, 60 expect calls.
 - Focused C4/rebrand/credential/observability bundle:
-  168 pass, 0 fail, 442 expect calls across 16 files.
+  220 pass, 0 fail, 543 expect calls across 19 files.
 - `bun run typecheck`: exit 0.
 - `bun run lint`: exit 0 with 3 existing React hook warnings and 0 errors.
-- `bun test`: 5988 pass, 13 skip, 0 fail, 1 snapshot, 24614 expect calls.
+- `bun test`: 6190 pass, 13 skip, 0 fail, 1 snapshot, 25152 expect calls.
 - `git diff --check`: clean.
 
 ## 9. Build output summary

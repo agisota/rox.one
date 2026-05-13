@@ -72,13 +72,13 @@ tests for this documentation shape.
 ## 8. Passing test output summary
 
 - `bun run validate:docs`: agent-contract, architecture docs, and sync-v2
-  design passed; agent contract reported 11 skills, 284 tickets, and 7
+  design passed; agent contract reported 11 skills, 303 tickets, and 7
   required docs.
 - `bun run validate:roadmap`: 46 phases and 110 tickets validated.
 - `bun run validate:rebrand`: no forbidden tokens outside the allowlist.
 - `bun run typecheck`: exit 0.
 - `bun run lint`: exit 0 with 3 existing React hook warnings and 0 errors.
-- `bun test`: 5988 pass, 13 skip, 0 fail, 1 snapshot, 24614 expect calls.
+- `bun test`: 6190 pass, 13 skip, 0 fail, 1 snapshot, 25152 expect calls.
 - `git diff --check`: clean.
 
 ## 9. Build output summary
