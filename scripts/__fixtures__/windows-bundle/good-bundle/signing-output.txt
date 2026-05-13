@@ -1,0 +1,23 @@
+Verifying: ROX.ONE.exe
+
+Signature Index: 0 (Primary Signature)
+Hash of file (sha256): 0000000000000000000000000000000000000000000000000000000000000000
+
+Signing Certificate Chain:
+    Issued to: ROX.ONE Private RC
+    Issued by: ROX.ONE Internal CA
+    Expires:   2099-12-31
+    SHA1 hash: 0000000000000000000000000000000000000000
+
+The signature is timestamped: 2026-05-13
+
+Subject: CN=ROX.ONE Private RC, O=roxone, L=Internal, S=N/A, C=US
+Issuer:  CN=ROX.ONE Internal CA, O=roxone, L=Internal, S=N/A, C=US
+SHA1 hash: 0000000000000000000000000000000000000000
+
+Signed native binaries:
+ROX.ONE.exe
+chrome_elf.dll
+ffmpeg.dll
+
+# (T252 windows boundary ok)

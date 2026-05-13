@@ -168,6 +168,19 @@ win:
         - x64
   # Use predictable naming: ROX-ONE-x64.exe
   artifactName: "ROX-ONE-${arch}.${ext}"
+  # T252: trust-boundary signing placeholder. Real Authenticode signing
+  # is wired by `.github/workflows/win-signed-release.yml` (T254
+  # follow-up). The values below are intentionally inert so local builds
+  # remain unsigned; CI swaps `signtoolOptions.signingHashAlgorithms`
+  # and `signtoolOptions.publisherName` in via repo secrets.
+  signtoolOptions:
+    sign: null
+    signingHashAlgorithms: []
+    publisherName: ""
+  # Pin the canonical AppUserModelID so afterPack-windows.cjs and the
+  # validator both grep the same scope. Mirrors the Mac `appId:
+  # com.rox.one` top-level pin.
+  publisherName: roxone
   files:
     # Exclude binaries for other platforms
     - "!**/vendor/codex/darwin-*/**"
