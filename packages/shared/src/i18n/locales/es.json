@@ -1484,6 +1484,8 @@
   "workbench.composer.input.editLabel": "Editar mensaje",
   "workbench.composer.input.label": "Editor de mensajes",
   "workbench.composer.permission.awaiting": "Esperando al agente…",
+  "workbench.composer.voiceInput.aria-label": "Entrada de voz",
+  "workbench.composer.voiceInput.comingSoon": "Próximamente",
   "workbench.modes.board.description": "Shows reviewer cards, severity matrix, fix plan, and readiness status.",
   "workbench.modes.board.label": "Board",
   "workbench.modes.build.description": "Guides implementation through a plan, tests, checks, and code artifacts.",

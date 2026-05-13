@@ -99,6 +99,7 @@ import {
 import { LineNumbersGutter } from './LineNumbersGutter'
 import { CompactPermissionModeSelector } from './CompactPermissionModeSelector'
 import { EmphasisToolbar } from './EmphasisToolbar'
+import { VoiceInputSlot } from './VoiceInputSlot'
 import {
   toggleEmphasis,
   matchEmphasisShortcut,
@@ -2256,11 +2257,16 @@ export function FreeFormInput({
             pure presentational; the wiring lives in `handleEmphasisToggle`
             and the keyboard branch in `handleKeyDown`. */}
         {!(compactMode && isProcessing) && (
-          <div className="px-3 pt-1 pb-0.5">
+          <div className="flex items-center gap-1 px-3 pt-1 pb-0.5">
             <EmphasisToolbar
               onToggle={handleEmphasisToggle}
               disabled={disabled}
             />
+            {/* T238: voice-input placeholder slot. Sits immediately after
+                the emphasis toolbar so the formatting + capture affordances
+                live in one strip. The slot ships disabled — the ASR
+                provider integration lands in T239. */}
+            <VoiceInputSlot disabled={disabled} />
           </div>
         )}
 
