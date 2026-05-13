@@ -13,6 +13,8 @@ const legacyUiPackage = `${legacyScope}/ui`;
 const roxUiPackage = `${roxScope}/ui`;
 const legacyCorePackage = `${legacyScope}/core`;
 const roxCorePackage = `${roxScope}/core`;
+const legacyAuditPackage = `${legacyScope}/audit`;
+const roxAuditPackage = `${roxScope}/audit`;
 
 function readText(path: string): string {
   return readFileSync(join(repoRoot, path), "utf8");
@@ -128,5 +130,18 @@ describe("R.5 package-scope rebrand", () => {
     const roxMatches = activeFiles.filter((path) => readText(path).includes(roxCorePackage));
     expect(roxMatches.length).toBeGreaterThan(0);
     expect(readText("bun.lock")).toContain(roxCorePackage);
+  });
+
+  test("renames the audit workspace package to the ROX scope", () => {
+    const auditPackageJson = readJson("packages/audit/package.json");
+    expect(auditPackageJson.name).toBe(roxAuditPackage);
+
+    const activeFiles = [...listFiles("apps"), ...listFiles("packages"), "bun.lock"];
+    const legacyMatches = activeFiles.filter((path) => readText(path).includes(legacyAuditPackage));
+    expect(legacyMatches).toEqual([]);
+
+    const roxMatches = activeFiles.filter((path) => readText(path).includes(roxAuditPackage));
+    expect(roxMatches.length).toBeGreaterThan(0);
+    expect(readText("bun.lock")).toContain(roxAuditPackage);
   });
 });
