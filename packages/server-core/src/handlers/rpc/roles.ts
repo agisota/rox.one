@@ -160,6 +160,19 @@ export function registerRolesCoreHandlers(server: RpcServer, deps: HandlerDeps):
       return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
     }
 
+    // T086b: optional per-actor budget guard. Runs AFTER the token-bucket
+    // gate and BEFORE validation/permission/store-write/audit. Keyed by
+    // `ctx.userId` (or the anonymous sentinel) so each actor has an
+    // isolated lifetime cap. Sustained-pace attackers who never trip the
+    // burst limiter can still exhaust their per-actor cap. Absent => no-op.
+    if (deps.budgetGuard) {
+      const key = ctx.userId ?? '__anonymous__'
+      const result = deps.budgetGuard.consume(key, 1)
+      if (!result.ok) {
+        return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+      }
+    }
+
     // Argument validation runs first so we can reject malformed grants
     // before they hit the permission check. (This matches the test
     // expectation — invalid-argument cases use a valid caller.)
@@ -223,6 +236,18 @@ export function registerRolesCoreHandlers(server: RpcServer, deps: HandlerDeps):
     // actor cannot burst either grant or revoke past the configured cap.
     if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
       return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+
+    // T086b: optional per-actor budget guard. Same key/contract as
+    // `roles.grant`. Grant and revoke share the same guard by design so
+    // a single actor cannot exhaust either mutating channel past the
+    // configured per-actor cap.
+    if (deps.budgetGuard) {
+      const key = ctx.userId ?? '__anonymous__'
+      const result = deps.budgetGuard.consume(key, 1)
+      if (!result.ok) {
+        return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+      }
     }
 
     if (!grant || typeof grant !== 'object') {
