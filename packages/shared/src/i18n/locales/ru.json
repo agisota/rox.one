@@ -1484,6 +1484,8 @@
   "workbench.composer.input.editLabel": "Редактирование сообщения",
   "workbench.composer.input.label": "Редактор сообщения",
   "workbench.composer.permission.awaiting": "Ожидание агента…",
+  "workbench.composer.voiceInput.aria-label": "Голосовой ввод",
+  "workbench.composer.voiceInput.comingSoon": "Скоро",
   "workbench.modes.board.description": "Показывает reviewer cards, severity matrix, fix plan и статус готовности.",
   "workbench.modes.board.label": "Доска",
   "workbench.modes.build.description": "Ведет реализацию через план, тесты, проверки и артефакты кода.",

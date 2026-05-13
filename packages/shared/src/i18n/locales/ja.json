@@ -1484,6 +1484,8 @@
   "workbench.composer.input.editLabel": "メッセージを編集",
   "workbench.composer.input.label": "メッセージエディタ",
   "workbench.composer.permission.awaiting": "エージェントを待機中…",
+  "workbench.composer.voiceInput.aria-label": "音声入力",
+  "workbench.composer.voiceInput.comingSoon": "近日公開",
   "workbench.modes.board.description": "Shows reviewer cards, severity matrix, fix plan, and readiness status.",
   "workbench.modes.board.label": "Board",
   "workbench.modes.build.description": "Guides implementation through a plan, tests, checks, and code artifacts.",
