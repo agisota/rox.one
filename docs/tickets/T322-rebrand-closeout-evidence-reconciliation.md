@@ -55,7 +55,7 @@ before updating the docs.
 ## Acceptance Criteria
 
 - [x] The new docs-contract test fails before implementation.
-- [x] The release mapping includes T321 and `d0b2528`.
+- [x] The release mapping includes T321 and the current concrete T321 SHA.
 - [x] The T296 worklog no longer uses `this closeout commit`.
 - [x] Rebrand/docs/agent-contract gates stay green.
 - [x] Worklog complete.
