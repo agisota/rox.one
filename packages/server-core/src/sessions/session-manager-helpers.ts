@@ -38,7 +38,7 @@ import {
   pickSessionFields,
   type SessionHeader,
 } from '@craft-agent/shared/sessions'
-import { type Message, type StoredAttachment, type ToolDisplayMeta } from '@craft-agent/core/types'
+import { type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-one/core/types'
 import { perf, encodeIconToDataUrlAsync, getEmojiIcon, resolveToolIcon } from '@craft-agent/shared/utils'
 import { type ThinkingLevel, normalizeThinkingLevel } from '@craft-agent/shared/agent/thinking-levels'
 import { normalizeBrowserToolName } from '@craft-agent/server-core/domain'

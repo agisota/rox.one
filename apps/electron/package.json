@@ -36,7 +36,7 @@
     "lint:fix": "eslint src/ --fix"
   },
   "dependencies": {
-    "@craft-agent/core": "workspace:*",
+    "@rox-one/core": "workspace:*",
     "@craft-agent/messaging-gateway": "workspace:*",
     "@craft-agent/server-core": "workspace:*",
     "@craft-agent/shared": "workspace:*",

@@ -30,7 +30,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@craft-agent/core": "workspace:*",
+    "@rox-one/core": "workspace:*",
     "@craft-agent/shared": "workspace:*",
     "@mariozechner/pi-ai": "0.72.1",
     "jose": "^6.0.0",

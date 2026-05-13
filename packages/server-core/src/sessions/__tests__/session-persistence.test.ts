@@ -8,7 +8,7 @@ import {
   writeSessionJsonl,
   type StoredSession,
 } from '@craft-agent/shared/sessions'
-import type { StoredMessage } from '@craft-agent/core/types'
+import type { StoredMessage } from '@rox-one/core/types'
 import type { Logger } from '@craft-agent/server-core/runtime'
 import { createManagedSession, type ManagedSession } from '../session-manager-helpers'
 import { SessionPersistence } from '../session-persistence'

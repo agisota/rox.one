@@ -35,7 +35,7 @@ import type {
   SendMessageOptions,
   FileAttachment,
 } from '@craft-agent/shared/protocol'
-import type { StoredAttachment, Message } from '@craft-agent/core/types'
+import type { StoredAttachment, Message } from '@rox-one/core/types'
 import {
   applyBridgeUpdates,
   buildServersFromSources,

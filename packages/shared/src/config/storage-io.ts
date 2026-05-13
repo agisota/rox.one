@@ -30,10 +30,10 @@ export type {
   McpAuthType,
   AuthType,
   OAuthCredentials,
-} from '@craft-agent/core/types';
+} from '@rox-one/core/types';
 
 // Import for local use
-import type { Workspace } from '@craft-agent/core/types';
+import type { Workspace } from '@rox-one/core/types';
 
 // Import LLM connection types for the StoredConfig interface
 import type { LlmConnection } from './llm-connections.ts';
