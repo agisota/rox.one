@@ -127,6 +127,7 @@
     "validate:e2e-core-scenarios": "bun run scripts/validate-e2e-core-scenarios.ts",
     "validate:packaged-artifacts": "bun run scripts/validate-packaged-artifacts.ts",
     "validate:bundle-policy": "bun run scripts/validate-bundle-policy.ts",
+    "validate:bundle-budget": "node scripts/check-bundle-budget.cjs --dir=apps/electron/dist/renderer --label=electron-renderer",
     "report:bundle-artifacts": "bun run scripts/report-bundle-artifacts.ts",
     "report:bundle-artifacts:fresh": "bun run scripts/report-fresh-bundle-artifacts.ts"
   },
