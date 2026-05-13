@@ -1,5 +1,7 @@
 # T212 - Shared config mock branded local scope
 
+Status: DONE
+
 ## Context
 
 Full-suite validation still fails in `packages/shared/src/agent/backend/__tests__/factory.test.ts`

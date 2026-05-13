@@ -1,5 +1,7 @@
 # T204 - C4 storage submodule scope enforcement
 
+Status: DONE
+
 ## Context
 
 We are building a white-label fork of Craft Agents OSS into Agent Workbench Suite.

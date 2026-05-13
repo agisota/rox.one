@@ -1,5 +1,7 @@
 # T211 - Storage scope brand registry dedup
 
+Status: DONE
+
 ## Context
 
 Full-suite validation still fails in backend factory tests after C4 because

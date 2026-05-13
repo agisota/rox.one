@@ -1,5 +1,7 @@
 # T203 - C4 storage scope path resolver
 
+Status: DONE
+
 ## Context
 
 We are building a white-label fork of Craft Agents OSS into Agent Workbench Suite.

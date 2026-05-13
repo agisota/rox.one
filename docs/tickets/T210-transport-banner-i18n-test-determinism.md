@@ -1,5 +1,7 @@
 # T210 - Transport banner i18n test determinism
 
+Status: DONE
+
 ## Context
 
 C4 final validation exposed a stable renderer test failure in

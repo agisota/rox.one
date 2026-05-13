@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'path'
 import { homedir } from 'os'
 import { RPC_CHANNELS } from '@craft-agent/shared/protocol'
-import { DEFAULT_LOCAL_SCOPE, deriveScopeFromAuth, getWorkspaces, getWorkspaceByNameOrId, addWorkspace, setActiveWorkspace, updateWorkspaceRemoteServer } from '@craft-agent/shared/config'
+import { deriveScopeFromAuth, getWorkspaces, getWorkspaceByNameOrId, addWorkspace, setActiveWorkspace, updateWorkspaceRemoteServer } from '@craft-agent/shared/config'
 import { perf } from '@craft-agent/shared/utils'
 import { pushTyped, type RpcServer } from '@craft-agent/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
@@ -36,7 +36,11 @@ export const CORE_HANDLED_CHANNELS = [
   RPC_CHANNELS.logo.GET_URL,
 ] as const
 
-async function deriveWorkspaceScope(deps: HandlerDeps, ctx: RequestContext) {
+async function deriveWorkspaceScope(
+  deps: HandlerDeps,
+  ctx: RequestContext,
+  requestedWorkspaceId: string | null | undefined = ctx.workspaceId,
+) {
   const permittedWorkspaces = ctx.userId && deps.accountStore
     ? await deps.accountStore.listWorkspaceIds(ctx.userId)
     : []
@@ -47,7 +51,7 @@ async function deriveWorkspaceScope(deps: HandlerDeps, ctx: RequestContext) {
       permittedWorkspaces,
       reqId: ctx.sessionId ?? ctx.clientId,
     },
-    ctx.workspaceId,
+    requestedWorkspaceId,
   )
 }
 
@@ -69,12 +73,11 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
       throw new Error(validation.reason!)
     }
 
-    // TODO(C4): use deriveScopeFromAuth when ready
-    const workspace = addWorkspace({ name, rootPath, ...(remoteServer && { remoteServer }) }, DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx)
+    const workspace = addWorkspace({ name, rootPath, ...(remoteServer && { remoteServer }) }, scope)
     await grantWorkspaceAccess(deps, ctx, workspace.id)
     // Make it active
-    // TODO(C4): use deriveScopeFromAuth when ready
-    setActiveWorkspace(workspace.id, DEFAULT_LOCAL_SCOPE)
+    setActiveWorkspace(workspace.id, scope)
     deps.platform.logger.info(`Created workspace "${name}" at ${rootPath}${remoteServer ? ` (remote: ${remoteServer.url})` : ''}`)
     return workspace
   })
@@ -90,8 +93,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // Update remote server config for an existing workspace (reconnect flow)
   server.handle(RPC_CHANNELS.workspaces.UPDATE_REMOTE, async (ctx, workspaceId: string, remoteServer: { url: string; token: string; remoteWorkspaceId: string }) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
-    // TODO(C4): use deriveScopeFromAuth when ready
-    updateWorkspaceRemoteServer(workspaceId, remoteServer, DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx, workspaceId)
+    updateWorkspaceRemoteServer(workspaceId, remoteServer, scope)
     deps.platform.logger.info(`Updated remote server for workspace ${workspaceId}: ${remoteServer.url}`)
     return { success: true }
   })
@@ -102,8 +105,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
     // Set up ConfigWatcher for live updates (labels, statuses, sources, themes)
     if (workspaceId) {
       await requireWorkspaceAccess(deps, ctx, workspaceId)
-      // TODO(C4): use deriveScopeFromAuth when ready
-      const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
+      const scope = await deriveWorkspaceScope(deps, ctx, workspaceId)
+      const workspace = getWorkspaceByNameOrId(workspaceId, scope)
       if (workspace) {
         sessionManager.setupConfigWatcher(workspace.rootPath, workspaceId)
       }
@@ -154,8 +157,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
     }
 
     // Set up ConfigWatcher for the new workspace
-    // TODO(C4): use deriveScopeFromAuth when ready
-    const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx, workspaceId)
+    const workspace = getWorkspaceByNameOrId(workspaceId, scope)
     if (workspace) {
       sessionManager.setupConfigWatcher(workspace.rootPath, workspaceId)
     }
@@ -176,8 +179,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // Generic workspace image loading (for source icons, status icons, etc.)
   server.handle(RPC_CHANNELS.workspace.READ_IMAGE, async (ctx, workspaceId: string, relativePath: string) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
-    // TODO(C4): use deriveScopeFromAuth when ready
-    const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx, workspaceId)
+    const workspace = getWorkspaceByNameOrId(workspaceId, scope)
     if (!workspace) throw new Error('Workspace not found')
 
     const { readFileSync, existsSync } = await import('fs')
@@ -234,8 +237,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // Resizes images to max 256x256 to keep file sizes small
   server.handle(RPC_CHANNELS.workspace.WRITE_IMAGE, async (ctx, workspaceId: string, relativePath: string, base64: string, mimeType: string) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
-    // TODO(C4): use deriveScopeFromAuth when ready
-    const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx, workspaceId)
+    const workspace = getWorkspaceByNameOrId(workspaceId, scope)
     if (!workspace) throw new Error('Workspace not found')
 
     const { writeFileSync, existsSync, unlinkSync, readdirSync } = await import('fs')
@@ -308,35 +311,35 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // Theme (app-level only)
   // ============================================================
 
-  server.handle(RPC_CHANNELS.theme.GET_APP, async () => {
+  server.handle(RPC_CHANNELS.theme.GET_APP, async (ctx) => {
     const { loadAppTheme } = await import('@craft-agent/shared/config/storage')
-    // TODO(C4): use deriveScopeFromAuth when ready
-    return loadAppTheme(DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx)
+    return loadAppTheme(scope)
   })
 
   // Preset themes (app-level)
-  server.handle(RPC_CHANNELS.theme.GET_PRESETS, async () => {
+  server.handle(RPC_CHANNELS.theme.GET_PRESETS, async (ctx) => {
     const { loadPresetThemes } = await import('@craft-agent/shared/config/storage')
-    // TODO(C4): use deriveScopeFromAuth when ready
-    return loadPresetThemes(DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx)
+    return loadPresetThemes(scope)
   })
 
-  server.handle(RPC_CHANNELS.theme.LOAD_PRESET, async (_ctx, themeId: string) => {
+  server.handle(RPC_CHANNELS.theme.LOAD_PRESET, async (ctx, themeId: string) => {
     const { loadPresetTheme } = await import('@craft-agent/shared/config/storage')
-    // TODO(C4): use deriveScopeFromAuth when ready
-    return loadPresetTheme(themeId, DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx)
+    return loadPresetTheme(themeId, scope)
   })
 
-  server.handle(RPC_CHANNELS.theme.GET_COLOR_THEME, async () => {
+  server.handle(RPC_CHANNELS.theme.GET_COLOR_THEME, async (ctx) => {
     const { getColorTheme } = await import('@craft-agent/shared/config/storage')
-    // TODO(C4): use deriveScopeFromAuth when ready
-    return getColorTheme(DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx)
+    return getColorTheme(scope)
   })
 
-  server.handle(RPC_CHANNELS.theme.SET_COLOR_THEME, async (_ctx, themeId: string) => {
+  server.handle(RPC_CHANNELS.theme.SET_COLOR_THEME, async (ctx, themeId: string) => {
     const { setColorTheme } = await import('@craft-agent/shared/config/storage')
-    // TODO(C4): use deriveScopeFromAuth when ready
-    setColorTheme(themeId, DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx)
+    setColorTheme(themeId, scope)
   })
 
   // Broadcast theme preferences to all other windows (for cross-window sync)
@@ -347,10 +350,9 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // Workspace-level theme overrides
   server.handle(RPC_CHANNELS.theme.GET_WORKSPACE_COLOR_THEME, async (ctx, workspaceId: string) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
-    const { getWorkspaces } = await import('@craft-agent/shared/config/storage')
     const { getWorkspaceColorTheme } = await import('@craft-agent/shared/workspaces/storage')
-    // TODO(C4): use deriveScopeFromAuth when ready
-    const workspaces = getWorkspaces(DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx, workspaceId)
+    const workspaces = getWorkspaces(scope)
     const workspace = workspaces.find(w => w.id === workspaceId)
     if (!workspace) return null
     return getWorkspaceColorTheme(workspace.rootPath) ?? null
@@ -358,20 +360,18 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
 
   server.handle(RPC_CHANNELS.theme.SET_WORKSPACE_COLOR_THEME, async (ctx, workspaceId: string, themeId: string | null) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
-    const { getWorkspaces } = await import('@craft-agent/shared/config/storage')
     const { setWorkspaceColorTheme } = await import('@craft-agent/shared/workspaces/storage')
-    // TODO(C4): use deriveScopeFromAuth when ready
-    const workspaces = getWorkspaces(DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx, workspaceId)
+    const workspaces = getWorkspaces(scope)
     const workspace = workspaces.find(w => w.id === workspaceId)
     if (!workspace) return
     setWorkspaceColorTheme(workspace.rootPath, themeId ?? undefined)
   })
 
   server.handle(RPC_CHANNELS.theme.GET_ALL_WORKSPACE_THEMES, async (ctx) => {
-    const { getWorkspaces } = await import('@craft-agent/shared/config/storage')
     const { getWorkspaceColorTheme } = await import('@craft-agent/shared/workspaces/storage')
-    // TODO(C4): use deriveScopeFromAuth when ready
-    const workspaces = await filterOwnedWorkspaces(deps, ctx, getWorkspaces(DEFAULT_LOCAL_SCOPE))
+    const scope = await deriveWorkspaceScope(deps, ctx)
+    const workspaces = await filterOwnedWorkspaces(deps, ctx, getWorkspaces(scope))
     const themes: Record<string, string | undefined> = {}
     for (const ws of workspaces) {
       themes[ws.id] = getWorkspaceColorTheme(ws.rootPath)
@@ -392,8 +392,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // List views for a workspace (dynamic expression-based filters stored in views.json)
   server.handle(RPC_CHANNELS.views.LIST, async (ctx, workspaceId: string) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
-    // TODO(C4): use deriveScopeFromAuth when ready
-    const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx, workspaceId)
+    const workspace = getWorkspaceByNameOrId(workspaceId, scope)
     if (!workspace) throw new Error('Workspace not found')
 
     const { listViews } = await import('@craft-agent/shared/views/storage')
@@ -403,8 +403,8 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
   // Save views (replaces full array)
   server.handle(RPC_CHANNELS.views.SAVE, async (ctx, workspaceId: string, views: import('@craft-agent/shared/views').ViewConfig[]) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
-    // TODO(C4): use deriveScopeFromAuth when ready
-    const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx, workspaceId)
+    const workspace = getWorkspaceByNameOrId(workspaceId, scope)
     if (!workspace) throw new Error('Workspace not found')
 
     const { saveViews } = await import('@craft-agent/shared/views/storage')
@@ -419,14 +419,14 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
 
   // Tool icon mappings — loads tool-icons.json and resolves each entry's icon to a data URL
   // for display in the Appearance settings page
-  server.handle(RPC_CHANNELS.toolIcons.GET_MAPPINGS, async () => {
+  server.handle(RPC_CHANNELS.toolIcons.GET_MAPPINGS, async (ctx) => {
     const { getToolIconsDir } = await import('@craft-agent/shared/config/storage')
     const { loadToolIconConfig } = await import('@craft-agent/shared/utils/cli-icon-resolver')
     const { encodeIconToDataUrl } = await import('@craft-agent/shared/utils/icon-encoder')
     const { join } = await import('path')
 
-    // TODO(C4): use deriveScopeFromAuth when ready
-    const toolIconsDir = getToolIconsDir(DEFAULT_LOCAL_SCOPE)
+    const scope = await deriveWorkspaceScope(deps, ctx)
+    const toolIconsDir = getToolIconsDir(scope)
     const config = loadToolIconConfig(toolIconsDir)
     if (!config) return []
 
