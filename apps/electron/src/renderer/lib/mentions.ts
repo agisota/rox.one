@@ -12,7 +12,7 @@ import type { ContentBadge } from '@rox-one/core'
 import type { MentionItemType } from '@/components/ui/mention-menu'
 import type { LoadedSkill, LoadedSource } from '../../shared/types'
 import { AGENTS_PLUGIN_NAME } from '@rox-one/shared/skills/types'
-import { getSourceIconSync, getSkillIconSync } from './icon-cache'
+import { iconCache } from './icon-cache'
 
 // Import and re-export parsing functions from shared (pure string operations, no renderer deps)
 import { parseMentions, stripAllMentions, resolveSkillMentions, resolveSourceMentions, type ParsedMentions } from '@rox-one/shared/mentions'
@@ -224,13 +224,13 @@ export function extractBadges(
       label = skill?.metadata.name || match.id
 
       // Get cached icon as data URL (preserves mime type for SVG, PNG, etc.)
-      iconDataUrl = getSkillIconSync(workspaceId, match.id) ?? undefined
+      iconDataUrl = iconCache.get(`skill:${workspaceId}:${match.id}`)
     } else if (match.type === 'source') {
       const source = sourcesBySlug.get(match.id)
       label = source?.config.name || match.id
 
       // Get cached icon as data URL (preserves mime type for SVG, PNG, etc.)
-      iconDataUrl = getSourceIconSync(workspaceId, match.id) ?? undefined
+      iconDataUrl = iconCache.get(`source:${workspaceId}:${match.id}`)
     } else if (match.type === 'file') {
       // Show filename as label, full relative path stored for tooltip
       label = match.id.split('/').pop() || match.id
