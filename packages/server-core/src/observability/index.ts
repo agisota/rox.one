@@ -11,5 +11,29 @@
 export {
   type FileAuditSinkHandle,
   type FileAuditSinkOptions,
+  type FileAuditSinkRetention,
   createFileAuditSink,
 } from './file-audit-sink.ts'
+
+export {
+  DEFAULT_MAX_AGE_MS,
+  DEFAULT_MAX_FILES,
+  type EnforceRetentionOptions,
+  type EnforceRetentionResult,
+  type RetentionFsDeps,
+  enforceRetention,
+  enforceRetentionOnDisk,
+  isRotatedAuditFile,
+} from './audit-retention.ts'
+
+export {
+  DEFAULT_HOST_LOG_DIR_NAME,
+  DEFAULT_HOST_LOG_FILE_NAME,
+  DEFAULT_HOST_MAX_AGE_MS,
+  DEFAULT_HOST_MAX_FILES,
+  type CreateFileSinkArgs,
+  type CreateHostAuditProducerOptions,
+  type HostAuditChain,
+  type HostRetentionOptions,
+  createHostAuditProducer,
+} from './host.ts'
