@@ -1,5 +1,14 @@
 # Codex `/goal` — ROX ONE Rebrand Sweep
 
+> **SUPERSEDED for the global picture by the spine roadmap:**
+> [`2026-05-13-rox-one-v1-end-to-end-spine-goal.md`](./2026-05-13-rox-one-v1-end-to-end-spine-goal.md).
+>
+> This file remains the canonical *phase-detail* reference for rebrand
+> phases **R.0 through R.11**. The spine document owns global sequencing,
+> dependencies, the unified ticket schema, and Lane P (post-release).
+> Codex should invoke the spine and let it dispatch to phase-detail files
+> as needed.
+
 **Date:** 2026-05-13
 **Author:** Branding lane
 **Sibling of:** `2026-05-13-agent-workbench-suite-master-roadmap-goal.md`

@@ -2,7 +2,14 @@
 
 Date: 2026-05-13
 Repository: `/home/dev/craft/rox-one-terminal`
-Successor goal: this rebrand sweep (R.0-R.10).
+Successor goal: this rebrand sweep (R.0-R.10) and the end-to-end spine roadmap.
+
+> See also: **end-to-end spine roadmap** at
+> [`docs/superpowers/goals/2026-05-13-rox-one-v1-end-to-end-spine-goal.md`](docs/superpowers/goals/2026-05-13-rox-one-v1-end-to-end-spine-goal.md).
+> The spine supersedes this file's §4 (Next Tickets), §6 (upstream merge target
+> bumped from v0.9.1 to **v0.9.3**), and §17 (Parallel Execution Plan, replaced
+> by the spine's concurrency rules). Other sections remain useful as historical
+> design context.
 
 This plan records the historical Agent Workbench Suite direction and now points
 forward to the active ROX.ONE rebrand sweep before the next roadmap phase.
