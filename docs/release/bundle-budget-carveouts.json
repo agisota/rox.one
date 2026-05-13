@@ -1,0 +1,45 @@
+{
+  "$schema": "https://docs.rox.one/schemas/bundle-budget-carveouts-v1.json",
+  "documentation": "M.16 (T092 + T118 + T124) per-route 200 KB gzipped budget allowlist. Each entry is a known-over chunk frozen at its recorded ceiling so future growth still fails the gate. Follow-up ticket T132 splits these chunks; this file shrinks as that work lands.",
+  "ratchet": "Lower maxGzipBytes whenever a chunk genuinely shrinks. Never raise without a fresh ticket explaining why.",
+  "jsChunks": [
+    {
+      "pattern": "index-[A-Za-z0-9_-]+\\.js$",
+      "maxGzipBytes": 1500000,
+      "ticket": "T132",
+      "note": "Electron renderer main bundle baseline 2026-05-13: ~1.39 MB gz. Split target: lazy-load Composer, Spec Builder, Review Gate routes."
+    },
+    {
+      "pattern": "main-[A-Za-z0-9_-]+\\.js$",
+      "maxGzipBytes": 400000,
+      "ticket": "T132",
+      "note": "App-shell main chunk baseline ~371 KB gz."
+    },
+    {
+      "pattern": "sonner-[A-Za-z0-9_-]+\\.js$",
+      "maxGzipBytes": 360000,
+      "ticket": "T132",
+      "note": "Toast/notification chunk baseline ~335 KB gz."
+    },
+    {
+      "pattern": "playground-[A-Za-z0-9_-]+\\.js$",
+      "maxGzipBytes": 330000,
+      "ticket": "T132",
+      "note": "Playground entry baseline ~304 KB gz; should not ship in prod once dev-only flag lands."
+    },
+    {
+      "pattern": "emacs-lisp-[A-Za-z0-9_-]+\\.js$",
+      "maxGzipBytes": 220000,
+      "ticket": "T132",
+      "note": "Shiki Emacs-Lisp grammar chunk baseline ~197 KB gz. Tree-shake unused Shiki grammars (see goal Phase 16 work item 5)."
+    },
+    {
+      "pattern": "wasm-[A-Za-z0-9_-]+\\.js$",
+      "maxGzipBytes": 250000,
+      "ticket": "T132",
+      "note": "Shiki WASM loader chunk baseline ~231 KB gz."
+    }
+  ],
+  "cssChunks": [],
+  "imageAssets": []
+}
