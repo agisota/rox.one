@@ -16,6 +16,7 @@ import {
   providerTypeToAgentProvider,
   type AgentBackend,
   type BackendHostRuntimeContext,
+  type BackendStorageScopeAuth,
   type PostInitResult,
 } from '@rox-agent/shared/agent/backend'
 import { DEFAULT_LOCAL_SCOPE, getLlmConnection, getLlmConnections, getDefaultLlmConnection, getDefaultThinkingLevel, resetManagedAnthropicAuthEnvVars, resolveMidStreamBehavior } from '@rox-agent/shared/config'
@@ -201,6 +202,17 @@ function buildBackendHostRuntimeContext(): BackendHostRuntimeContext {
     appRootPath: _platform.appRootPath,
     resourcesPath: _platform.resourcesPath,
     isPackaged: _platform.isPackaged,
+  }
+}
+
+function buildSessionStorageScopeAuth(
+  workspace: Workspace,
+  sessionId: string,
+): BackendStorageScopeAuth {
+  return {
+    requestedWorkspaceId: workspace.id,
+    permittedWorkspaces: [workspace.id],
+    reqId: sessionId,
   }
 }
 
@@ -1725,56 +1737,57 @@ export class SessionManager implements ISessionManager {
         context: backendContext,
         hostRuntime: buildBackendHostRuntimeContext(),
         coreConfig: {
-        workspace: managed.workspace,
-        miniModel,
-        thinkingLevel: managed.thinkingLevel,
-        session: sessionConfig,
-        onSdkSessionIdUpdate,
-        onSdkSessionIdCleared,
-        getRecoveryMessages,
-        getBranchFallbackMessages,
-        getBranchSeedMessages,
-        markBranchSeedApplied,
-        getTransferredSessionSummary,
-        markTransferredSessionSummaryApplied,
-        mcpPool: managed.mcpPool,
-        poolServerUrl,
-        envOverrides,
-        // Claude-specific
-        isHeadless: !AGENT_FLAGS.defaultModesEnabled,
-        skipConfigWatcher: true, // Server owns workspace-level ConfigWatcher — don't duplicate in agents
-        automationSystem: this.automationSystems.get(managed.workspace.rootPath),
-        systemPromptPreset: managed.systemPromptPreset,
-        debugMode: _platform?.isDebugMode ? { enabled: true, logFilePath: _platform.getLogFilePath?.() } : undefined,
-        enable1MContext: await (async () => { const { getEnable1MContext } = await import('@rox-agent/shared/config/storage'); return getEnable1MContext(DEFAULT_LOCAL_SCOPE); })(),
-        // Image resize callback — prevents oversized images from entering conversation history
-        onImageResize: async (filePath: string, maxSizeBytes: number): Promise<string | null> => {
-          try {
-            const buffer = await readFile(filePath)
-            const result = await resizeImageForAPI(buffer, { maxSizeBytes })
-            if (!result) return null
+          workspace: managed.workspace,
+          storageScopeAuth: buildSessionStorageScopeAuth(managed.workspace, managed.id),
+          miniModel,
+          thinkingLevel: managed.thinkingLevel,
+          session: sessionConfig,
+          onSdkSessionIdUpdate,
+          onSdkSessionIdCleared,
+          getRecoveryMessages,
+          getBranchFallbackMessages,
+          getBranchSeedMessages,
+          markBranchSeedApplied,
+          getTransferredSessionSummary,
+          markTransferredSessionSummaryApplied,
+          mcpPool: managed.mcpPool,
+          poolServerUrl,
+          envOverrides,
+          // Claude-specific
+          isHeadless: !AGENT_FLAGS.defaultModesEnabled,
+          skipConfigWatcher: true, // Server owns workspace-level ConfigWatcher — don't duplicate in agents
+          automationSystem: this.automationSystems.get(managed.workspace.rootPath),
+          systemPromptPreset: managed.systemPromptPreset,
+          debugMode: _platform?.isDebugMode ? { enabled: true, logFilePath: _platform.getLogFilePath?.() } : undefined,
+          enable1MContext: await (async () => { const { getEnable1MContext } = await import('@rox-agent/shared/config/storage'); return getEnable1MContext(DEFAULT_LOCAL_SCOPE); })(),
+          // Image resize callback — prevents oversized images from entering conversation history
+          onImageResize: async (filePath: string, maxSizeBytes: number): Promise<string | null> => {
+            try {
+              const buffer = await readFile(filePath)
+              const result = await resizeImageForAPI(buffer, { maxSizeBytes })
+              if (!result) return null
 
-            // Write to session tmp directory (cleaned up with session)
-            const sessionTmpDir = join(sessionPath, 'tmp')
-            await mkdir(sessionTmpDir, { recursive: true })
-            const ext = result.format === 'jpeg' ? 'jpg' : 'png'
-            const outPath = join(sessionTmpDir, `resized-${randomUUID()}.${ext}`)
-            await writeFile(outPath, result.buffer)
+              // Write to session tmp directory (cleaned up with session)
+              const sessionTmpDir = join(sessionPath, 'tmp')
+              await mkdir(sessionTmpDir, { recursive: true })
+              const ext = result.format === 'jpeg' ? 'jpg' : 'png'
+              const outPath = join(sessionTmpDir, `resized-${randomUUID()}.${ext}`)
+              await writeFile(outPath, result.buffer)
 
-            sessionLog.info(`Image resized for Read: ${(buffer.length / 1024 / 1024).toFixed(1)}MB → ${(result.buffer.length / 1024 / 1024).toFixed(1)}MB (→ ${result.width}×${result.height})`)
-            return outPath
-          } catch (err) {
-            sessionLog.error('Image resize failed:', err)
-            return null
-          }
-        },
-        // Source configs for postInit() — backends set up their own bridge/config
-        initialSources: {
-          enabledSources,
-          mcpServers,
-          apiServers,
-          enabledSlugs,
-        },
+              sessionLog.info(`Image resized for Read: ${(buffer.length / 1024 / 1024).toFixed(1)}MB → ${(result.buffer.length / 1024 / 1024).toFixed(1)}MB (→ ${result.width}×${result.height})`)
+              return outPath
+            } catch (err) {
+              sessionLog.error('Image resize failed:', err)
+              return null
+            }
+          },
+          // Source configs for postInit() — backends set up their own bridge/config
+          initialSources: {
+            enabledSources,
+            mcpServers,
+            apiServers,
+            enabledSlugs,
+          },
         },
       }) as AgentInstance
 

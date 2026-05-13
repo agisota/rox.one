@@ -2,6 +2,7 @@ import type {
   AgentProvider,
   BackendConfig,
   BackendHostRuntimeContext,
+  BackendStorageScopeAuth,
   CoreBackendConfig,
   LlmAuthType,
   LlmProviderType,
@@ -32,6 +33,8 @@ export interface BackendRuntimePayload extends Record<string, unknown> {
   customModels?: Array<string | { id: string; contextWindow?: number; supportsImages?: boolean }>;
   /** Resolved dependency-risk decision for provider runtimes that need host-context awareness. */
   dependencyRiskMode?: ProviderDependencyRiskMode;
+  /** Storage-scope auth inputs that subprocess runtimes re-mint locally. */
+  storageScopeAuth?: BackendStorageScopeAuth;
 }
 
 export interface BackendResolutionContext {

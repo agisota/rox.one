@@ -2,6 +2,34 @@ import { describe, expect, it } from 'bun:test';
 import { piDriver } from './pi.ts';
 
 describe('piDriver.buildRuntime custom endpoint models', () => {
+  it('forwards storage-scope auth inputs into the Pi runtime payload', () => {
+    const storageScopeAuth = {
+      requestedWorkspaceId: 'W42',
+      permittedWorkspaces: ['W42'],
+      userId: 'u1',
+      reqId: 'session-1',
+    };
+
+    const runtime = piDriver.buildRuntime({
+      context: {
+        provider: 'pi',
+        authType: 'api_key',
+        resolvedModel: 'vision-model',
+        capabilities: { needsHttpPoolServer: false },
+        connection: null,
+      },
+      coreConfig: { storageScopeAuth } as any,
+      hostRuntime: {} as any,
+      resolvedPaths: {
+        piServerPath: '/tmp/pi-agent-server.js',
+        interceptorBundlePath: '/tmp/interceptor.cjs',
+        nodeRuntimePath: '/usr/bin/node',
+      },
+    });
+
+    expect(runtime.storageScopeAuth).toEqual(storageScopeAuth);
+  });
+
   it('preserves explicit per-model supportsImages values', () => {
     const runtime = piDriver.buildRuntime({
       context: {

@@ -77,6 +77,11 @@ import { createWebFetchTool } from './tools/web-fetch.ts';
 import { resolveSearchProvider } from './tools/search/resolve-provider.ts';
 import { createSearchTool } from './tools/search/create-search-tool.ts';
 import { allowRoxMetadataProperties, stripRoxMetadata } from './rox-metadata-schema.ts';
+import {
+  bootstrapScope,
+  type BootstrappedStorageScope,
+} from './storage-scope-bootstrap.ts';
+import type { PiStorageScopeAuthEnvelope } from '../../shared/src/agent/backend/types.ts';
 
 // ============================================================
 // Types — JSONL Protocol
@@ -114,6 +119,7 @@ interface InitMessage {
   branchFromSdkTurnId?: string;
   customEndpoint?: { api: CustomEndpointApi; supportsImages?: boolean };
   customModels?: Array<string | { id: string; contextWindow?: number; supportsImages?: boolean }>;
+  storageScopeAuth?: PiStorageScopeAuthEnvelope;
   piAuth?: { provider: string; credential: PiCredential };
 }
 
@@ -243,6 +249,7 @@ let unsubscribeEvents: (() => void) | null = null;
 
 // Init config (set on 'init' message)
 let initConfig: Extract<InboundMessage, { type: 'init' }> | null = null;
+let bootstrappedStorageScope: BootstrappedStorageScope | null = null;
 
 // Mutable state
 let currentUserMessage = '';
@@ -1220,6 +1227,10 @@ async function handleInit(msg: Extract<InboundMessage, { type: 'init' }>): Promi
   }
 
   initConfig = msg;
+  bootstrappedStorageScope = bootstrapScope(msg.storageScopeAuth);
+  debugLog(
+    `Bootstrapped storage scope: kind=${bootstrappedStorageScope.scope.kind} configDir=${bootstrappedStorageScope.configDir}`,
+  );
 
   // Azure OpenAI requires a tenant-specific endpoint URL.
   // The Pi SDK (via Vercel AI SDK) reads AZURE_OPENAI_BASE_URL from env.

@@ -13,6 +13,7 @@
  * and passed to the subprocess during initialization.
  */
 
+import { randomUUID } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createInterface, type Interface as ReadlineInterface } from 'node:readline';
 import type { AgentEvent } from '@rox-agent/core/types';
@@ -26,6 +27,7 @@ import {
 import type {
   BackendConfig,
   BackendRuntimeUpdate,
+  BackendStorageScopeAuth,
   ChatOptions,
   SdkMcpServerConfig,
 } from './backend/types.ts';
@@ -358,6 +360,8 @@ export class PiAgent extends BaseAgent {
     const sessionDir = this.config.session
       ? join(this.config.workspace.rootPath, 'sessions', sessionId)
       : undefined;
+    const storageScopeAuth = runtime.storageScopeAuth as BackendStorageScopeAuth | undefined;
+    const storageScopeToken = storageScopeAuth ? randomUUID() : undefined;
 
     // Build spawn args — optionally preload the network interceptor
     // for tool metadata injection/capture across all API formats.
@@ -404,6 +408,7 @@ export class PiAgent extends BaseAgent {
         ...getProxyEnvVars(),
         ...this.config.envOverrides,
         ...awsEnv,
+        ...(storageScopeToken ? { ROX_PI_SCOPE_IPC_TOKEN: storageScopeToken } : {}),
         // Pass session dir for cross-process toolMetadataStore
         ...(sessionDir ? { ROX_SESSION_DIR: sessionDir } : {}),
         // Propagate debug mode
@@ -473,6 +478,11 @@ export class PiAgent extends BaseAgent {
       baseUrl: runtime.baseUrl,
       customEndpoint: runtime.customEndpoint,
       customModels: runtime.customModels,
+      storageScopeAuth: storageScopeAuth && storageScopeToken ? {
+        ...storageScopeAuth,
+        permittedWorkspaces: [...storageScopeAuth.permittedWorkspaces],
+        integrityToken: storageScopeToken,
+      } : undefined,
       // Branch params for Pi SDK session fork
       branchFromSdkSessionId: this.config.session?.branchFromSdkSessionId,
       branchFromSessionPath: this.config.session?.branchFromSessionPath,
