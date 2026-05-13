@@ -1,22 +1,26 @@
 # Agent Workbench Suite Snapshot
 
-Date: 2026-05-05
-Repository: `/Users/marklindgreen/Projects/craft/craft`
+Date: 2026-05-13
+Repository: `/home/dev/craft/rox-one-terminal`
 Private GitHub remote: `https://github.com/agisota/rox-one-terminal.git`
-Local branch: `main`
+Local branch at update: `chore/rebrand-R4-doc-plan-cleanup`
 
-This file records the current state of the ROX ONE / Agent Workbench Suite fork:
+This file records the current state of the ROX.ONE / Agent Workbench Suite fork:
 what is actually implemented, how the new logic works, what was not touched,
 what is still incomplete, and how account/auth/share/upstream integration should
 be understood.
 
+Historical note: this file supersedes the 2026-05-05 snapshot. The prior
+snapshot remains useful for chronology, but this version is the active R.4
+orientation document.
+
 ## 1. Executive Summary
 
-This repository is no longer a clean upstream Craft Agents OSS checkout. It is a
-white-label fork that keeps the core Craft agent desktop shell and adds an
-Agent Workbench product layer on top:
+This repository is a ROX.ONE / Agent Workbench Suite fork descended from
+upstream Craft Agents OSS. It keeps the useful upstream agent desktop
+foundation and adds a ROX.ONE product layer on top:
 
-- Russian-first ROX ONE branding/localization.
+- Russian-first ROX.ONE branding/localization.
 - In-app prompt/product workflow surfaces.
 - Prompt Lab, TDD Plan, Spec Builder, Review Gate.
 - Account cabinet, teams, billing ledger, storage quota, cloud workspace and
@@ -48,7 +52,7 @@ origin       https://github.com/agisota/rox-one-terminal.git
 craft-origin https://github.com/agisota/craft.git
 ```
 
-`origin` is the private ROX ONE repository. At the time this snapshot was
+`origin` is the private ROX.ONE repository. At the time this snapshot was
 written, `origin/main` and local `main` were synchronized before the snapshot
 docs were added.
 
@@ -101,7 +105,7 @@ were subtasks under T041.
 
 ## 3. High-Level Application Architecture
 
-The app is still structurally Craft Agents:
+The app is now documented as the ROX.ONE Agent Workbench Suite:
 
 ```text
 Desktop user
@@ -200,7 +204,7 @@ validation-backed deliverables.
 
 Added/changed:
 
-- ROX ONE naming and white-label config.
+- ROX.ONE naming and white-label config.
 - Russian-first account and workbench copy.
 - i18n parity checks.
 - Removal/polish of English scaffolding on Experience screens.
@@ -230,7 +234,7 @@ tdd
 research
 ```
 
-These are not the same thing as Craft permission modes. They are cognitive /
+These are not the same thing as runtime permission modes. They are cognitive /
 product modes. They determine:
 
 - default skills
