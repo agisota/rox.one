@@ -28,6 +28,7 @@
 
 import { RPC_CHANNELS } from '@rox-one/shared/protocol'
 import { SYSTEM_ROLES, type Role, type RoleGrant } from '@rox-one/shared/auth'
+import type { AuditEventInput, AuditScope } from '@rox-one/shared/observability'
 import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import type { RequestContext } from '../../transport/types'
@@ -54,6 +55,38 @@ type ErrorResult = { error: string; reason: string }
  * Returns `null` on success, or an `{error, reason}` ErrorResult that the
  * caller should hand back to the RPC client.
  */
+/**
+ * Map a `RoleGrant` scope (workspace/org/global with nullable scopeId) onto
+ * the canonical `AuditScope` envelope. `org` scopes are recorded as
+ * `workspace` because the audit taxonomy collapses non-global identifiers
+ * into a single `workspaceId` slot (the org id is the relevant identifier
+ * for downstream filtering). `global` and any null scopeId fall back to
+ * `{kind: 'global'}`.
+ */
+function grantScopeToAuditScope(grant: RoleGrant): AuditScope {
+  if (grant.scopeKind === 'global' || grant.scopeId === null) {
+    return { kind: 'global' }
+  }
+  return { kind: 'workspace', workspaceId: grant.scopeId }
+}
+
+/**
+ * Resolve a human-readable role name for the audit payload. System roles
+ * have stable display names; custom roles fall back to the role id when the
+ * role catalog is absent or the role is unknown. The audit producer only
+ * requires a non-empty string.
+ */
+async function resolveRoleName(deps: HandlerDeps, roleId: string): Promise<string> {
+  const systemRole = SYSTEM_ROLES.find((r) => r.id === roleId)
+  if (systemRole) return systemRole.name
+  if (deps.roleStore) {
+    const customRoles = await deps.roleStore.list()
+    const match = customRoles.find((r) => r.id === roleId)
+    if (match) return match.name
+  }
+  return roleId
+}
+
 async function checkOwnerOnScope(
   deps: HandlerDeps,
   ctx: RequestContext,
@@ -152,6 +185,23 @@ export function registerRolesCoreHandlers(server: RpcServer, deps: HandlerDeps):
       return { error: 'rbac-not-configured', reason: 'no-grant-store' }
     }
     await deps.grantStore.grant(grant)
+
+    // Audit emission. The producer is optional — callers that have not
+    // wired observability remain unaffected. We only emit on the success
+    // path (after the store write returns) so an upstream failure leaves
+    // no spurious RoleGranted record. `ctx.userId` is guaranteed by the
+    // permission check above (which would have rejected `null`).
+    if (deps.auditProducer && ctx.userId) {
+      const event: AuditEventInput = {
+        kind: 'RoleGranted',
+        actor: { type: 'user', id: ctx.userId },
+        subject: { type: 'user', id: grant.actorId },
+        scope: grantScopeToAuditScope(grant),
+        roleName: await resolveRoleName(deps, grant.roleId),
+      }
+      deps.auditProducer.emit(event)
+    }
+
     return { ok: true }
   })
 
@@ -175,6 +225,22 @@ export function registerRolesCoreHandlers(server: RpcServer, deps: HandlerDeps):
     if (revoked && grant.actorKind === 'user' && deps.rbacResolver) {
       deps.rbacResolver.invalidateUser(grant.actorId)
     }
+
+    // Audit emission only when the revoke actually changed state (idempotent
+    // no-op returns `revoked === false` and produces no audit record). This
+    // keeps the audit log meaningful — every RoleRevoked corresponds to a
+    // real permission change.
+    if (revoked && deps.auditProducer && ctx.userId) {
+      const event: AuditEventInput = {
+        kind: 'RoleRevoked',
+        actor: { type: 'user', id: ctx.userId },
+        subject: { type: 'user', id: grant.actorId },
+        scope: grantScopeToAuditScope(grant),
+        roleName: await resolveRoleName(deps, grant.roleId),
+      }
+      deps.auditProducer.emit(event)
+    }
+
     return { ok: true, revoked }
   })
 }
