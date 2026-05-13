@@ -6,7 +6,8 @@ import type { IWindowManager } from './window-manager-interface'
 import type { IMessagingGatewayRegistry } from './messaging-registry-interface'
 import type { AccountStore } from '../accounts'
 import type { OfficeDocumentConverter } from '../services/office-document-adapter'
-import type { RbacResolver } from '@rox-one/shared/auth/rbac-resolver'
+import type { RbacResolver, GrantStore } from '@rox-one/shared/auth/rbac-resolver'
+import type { RoleStore } from '@rox-one/shared/auth/role-store'
 
 /**
  * Generic handler dependency bag.
@@ -38,5 +39,19 @@ export interface HandlerDeps<
    * may omit this field; behaviour then matches the C.4 baseline path.
    */
   rbacResolver?: RbacResolver
+  /**
+   * Optional grant store (T227). The admin RPC handlers
+   * (`roles.grant`, `roles.revoke`) mutate this store. Hosts that have
+   * not yet adopted the admin RPC may omit this field; the mutating
+   * handlers then return `{error: 'rbac-not-configured', reason: 'no-grant-store'}`.
+   */
+  grantStore?: GrantStore
+  /**
+   * Optional role catalog store (T227). `roles.create` appends custom
+   * roles here. `roles.list` consults it when present; when absent it
+   * falls back to `SYSTEM_ROLES` so the catalog remains universally
+   * readable even without admin wiring.
+   */
+  roleStore?: RoleStore
   officeDocumentConverter?: OfficeDocumentConverter
 }
