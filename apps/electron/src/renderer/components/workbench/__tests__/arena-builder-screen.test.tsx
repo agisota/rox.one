@@ -8,7 +8,7 @@ import {
   createArenaDraftRun,
   toggleArenaAgentSelection,
 } from '../arena-builder-state';
-import type { ExperienceTruthState } from '@craft-agent/shared/workbench';
+import type { ExperienceTruthState } from '@rox-one/shared/workbench';
 
 describe('Arena Builder and Agent Collection', () => {
   test('renders agent roster, selected agents, swarm slots, and run estimate', () => {

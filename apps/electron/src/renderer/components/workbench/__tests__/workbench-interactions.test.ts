@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   createExperienceRuntimeStore,
   createInMemoryExperiencePersistenceAdapter,
-} from '@craft-agent/shared/workbench'
+} from '@rox-one/shared/workbench'
 import {
   createDeepMissionEntryState,
   createDeepMissionLaunchPlan,

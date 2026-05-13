@@ -22,8 +22,8 @@ import { WsRpcClient, type TransportConnectionState } from '../transport/client'
 import { RoutedClient } from '../transport/routed-client'
 import { buildClientApi } from '../transport/build-api'
 import { CHANNEL_MAP } from '../transport/channel-map'
-import { createCallbackServer } from '@craft-agent/shared/auth/callback-server'
-import { CHATGPT_OAUTH_CONFIG } from '@craft-agent/shared/auth/chatgpt-oauth-config'
+import { createCallbackServer } from '@rox-one/shared/auth/callback-server'
+import { CHATGPT_OAUTH_CONFIG } from '@rox-one/shared/auth/chatgpt-oauth-config'
 import {
   CLIENT_OPEN_EXTERNAL,
   CLIENT_OPEN_PATH,

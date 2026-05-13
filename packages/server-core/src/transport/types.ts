@@ -2,7 +2,7 @@
  * Transport-layer interfaces for the WS-based RPC.
  */
 
-import type { PushTarget } from '@craft-agent/shared/protocol'
+import type { PushTarget } from '@rox-one/shared/protocol'
 
 export interface AuthIdentity {
   userId: string

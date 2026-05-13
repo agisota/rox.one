@@ -9,7 +9,7 @@ import {
   type ProgressionState,
   type ProgressionStateInput,
 } from './progression-observatory-state';
-import type { ExperienceTruthState } from '@craft-agent/shared/workbench';
+import type { ExperienceTruthState } from '@rox-one/shared/workbench';
 import {
   ExperienceMetricCard,
   ExperienceMetricRow,

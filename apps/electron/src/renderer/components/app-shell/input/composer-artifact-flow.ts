@@ -1,5 +1,5 @@
-import { createDeterministicPromptRewriteProvider } from '@craft-agent/shared/workbench/prompt-rewrite-engine';
-import type { ExperienceEvent } from '@craft-agent/shared/workbench';
+import { createDeterministicPromptRewriteProvider } from '@rox-one/shared/workbench/prompt-rewrite-engine';
+import type { ExperienceEvent } from '@rox-one/shared/workbench';
 import type { ProductModeIntent } from './product-mode-toolbar';
 import {
   createPromptLabState,

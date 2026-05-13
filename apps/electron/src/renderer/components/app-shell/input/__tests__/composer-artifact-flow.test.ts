@@ -8,7 +8,7 @@ import {
 import {
   createInitialExperienceRuntimeState,
   replayExperienceEvents,
-} from '@craft-agent/shared/workbench';
+} from '@rox-one/shared/workbench';
 
 describe('composer artifact flow', () => {
   test('routes improve-prompt to Prompt Lab without submitting', () => {

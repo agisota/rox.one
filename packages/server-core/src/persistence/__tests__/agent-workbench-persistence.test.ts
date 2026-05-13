@@ -5,7 +5,7 @@ import {
   createInMemoryAgentWorkbenchPersistenceAdapter,
   type MissionSchedulerEvent,
 } from '../agent-workbench-persistence'
-import type { AgentPackage, MissionRun } from '@craft-agent/shared/workbench'
+import type { AgentPackage, MissionRun } from '@rox-one/shared/workbench'
 
 const createdAt = '2026-05-05T12:00:00.000Z'
 

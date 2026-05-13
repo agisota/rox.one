@@ -1,4 +1,4 @@
-import type { ShareResult } from '@craft-agent/shared/protocol'
+import type { ShareResult } from '@rox-one/shared/protocol'
 
 export type ShareFailureCode =
   | 'auth_required'

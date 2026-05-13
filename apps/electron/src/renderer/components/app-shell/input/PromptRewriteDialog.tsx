@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { PromptRewriteOutput } from '@craft-agent/shared/workbench';
+import type { PromptRewriteOutput } from '@rox-one/shared/workbench';
 import { Button } from '../../ui/button';
 import {
   Dialog,

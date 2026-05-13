@@ -24,7 +24,7 @@ import {
   rotateAccountSessionIfStale,
 } from './auth'
 import { maskEmail } from './logging-helpers'
-import { generateCallbackPage } from '@craft-agent/shared/auth'
+import { generateCallbackPage } from '@rox-one/shared/auth'
 import type { PlatformServices } from '../runtime/platform'
 import type { AccountStore, PublicUser, SessionIdentity } from '../accounts'
 import { AccountAuthError, AccountConflictError } from '../accounts'
@@ -1765,7 +1765,7 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
       if (!configSession) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 })
       }
-      const { DEFAULT_LOCAL_SCOPE, getActiveWorkspace, getWorkspaces } = await import('@craft-agent/shared/config/storage')
+      const { DEFAULT_LOCAL_SCOPE, getActiveWorkspace, getWorkspaces } = await import('@rox-one/shared/config/storage')
       const active = getActiveWorkspace(DEFAULT_LOCAL_SCOPE)
       if (configSession.kind === 'account' && accountStore) {
         const ownedIds = new Set(await accountStore.listWorkspaceIds(configSession.identity.userId))

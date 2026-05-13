@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import type { ExperienceLayer } from '@craft-agent/shared/workbench';
-import type { ExperienceTruthState } from '@craft-agent/shared/workbench';
+import type { ExperienceLayer } from '@rox-one/shared/workbench';
+import type { ExperienceTruthState } from '@rox-one/shared/workbench';
 
 import { Button } from '../ui/button';
 import {

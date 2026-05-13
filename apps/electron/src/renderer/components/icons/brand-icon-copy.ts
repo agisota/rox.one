@@ -1,4 +1,4 @@
-import { AGENT_WORKBENCH_BRAND_CONFIG, type BrandConfig } from '@craft-agent/shared/branding'
+import { AGENT_WORKBENCH_BRAND_CONFIG, type BrandConfig } from '@rox-one/shared/branding'
 
 export function getBrandLogoText(brand: BrandConfig = AGENT_WORKBENCH_BRAND_CONFIG): string {
   return brand.productName

@@ -1,6 +1,6 @@
 import { format, isToday, isYesterday, startOfDay } from 'date-fns'
 
-import { getDateLocale } from '@craft-agent/shared/i18n'
+import { getDateLocale } from '@rox-one/shared/i18n'
 
 import type { EntityListGroup } from '../ui/entity-list'
 import type { DemoExperienceSession } from './demo-experience-sessions'

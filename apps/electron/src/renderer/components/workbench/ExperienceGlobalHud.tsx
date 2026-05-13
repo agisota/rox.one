@@ -4,7 +4,7 @@ import {
   EXPERIENCE_QUEST_GRAPH,
   type ExperienceLayer,
   type ExperienceRuntimeState,
-} from '@craft-agent/shared/workbench';
+} from '@rox-one/shared/workbench';
 
 import { cn } from '@/lib/utils';
 import { ExperienceFeedbackStrip } from './experience-ui';

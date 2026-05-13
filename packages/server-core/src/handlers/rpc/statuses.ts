@@ -1,5 +1,5 @@
-import { RPC_CHANNELS } from '@craft-agent/shared/protocol'
-import { getWorkspaceByNameOrId } from '@craft-agent/shared/config'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
+import { getWorkspaceByNameOrId } from '@rox-one/shared/config'
 import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 
@@ -14,7 +14,7 @@ export function registerStatusesHandlers(server: RpcServer, _deps: HandlerDeps):
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) throw new Error('Workspace not found')
 
-    const { listStatuses } = await import('@craft-agent/shared/statuses')
+    const { listStatuses } = await import('@rox-one/shared/statuses')
     return listStatuses(workspace.rootPath)
   })
 
@@ -24,7 +24,7 @@ export function registerStatusesHandlers(server: RpcServer, _deps: HandlerDeps):
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) throw new Error('Workspace not found')
 
-    const { reorderStatuses } = await import('@craft-agent/shared/statuses')
+    const { reorderStatuses } = await import('@rox-one/shared/statuses')
     reorderStatuses(workspace.rootPath, orderedIds)
   })
 }

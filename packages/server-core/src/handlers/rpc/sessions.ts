@@ -1,11 +1,11 @@
 import { watch as watchFs } from 'fs'
 import { readFile, writeFile, stat } from 'fs/promises'
 import { join } from 'path'
-import { RPC_CHANNELS, type FileAttachment, type SendMessageOptions, type SessionEvent } from '@craft-agent/shared/protocol'
+import { RPC_CHANNELS, type FileAttachment, type SendMessageOptions, type SessionEvent } from '@rox-one/shared/protocol'
 import type { StoredAttachment } from '@rox-one/core/types'
-import { getWorkspaceByNameOrId } from '@craft-agent/shared/config'
-import { perf } from '@craft-agent/shared/utils'
-import { isValidThinkingLevel, THINKING_LEVEL_IDS } from '@craft-agent/shared/agent/thinking-levels'
+import { getWorkspaceByNameOrId } from '@rox-one/shared/config'
+import { perf } from '@rox-one/shared/utils'
+import { isValidThinkingLevel, THINKING_LEVEL_IDS } from '@rox-one/shared/agent/thinking-levels'
 
 const VALID_THINKING_LEVELS_LIST = THINKING_LEVEL_IDS.map(id => `'${id}'`).join(', ')
 import { pushTyped, type RpcServer } from '@rox-one/server-core/transport'
@@ -86,10 +86,10 @@ export function cleanupSessionFileWatchForClient(clientId: string): void {
 // Recursive directory scanner for session files
 // Filters out internal files (session.jsonl) and hidden files (. prefix)
 // Returns only non-empty directories
-async function scanSessionDirectory(dirPath: string): Promise<import('@craft-agent/shared/protocol').SessionFile[]> {
+async function scanSessionDirectory(dirPath: string): Promise<import('@rox-one/shared/protocol').SessionFile[]> {
   const { readdir, stat } = await import('fs/promises')
   const entries = await readdir(dirPath, { withFileTypes: true })
-  const files: import('@craft-agent/shared/protocol').SessionFile[] = []
+  const files: import('@rox-one/shared/protocol').SessionFile[] = []
 
   for (const entry of entries) {
     // Skip internal and hidden files
@@ -235,7 +235,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   })
 
   // Create a new session
-  server.handle(RPC_CHANNELS.sessions.CREATE, async (ctx, workspaceId: string, options?: import('@craft-agent/shared/protocol').CreateSessionOptions) => {
+  server.handle(RPC_CHANNELS.sessions.CREATE, async (ctx, workspaceId: string, options?: import('@rox-one/shared/protocol').CreateSessionOptions) => {
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const end = perf.start('rpc.createSession', { workspaceId })
     const session = await sessionManager.createSession(workspaceId, options)
@@ -341,7 +341,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Respond to a credential request (secure auth input)
   // Returns true if the response was delivered, false if agent/session is gone
-  server.handle(RPC_CHANNELS.sessions.RESPOND_TO_CREDENTIAL, async (ctx, sessionId: string, requestId: string, response: import('@craft-agent/shared/protocol').CredentialResponse) => {
+  server.handle(RPC_CHANNELS.sessions.RESPOND_TO_CREDENTIAL, async (ctx, sessionId: string, requestId: string, response: import('@rox-one/shared/protocol').CredentialResponse) => {
     await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.respondToCredential(sessionId, requestId, response)
   })
@@ -354,7 +354,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   server.handle(RPC_CHANNELS.sessions.COMMAND, async (
     ctx,
     sessionId: string,
-    command: import('@craft-agent/shared/protocol').SessionCommand
+    command: import('@rox-one/shared/protocol').SessionCommand
   ) => {
     await requireSessionAccess(deps, ctx, sessionId)
     switch (command.type) {
@@ -475,7 +475,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
     }
 
     const { searchSessions } = await import('@rox-one/server-core/services')
-    const { getWorkspaceSessionsPath } = await import('@craft-agent/shared/workspaces')
+    const { getWorkspaceSessionsPath } = await import('@rox-one/shared/workspaces')
 
     const sessionsDir = getWorkspaceSessionsPath(workspace.rootPath)
     log.debug(`SEARCH_SESSIONS: Searching "${query}" in ${sessionsDir}`)
@@ -618,7 +618,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
     await requireWorkspaceAccess(deps, ctx, targetWorkspaceId)
     if (mode !== 'move' && mode !== 'fork') throw new Error(`Invalid dispatch mode: ${mode}`)
 
-    return sessionManager.importSession(targetWorkspaceId, bundle as import('@craft-agent/shared/sessions').SessionBundle, mode)
+    return sessionManager.importSession(targetWorkspaceId, bundle as import('@rox-one/shared/sessions').SessionBundle, mode)
   }
   server.handle(RPC_CHANNELS.sessions.IMPORT, importHandler)
   // Also register as transferable so chunked transfer can invoke it on commit
@@ -637,7 +637,7 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   })
 
   // Import a summarized remote-transfer payload into a target workspace.
-  server.handle(RPC_CHANNELS.sessions.IMPORT_REMOTE_TRANSFER, async (ctx, targetWorkspaceId: string, payload: import('@craft-agent/shared/protocol').RemoteSessionTransferPayload) => {
+  server.handle(RPC_CHANNELS.sessions.IMPORT_REMOTE_TRANSFER, async (ctx, targetWorkspaceId: string, payload: import('@rox-one/shared/protocol').RemoteSessionTransferPayload) => {
     await sessionManager.waitForInit()
     if (!targetWorkspaceId || typeof targetWorkspaceId !== 'string') throw new Error('targetWorkspaceId is required')
     await requireWorkspaceAccess(deps, ctx, targetWorkspaceId)

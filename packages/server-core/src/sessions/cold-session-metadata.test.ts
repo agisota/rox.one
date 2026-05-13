@@ -7,7 +7,7 @@ import {
   loadSession,
   writeSessionJsonl,
   type StoredSession,
-} from '@craft-agent/shared/sessions'
+} from '@rox-one/shared/sessions'
 import type { StoredMessage } from '@rox-one/core/types'
 import { SessionManager, createManagedSession } from './SessionManager.ts'
 

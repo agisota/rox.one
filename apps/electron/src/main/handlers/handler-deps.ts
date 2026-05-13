@@ -8,7 +8,7 @@ import type { HandlerDeps as BaseHandlerDeps } from '@rox-one/server-core/handle
 import type { SessionManager } from '@rox-one/server-core/sessions'
 import type { WindowManager } from '../window-manager'
 import type { BrowserPaneManager } from '../browser-pane-manager'
-import type { OAuthFlowStore } from '@craft-agent/shared/auth'
+import type { OAuthFlowStore } from '@rox-one/shared/auth'
 
 export type HandlerDeps = BaseHandlerDeps<
   SessionManager,

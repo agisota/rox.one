@@ -15,7 +15,7 @@ import {
   createInMemoryExperiencePersistenceAdapter,
   replayExperienceEvents,
   type ExperienceEvent,
-} from '@craft-agent/shared/workbench';
+} from '@rox-one/shared/workbench';
 
 describe('Mission Control run detail', () => {
   test('renders active run timeline, feed, gates, approvals, artifacts, audit, and billing trace', () => {

@@ -8,9 +8,9 @@
 
 import type { Workspace, WorkspaceInfo, ActiveSessionInfo } from '@rox-one/core/types'
 import type { StoredAttachment, AnnotationV1 } from '@rox-one/core/types'
-import type { PermissionMode } from '@craft-agent/shared/agent/mode-types'
-import type { ThinkingLevel } from '@craft-agent/shared/agent/thinking-levels'
-import type { AuthResult } from '@craft-agent/shared/agent'
+import type { PermissionMode } from '@rox-one/shared/agent/mode-types'
+import type { ThinkingLevel } from '@rox-one/shared/agent/thinking-levels'
+import type { AuthResult } from '@rox-one/shared/agent'
 import type {
   Session,
   SessionStatus,
@@ -23,8 +23,8 @@ import type {
   UnreadSummary,
   ShareResult,
   PublicShareStatusResult,
-} from '@craft-agent/shared/protocol'
-import type { SessionBundle, DispatchMode } from '@craft-agent/shared/sessions'
+} from '@rox-one/shared/protocol'
+import type { SessionBundle, DispatchMode } from '@rox-one/shared/sessions'
 import type { EventSink } from '../transport'
 
 export interface ISessionManager {
@@ -163,7 +163,7 @@ export interface ISessionManager {
   exportRemoteSessionTransfer(
     sessionId: string,
     workspaceId: string,
-  ): Promise<import('@craft-agent/shared/protocol').RemoteSessionTransferPayload | null>
+  ): Promise<import('@rox-one/shared/protocol').RemoteSessionTransferPayload | null>
 
   /**
    * Import a session bundle into a target workspace.
@@ -181,8 +181,8 @@ export interface ISessionManager {
    */
   importRemoteSessionTransfer(
     workspaceId: string,
-    payload: import('@craft-agent/shared/protocol').RemoteSessionTransferPayload,
-  ): Promise<import('@craft-agent/shared/protocol').ImportRemoteSessionTransferResult>
+    payload: import('@rox-one/shared/protocol').RemoteSessionTransferPayload,
+  ): Promise<import('@rox-one/shared/protocol').ImportRemoteSessionTransferResult>
 
   // ---------------------------------------------------------------------------
   // Utilities

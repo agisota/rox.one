@@ -1,17 +1,17 @@
 /**
- * @craft-agent/shared
+ * @rox-one/shared
  *
  * Shared business logic for ROX.
  * Used by the Electron app.
  *
  * Import specific modules via subpath exports:
- *   import { CraftAgent } from '@craft-agent/shared/agent';
- *   import { loadStoredConfig } from '@craft-agent/shared/config';
- *   import { getCredentialManager } from '@craft-agent/shared/credentials';
- *   import { RoxMcpClient } from '@craft-agent/shared/mcp';
- *   import { debug } from '@craft-agent/shared/utils';
- *   import { loadSource, createSource, getSourceCredentialManager } from '@craft-agent/shared/sources';
- *   import { createWorkspace, loadWorkspace } from '@craft-agent/shared/workspaces';
+ *   import { CraftAgent } from '@rox-one/shared/agent';
+ *   import { loadStoredConfig } from '@rox-one/shared/config';
+ *   import { getCredentialManager } from '@rox-one/shared/credentials';
+ *   import { RoxMcpClient } from '@rox-one/shared/mcp';
+ *   import { debug } from '@rox-one/shared/utils';
+ *   import { loadSource, createSource, getSourceCredentialManager } from '@rox-one/shared/sources';
+ *   import { createWorkspace, loadWorkspace } from '@rox-one/shared/workspaces';
  *
  * Available modules:
  *   - agent: CraftAgent SDK wrapper, plan tools

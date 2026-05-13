@@ -3,7 +3,7 @@ import {
   type ExperienceTruthState,
   type MetricSnapshot,
   type ProgressLedger,
-} from '@craft-agent/shared/workbench';
+} from '@rox-one/shared/workbench';
 
 export type ProgressionEntitlement = {
   swarmSlots: number;

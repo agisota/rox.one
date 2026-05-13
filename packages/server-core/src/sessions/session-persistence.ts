@@ -3,7 +3,7 @@
  * Owns disk I/O, JSONL writes, message hydration, persist queue.
  * Sibling files: session-ipc.ts, session-manager-helpers.ts, SessionManager.ts.
  */
-import { DEFAULT_LOCAL_SCOPE, getWorkspaces, type Workspace } from '@craft-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, getWorkspaces, type Workspace } from '@rox-one/shared/config'
 import {
   listSessions as listStoredSessions,
   loadSession as loadStoredSession,
@@ -11,13 +11,13 @@ import {
   sessionPersistenceQueue,
   pickSessionFields,
   type StoredSession,
-} from '@craft-agent/shared/sessions'
-import { resolveSessionConnection } from '@craft-agent/shared/agent/backend'
-import { setPermissionMode, hydratePreviousPermissionMode } from '@craft-agent/shared/agent'
+} from '@rox-one/shared/sessions'
+import { resolveSessionConnection } from '@rox-one/shared/agent/backend'
+import { setPermissionMode, hydratePreviousPermissionMode } from '@rox-one/shared/agent'
 import { messageToStored, storedToMessage } from '@rox-one/core/types'
-import { loadWorkspaceConfig } from '@craft-agent/shared/workspaces'
+import { loadWorkspaceConfig } from '@rox-one/shared/workspaces'
 import type { Logger } from '@rox-one/server-core/runtime'
-import type { AutomationSystem } from '@craft-agent/shared/automations'
+import type { AutomationSystem } from '@rox-one/shared/automations'
 import {
   createManagedSession,
   DEFAULT_TOKEN_USAGE,

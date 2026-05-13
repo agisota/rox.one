@@ -16,7 +16,7 @@ import {
   createInMemoryExperiencePersistenceAdapter,
   replayExperienceEvents,
   type ExperienceEvent,
-} from '@craft-agent/shared/workbench';
+} from '@rox-one/shared/workbench';
 
 describe('Deep Missions entry screen', () => {
   test('renders long-running run presets and mission controls', () => {

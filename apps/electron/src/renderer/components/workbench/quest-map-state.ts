@@ -6,7 +6,7 @@ import {
   type Quest,
   type QuestLane,
   type QuestProgress,
-} from '@craft-agent/shared/workbench';
+} from '@rox-one/shared/workbench';
 
 export type QuestUnlockRule = {
   id: string;

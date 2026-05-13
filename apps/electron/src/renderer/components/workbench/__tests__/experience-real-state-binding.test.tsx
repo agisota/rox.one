@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { createExperienceTruthState } from '@craft-agent/shared/workbench';
+import { createExperienceTruthState } from '@rox-one/shared/workbench';
 
 import { AgentForgeTeamRegistry } from '../AgentForgeTeamRegistry';
 import { ArenaBuilderScreen } from '../ArenaBuilderScreen';

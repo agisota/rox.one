@@ -8,7 +8,7 @@ import {
   writeSessionJsonl,
   type StoredMessage,
   type StoredSession,
-} from '@craft-agent/shared/sessions';
+} from '@rox-one/shared/sessions';
 
 interface ExternalAgentSessionIndexEntry {
   id?: unknown;

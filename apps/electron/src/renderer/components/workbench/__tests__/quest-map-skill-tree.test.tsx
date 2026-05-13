@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { EXPERIENCE_QUEST_GRAPH } from '@craft-agent/shared/workbench';
+import { EXPERIENCE_QUEST_GRAPH } from '@rox-one/shared/workbench';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import { QuestMapSkillTree } from '../QuestMapSkillTree';

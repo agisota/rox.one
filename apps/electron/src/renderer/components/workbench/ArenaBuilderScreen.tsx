@@ -11,7 +11,7 @@ import {
   type ArenaBuilderStateInput,
   type ArenaDraftRun,
 } from './arena-builder-state';
-import type { ExperienceTruthState } from '@craft-agent/shared/workbench';
+import type { ExperienceTruthState } from '@rox-one/shared/workbench';
 import {
   ExperienceCard,
   ExperienceMetricRow,

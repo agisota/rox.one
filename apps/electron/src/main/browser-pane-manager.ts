@@ -19,7 +19,7 @@ import {
   type BrowserEmptyStateLaunchResult,
   type BrowserInstanceInfo,
 } from '../shared/types'
-import { DEFAULT_LOCAL_SCOPE, DEFAULT_THEME, loadAppTheme } from '@craft-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, DEFAULT_THEME, loadAppTheme } from '@rox-one/shared/config'
 import { getBrowserLiveFxCornerRadii } from '../shared/browser-live-fx'
 import type { IBrowserPaneManager } from '@rox-one/server-core/handlers'
 

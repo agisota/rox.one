@@ -11,7 +11,7 @@ import {
   type AgentForgeState,
   type AgentForgeStateInput,
 } from './agent-forge-state';
-import type { ExperienceTruthState } from '@craft-agent/shared/workbench';
+import type { ExperienceTruthState } from '@rox-one/shared/workbench';
 import {
   ExperienceCard,
   ExperienceMetricRow,

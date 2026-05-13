@@ -15,8 +15,8 @@
  *   await handle.dispose()                                            // on shutdown
  */
 
-import type { PushTarget } from '@craft-agent/shared/protocol'
-import type { CredentialManager } from '@craft-agent/shared/credentials'
+import type { PushTarget } from '@rox-one/shared/protocol'
+import type { CredentialManager } from '@rox-one/shared/credentials'
 import type { ISessionManager } from '@rox-one/server-core/handlers'
 
 import { MessagingGatewayRegistry } from './registry'

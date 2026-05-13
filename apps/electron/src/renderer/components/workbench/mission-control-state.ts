@@ -9,11 +9,11 @@ import type {
   MissionRun,
   ProgressLedger,
   ValidationGate,
-} from '@craft-agent/shared/workbench';
+} from '@rox-one/shared/workbench';
 import {
   canFinalizeMissionRun,
   selectActiveExperienceTruthState,
-} from '@craft-agent/shared/workbench';
+} from '@rox-one/shared/workbench';
 
 export type MissionApprovalStatus = 'pending' | 'approved' | 'rejected';
 
