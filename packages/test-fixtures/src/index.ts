@@ -1,4 +1,4 @@
-// @rox-agent/test-fixtures
+// @rox-one/test-fixtures
 //
 // Shared test fixtures used by tests across packages. Migrating fixture data
 // out of *.test.ts files keeps individual test files focused on assertions

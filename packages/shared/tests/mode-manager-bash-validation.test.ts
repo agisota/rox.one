@@ -24,7 +24,7 @@ import {
   type CompiledBashPattern,
 } from '../src/agent/mode-manager.ts';
 
-import { TEST_MODE_CONFIG } from '@rox-agent/test-fixtures';
+import { TEST_MODE_CONFIG } from '@rox-one/test-fixtures';
 
 describe('isReadOnlyBashCommand (full integration)', () => {
   // Note: These tests use isReadOnlyBashCommandWithConfig with TEST_MODE_CONFIG
