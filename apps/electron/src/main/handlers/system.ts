@@ -3,12 +3,13 @@ import { join } from 'path'
 import { homedir } from 'os'
 import { execSync } from 'child_process'
 import { RPC_CHANNELS } from '@rox-agent/shared/protocol'
-import { DEFAULT_LOCAL_SCOPE, getGitBashPath, setGitBashPath, clearGitBashPath } from '@rox-agent/shared/config'
+import { getGitBashPath, setGitBashPath, clearGitBashPath } from '@rox-agent/shared/config'
 import { isSafeExternalUrl } from '@rox-agent/shared/utils/url-safety'
 import { isUsableGitBashPath, validateGitBashPath } from '@rox-agent/server-core/services'
 import { validateFilePath, getWorkspaceAllowedDirs } from '@rox-agent/server-core/handlers'
 import type { RpcServer } from '@rox-agent/server-core/transport'
 import type { HandlerDeps } from './handler-deps'
+import { ELECTRON_GLOBAL_STORAGE_SCOPE } from './storage-scope'
 import { DEFAULT_APP_ZOOM_FACTOR } from '../window-manager'
 import {
   requestClientOpenExternal,
@@ -135,19 +136,19 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       join(process.env.PROGRAMFILES || '', 'Git', 'bin', 'bash.exe'),
     ]
 
-    const persistedPath = getGitBashPath(DEFAULT_LOCAL_SCOPE)
+    const persistedPath = getGitBashPath(ELECTRON_GLOBAL_STORAGE_SCOPE)
     if (persistedPath) {
       if (await isUsableGitBashPath(persistedPath)) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH = persistedPath.trim()
         return { found: true, path: persistedPath, platform }
       }
-      clearGitBashPath(DEFAULT_LOCAL_SCOPE)
+      clearGitBashPath(ELECTRON_GLOBAL_STORAGE_SCOPE)
     }
 
     for (const bashPath of commonPaths) {
       if (await isUsableGitBashPath(bashPath)) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH = bashPath
-        setGitBashPath(bashPath, DEFAULT_LOCAL_SCOPE)
+        setGitBashPath(bashPath, ELECTRON_GLOBAL_STORAGE_SCOPE)
         return { found: true, path: bashPath, platform }
       }
     }
@@ -161,7 +162,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       const firstPath = result.split('\n')[0]?.trim()
       if (firstPath && firstPath.toLowerCase().includes('git') && await isUsableGitBashPath(firstPath)) {
         process.env.CLAUDE_CODE_GIT_BASH_PATH = firstPath
-        setGitBashPath(firstPath, DEFAULT_LOCAL_SCOPE)
+        setGitBashPath(firstPath, ELECTRON_GLOBAL_STORAGE_SCOPE)
         return { found: true, path: firstPath, platform }
       }
     } catch {
@@ -193,7 +194,7 @@ export function registerSystemCoreHandlers(server: RpcServer, deps: HandlerDeps)
       return { success: false, error: validation.error }
     }
 
-    setGitBashPath(validation.path, DEFAULT_LOCAL_SCOPE)
+    setGitBashPath(validation.path, ELECTRON_GLOBAL_STORAGE_SCOPE)
     process.env.CLAUDE_CODE_GIT_BASH_PATH = validation.path
     return { success: true }
   })
@@ -288,12 +289,12 @@ export function registerSystemGuiHandlers(server: RpcServer, deps: HandlerDeps):
 
   server.handle(RPC_CHANNELS.update.DISMISS, async (_ctx, version: string) => {
     const { setDismissedUpdateVersion } = await import('@rox-agent/shared/config')
-    setDismissedUpdateVersion(version, DEFAULT_LOCAL_SCOPE)
+    setDismissedUpdateVersion(version, ELECTRON_GLOBAL_STORAGE_SCOPE)
   })
 
   server.handle(RPC_CHANNELS.update.GET_DISMISSED, async () => {
     const { getDismissedUpdateVersion } = await import('@rox-agent/shared/config')
-    return getDismissedUpdateVersion(DEFAULT_LOCAL_SCOPE)
+    return getDismissedUpdateVersion(ELECTRON_GLOBAL_STORAGE_SCOPE)
   })
 
   // Menu actions from renderer (for the unified app menu)
@@ -401,12 +402,12 @@ export function registerSystemGuiHandlers(server: RpcServer, deps: HandlerDeps):
 
   server.handle(RPC_CHANNELS.notification.GET_ENABLED, async () => {
     const { getNotificationsEnabled } = await import('@rox-agent/shared/config/storage')
-    return getNotificationsEnabled(DEFAULT_LOCAL_SCOPE)
+    return getNotificationsEnabled(ELECTRON_GLOBAL_STORAGE_SCOPE)
   })
 
   server.handle(RPC_CHANNELS.notification.SET_ENABLED, async (_ctx, enabled: boolean) => {
     const { setNotificationsEnabled } = await import('@rox-agent/shared/config/storage')
-    setNotificationsEnabled(enabled, DEFAULT_LOCAL_SCOPE)
+    setNotificationsEnabled(enabled, ELECTRON_GLOBAL_STORAGE_SCOPE)
 
     if (enabled) {
       const { showNotification } = await import('../notifications')
