@@ -13,7 +13,7 @@
 
 import { ListTodo } from 'lucide-react'
 import { Markdown } from '../markdown'
-import type { AnnotationV1 } from '@rox-agent/core'
+import type { AnnotationV1 } from '@rox-one/core'
 import type { ExternalOpenAnnotationRequest } from '../annotations/use-annotation-interaction-controller'
 import { FullscreenOverlayBase } from './FullscreenOverlayBase'
 import type { OverlayTypeBadge } from './FullscreenOverlayBaseHeader'

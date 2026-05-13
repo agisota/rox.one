@@ -20,7 +20,7 @@ import type {
   ContentBadge,
   ToolDisplayMeta,
   AnnotationV1,
-} from '@rox-agent/core/types';
+} from '@rox-one/core/types';
 
 // Mode types from dedicated subpath export (avoids pulling in SDK)
 import type { PermissionMode } from '@rox-agent/shared/agent/modes';
@@ -175,7 +175,7 @@ export interface TransportConnectionState {
 // =============================================================================
 
 // Re-import types for ElectronAPI
-import type { WorkspaceInfo, Workspace, SessionMetadata, StoredAttachment as StoredAttachmentType } from '@rox-agent/core/types';
+import type { WorkspaceInfo, Workspace, SessionMetadata, StoredAttachment as StoredAttachmentType } from '@rox-one/core/types';
 
 // Import protocol types used by ElectronAPI (they come through the `export *` above,
 // but we need them in scope for the interface definition)

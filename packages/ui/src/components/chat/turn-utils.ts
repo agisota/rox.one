@@ -5,9 +5,9 @@
  * Converts the flat Message[] array into grouped turns for email-like display.
  */
 
-import type { Message, StoredMessage, MessageRole } from '@rox-agent/core'
+import type { Message, StoredMessage, MessageRole } from '@rox-one/core'
 import { isParentTaskTool } from '@rox-agent/shared/utils/toolNames'
-import { storedToMessage } from '@rox-agent/core'
+import { storedToMessage } from '@rox-one/core'
 
 export { storedToMessage }
 import type { ActivityItem, ActivityStatus, ActivityType, ResponseContent, TodoItem } from './TurnCard'

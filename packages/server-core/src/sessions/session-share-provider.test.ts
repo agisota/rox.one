@@ -4,7 +4,7 @@ import { tmpdir } from 'os'
 import { dirname, join } from 'path'
 
 import { getSessionFilePath, loadSession, writeSessionJsonl, type StoredSession } from '@rox-agent/shared/sessions'
-import type { StoredMessage } from '@rox-agent/core/types'
+import type { StoredMessage } from '@rox-one/core/types'
 
 import { createFakeShareProvider, setSessionShareProviderForTests } from './share-provider'
 import { SessionManager, createManagedSession } from './SessionManager.ts'

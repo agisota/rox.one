@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import type { Message, CredentialResponse } from '../../../shared/types'
-import type { AuthRequestType, AuthStatus } from '@rox-agent/core/types'
+import type { AuthRequestType, AuthStatus } from '@rox-one/core/types'
 import { validateBasicAuthCredentials, getPasswordValue, getPasswordLabel, getPasswordPlaceholder } from '@/utils/auth-validation'
 
 // ============================================================================

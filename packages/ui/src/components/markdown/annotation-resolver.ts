@@ -1,4 +1,4 @@
-import type { AnnotationV1 } from '@rox-agent/core'
+import type { AnnotationV1 } from '@rox-one/core'
 
 export interface ResolvedTextAnnotation {
   annotation: AnnotationV1

@@ -78,7 +78,7 @@
     "./workbench/spec-compiler": "./src/workbench/spec-compiler.ts"
   },
   "dependencies": {
-    "@rox-agent/core": "workspace:*",
+    "@rox-one/core": "workspace:*",
     "@rox-agent/session-tools-core": "workspace:*",
     "@isaacs/ttlcache": "^2.1.4",
     "@leeoniya/ufuzzy": "^1.0.19",

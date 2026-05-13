@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rox-agent/core": "workspace:*",
+    "@rox-one/core": "workspace:*",
     "@rox-one/ui": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

@@ -34,7 +34,7 @@ import {
 } from '@rox-agent/server-core/transport'
 import type { ConfirmDialogSpec, FileDialogSpec } from '@rox-agent/server-core/transport'
 import type { RpcClient } from '@rox-agent/server-core/transport'
-import type { RemoteServerConfig } from '@rox-agent/core/types'
+import type { RemoteServerConfig } from '@rox-one/core/types'
 import type { ElectronAPI } from '../shared/types'
 
 // ---------------------------------------------------------------------------

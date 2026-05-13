@@ -52,7 +52,7 @@ export interface SessionEvent {
   [key: string]: unknown
 }
 
-/** PermissionRequest shape from @rox-agent/core. */
+/** PermissionRequest shape from @rox-one/core. */
 interface PermissionRequest {
   requestId: string
   toolName: string

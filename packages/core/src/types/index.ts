@@ -1,5 +1,5 @@
 /**
- * Re-export all types from @rox-agent/core
+ * Re-export all types from @rox-one/core
  */
 
 // Workspace and config types

@@ -12,7 +12,7 @@
  * - AsyncGenerator for streaming: Consistent with existing RoxAgent API
  */
 
-import type { AgentEvent } from '@rox-agent/core/types';
+import type { AgentEvent } from '@rox-one/core/types';
 import type { FileAttachment } from '../../utils/files.ts';
 import type { ThinkingLevel } from '../thinking-levels.ts';
 import type { PermissionMode } from '../mode-manager.ts';

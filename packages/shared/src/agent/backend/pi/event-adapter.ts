@@ -9,7 +9,7 @@
  * Claude / Codex / Copilot backends.
  */
 
-import type { AgentEvent as RoxAgentEvent } from '@rox-agent/core/types';
+import type { AgentEvent as RoxAgentEvent } from '@rox-one/core/types';
 import type {
   AgentEvent as PiAgentEvent,
 } from '@mariozechner/pi-agent-core';

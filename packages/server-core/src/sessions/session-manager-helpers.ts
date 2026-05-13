@@ -38,7 +38,7 @@ import {
   pickSessionFields,
   type SessionHeader,
 } from '@rox-agent/shared/sessions'
-import { type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-agent/core/types'
+import { type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-one/core/types'
 import { perf, encodeIconToDataUrlAsync, getEmojiIcon, resolveToolIcon } from '@rox-agent/shared/utils'
 import { type ThinkingLevel, normalizeThinkingLevel } from '@rox-agent/shared/agent/thinking-levels'
 import { normalizeBrowserToolName } from '@rox-agent/server-core/domain'

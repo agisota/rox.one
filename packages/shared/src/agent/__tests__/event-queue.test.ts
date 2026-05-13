@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'bun:test';
 import { EventQueue } from '../backend/event-queue.ts';
-import type { AgentEvent } from '@rox-agent/core/types';
+import type { AgentEvent } from '@rox-one/core/types';
 
 // Helper: create a minimal AgentEvent
 function textDelta(text: string): AgentEvent {

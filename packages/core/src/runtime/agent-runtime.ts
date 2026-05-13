@@ -2,7 +2,7 @@
  * AgentRuntime — core's vocabulary for the agent runtime contract.
  *
  * This module is the type-level anchor for the agent runtime concept inside
- * `@rox-agent/core`. The full provider-facing contract lives in
+ * `@rox-one/core`. The full provider-facing contract lives in
  * `@rox-agent/shared` as `AgentBackend` (see
  * `packages/shared/src/agent/backend/types.ts`). That interface is the de-facto
  * runtime contract today: every concrete agent (`ClaudeAgent`, `PiAgent`)
@@ -43,7 +43,7 @@ import type { AgentEvent } from '../types/message.ts';
  * identically-named member on `AgentBackend` with the same signature, so any
  * `AgentBackend` is assignable to `AgentRuntime` without a cast.
  *
- * Members are limited to those whose signatures touch only `@rox-agent/core`
+ * Members are limited to those whose signatures touch only `@rox-one/core`
  * primitives (`AgentEvent`, plain strings, plain booleans). Members that
  * reference shared-only types (sources, MCP servers, permission requests,
  * thinking levels, workspace config) live exclusively on `AgentBackend`.

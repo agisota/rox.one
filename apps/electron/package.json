@@ -36,7 +36,7 @@
     "lint:fix": "eslint src/ --fix"
   },
   "dependencies": {
-    "@rox-agent/core": "workspace:*",
+    "@rox-one/core": "workspace:*",
     "@rox-agent/messaging-gateway": "workspace:*",
     "@rox-agent/server-core": "workspace:*",
     "@rox-agent/shared": "workspace:*",

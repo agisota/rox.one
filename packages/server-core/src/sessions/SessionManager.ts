@@ -36,7 +36,7 @@ import {
   type WorkspaceInfo,
 } from '@rox-agent/shared/config'
 import { installDefaultWorkbenchBundle } from '@rox-agent/shared/workbench/default-workspace-bundle'
-import type { ActiveSessionInfo, SessionProcessingStatus } from '@rox-agent/core/types'
+import type { ActiveSessionInfo, SessionProcessingStatus } from '@rox-one/core/types'
 import { loadWorkspaceConfig } from '@rox-agent/shared/workspaces'
 import {
   // Session persistence functions
@@ -86,7 +86,7 @@ import {
 } from './share-provider'
 import { McpClientPool, McpPoolServer } from '@rox-agent/shared/mcp'
 import { type Session, type SessionEvent, type FileAttachment, type SendMessageOptions, type UnreadSummary, type RemoteSessionTransferPayload, type ImportRemoteSessionTransferResult, RPC_CHANNELS, generateMessageId } from '@rox-agent/shared/protocol'
-import { messageToStored, storedToMessage, type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-agent/core/types'
+import { messageToStored, storedToMessage, type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-one/core/types'
 import { formatPathsToRelative, formatToolInputPaths, perf, encodeIconToDataUrlAsync, getEmojiIcon, resetSummarizationClient, resolveToolIcon, readFileAttachment, selectSpreadMessages, normalizePath } from '@rox-agent/shared/utils'
 import { loadAllSkills, loadSkillBySlug, invalidateSkillsCache, type LoadedSkill } from '@rox-agent/shared/skills'
 import { invalidateContextFileCache } from '@rox-agent/shared/prompts/system'

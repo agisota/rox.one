@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { BaseEventAdapter } from '../backend/base-event-adapter.ts';
-import type { AgentEvent } from '@rox-agent/core/types';
+import type { AgentEvent } from '@rox-one/core/types';
 
 /**
  * Concrete test implementation of BaseEventAdapter.

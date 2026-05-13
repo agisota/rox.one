@@ -1,4 +1,4 @@
-import type { AnnotationV1 } from '@rox-agent/core'
+import type { AnnotationV1 } from '@rox-one/core'
 import { annotationColorToCss } from './annotation-style-tokens'
 
 export function clearBlockAnnotationMarkers(root: HTMLElement): void {

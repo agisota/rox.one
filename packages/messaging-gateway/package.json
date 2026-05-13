@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@rox-agent/core": "workspace:*",
+    "@rox-one/core": "workspace:*",
     "@rox-agent/messaging-whatsapp-worker": "workspace:*",
     "@rox-agent/server-core": "workspace:*",
     "@rox-agent/shared": "workspace:*",
