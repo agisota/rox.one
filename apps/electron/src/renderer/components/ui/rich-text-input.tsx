@@ -6,8 +6,7 @@ import { findMentionMatches, parseMentions, type MentionMatch } from '@/lib/ment
 import {
   loadSourceIcon,
   loadSkillIcon,
-  getSourceIconSync,
-  getSkillIconSync,
+  iconCache,
   EMOJI_ICON_PREFIX,
 } from '@/lib/icon-cache'
 import type { LoadedSkill, LoadedSource } from '../../../shared/types'
@@ -134,9 +133,9 @@ function renderBadgeHTML(
   let cachedIconUrl: string | null = null
 
   if (type === 'skill' && skill && workspaceId) {
-    cachedIconUrl = getSkillIconSync(workspaceId, skill.slug)
+    cachedIconUrl = iconCache.get(`skill:${workspaceId}:${skill.slug}`) ?? null
   } else if (type === 'source' && source && workspaceId) {
-    cachedIconUrl = getSourceIconSync(workspaceId, source.config.slug)
+    cachedIconUrl = iconCache.get(`source:${workspaceId}:${source.config.slug}`) ?? null
   }
 
   if (cachedIconUrl) {

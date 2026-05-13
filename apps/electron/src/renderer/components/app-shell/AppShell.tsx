@@ -138,7 +138,7 @@ import {
   RADIUS_INNER,
 } from "./panel-constants"
 import { hasOpenOverlay } from "@/lib/overlay-detection"
-import { clearSourceIconCaches } from "@/lib/icon-cache"
+import { iconCache, logoUrlCache } from "@/lib/icon-cache"
 import { dispatchFocusInputEvent } from "./input/focus-input-events"
 import { ExperienceDemoSessionList } from "../workbench/ExperienceDemoSessionList"
 
@@ -917,8 +917,11 @@ function AppShellContent({
   React.useEffect(() => {
     const cleanup = window.electronAPI.onSourcesChanged((workspaceId, updatedSources) => {
       if (workspaceId !== activeWorkspaceId) return
-      // Clear icon cache so updated source icons are re-fetched on render
-      clearSourceIconCaches()
+      // Clear source icon cache so updated source icons are re-fetched on render
+      for (const key of iconCache.keys()) {
+        if (key.startsWith('source:')) iconCache.delete(key)
+      }
+      logoUrlCache.clear()
       setSources(updatedSources || [])
     })
     return cleanup
