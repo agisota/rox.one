@@ -76,7 +76,7 @@ import {
   SESSION_BACKEND_TOOL_NAMES,
   SESSION_TOOL_REGISTRY,
   type ToolResult as SessionToolResult,
-} from '@craft-agent/session-tools-core';
+} from '@rox-one/session-tools-core';
 import { createClaudeContext, type SessionToolContext } from './claude-context.ts';
 import { getPermissionModeDiagnostics } from './mode-manager.ts';
 
@@ -1381,7 +1381,7 @@ export class PiAgent extends BaseAgent {
 
   /**
    * Execute a session-scoped tool by name.
-   * Uses the canonical registry from @craft-agent/session-tools-core.
+   * Uses the canonical registry from @rox-one/session-tools-core.
    */
   private async executeSessionTool(
     toolName: string,

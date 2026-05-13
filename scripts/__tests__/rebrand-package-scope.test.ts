@@ -15,6 +15,8 @@ const legacyCorePackage = `${legacyScope}/core`;
 const roxCorePackage = `${roxScope}/core`;
 const legacyAuditPackage = `${legacyScope}/audit`;
 const roxAuditPackage = `${roxScope}/audit`;
+const legacySessionToolsCorePackage = `${legacyScope}/session-tools-core`;
+const roxSessionToolsCorePackage = `${roxScope}/session-tools-core`;
 
 function readText(path: string): string {
   return readFileSync(join(repoRoot, path), "utf8");
@@ -143,5 +145,30 @@ describe("R.5 package-scope rebrand", () => {
     const roxMatches = activeFiles.filter((path) => readText(path).includes(roxAuditPackage));
     expect(roxMatches.length).toBeGreaterThan(0);
     expect(readText("bun.lock")).toContain(roxAuditPackage);
+  });
+
+  test("renames the session tools core workspace package to the ROX scope", () => {
+    const sessionToolsCorePackageJson = readJson("packages/session-tools-core/package.json");
+    expect(sessionToolsCorePackageJson.name).toBe(roxSessionToolsCorePackage);
+
+    const dependencyPackages = [
+      "packages/session-mcp-server/package.json",
+      "packages/shared/package.json",
+    ];
+
+    for (const path of dependencyPackages) {
+      const packageJson = readJson(path);
+      const dependencies = packageJson.dependencies as Record<string, string>;
+      expect(dependencies[roxSessionToolsCorePackage], path).toBe("workspace:*");
+      expect(dependencies[legacySessionToolsCorePackage], path).toBeUndefined();
+    }
+
+    const activeFiles = [...listFiles("apps"), ...listFiles("packages"), "bun.lock"];
+    const legacyMatches = activeFiles.filter((path) => readText(path).includes(legacySessionToolsCorePackage));
+    expect(legacyMatches).toEqual([]);
+
+    const roxMatches = activeFiles.filter((path) => readText(path).includes(roxSessionToolsCorePackage));
+    expect(roxMatches.length).toBeGreaterThan(0);
+    expect(readText("bun.lock")).toContain(roxSessionToolsCorePackage);
   });
 });
