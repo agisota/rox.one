@@ -1475,6 +1475,8 @@
   "workbench.brand.section": "Application",
   "workbench.brand.support": "Support",
   "workbench.composer.actions.removeRecentFolder": "Usuń ostatni folder",
+  "workbench.composer.emphasis.toolbar.aria-label": "Formatowanie",
+  "workbench.composer.emphasis.toolbar.tooltip": "{{label}} ({{shortcut}})",
   "workbench.composer.input.editLabel": "Edytuj wiadomość",
   "workbench.composer.input.label": "Edytor wiadomości",
   "workbench.composer.permission.awaiting": "Oczekiwanie na agenta…",
