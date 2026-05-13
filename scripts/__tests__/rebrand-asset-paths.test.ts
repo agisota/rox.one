@@ -4,6 +4,8 @@ import { describe, expect, test } from "bun:test";
 
 const repoRoot = join(import.meta.dir, "../..");
 const legacyStem = "cr" + "aft";
+const legacyAgentCommand = `${legacyStem}-agent`;
+const legacyCliDoc = `${legacyStem}-cli`;
 
 const textExtensions = new Set([
   ".cjs",
@@ -103,5 +105,74 @@ describe("R.3 asset path rebrand", () => {
       });
 
     expect(hits).toEqual([]);
+  });
+
+  test("renames bundled CLI binary, doc, and tool icon paths to Rox names", () => {
+    const expectedRenames = [
+      {
+        oldPath: `apps/electron/resources/tool-icons/${legacyAgentCommand}.png`,
+        newPath: "apps/electron/resources/tool-icons/rox-agent.png",
+      },
+      {
+        oldPath: `apps/electron/resources/docs/${legacyCliDoc}.md`,
+        newPath: "apps/electron/resources/docs/rox-cli.md",
+      },
+      {
+        oldPath: `apps/electron/resources/bin/${legacyAgentCommand}`,
+        newPath: "apps/electron/resources/bin/rox-agent",
+      },
+      {
+        oldPath: `apps/electron/resources/bin/${legacyAgentCommand}.cmd`,
+        newPath: "apps/electron/resources/bin/rox-agent.cmd",
+      },
+    ];
+
+    expect(
+      expectedRenames.filter(({ oldPath }) => existsSync(join(repoRoot, oldPath))).map(({ oldPath }) => oldPath),
+      "legacy CLI asset paths should be renamed",
+    ).toEqual([]);
+    expect(
+      expectedRenames.filter(({ newPath }) => existsSync(join(repoRoot, newPath))).map(({ newPath }) => newPath),
+      "canonical CLI asset paths should exist",
+    ).toEqual(expectedRenames.map(({ newPath }) => newPath));
+
+    const roxCliDoc = readText(join(repoRoot, "apps/electron/resources/docs/rox-cli.md"));
+    expect(roxCliDoc).toContain("`rox-agent` is the preferred interface");
+    expect(roxCliDoc).not.toContain(legacyAgentCommand);
+
+    const mainProcess = readText(join(repoRoot, "apps/electron/src/main/index.ts"));
+    expect(mainProcess).toContain("'rox-cli.md'");
+    expect(mainProcess).not.toContain(`'${legacyCliDoc}.md'`);
+
+    const docRefs = readText(join(repoRoot, "packages/shared/src/docs/index.ts"));
+    expect(docRefs).toContain("roxCli:");
+    expect(docRefs).toContain("/docs/rox-cli.md");
+    expect(docRefs).not.toContain(`${legacyStem}Cli:`);
+    expect(docRefs).not.toContain(`/docs/${legacyCliDoc}.md`);
+
+    const systemPrompt = readText(join(repoRoot, "packages/shared/src/prompts/system.ts"));
+    expect(systemPrompt).toContain("ROX CLI");
+    expect(systemPrompt).toContain("DOC_REFS.roxCli");
+    expect(systemPrompt).toContain("rox-agent");
+    expect(systemPrompt).not.toContain(`DOC_REFS.${legacyStem}Cli`);
+
+    const linkedDocs = [
+      "apps/electron/resources/docs/automations.md",
+      "apps/electron/resources/docs/labels.md",
+      "apps/electron/resources/docs/permissions.md",
+      "apps/electron/resources/docs/skills.md",
+      "apps/electron/resources/docs/sources.md",
+    ];
+    for (const relativePath of linkedDocs) {
+      const body = readText(join(repoRoot, relativePath));
+      expect(body).toContain("[rox-cli.md](./rox-cli.md)");
+      expect(body).not.toContain(`[${legacyCliDoc}.md](./${legacyCliDoc}.md)`);
+    }
+
+    const toolIcons = readText(join(repoRoot, "apps/electron/resources/tool-icons/tool-icons.json"));
+    expect(toolIcons).toContain('"id": "rox-agent"');
+    expect(toolIcons).toContain('"icon": "rox-agent.png"');
+    expect(toolIcons).toContain('"commands": ["rox-agent"]');
+    expect(toolIcons).not.toContain(`${legacyAgentCommand}.png`);
   });
 });
