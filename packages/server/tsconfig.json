@@ -23,8 +23,8 @@
       "@craft-agent/shared/*": ["../shared/src/*"],
       "@craft-agent/server-core": ["../server-core/src/index.ts"],
       "@craft-agent/server-core/*": ["../server-core/src/*"],
-      "@craft-agent/core": ["../core/src/index.ts"],
-      "@craft-agent/core/*": ["../core/src/*"]
+      "@rox-one/core": ["../core/src/index.ts"],
+      "@rox-one/core/*": ["../core/src/*"]
     }
   },
   "include": ["src/**/*", "../shared/src/agent/bash-parser.d.ts"],

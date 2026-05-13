@@ -9,8 +9,8 @@
  */
 import { describe, it, expect, beforeEach } from 'bun:test'
 import { groupMessagesByTurn, type AssistantTurn } from '@rox-one/ui/chat/turn-utils'
-import { messageToStored, storedToMessage } from '@craft-agent/core'
-import type { Message, MessageRole } from '@craft-agent/core'
+import { messageToStored, storedToMessage } from '@rox-one/core'
+import type { Message, MessageRole } from '@rox-one/core'
 
 // ============================================================================
 // Mirror: persistence pipeline (two-stage filter)

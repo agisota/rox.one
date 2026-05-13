@@ -11,6 +11,8 @@ const legacyFixturePackage = `${legacyScope}/test-fixtures`;
 const roxFixturePackage = `${roxScope}/test-fixtures`;
 const legacyUiPackage = `${legacyScope}/ui`;
 const roxUiPackage = `${roxScope}/ui`;
+const legacyCorePackage = `${legacyScope}/core`;
+const roxCorePackage = `${roxScope}/core`;
 
 function readText(path: string): string {
   return readFileSync(join(repoRoot, path), "utf8");
@@ -29,7 +31,7 @@ function listFiles(root: string): string[] {
     const relativePath = join(root, entry.name);
     const absolutePath = join(repoRoot, relativePath);
     if (entry.isDirectory()) {
-      if (entry.name === "dist" || entry.name === "node_modules") continue;
+      if (["dist", "node_modules", ".omc", ".omx"].includes(entry.name)) continue;
       files.push(...listFiles(relativePath));
       continue;
     }
@@ -37,7 +39,7 @@ function listFiles(root: string): string[] {
     if (!entry.isFile()) continue;
     const stats = statSync(absolutePath);
     if (stats.size > 2_000_000) continue;
-    if (!/\.(css|json|md|ts|tsx)$/.test(entry.name)) continue;
+    if (!/\.(cjs|css|js|json|md|mjs|ts|tsx)$/.test(entry.name)) continue;
     files.push(relativePath);
   }
 
@@ -96,5 +98,35 @@ describe("R.5 package-scope rebrand", () => {
     const roxMatches = activeFiles.filter((path) => readText(path).includes(roxUiPackage));
     expect(roxMatches.length).toBeGreaterThan(0);
     expect(readText("bun.lock")).toContain(roxUiPackage);
+  });
+
+  test("renames the core workspace package to the ROX scope", () => {
+    const corePackageJson = readJson("packages/core/package.json");
+    expect(corePackageJson.name).toBe(roxCorePackage);
+
+    const dependencyPackages = [
+      "apps/electron/package.json",
+      "apps/viewer/package.json",
+      "packages/messaging-gateway/package.json",
+      "packages/server/package.json",
+      "packages/server-core/package.json",
+      "packages/shared/package.json",
+      "packages/ui/package.json",
+    ];
+
+    for (const path of dependencyPackages) {
+      const packageJson = readJson(path);
+      const dependencies = packageJson.dependencies as Record<string, string>;
+      expect(dependencies[roxCorePackage], path).toBe("workspace:*");
+      expect(dependencies[legacyCorePackage], path).toBeUndefined();
+    }
+
+    const activeFiles = [...listFiles("apps"), ...listFiles("packages"), "bun.lock"];
+    const legacyMatches = activeFiles.filter((path) => readText(path).includes(legacyCorePackage));
+    expect(legacyMatches).toEqual([]);
+
+    const roxMatches = activeFiles.filter((path) => readText(path).includes(roxCorePackage));
+    expect(roxMatches.length).toBeGreaterThan(0);
+    expect(readText("bun.lock")).toContain(roxCorePackage);
   });
 });
