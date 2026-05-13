@@ -12,6 +12,7 @@ import {
   unsafeProviderId,
   providerIdToString,
   type ProviderId,
+  type ProviderIdLiteral,
 } from '../provider-id.ts';
 import {
   ProviderRegistry,
@@ -76,6 +77,10 @@ const PID = {
   ollama: unsafeProviderId('ollama'),
 };
 
+function expectProviderId(actual: ProviderId, expected: ProviderIdLiteral): void {
+  expect(providerIdToString(actual)).toBe(expected);
+}
+
 function fakeRequest(): ProviderRequest {
   return {
     model: 'test-model',
@@ -92,7 +97,7 @@ function fakeRequest(): ProviderRequest {
 
 describe('provider-id', () => {
   it('exposes the canonical provider set', () => {
-    for (const id of ['anthropic', 'openai', 'google', 'azure-openai', 'bedrock', 'ollama']) {
+    for (const id of PROVIDER_IDS) {
       expect(PROVIDER_IDS).toContain(id);
     }
     expect(PROVIDER_IDS.length).toBe(6);
@@ -177,7 +182,7 @@ describe('ProviderRegistry', () => {
     const reg = new ProviderRegistry();
     reg.register(makeFakeProvider({ id: PID.anthropic }));
     reg.register(makeFakeProvider({ id: PID.openai }));
-    const ids = reg.listIds();
+    const ids = reg.listIds().map(providerIdToString);
     expect(ids.length).toBe(2);
     expect(ids).toContain('anthropic');
     expect(ids).toContain('openai');
@@ -215,7 +220,7 @@ describe('createRoundRobinPolicy', () => {
       recentFailures: [{ providerId: PID.anthropic, reason: 'unavailable', at: 0 }],
     });
     expect(d.kind).toBe('choice');
-    if (d.kind === 'choice') expect(d.providerId).toBe('openai');
+    if (d.kind === 'choice') expectProviderId(d.providerId, 'openai');
   });
 });
 
@@ -242,7 +247,7 @@ describe('createStickyPolicy', () => {
       recentFailures: [],
     });
     expect(d.kind).toBe('choice');
-    if (d.kind === 'choice') expect(d.providerId).toBe('openai');
+    if (d.kind === 'choice') expectProviderId(d.providerId, 'openai');
   });
 
   it('defaultStickyHash is stable and non-negative', () => {
@@ -260,7 +265,7 @@ describe('createFailoverPolicy', () => {
       recentFailures: [],
     });
     expect(d.kind).toBe('choice');
-    if (d.kind === 'choice') expect(d.providerId).toBe('anthropic');
+    if (d.kind === 'choice') expectProviderId(d.providerId, 'anthropic');
   });
 
   it('falls back when the primary recently failed', () => {
@@ -272,7 +277,7 @@ describe('createFailoverPolicy', () => {
       recentFailures: [{ providerId: PID.anthropic, reason: 'unavailable', at: 0 }],
     });
     expect(d.kind).toBe('choice');
-    if (d.kind === 'choice') expect(d.providerId).toBe('openai');
+    if (d.kind === 'choice') expectProviderId(d.providerId, 'openai');
   });
 
   it('returns unresolved when everything is failed or absent', () => {
@@ -301,7 +306,7 @@ describe('Orchestrator.send', () => {
     expect(result.mode).toBe('send');
     expect(result.ok).toBe(true);
     if (result.ok && result.mode === 'send') {
-      expect(result.value.providerId).toBe('anthropic');
+      expectProviderId(result.value.providerId, 'anthropic');
       expect(result.value.response.text).toBe('hi back');
       expect(result.value.attempts.length).toBeGreaterThan(0);
     }
@@ -418,7 +423,7 @@ describe('Orchestrator.stream', () => {
     expect(collected.length).toBe(3);
     expect(collected.join('')).toBe('alpha|beta|gamma');
     expect(endReason).toBe('stop');
-    expect(result.value.providerId).toBe('anthropic');
+    expectProviderId(result.value.providerId, 'anthropic');
   });
 
   it('emits RouteUnresolvedError for an empty registry', async () => {
@@ -476,7 +481,7 @@ describe('Orchestrator + Failover policy', () => {
     }).send({ request: fakeRequest() });
     expect(result.ok).toBe(true);
     if (result.ok && result.mode === 'send') {
-      expect(result.value.providerId).toBe('openai');
+      expectProviderId(result.value.providerId, 'openai');
       expect(result.value.response.text).toBe('recovered');
       expect(result.value.attempts.filter((a) => a.outcome === 'unavailable').length).toBe(1);
     }

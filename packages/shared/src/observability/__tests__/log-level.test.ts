@@ -2,12 +2,12 @@ import { describe, expect, it } from 'bun:test'
 
 import {
   LOG_LEVELS,
-  LogLevel,
   compareLogLevels,
   isLogLevel,
   logLevelRank,
   shouldLog,
 } from '../log-level.ts'
+import { type LogLevel } from '../log-level.ts'
 
 describe('LogLevel enum', () => {
   it('lists levels from trace to fatal in increasing severity', () => {
