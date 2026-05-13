@@ -9,6 +9,7 @@ import type { OfficeDocumentConverter } from '../services/office-document-adapte
 import type { RbacResolver, GrantStore } from '@rox-one/shared/auth/rbac-resolver'
 import type { RoleStore } from '@rox-one/shared/auth/role-store'
 import type { AuditProducer } from '@rox-one/shared/observability'
+import type { MissionScheduler } from '../missions'
 
 /**
  * Generic handler dependency bag.
@@ -62,5 +63,13 @@ export interface HandlerDeps<
    * no-op and the handlers behave identically to the pre-T246 baseline.
    */
   auditProducer?: AuditProducer
+  /**
+   * Optional mission scheduler (T241). The mission admin RPC handlers
+   * (`missions.create`, `missions.dispatchEvent`, `missions.get`,
+   * `missions.list`) call through this scheduler. Hosts that have not
+   * yet adopted the M.8 mission surface may omit this field; the
+   * handlers then respond with `{error: 'missions-not-configured'}`.
+   */
+  missionScheduler?: MissionScheduler
   officeDocumentConverter?: OfficeDocumentConverter
 }

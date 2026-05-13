@@ -258,6 +258,12 @@ export const RPC_CHANNELS = {
     GRANT: 'roles.grant',
     REVOKE: 'roles.revoke',
   },
+  missions: {
+    CREATE: 'missions.create',
+    DISPATCH_EVENT: 'missions.dispatchEvent',
+    GET: 'missions.get',
+    LIST: 'missions.list',
+  },
   permissions: {
     GET_DEFAULTS: 'permissions:getDefaults',
     DEFAULTS_CHANGED: 'permissions:defaultsChanged',

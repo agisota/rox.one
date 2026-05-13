@@ -353,6 +353,12 @@ export const REMOTE_ELIGIBLE_CHANNELS = new Set<string>([
   RPC_CHANNELS.roles.GRANT,
   RPC_CHANNELS.roles.REVOKE,
 
+  // missions — admin RPC handlers over the MissionScheduler (M.8 T243-rpc)
+  RPC_CHANNELS.missions.CREATE,
+  RPC_CHANNELS.missions.DISPATCH_EVENT,
+  RPC_CHANNELS.missions.GET,
+  RPC_CHANNELS.missions.LIST,
+
   // workspace — workspace config + images (sharp on headless)
   RPC_CHANNELS.workspace.GET_PERMISSIONS,
   RPC_CHANNELS.workspace.READ_IMAGE,
