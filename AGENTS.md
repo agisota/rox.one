@@ -1,6 +1,6 @@
 # Agent Workbench Fork - Codex Operating Contract
 
-You are Codex CLI working on a white-label fork of Craft Agents OSS into Agent Workbench Suite.
+You are Codex CLI working on **ROX.ONE Agent Workbench Suite**, the white-label ROX.ONE fork descended from upstream Craft Agents OSS (Apache 2.0; attribution preserved in `LICENSE`, `NOTICE`, `TRADEMARK.md`, and the `Dockerfile.server` source label).
 
 ## Absolute Rules
 
@@ -12,7 +12,7 @@ You are Codex CLI working on a white-label fork of Craft Agents OSS into Agent W
 6. A task is not complete until relevant checks pass or a precise blocker is documented in the worklog.
 7. Do not silently skip tests. If a test cannot be written, explain why in the worklog and add a manual verification checklist.
 8. Prefer small, composable modules over large god-components.
-9. Preserve existing Craft Agents behavior unless the task explicitly changes it.
+9. Preserve existing ROX.ONE Agent Workbench Suite behavior unless the task explicitly changes it.
 10. Avoid adding production dependencies unless the task justifies license, security risk, runtime impact, and test plan.
 
 ## Required Worklog Format
