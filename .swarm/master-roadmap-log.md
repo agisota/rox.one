@@ -33,3 +33,4 @@ M.14-T245-observability-producer-surface | 8ec016a | T245 | 2026-05-13T20:25:00Z
 M.8-T241-durable-mission-scheduler | 429f430 | T241 | 2026-05-13T20:25:00Z
 M.7-T240-provider-orchestration-backbone | 4004bf6 | T240 | 2026-05-13T20:25:00Z
 M.18-T250-mac-trust-boundary | a88f2fd | T250 | 2026-05-13T20:25:00Z
+M.11-T242-T336-shiki-adapter-repair | ec4180c | T242,T336 | 2026-05-13T20:32:19Z
