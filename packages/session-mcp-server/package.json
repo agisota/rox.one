@@ -1,5 +1,5 @@
 {
-  "name": "@rox-agent/session-mcp-server",
+  "name": "@rox-one/session-mcp-server",
   "version": "0.9.1",
   "license": "Apache-2.0",
   "description": "MCP server that provides session-scoped tools (SubmitPlan, config_validate, etc.) to Codex via stdio transport",
