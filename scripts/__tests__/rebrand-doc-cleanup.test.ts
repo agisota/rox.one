@@ -6,8 +6,11 @@ const repoRoot = join(import.meta.dir, "../..");
 const legacyStem = "cr" + "aft";
 const legacyCli = `${legacyStem}-cli`;
 const legacyRepo = `${legacyStem}-agents-oss`;
+const legacyProduct = "Rox" + " Agent";
+const legacyProductPlural = `${legacyProduct}s`;
 const legacyPackageScope = `@${legacyStem}-agent`;
 const upstreamRepoUrl = `https://github.com/lukilabs/${legacyRepo}`;
+const spokenWordmark = ["ROX", "ONE"].join(" ");
 
 function readText(path: string): string {
   return readFileSync(join(repoRoot, path), "utf8");
@@ -59,5 +62,24 @@ describe("R.4 documentation rebrand cleanup", () => {
     expect(security).toContain("security@rox.one");
     expect(security).toContain("@rox-one/*");
     expect(security).not.toContain(`${legacyPackageScope}/*`);
+  });
+
+  test("rewrites plan and snapshot orientation docs to current ROX.ONE state", () => {
+    const plan = readText("plan.md");
+    const snapshot = readText("snapshot.md");
+
+    expect(plan).toContain("Successor goal: this rebrand sweep (R.0-R.10).");
+    expect(plan).toContain("ROX.ONE Agent Workbench Suite");
+    expect(plan).not.toContain(`${spokenWordmark} Agent Workbench Suite`);
+    expect(plan).not.toContain(`A white-label ${legacyProductPlural} fork`);
+    expect(plan).toContain(`upstream ${legacyProductPlural} OSS`);
+
+    expect(snapshot).toContain("Date: 2026-05-13");
+    expect(snapshot).toContain("Historical note:");
+    expect(snapshot).toContain("ROX.ONE / Agent Workbench Suite fork");
+    expect(snapshot).not.toContain(spokenWordmark);
+    expect(snapshot).not.toContain(`structurally ${legacyProductPlural}`);
+    expect(snapshot).not.toContain("Rox" + " permission modes");
+    expect(snapshot).toContain(upstreamRepoUrl);
   });
 });

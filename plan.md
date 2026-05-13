@@ -1,19 +1,21 @@
 # Agent Workbench Suite Plan
 
-Date: 2026-05-05
-Repository: `/Users/marklindgreen/Projects/rox/rox`
+Date: 2026-05-13
+Repository: `/home/dev/rox/rox-one-terminal`
+Successor goal: this rebrand sweep (R.0-R.10).
 
-This plan defines the next implementation path after the current `48 DONE`
-local release-candidate state.
+This plan records the historical Agent Workbench Suite direction and now points
+forward to the active ROX.ONE rebrand sweep before the next roadmap phase.
 
 ## 1. Target Definition
 
 The target product is:
 
 ```text
-ROX ONE Agent Workbench Suite
+ROX.ONE Agent Workbench Suite
 
-A white-label Rox Agents fork that turns rough user intent into:
+A white-label ROX.ONE fork descended from upstream Rox Agents OSS that turns
+rough user intent into:
   - improved prompts
   - structured specs
   - TDD task packs
@@ -90,7 +92,7 @@ The project is done when all of the following are true.
 
 ### 2.5 Upstream And Release
 
-- The fork is merged/rebased onto current upstream Rox Agents v0.9.x without
+- The fork is merged/rebased onto current upstream Rox Agents OSS v0.9.x without
   losing ROX branding, localization, account, registration or Experience Layer
   changes.
 - Electron app builds locally.
@@ -196,7 +198,7 @@ branch: mac/upstream-v0.9.1-rox-merge
 Remote setup:
 
 ```text
-origin       -> private ROX ONE repo
+origin       -> private ROX.ONE repo
 rox-origin -> current agisota/rox reference
 upstream     -> https://github.com/lukilabs/rox-agents-oss.git
 ```
