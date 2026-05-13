@@ -1,17 +1,25 @@
 /**
  * RBAC resolver — the indirection that produces `session.permittedWorkspaces`
- * for the multi-tenant `deriveScopeFromAuth` path (T226).
+ * for the multi-tenant `deriveScopeFromAuth` path (T226) and the
+ * owner-grant lookup the admin RPC handlers rely on (T227).
  *
  * T225 landed `permittedWorkspaces(grants)` as a pure function over
- * `RoleGrant[]`. T226 plugs that function into the runtime: callers ask the
- * resolver for the permitted workspace ids of a user, the resolver reads
- * grants from a pluggable `GrantStore`, and the policy engine answers.
+ * `RoleGrant[]`. T226 plugged that function into the runtime: callers ask
+ * the resolver for the permitted workspace ids of a user, the resolver
+ * reads grants from a pluggable `GrantStore`, and the policy engine
+ * answers. T227 extends the resolver with:
  *
- * Persisted grant storage and admin RPC for granting/revoking roles arrive in
- * T227. Until then the in-memory store ships as the default fake — single-user
- * runtimes get an empty store and behaviour stays bit-identical to the pre-
- * change `AccountStore.listWorkspaceIds` path, because the call sites only
- * consult the resolver when a host injects one into `HandlerDeps`.
+ * - `ownerGrantsForUser(userId)` — returns the user's `owner`-roleId
+ *   grants. The admin RPC handlers consult it before mutating roles or
+ *   grants.
+ * - `invalidateUser(userId)` — cache-bust hook called after a successful
+ *   revoke. The current resolver has no cache so this is a no-op stub;
+ *   future caching layers (e.g. the Postgres-backed store) MUST override
+ *   it to evict stale grants.
+ *
+ * The `GrantStore` interface gained mutation methods (`grant`, `revoke`)
+ * in T227. `InMemoryGrantStore` implements them as O(actorId-bucket)
+ * operations.
  */
 
 import { permittedWorkspaces } from './policy-engine.ts';
@@ -20,24 +28,50 @@ import type { RoleGrant } from './roles-schema.ts';
 /**
  * Async source of `RoleGrant` entries for a given user.
  *
- * Implementations must be read-only from the caller's perspective. They may
- * be backed by an in-memory map (today), a database (T227+), or any other
- * persistence layer.
+ * Implementations must be read-consistent from the caller's perspective.
+ * They may be backed by an in-memory map (today), a database (T227+),
+ * or any other persistence layer.
  *
- * `grantsForUser` returns the grants whose `actorKind === 'user'` and whose
- * `actorId` matches the requested user id. Team-actor grants are out of
- * scope for T226 and SHOULD be filtered by the store before they reach the
- * resolver.
+ * `grantsForUser` returns the grants whose `actorKind === 'user'` and
+ * whose `actorId` matches the requested user id. Team-actor grants are
+ * out of scope for T226 and SHOULD be filtered by the store before they
+ * reach the resolver.
+ *
+ * `grant` / `revoke` are the mutation methods introduced in T227. The
+ * admin RPC handlers call through these. `revoke` returns `true` if a
+ * grant was removed and `false` if nothing matched (idempotent).
  */
 export interface GrantStore {
   grantsForUser(userId: string): Promise<ReadonlyArray<RoleGrant>>;
+  /**
+   * Add a grant. Implementations MAY ignore non-user actor kinds when
+   * team RBAC is not yet wired. `InMemoryGrantStore` ignores team grants.
+   */
+  grant(grant: RoleGrant): Promise<void>;
+  /**
+   * Remove a grant matching all five fields (`roleId`, `actorKind`,
+   * `actorId`, `scopeKind`, `scopeId`). Returns `true` if a grant was
+   * removed, `false` if nothing matched.
+   */
+  revoke(grant: RoleGrant): Promise<boolean>;
+}
+
+function grantsEqual(a: RoleGrant, b: RoleGrant): boolean {
+  return (
+    a.roleId === b.roleId &&
+    a.actorKind === b.actorKind &&
+    a.actorId === b.actorId &&
+    a.scopeKind === b.scopeKind &&
+    a.scopeId === b.scopeId
+  );
 }
 
 /**
- * In-memory `GrantStore` seeded at construction time. Suitable for tests and
- * for single-user runtimes that have no persisted grants yet. Indexes grants
- * by `actorId` so per-user lookups are O(1). Skips any seeded grant whose
- * `actorKind` is not `'user'` because T226 only ships user-actor wiring.
+ * In-memory `GrantStore` seeded at construction time. Suitable for tests
+ * and for single-user runtimes that have no persisted grants yet. Indexes
+ * grants by `actorId` so per-user lookups are O(1). Skips any seeded
+ * grant whose `actorKind` is not `'user'` because T226 only ships
+ * user-actor wiring; team RBAC lands in a later phase.
  */
 export class InMemoryGrantStore implements GrantStore {
   private readonly grantsByUser: Map<string, RoleGrant[]> = new Map();
@@ -53,6 +87,28 @@ export class InMemoryGrantStore implements GrantStore {
 
   async grantsForUser(userId: string): Promise<ReadonlyArray<RoleGrant>> {
     return this.grantsByUser.get(userId) ?? [];
+  }
+
+  async grant(grant: RoleGrant): Promise<void> {
+    if (grant.actorKind !== 'user') return;
+    const bucket = this.grantsByUser.get(grant.actorId) ?? [];
+    if (!bucket.some((existing) => grantsEqual(existing, grant))) {
+      bucket.push(grant);
+    }
+    this.grantsByUser.set(grant.actorId, bucket);
+  }
+
+  async revoke(grant: RoleGrant): Promise<boolean> {
+    if (grant.actorKind !== 'user') return false;
+    const bucket = this.grantsByUser.get(grant.actorId);
+    if (!bucket) return false;
+    const idx = bucket.findIndex((existing) => grantsEqual(existing, grant));
+    if (idx < 0) return false;
+    bucket.splice(idx, 1);
+    if (bucket.length === 0) {
+      this.grantsByUser.delete(grant.actorId);
+    }
+    return true;
   }
 }
 
@@ -70,13 +126,35 @@ export class RbacResolver {
   constructor(private readonly grantStore: GrantStore) {}
 
   /**
-   * Return the permitted workspace ids for the given user. Delegates to the
-   * pure-function `permittedWorkspaces` policy engine; the returned array
-   * may include the global sentinel (`'*'`) when the user holds a global
-   * read grant.
+   * Return the permitted workspace ids for the given user. Delegates to
+   * the pure-function `permittedWorkspaces` policy engine; the returned
+   * array may include the global sentinel (`'*'`) when the user holds a
+   * global read grant.
    */
   async permittedWorkspacesForUser(userId: string): Promise<ReadonlyArray<string>> {
     const grants = await this.grantStore.grantsForUser(userId);
     return permittedWorkspaces(grants);
+  }
+
+  /**
+   * Return the user's `owner`-roleId grants (T227). The admin RPC
+   * handlers consult this to check whether the caller may mutate a role
+   * or grant on a target scope.
+   */
+  async ownerGrantsForUser(userId: string): Promise<ReadonlyArray<RoleGrant>> {
+    const grants = await this.grantStore.grantsForUser(userId);
+    return grants.filter((g) => g.roleId === 'owner');
+  }
+
+  /**
+   * Cache-bust hook called after a successful revoke (T227). The current
+   * resolver has no cache so this is a no-op stub. Future caching layers
+   * MUST override this method to evict stale grants for `userId` from
+   * any in-process / process-local cache, otherwise stale
+   * `permittedWorkspaces` arrays will persist across the revoke
+   * boundary.
+   */
+  invalidateUser(_userId: string): void {
+    // No-op stub. Future caching layers override.
   }
 }
