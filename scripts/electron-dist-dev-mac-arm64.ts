@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'bun';
 import yaml from 'js-yaml';
+import { downloadBun } from './build/common.ts';
 
 const ROOT_DIR = join(import.meta.dir, '..');
 const ELECTRON_DIR = join(ROOT_DIR, 'apps/electron');
@@ -60,6 +61,16 @@ const generatedConfig = {
 mkdirSync(GENERATED_CONFIG_DIR, { recursive: true });
 mkdirSync(ELECTRON_BUILDER_CACHE, { recursive: true });
 writeFileSync(GENERATED_CONFIG_PATH, yaml.dump(generatedConfig, { lineWidth: 120 }), 'utf8');
+
+await downloadBun({
+  platform: 'darwin',
+  arch: 'arm64',
+  upload: false,
+  uploadLatest: false,
+  uploadScript: false,
+  rootDir: ROOT_DIR,
+  electronDir: ELECTRON_DIR,
+});
 
 await run(['bun', 'run', 'electron:build'], ROOT_DIR, {
   CSC_IDENTITY_AUTO_DISCOVERY: 'false',

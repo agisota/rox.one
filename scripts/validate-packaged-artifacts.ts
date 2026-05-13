@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
@@ -47,6 +48,10 @@ for (const relativePath of requiredArtifacts) {
 const dmgPath = path.join(releaseDir, 'ROX-ONE-arm64.dmg');
 const zipPath = path.join(releaseDir, 'ROX-ONE-arm64.zip');
 const latestMacPath = path.join(releaseDir, 'latest-mac.yml');
+const packagedBunPath = path.join(
+  releaseDir,
+  'mac-arm64/ROX.ONE.app/Contents/Resources/app/vendor/bun/bun',
+);
 
 const latestMac = yaml.load(readFileSync(latestMacPath, 'utf8')) as {
   files?: Array<{ url?: string; size?: number }>;
@@ -64,6 +69,30 @@ if (latestMac.path !== 'ROX-ONE-arm64.zip') {
   fail(`latest-mac.yml path must reference ROX-ONE-arm64.zip, got: ${String(latestMac.path)}`);
 }
 
+if (!existsSync(packagedBunPath)) {
+  fail('missing packaged runtime: apps/electron/release/mac-arm64/ROX.ONE.app/Contents/Resources/app/vendor/bun/bun');
+}
+
+const fileProbe = spawnSync('file', [packagedBunPath], { encoding: 'utf8' });
+if (fileProbe.status !== 0) {
+  fail(`failed to inspect packaged runtime with file(1): ${fileProbe.stderr.trim() || fileProbe.error?.message || 'unknown error'}`);
+}
+const fileDescription = fileProbe.stdout.trim();
+if (!fileDescription.includes('Mach-O 64-bit executable arm64')) {
+  fail(`packaged runtime must be macOS arm64 Mach-O, got: ${fileDescription}`);
+}
+
+const runtimeProbe = spawnSync(packagedBunPath, ['-e', 'console.log(process.platform, process.arch)'], {
+  encoding: 'utf8',
+});
+if (runtimeProbe.status !== 0) {
+  fail(`packaged runtime failed to execute: ${runtimeProbe.stderr.trim() || runtimeProbe.error?.message || 'unknown error'}`);
+}
+const runtimeTarget = runtimeProbe.stdout.trim();
+if (runtimeTarget !== 'darwin arm64') {
+  fail(`packaged runtime target must be "darwin arm64", got: ${runtimeTarget}`);
+}
+
 const dmgStats = statSync(dmgPath);
 const zipStats = statSync(zipPath);
 
@@ -76,6 +105,8 @@ for (const relativePath of requiredArtifacts) {
 console.log(`[packaged-artifacts] SHA256 ROX-ONE-arm64.dmg ${sha256(dmgPath)}`);
 console.log(`[packaged-artifacts] SHA256 ROX-ONE-arm64.zip ${sha256(zipPath)}`);
 console.log(`[packaged-artifacts] latest-mac.yml path=${latestMac.path}`);
+console.log(`[packaged-artifacts] packaged runtime ${fileDescription}`);
+console.log(`[packaged-artifacts] packaged runtime probe=${runtimeTarget}`);
 console.log(`[packaged-artifacts] latest-mac.yml size[dmg]=${(latestMac.files ?? []).find((f) => f.url === 'ROX-ONE-arm64.dmg')?.size ?? 'n/a'} bytes`);
 console.log(`[packaged-artifacts] latest-mac.yml size[zip]=${(latestMac.files ?? []).find((f) => f.url === 'ROX-ONE-arm64.zip')?.size ?? 'n/a'} bytes`);
 if ((latestMac.files ?? []).find((f) => f.url === 'ROX-ONE-arm64.dmg')?.size !== dmgStats.size) {

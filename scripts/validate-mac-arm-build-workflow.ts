@@ -79,6 +79,9 @@ if (macArmConfig.includes('- x64')) {
   fail('arm64 electron-builder config must not include x64 target arch');
 }
 requireText(macArmScript, "arch: ['arm64']", 'generated arm64-only builder target');
+requireText(macArmScript, 'downloadBun', 'Darwin arm64 Bun runtime download');
+requireText(macArmScript, "platform: 'darwin'", 'Darwin runtime platform');
+requireText(macArmScript, "arch: 'arm64'", 'arm64 runtime architecture');
 requireText(macArmScript, 'ELECTRON_BUILDER_CACHE', 'workspace-local electron-builder cache');
 requireText(macArmScript, 'electron-builder', 'electron-builder invocation');
 
