@@ -9,7 +9,7 @@ traceability.
 
 ---
 
-## [1.0.0] — Unreleased
+## [1.0.0] — TBD (after 72h soak)
 
 The first stable ROX.ONE release. Built as a white-label fork of the
 upstream Rox Agents OSS project (Apache 2.0; attribution preserved in
@@ -148,6 +148,34 @@ label).
 - v1.0.0 migration guide (`docs/release/v1-migration-guide.md`).
 - This CHANGELOG.md.
 
+#### Lane M (M.1 – M.21) completion
+
+- **Composer Pillar 4 (M.10)** — history navigation, emphasis toolbar,
+  line numbers, paste-image preview with 2 MB / 2048 px resize budget,
+  and voice-input slot (T233, T234, T237, T237b).
+- **Observability producer (M.14)** — `FileAuditSink` with retention
+  evaluation per event, queryable surface, and structured-logger fanout
+  (T245, T218 – T221).
+- **Mission scheduler kernel (M.8)** — RPC surface, sqlite-backed store,
+  checkpoint persistence, and concurrency cap (T241, T243-missions,
+  T244-sqlite, T244b).
+- **Experience Layer kernel (M.6)** — three-layer model with React hook
+  for renderer binding.
+- **Provider orchestration backbone (M.7)** — adapter contract, host
+  manager, and multi-provider wiring (T240).
+- **SQLite production persistence (M.4)** — adapter wired into session,
+  workspace, and mission stores (T063, T244-sqlite).
+- **Rate-limiter and budget-guard primitives (M.15)** — token-bucket
+  limiter and budget-guard wired into RPC handlers (T071, T071b, T071c).
+- **Private release pipeline (M.17)** — manual workflow dispatch, tag
+  protection, and sha256 checksum manifests.
+- **Mac signed-build CI workflow (M.18)** — `mac-arm-build` workflow
+  with notarization gate (T250).
+- **Multi-platform trust boundaries (M.18)** — Mac (T250), Windows
+  (T252), and Linux (T253) validators wired into the rebrand gate.
+- **RBAC admin UI + audit log (M.2)** — admin surface plus the
+  property-based scope-forgery test suite (T228, T243).
+
 ### Changed
 
 - Config directory canonical path is `~/.rox/`. Pre-v1 builds used
@@ -191,6 +219,18 @@ label).
 - Append-only audit storage with retention policy (ADR 0008).
 - TLS termination support on the headless server (`wss://`).
 - AES-256-GCM encrypted credential store with documented key rotation.
+- RBAC scope-forgery property tests — 4006 iterations / 6347 assertions
+  across workspace, org, and global scopes (T243).
+- Schema-layer reservation of `'*'` as a forbidden workspace scopeId
+  (T244) — caught by `RoleStore` and `GrantStore` mutation paths.
+- Zod input-validation at every RPC boundary (T303) — handler arguments
+  reject malformed envelopes before any side effect.
+- Integrity-pass test sweep (T052) — combined coverage gate over auth,
+  scope, audit, and credential modules.
+- Token-bucket rate-limiter and budget-guard abuse-hardening primitives
+  wired into RPC handlers (T071, T071b, T071c).
+- Multi-platform trust-boundary validators — Mac (T250), Windows (T252),
+  and Linux (T253) — each enforced by a dedicated `validate:*` script.
 
 ### Known Limitations
 
