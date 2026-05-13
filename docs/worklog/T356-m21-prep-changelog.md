@@ -99,8 +99,8 @@ LOC budgets honored:
 
 - `CHANGELOG.md` (modify, append-only)
 - `docs/release/v1-github-release-template.md` (new)
-- `docs/tickets/T355-m21-prep-changelog.md` (new)
-- `docs/worklog/T355-m21-prep-changelog.md` (new — this file)
+- `docs/tickets/T356-m21-prep-changelog.md` (new)
+- `docs/worklog/T356-m21-prep-changelog.md` (new — this file)
 
 No source code, no validators, no roadmap-log mutation.
 

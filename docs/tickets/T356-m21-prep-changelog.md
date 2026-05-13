@@ -33,8 +33,8 @@ authoring release prose during the tag window:
 | --- | --- |
 | `CHANGELOG.md` | Append-only edit. 42 lines added, 2 removed. |
 | `docs/release/v1-github-release-template.md` | New file, 138 lines. |
-| `docs/tickets/T355-m21-prep-changelog.md` | This ticket. |
-| `docs/worklog/T355-m21-prep-changelog.md` | Worklog. |
+| `docs/tickets/T356-m21-prep-changelog.md` | This ticket. |
+| `docs/worklog/T356-m21-prep-changelog.md` | Worklog. |
 
 No code paths, no validators, no roadmap-log mutations.
 
