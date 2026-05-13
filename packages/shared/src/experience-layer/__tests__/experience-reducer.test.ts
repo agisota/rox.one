@@ -1,10 +1,4 @@
-/**
- * Tests for `experience-reducer` — M.9 T270.
- *
- * Drives the full (state x event) truth table: every legal pair produces the
- * expected next state, every illegal pair returns a typed `TransitionError`.
- * Also covers id-mismatch and mutation-id-mismatch guards.
- */
+/** Tests for `experience-reducer` — M.9 T270. Drives the full truth table. */
 import { describe, it, expect } from 'bun:test';
 import { unsafeExperienceId, type ExperienceId } from '../experience-id.ts';
 import {
@@ -28,301 +22,170 @@ import {
 } from '../experience-state.ts';
 import { reducer } from '../experience-reducer.ts';
 
-interface Snapshot {
-  readonly title: string;
-  readonly count: number;
-}
+interface Snapshot { readonly title: string; readonly count: number }
 
 const ID: ExperienceId = unsafeExperienceId('0190a4d2-1234-7abc-89de-0123456789ab');
 const OTHER_ID: ExperienceId = unsafeExperienceId('0190a4d2-1234-7abc-89de-fedcba987654');
-
 const SNAP_A: Snapshot = { title: 'hello', count: 1 };
 const SNAP_B: Snapshot = { title: 'hello', count: 2 };
+const ERR: ExperienceError = { kind: 'load-failed', message: 'network', at: 1_700_000_000_000 };
 
-const ERR: ExperienceError = {
-  kind: 'load-failed',
-  message: 'network',
-  at: 1_700_000_000_000,
-};
-
-function unwrap<T>(
-  result: ReturnType<typeof reducer<T>>,
-): ExperienceState<T> {
-  if (!result.ok) {
-    throw new Error(
-      `expected ok=true, got error.kind=${result.error.kind}`,
-    );
-  }
-  return result.value;
+function ok<T>(r: ReturnType<typeof reducer<T>>): ExperienceState<T> {
+  if (!r.ok) throw new Error(`expected ok=true, got error.kind=${r.error.kind}`);
+  return r.value;
 }
 
-// ---------------------------------------------------------------------------
-// Idle row
-// ---------------------------------------------------------------------------
+function expectIllegal<T>(r: ReturnType<typeof reducer<T>>): void {
+  expect(r.ok).toBe(false);
+  if (!r.ok) expect(r.error.kind).toBe('IllegalTransition');
+}
+
+const ILLEGAL_FROM_IDLE_OR_ERROR: Array<[string, ExperienceEvent<Snapshot>]> = [
+  ['Loaded', loaded(ID, SNAP_A)],
+  ['Mutate', mutate(ID, 'm1', 1)],
+  ['MutationSucceeded', mutationSucceeded(ID, 'm1', SNAP_A)],
+  ['MutationFailed', mutationFailed(ID, 'm1', ERR, true)],
+];
 
 describe('reducer · idle', () => {
   const s = idle(ID);
-
   it('Load → Loading', () => {
-    const next = unwrap(reducer<Snapshot>(s, load(ID, 100)));
-    expect(next.kind).toBe('loading');
-    if (next.kind === 'loading') expect(next.since).toBe(100);
+    const n = ok(reducer<Snapshot>(s, load(ID, 100)));
+    if (n.kind !== 'loading') throw new Error('expected loading');
+    expect(n.since).toBe(100);
   });
-
-  it('Reset → Idle (noop legal)', () => {
-    const next = unwrap(reducer<Snapshot>(s, reset(ID)));
-    expect(next.kind).toBe('idle');
-  });
-
-  it('Fail → Error', () => {
-    const next = unwrap(reducer<Snapshot>(s, failEvt(ID, ERR)));
-    expect(next.kind).toBe('error');
-  });
-
-  it.each<[string, ExperienceEvent<Snapshot>]>([
-    ['Loaded', loaded(ID, SNAP_A)],
-    ['Mutate', mutate(ID, 'm1', 1)],
-    ['MutationSucceeded', mutationSucceeded(ID, 'm1', SNAP_A)],
-    ['MutationFailed', mutationFailed(ID, 'm1', ERR, true)],
-  ])('%s → IllegalTransition', (_label, evt) => {
-    const result = reducer<Snapshot>(s, evt);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.kind).toBe('IllegalTransition');
-  });
+  it('Reset → Idle (legal noop)', () => expect(ok(reducer<Snapshot>(s, reset(ID))).kind).toBe('idle'));
+  it('Fail → Error', () => expect(ok(reducer<Snapshot>(s, failEvt(ID, ERR))).kind).toBe('error'));
+  it.each(ILLEGAL_FROM_IDLE_OR_ERROR)('%s → IllegalTransition', (_l, evt) =>
+    expectIllegal(reducer<Snapshot>(s, evt)),
+  );
 });
-
-// ---------------------------------------------------------------------------
-// Loading row
-// ---------------------------------------------------------------------------
 
 describe('reducer · loading', () => {
   const s = loading(ID, 100);
-
-  it('Load → Loading (restart with new `since`)', () => {
-    const next = unwrap(reducer<Snapshot>(s, load(ID, 200)));
-    expect(next.kind).toBe('loading');
-    if (next.kind === 'loading') expect(next.since).toBe(200);
+  it('Load → Loading (restart with new since)', () => {
+    const n = ok(reducer<Snapshot>(s, load(ID, 200)));
+    if (n.kind !== 'loading') throw new Error('expected loading');
+    expect(n.since).toBe(200);
   });
-
   it('Loaded → Ready (version=1)', () => {
-    const next = unwrap(reducer<Snapshot>(s, loaded(ID, SNAP_A)));
-    expect(next.kind).toBe('ready');
-    if (next.kind === 'ready') {
-      expect(next.data).toBe(SNAP_A);
-      expect(next.version).toBe(1);
-    }
+    const n = ok(reducer<Snapshot>(s, loaded(ID, SNAP_A)));
+    if (n.kind !== 'ready') throw new Error('expected ready');
+    expect(n.data).toBe(SNAP_A);
+    expect(n.version).toBe(1);
   });
-
-  it('Fail → Error preserves error payload', () => {
-    const next = unwrap(reducer<Snapshot>(s, failEvt(ID, ERR)));
-    expect(next.kind).toBe('error');
-    if (next.kind === 'error') expect(next.error).toBe(ERR);
+  it('Fail → Error preserves payload', () => {
+    const n = ok(reducer<Snapshot>(s, failEvt(ID, ERR)));
+    if (n.kind !== 'error') throw new Error('expected error');
+    expect(n.error).toBe(ERR);
   });
-
-  it('Reset → Idle', () => {
-    expect(unwrap(reducer<Snapshot>(s, reset(ID))).kind).toBe('idle');
-  });
-
+  it('Reset → Idle', () => expect(ok(reducer<Snapshot>(s, reset(ID))).kind).toBe('idle'));
   it.each<[string, ExperienceEvent<Snapshot>]>([
     ['Mutate', mutate(ID, 'm1', 1)],
     ['MutationSucceeded', mutationSucceeded(ID, 'm1', SNAP_A)],
     ['MutationFailed', mutationFailed(ID, 'm1', ERR, true)],
-  ])('%s → IllegalTransition', (_label, evt) => {
-    const result = reducer<Snapshot>(s, evt);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.kind).toBe('IllegalTransition');
-  });
+  ])('%s → IllegalTransition', (_l, evt) => expectIllegal(reducer<Snapshot>(s, evt)));
 });
-
-// ---------------------------------------------------------------------------
-// Ready row
-// ---------------------------------------------------------------------------
 
 describe('reducer · ready', () => {
   const s = ready<Snapshot>(ID, SNAP_A, 3);
-
-  it('Load → Loading (refetch)', () => {
-    expect(unwrap(reducer<Snapshot>(s, load(ID, 100))).kind).toBe('loading');
-  });
-
+  it('Load → Loading (refetch)', () =>
+    expect(ok(reducer<Snapshot>(s, load(ID, 100))).kind).toBe('loading'));
   it('Loaded → Ready bumps version', () => {
-    const next = unwrap(reducer<Snapshot>(s, loaded(ID, SNAP_B)));
-    if (next.kind === 'ready') {
-      expect(next.version).toBe(4);
-      expect(next.data).toBe(SNAP_B);
-    } else {
-      throw new Error('expected ready');
-    }
+    const n = ok(reducer<Snapshot>(s, loaded(ID, SNAP_B)));
+    if (n.kind !== 'ready') throw new Error('expected ready');
+    expect(n.version).toBe(4);
+    expect(n.data).toBe(SNAP_B);
   });
-
   it('Mutate → Mutating carries base snapshot + version', () => {
-    const next = unwrap(reducer<Snapshot>(s, mutate(ID, 'm1', 100)));
-    if (next.kind === 'mutating') {
-      expect(next.data).toBe(SNAP_A);
-      expect(next.baseVersion).toBe(3);
-      expect(next.mutationId).toBe('m1');
-      expect(next.since).toBe(100);
-    } else {
-      throw new Error('expected mutating');
-    }
+    const n = ok(reducer<Snapshot>(s, mutate(ID, 'm1', 100)));
+    if (n.kind !== 'mutating') throw new Error('expected mutating');
+    expect(n.data).toBe(SNAP_A);
+    expect(n.baseVersion).toBe(3);
+    expect(n.mutationId).toBe('m1');
+    expect(n.since).toBe(100);
   });
-
-  it('Fail → Error', () => {
-    expect(unwrap(reducer<Snapshot>(s, failEvt(ID, ERR))).kind).toBe('error');
-  });
-
-  it('Reset → Idle drops the snapshot', () => {
-    expect(unwrap(reducer<Snapshot>(s, reset(ID))).kind).toBe('idle');
-  });
-
+  it('Fail → Error', () => expect(ok(reducer<Snapshot>(s, failEvt(ID, ERR))).kind).toBe('error'));
+  it('Reset → Idle drops the snapshot', () =>
+    expect(ok(reducer<Snapshot>(s, reset(ID))).kind).toBe('idle'));
   it.each<[string, ExperienceEvent<Snapshot>]>([
     ['MutationSucceeded', mutationSucceeded(ID, 'm1', SNAP_A)],
     ['MutationFailed', mutationFailed(ID, 'm1', ERR, true)],
-  ])('%s → IllegalTransition', (_label, evt) => {
-    const result = reducer<Snapshot>(s, evt);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.kind).toBe('IllegalTransition');
-  });
+  ])('%s → IllegalTransition', (_l, evt) => expectIllegal(reducer<Snapshot>(s, evt)));
 });
-
-// ---------------------------------------------------------------------------
-// Error row
-// ---------------------------------------------------------------------------
 
 describe('reducer · error', () => {
   const s = errored(ID, ERR);
-
-  it('Load → Loading (retry)', () => {
-    expect(unwrap(reducer<Snapshot>(s, load(ID, 100))).kind).toBe('loading');
-  });
-
-  it('Reset → Idle', () => {
-    expect(unwrap(reducer<Snapshot>(s, reset(ID))).kind).toBe('idle');
-  });
-
+  it('Load → Loading (retry)', () =>
+    expect(ok(reducer<Snapshot>(s, load(ID, 100))).kind).toBe('loading'));
+  it('Reset → Idle', () => expect(ok(reducer<Snapshot>(s, reset(ID))).kind).toBe('idle'));
   it('Fail → Error replaces the error payload', () => {
-    const next = unwrap(reducer<Snapshot>(s, failEvt(ID, { ...ERR, message: 'replaced' })));
-    if (next.kind === 'error') {
-      expect(next.error.message).toBe('replaced');
-    } else {
-      throw new Error('expected error');
-    }
+    const n = ok(reducer<Snapshot>(s, failEvt(ID, { ...ERR, message: 'replaced' })));
+    if (n.kind !== 'error') throw new Error('expected error');
+    expect(n.error.message).toBe('replaced');
   });
-
-  it.each<[string, ExperienceEvent<Snapshot>]>([
-    ['Loaded', loaded(ID, SNAP_A)],
-    ['Mutate', mutate(ID, 'm1', 1)],
-    ['MutationSucceeded', mutationSucceeded(ID, 'm1', SNAP_A)],
-    ['MutationFailed', mutationFailed(ID, 'm1', ERR, true)],
-  ])('%s → IllegalTransition', (_label, evt) => {
-    const result = reducer<Snapshot>(s, evt);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.kind).toBe('IllegalTransition');
-  });
+  it.each(ILLEGAL_FROM_IDLE_OR_ERROR)('%s → IllegalTransition', (_l, evt) =>
+    expectIllegal(reducer<Snapshot>(s, evt)),
+  );
 });
-
-// ---------------------------------------------------------------------------
-// Mutating row
-// ---------------------------------------------------------------------------
 
 describe('reducer · mutating', () => {
   const s = mutating<Snapshot>(ID, SNAP_A, 3, 'm1', 100);
-
   it('MutationSucceeded (matching id) → Ready bumps from baseVersion', () => {
-    const next = unwrap(reducer<Snapshot>(s, mutationSucceeded(ID, 'm1', SNAP_B)));
-    if (next.kind === 'ready') {
-      expect(next.data).toBe(SNAP_B);
-      expect(next.version).toBe(4);
-    } else {
-      throw new Error('expected ready');
-    }
+    const n = ok(reducer<Snapshot>(s, mutationSucceeded(ID, 'm1', SNAP_B)));
+    if (n.kind !== 'ready') throw new Error('expected ready');
+    expect(n.data).toBe(SNAP_B);
+    expect(n.version).toBe(4);
   });
-
-  it('MutationSucceeded with mismatched mutationId → MismatchedMutation', () => {
-    const result = reducer<Snapshot>(s, mutationSucceeded(ID, 'mX', SNAP_B));
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.kind).toBe('MismatchedMutation');
+  it('MutationSucceeded mismatched id → MismatchedMutation', () => {
+    const r = reducer<Snapshot>(s, mutationSucceeded(ID, 'mX', SNAP_B));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.kind).toBe('MismatchedMutation');
   });
-
   it('MutationFailed recoverable=true → Ready restores baseVersion', () => {
-    const next = unwrap(reducer<Snapshot>(s, mutationFailed(ID, 'm1', ERR, true)));
-    if (next.kind === 'ready') {
-      expect(next.data).toBe(SNAP_A);
-      expect(next.version).toBe(3);
-    } else {
-      throw new Error('expected ready');
-    }
+    const n = ok(reducer<Snapshot>(s, mutationFailed(ID, 'm1', ERR, true)));
+    if (n.kind !== 'ready') throw new Error('expected ready');
+    expect(n.data).toBe(SNAP_A);
+    expect(n.version).toBe(3);
   });
-
-  it('MutationFailed recoverable=false → Error', () => {
-    expect(unwrap(reducer<Snapshot>(s, mutationFailed(ID, 'm1', ERR, false))).kind).toBe(
-      'error',
-    );
+  it('MutationFailed recoverable=false → Error', () =>
+    expect(ok(reducer<Snapshot>(s, mutationFailed(ID, 'm1', ERR, false))).kind).toBe('error'));
+  it('MutationFailed mismatched id → MismatchedMutation', () => {
+    const r = reducer<Snapshot>(s, mutationFailed(ID, 'mX', ERR, true));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.kind).toBe('MismatchedMutation');
   });
-
-  it('MutationFailed mismatched mutationId → MismatchedMutation', () => {
-    const result = reducer<Snapshot>(s, mutationFailed(ID, 'mX', ERR, true));
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.kind).toBe('MismatchedMutation');
-  });
-
-  it('Fail → Error (universal escape hatch even during mutation)', () => {
-    expect(unwrap(reducer<Snapshot>(s, failEvt(ID, ERR))).kind).toBe('error');
-  });
-
-  it('Reset → Idle', () => {
-    expect(unwrap(reducer<Snapshot>(s, reset(ID))).kind).toBe('idle');
-  });
-
+  it('Fail → Error (universal even during mutation)', () =>
+    expect(ok(reducer<Snapshot>(s, failEvt(ID, ERR))).kind).toBe('error'));
+  it('Reset → Idle', () => expect(ok(reducer<Snapshot>(s, reset(ID))).kind).toBe('idle'));
   it.each<[string, ExperienceEvent<Snapshot>]>([
     ['Load', load(ID, 200)],
     ['Loaded', loaded(ID, SNAP_A)],
     ['Mutate', mutate(ID, 'm2', 200)],
-  ])('%s → IllegalTransition', (_label, evt) => {
-    const result = reducer<Snapshot>(s, evt);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.kind).toBe('IllegalTransition');
-  });
+  ])('%s → IllegalTransition', (_l, evt) => expectIllegal(reducer<Snapshot>(s, evt)));
 });
 
-// ---------------------------------------------------------------------------
-// Cross-cutting guards
-// ---------------------------------------------------------------------------
-
-describe('reducer · id-mismatch guard', () => {
+describe('reducer · id-mismatch + transition-error shape', () => {
   it('returns MismatchedId when event.id != state.id', () => {
-    const s = idle(ID);
-    const result = reducer<Snapshot>(s, load(OTHER_ID, 1));
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.kind).toBe('MismatchedId');
-      if (result.error.kind === 'MismatchedId') {
-        expect(result.error.stateId).toBe(ID);
-        expect(result.error.eventId).toBe(OTHER_ID);
-      }
-    }
+    const r = reducer<Snapshot>(idle(ID), load(OTHER_ID, 1));
+    expect(r.ok).toBe(false);
+    if (!r.ok && r.error.kind === 'MismatchedId') {
+      expect(r.error.stateId).toBe(ID);
+      expect(r.error.eventId).toBe(OTHER_ID);
+    } else throw new Error('expected MismatchedId');
   });
-
   it('mismatched id wins over otherwise-legal transition', () => {
-    const s = ready<Snapshot>(ID, SNAP_A, 1);
-    const result = reducer<Snapshot>(s, loaded(OTHER_ID, SNAP_B));
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.kind).toBe('MismatchedId');
+    const r = reducer<Snapshot>(ready<Snapshot>(ID, SNAP_A, 1), loaded(OTHER_ID, SNAP_B));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.kind).toBe('MismatchedId');
   });
-});
-
-describe('reducer · TransitionError shape', () => {
   it('IllegalTransition carries both stateKind and eventKind', () => {
-    const result = reducer<Snapshot>(idle(ID), loaded(ID, SNAP_A));
-    expect(result.ok).toBe(false);
-    if (!result.ok && result.error.kind === 'IllegalTransition') {
-      expect(result.error.stateKind).toBe('idle');
-      expect(result.error.eventKind).toBe('loaded');
-    }
+    const r = reducer<Snapshot>(idle(ID), loaded(ID, SNAP_A));
+    if (!r.ok && r.error.kind === 'IllegalTransition') {
+      expect(r.error.stateKind).toBe('idle');
+      expect(r.error.eventKind).toBe('loaded');
+    } else throw new Error('expected IllegalTransition');
   });
-
-  it('reducer never throws — illegal pairs are values, not exceptions', () => {
-    const s = idle(ID);
-    expect(() => reducer<Snapshot>(s, mutate(ID, 'm', 1))).not.toThrow();
-  });
+  it('reducer never throws — illegal pairs are values', () =>
+    expect(() => reducer<Snapshot>(idle(ID), mutate(ID, 'm', 1))).not.toThrow());
 });

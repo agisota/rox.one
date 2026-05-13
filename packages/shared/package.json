@@ -26,6 +26,7 @@
     "./auth/types": "./src/auth/types.ts",
     "./audit": "./src/audit/index.ts",
     "./config": "./src/config/index.ts",
+    "./experience-layer": "./src/experience-layer/index.ts",
     "./config/models-pi": "./src/config/models-pi.ts",
     "./docs": "./src/docs/index.ts",
     "./docs/doc-links": "./src/docs/doc-links.ts",
