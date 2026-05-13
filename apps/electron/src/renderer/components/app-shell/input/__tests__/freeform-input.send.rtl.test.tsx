@@ -86,6 +86,13 @@ vi.mock('@/hooks/useDirectoryPicker', () => ({
   }),
 }))
 
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+  },
+}))
+
 // Heavy dialogs depend on ModalProvider; render-cheap stubs are sufficient
 // for the send hot path which never opens them.
 vi.mock('../PromptRewriteDialog', () => ({
@@ -240,6 +247,61 @@ describe('FreeFormInput send hot path [T187]', () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
+  it('quick action submits a deterministic wrapper prompt for typed input', async () => {
+    const onSubmit = vi.fn()
+    render(<FreeFormInput {...baseProps({ onSubmit })} />)
+    const textarea = await screen.findByTestId('rich-text-input')
+
+    await userEvent.type(textarea, 'Add usage-based billing retries')
+    await userEvent.click(getQuickActionButton('run-tdd-plan'))
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+    const [message] = onSubmit.mock.calls[0]
+
+    expect(message).toContain('# TDD план')
+    expect(message).toContain('## Исходный запрос')
+    expect(message).toContain('## Контекст')
+    expect(message).toContain('## Инструкция')
+    expect(message).toContain('## Формат результата')
+    expect(message).toContain('Add usage-based billing retries')
+  })
+
+  it('quick action can use follow-up context when typed input is empty', async () => {
+    const onSubmit = vi.fn()
+    render(<FreeFormInput {...baseProps({
+      onSubmit,
+      followUpItems: [{
+        id: 'f1',
+        messageId: 'm1',
+        annotationId: 'a1',
+        index: 1,
+        noteLabel: 'Проверь вывод',
+        selectedText: 'Existing assistant conclusion',
+      }],
+    })} />)
+
+    await userEvent.click(getQuickActionButton('verify'))
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
+    expect(onSubmit.mock.calls[0][0]).toContain('# Проверить')
+    expect(onSubmit.mock.calls[0][0]).toContain('Existing assistant conclusion')
+    expect(onSubmit.mock.calls[0][0]).toContain('Проверь вывод')
+  })
+
+  it('quick action is a no-op when only workspace metadata is present', async () => {
+    const onSubmit = vi.fn()
+    render(<FreeFormInput {...baseProps({
+      onSubmit,
+      workingDirectory: '/repo/rox-one',
+      sessionLabels: ['review'],
+      currentSessionStatus: 'Running',
+    })} />)
+
+    await userEvent.click(getQuickActionButton('verify'))
+
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
   it('a11y: no axe violations after typing', async () => {
     const { container } = render(<FreeFormInput {...baseProps()} />)
     const textarea = await screen.findByTestId('rich-text-input')
@@ -253,3 +315,11 @@ describe('FreeFormInput send hot path [T187]', () => {
     })
   })
 })
+
+function getQuickActionButton(actionId: string): HTMLElement {
+  const button = document.querySelector(`[data-product-mode-action="${actionId}"]`)
+  if (!(button instanceof HTMLElement)) {
+    throw new Error(`Missing quick action button: ${actionId}`)
+  }
+  return button
+}

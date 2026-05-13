@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createProductModeIntent } from '../product-mode-toolbar';
+import { createOpenArtifactProductModeIntent, createProductModeIntent } from '../product-mode-toolbar';
 import {
   createComposerArtifactState,
   createExperienceEventsForComposerArtifact,
@@ -11,9 +11,19 @@ import {
 } from '@rox-one/shared/workbench';
 
 describe('composer artifact flow', () => {
-  test('routes improve-prompt to Prompt Lab without submitting', () => {
+  test('does not route default quick actions to artifact screens', () => {
+    const intent = createProductModeIntent('improve-prompt', 'research');
+
+    expect(shouldOpenComposerArtifactForIntent(intent)).toBe(false);
+    expect(() => createComposerArtifactState({
+      intent,
+      rawInput: 'Build native account login',
+    })).toThrow('explicit open-artifact intent');
+  });
+
+  test('routes explicit Prompt Lab artifact intent without submitting', () => {
     const state = createComposerArtifactState({
-      intent: createProductModeIntent('improve-prompt', 'research'),
+      intent: createOpenArtifactProductModeIntent('prompt-lab', 'research'),
       rawInput: 'Build native account login',
     });
 
@@ -24,21 +34,16 @@ describe('composer artifact flow', () => {
     expect(state.promptLab?.output?.rewrittenPrompt).toContain('Build native account login');
   });
 
-  test('routes empty improve-prompt to Prompt Lab error state without provider execution', () => {
-    const state = createComposerArtifactState({
-      intent: createProductModeIntent('improve-prompt', 'research'),
+  test('rejects explicit artifact screens without valid input', () => {
+    expect(() => createComposerArtifactState({
+      intent: createOpenArtifactProductModeIntent('prompt-lab', 'research'),
       rawInput: '   ',
-    });
-
-    expect(state.kind).toBe('prompt-lab');
-    expect(state.shouldSubmit).toBe(false);
-    expect(state.promptLab?.status).toBe('error');
-    expect(state.promptLab?.error).toContain('empty prompt');
+    })).toThrow('valid artifact input');
   });
 
   test('routes TDD Plan to generated red-green-verify-worklog state', () => {
     const state = createComposerArtifactState({
-      intent: createProductModeIntent('run-tdd-plan', 'research'),
+      intent: createOpenArtifactProductModeIntent('tdd-plan', 'research'),
       rawInput: 'Add billing webhook idempotency',
     });
 
@@ -49,11 +54,11 @@ describe('composer artifact flow', () => {
 
   test('routes verify and tear-down to Review Gate variants', () => {
     const verify = createComposerArtifactState({
-      intent: createProductModeIntent('verify', 'research'),
+      intent: createOpenArtifactProductModeIntent('review-gate', 'research', { actionId: 'verify' }),
       rawInput: 'Verify team spaces',
     });
     const tearDown = createComposerArtifactState({
-      intent: createProductModeIntent('tear-down', 'research'),
+      intent: createOpenArtifactProductModeIntent('review-gate', 'research', { actionId: 'tear-down' }),
       rawInput: 'This is the best team spaces design',
     });
 
@@ -65,7 +70,7 @@ describe('composer artifact flow', () => {
 
   test('routes build-spec to Spec Builder state', () => {
     const state = createComposerArtifactState({
-      intent: createProductModeIntent('build-spec', 'research'),
+      intent: createOpenArtifactProductModeIntent('spec-builder', 'research'),
       rawInput: 'Create a team invite spec',
     });
 
@@ -77,7 +82,7 @@ describe('composer artifact flow', () => {
 
   test('emits Experience events for prompt rewrite and advances rewrite quest', () => {
     const state = createComposerArtifactState({
-      intent: createProductModeIntent('improve-prompt', 'research'),
+      intent: createOpenArtifactProductModeIntent('prompt-lab', 'research'),
       rawInput: 'Build native account login',
     });
     const events = createExperienceEventsForComposerArtifact(state, {
@@ -93,11 +98,11 @@ describe('composer artifact flow', () => {
 
   test('emits Experience events for spec compile and TDD plan artifacts', () => {
     const specState = createComposerArtifactState({
-      intent: createProductModeIntent('build-spec', 'research'),
+      intent: createOpenArtifactProductModeIntent('spec-builder', 'research'),
       rawInput: 'Create a team invite spec',
     });
     const tddState = createComposerArtifactState({
-      intent: createProductModeIntent('run-tdd-plan', 'research'),
+      intent: createOpenArtifactProductModeIntent('tdd-plan', 'research'),
       rawInput: 'Add billing webhook idempotency',
     });
 
@@ -107,7 +112,7 @@ describe('composer artifact flow', () => {
 
   test('emits review failure events that become HUD blockers', () => {
     const state = createComposerArtifactState({
-      intent: createProductModeIntent('tear-down', 'review'),
+      intent: createOpenArtifactProductModeIntent('review-gate', 'review', { actionId: 'tear-down' }),
       rawInput: 'This is the guaranteed best architecture with api_key: leaked',
     });
     const events = createExperienceEventsForComposerArtifact(state, {

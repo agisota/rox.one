@@ -163,6 +163,10 @@ import {
   type ComposerArtifactState,
 } from './composer-artifact-flow';
 import {
+  createComposerQuickActionPrompt,
+  type ComposerQuickActionContextItem,
+} from './composer-quick-action-flow';
+import {
   PROMPT_REWRITE_SPEC_BUILDER_EVENT,
   applyPromptRewriteAcceptance,
   createPromptRewriteRequestFromComposer,
@@ -177,6 +181,44 @@ import {
   createThinkingPartnerSpecBuilderIntent,
   shouldOpenThinkingPartnerForIntent,
 } from './thinking-partner-flow';
+
+function createQuickActionContextItems(input: {
+  attachments: FileAttachment[];
+  followUpItems: FollowUpInputItem[];
+  sources: LoadedSource[];
+  enabledSourceSlugs: string[];
+}): ComposerQuickActionContextItem[] {
+  const enabledSourceSlugSet = new Set(input.enabledSourceSlugs);
+  const followUpContexts = input.followUpItems.map((item, index) => ({
+    kind: 'follow-up' as const,
+    label: `Follow-up #${item.index ?? index + 1}`,
+    text: [
+      item.selectedText.trim(),
+      item.noteLabel.trim() ? `Note: ${item.noteLabel.trim()}` : '',
+    ].filter(Boolean).join('\n'),
+  }));
+  const attachmentContexts = input.attachments.map((attachment) => ({
+    kind: 'attachment' as const,
+    label: attachment.name || attachment.path,
+    text: attachment.text,
+    path: attachment.path,
+  }));
+  const sourceContexts = input.sources
+    .filter(source => enabledSourceSlugSet.has(source.config.slug))
+    .map(source => ({
+      kind: 'source' as const,
+      label: source.config.name || source.config.slug,
+      text: source.guide?.scope ?? source.config.tagline,
+      path: source.folderPath,
+      slug: source.config.slug,
+    }));
+
+  return [
+    ...followUpContexts,
+    ...attachmentContexts,
+    ...sourceContexts,
+  ];
+}
 
 export interface FreeFormInputProps {
   /** Placeholder text(s) for the textarea - can be array for rotation */
@@ -1307,8 +1349,9 @@ export function FreeFormInput({
   }
 
   // Submit message - backend handles queueing and interruption
-  const submitMessage = React.useCallback(() => {
-    const hasContent = input.trim() || attachments.length > 0 || followUpItems.length > 0
+  const submitMessage = React.useCallback((messageOverride?: string) => {
+    const message = (messageOverride ?? input).trim()
+    const hasContent = message || attachments.length > 0 || followUpItems.length > 0
     if (!hasContent || disabled) return false
 
     // Tutorial may disable sending to guide user through specific steps
@@ -1317,7 +1360,7 @@ export function FreeFormInput({
     // Parse all @mentions (skills, sources, folders)
     const skillSlugs = skills.map(s => s.slug)
     const sourceSlugs = sources.map(s => s.config.slug)
-    const mentions = parseMentions(input, skillSlugs, sourceSlugs)
+    const mentions = parseMentions(message, skillSlugs, sourceSlugs)
 
     // Enable any mentioned sources that aren't already enabled
     if (mentions.sources.length > 0 && onSourcesChange) {
@@ -1331,7 +1374,7 @@ export function FreeFormInput({
     const attachmentSnapshot = attachments
 
     onSubmit(
-      input.trim(),
+      message,
       attachmentSnapshot.length > 0 ? attachmentSnapshot : undefined,
       mentions.skills.length > 0 ? mentions.skills : undefined
     )
@@ -1653,8 +1696,41 @@ export function FreeFormInput({
 
   const handleProductModeIntent = React.useCallback((intent: ProductModeIntent) => {
     window.dispatchEvent(new CustomEvent<ProductModeIntent>('rox:product-mode-intent', { detail: intent }))
+    if (intent.behavior === 'wrap-prompt') {
+      const result = createComposerQuickActionPrompt({
+        intent,
+        rawInput: input,
+        selectedMode: selectedProductMode,
+        contextItems: createQuickActionContextItems({
+          attachments,
+          followUpItems,
+          sources,
+          enabledSourceSlugs: optimisticSourceSlugs,
+        }),
+        workingDirectory,
+        sessionLabels,
+        currentSessionStatus,
+      })
+
+      if (!result.ok) {
+        toast.error(result.message)
+        richInputRef.current?.focus()
+        return
+      }
+
+      setComposerArtifactState(null)
+      setPromptRewriteState((state) => ({ ...state, open: false }))
+      setThinkingPartnerState((state) => ({ ...state, open: false }))
+      submitMessage(result.prompt)
+      return
+    }
+
     if (shouldOpenComposerArtifactForIntent(intent)) {
-      setComposerArtifactState(createComposerArtifactState({ intent, rawInput: input }))
+      try {
+        setComposerArtifactState(createComposerArtifactState({ intent, rawInput: input }))
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Не удалось открыть рабочий артефакт.')
+      }
       return
     }
     if (shouldOpenPromptRewriteForIntent(intent)) {
@@ -1663,7 +1739,21 @@ export function FreeFormInput({
     if (shouldOpenThinkingPartnerForIntent(intent)) {
       void runThinkingPartner()
     }
-  }, [input, runPromptRewrite, runThinkingPartner])
+  }, [
+    attachments,
+    currentSessionStatus,
+    followUpItems,
+    input,
+    optimisticSourceSlugs,
+    richInputRef,
+    runPromptRewrite,
+    runThinkingPartner,
+    selectedProductMode,
+    sessionLabels,
+    sources,
+    submitMessage,
+    workingDirectory,
+  ])
 
   const handleComposerArtifactClose = React.useCallback(() => {
     setComposerArtifactState(null)

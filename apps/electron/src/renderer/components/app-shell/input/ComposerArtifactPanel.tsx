@@ -5,7 +5,7 @@ import { PromptLabScreen } from '../../workbench/PromptLabScreen';
 import { ReviewGateScreen } from '../../workbench/ReviewGateScreen';
 import { SpecBuilderScreen } from '../../workbench/SpecBuilderScreen';
 import { TddPlanScreen } from '../../workbench/TddPlanScreen';
-import { createProductModeIntent } from './product-mode-toolbar';
+import { createOpenArtifactProductModeIntent } from './product-mode-toolbar';
 import {
   createComposerArtifactState,
   type ComposerArtifactKind,
@@ -37,7 +37,10 @@ export function ComposerArtifactPanel({ artifact, onClose, onReplaceInput }: Com
     } as const;
 
     setActiveArtifact(createComposerArtifactState({
-      intent: createProductModeIntent(actionIdByKind[kind], artifact?.intent.mode ?? 'research'),
+      intent: createOpenArtifactProductModeIntent(kind, artifact?.intent.mode ?? 'research', {
+        actionId: actionIdByKind[kind],
+        source: 'composer-artifact-panel',
+      }),
       rawInput,
     }));
     setStatus(null);

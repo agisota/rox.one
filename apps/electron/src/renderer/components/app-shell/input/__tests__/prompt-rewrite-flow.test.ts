@@ -10,8 +10,8 @@ import {
 } from '../prompt-rewrite-flow';
 
 describe('prompt rewrite composer flow', () => {
-  test('opens only for the rewrite prompt intent', () => {
-    expect(shouldOpenPromptRewriteForIntent(createProductModeIntent('improve-prompt', 'build'))).toBe(true);
+  test('does not open the legacy rewrite dialog for quick-action wrapper intents', () => {
+    expect(shouldOpenPromptRewriteForIntent(createProductModeIntent('improve-prompt', 'build'))).toBe(false);
     expect(shouldOpenPromptRewriteForIntent(createProductModeIntent('run-tdd-plan', 'tdd'))).toBe(false);
   });
 

@@ -14,6 +14,7 @@ describe('thinking partner composer flow', () => {
     const legacyThinkingIntent: ProductModeIntent = {
       type: 'product-mode-intent',
       source: 'composer-toolbar',
+      behavior: 'open-artifact',
       actionId: 'think-with-me' as ProductModeIntent['actionId'],
       mode: 'think',
       labelKey: 'workbench.actions.thinkWithMe',
