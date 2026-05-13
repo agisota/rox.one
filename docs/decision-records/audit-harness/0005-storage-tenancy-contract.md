@@ -44,12 +44,16 @@ Three commits in this slice cover the contract roll-out:
 ## Out of scope
 
 - **Caller migration of the remaining ~50 storage call sites.** The defaulted parameter handles backward-compat indefinitely. Per-call-site migration is best-effort and adds churn without behavior change while no non-default scope ships. The largest remaining clusters: `packages/server-core/src/sessions/SessionManager.ts` (~12 calls), `packages/server-core/src/handlers/rpc/llm-connections.ts` (~8 calls), `packages/server-core/src/handlers/rpc/{settings,workspace}.ts` (~6 calls), `packages/server-core/src/model-fetchers/index.ts` (~4 calls), and the `apps/electron/src/main/handlers/*` cluster (~10 calls). They will migrate naturally when a non-default scope ships and the type checker forces the issue, or in a follow-up housekeeping pass.
-- **Real multi-tenant authentication and isolation.** This ADR widens the *contract*, not the *implementation*. A future `kind: 'workspace'` branch needs:
-  - workspace-id forgery defense (the scope must be derived from authenticated session state, not from request input)
-  - per-tenant config-dir resolution in `storage-internal.ts` (today everything routes through `getConfigDir()` from `paths.ts`)
-  - tenant-scoped credential namespaces in `credentials/manager.ts`
-  - audit logging of cross-scope access attempts
-  None of this is implemented; the type just reserves the slot.
+- **Real multi-tenant authentication and isolation.** The first implementation
+  step is captured in ADR 0007. It implements workspace-id forgery defense via
+  trusted scope derivation, per-tenant config-dir resolution through
+  `storage-internal.ts`, and structured audit events for factory downgrade,
+  forgery rejection, runtime workspace downgrade, and unbranded scope breaches.
+  ADR 0007 keeps multi-tenant runtime opt-in via `ROX_MULTI_TENANT=1` and keeps
+  single-user storage on the existing flat layout. Deferred work remains:
+  tenant-scoped credential key derivation, RBAC population of permitted
+  workspaces, data migration tooling, queryable audit storage, Pi IPC scope
+  propagation, and remaining handler migrations.
 - **Removing the default parameter.** Once a non-default scope ships and 100% of call sites are migrated, the `= DEFAULT_LOCAL_SCOPE` default should be deleted so the type checker forces every new call site to think about scope. Until then, the default is the contract.
 
 ## Security implications (when the union widens)
