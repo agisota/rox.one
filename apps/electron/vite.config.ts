@@ -8,9 +8,15 @@ import { resolve } from 'path'
 // SENTRY_ORG, SENTRY_PROJECT to CI secrets. See CLAUDE.md "Sentry Error Tracking" section.
 // import { sentryVitePlugin } from '@sentry/vite-plugin'
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command }) => {
+  // Playground is a dev-only component browser. Exclude it from production builds
+  // to avoid shipping ~784 KB of mock/demo code to end users.
+  // Engineers can still access it in dev mode (vite serve / bun run dev).
+  const isDev = command === 'serve'
+
+  return {
   plugins: [
-    react(command === 'serve'
+    react(isDev
       ? {
           babel: {
             plugins: [
@@ -43,7 +49,11 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'src/renderer/index.html'),
-        playground: resolve(__dirname, 'src/renderer/playground.html'),
+        // playground entry is intentionally omitted from production builds.
+        // It is available in dev mode (vite serve) via playground.html.
+        ...(isDev && {
+          playground: resolve(__dirname, 'src/renderer/playground.html'),
+        }),
         'browser-toolbar': resolve(__dirname, 'src/renderer/browser-toolbar.html'),
         'browser-empty-state': resolve(__dirname, 'src/renderer/browser-empty-state.html'),
       }
@@ -78,4 +88,5 @@ export default defineConfig(({ command }) => ({
     port: 5173,
     open: false
   }
-}))
+  }
+})
