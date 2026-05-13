@@ -290,6 +290,11 @@ async function buildWhatsAppWorker(): Promise<void> {
       "--external:link-preview-js",
       "--external:qrcode-terminal",
       "--external:jimp",
+      // music-metadata v11+ is ESM-only (no CJS "require" export condition).
+      // Baileys lazily requires it for media metadata extraction which ROX
+      // doesn't use. Mark external so esbuild leaves the require() call in
+      // place — the try/catch in Baileys handles the runtime absence.
+      "--external:music-metadata",
     ],
     cwd: ROOT_DIR,
     stdout: "inherit",

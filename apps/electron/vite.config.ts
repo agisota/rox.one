@@ -57,6 +57,12 @@ export default defineConfig(({ command }) => ({
       // Bun hoists deps to root. This prevents "multiple React copies" error from @rox-one/ui
       'react': resolve(__dirname, '../../node_modules/react'),
       'react-dom': resolve(__dirname, '../../node_modules/react-dom'),
+      // Browser shim for node:async_hooks — the observability module imports
+      // AsyncLocalStorage for correlation-ID propagation across async boundaries.
+      // That's a server/main-process concern only; in the renderer the shim
+      // returns undefined from getStore() so correlation IDs simply won't
+      // propagate across async hops (they're not meaningful there anyway).
+      'node:async_hooks': resolve(__dirname, 'src/renderer/shims/async-hooks.ts'),
     },
     dedupe: ['react', 'react-dom']
   },
