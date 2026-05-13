@@ -10,31 +10,31 @@ import {
   type AuthRequest,
   type AuthResult,
   type CredentialAuthRequest,
-} from '@craft-agent/shared/agent'
+} from '@rox-one/shared/agent'
 import {
   DEFAULT_LOCAL_SCOPE,
   getLlmConnection,
   getDefaultLlmConnection,
   resetManagedAnthropicAuthEnvVars,
   resolveAuthEnvVars,
-} from '@craft-agent/shared/config'
-import { getValidClaudeOAuthToken } from '@craft-agent/shared/auth'
-import { getCredentialManager } from '@craft-agent/shared/credentials'
+} from '@rox-one/shared/config'
+import { getValidClaudeOAuthToken } from '@rox-one/shared/auth'
+import { getCredentialManager } from '@rox-one/shared/credentials'
 import {
   loadAllSources,
   isSourceUsable,
-} from '@craft-agent/shared/sources'
+} from '@rox-one/shared/sources'
 import {
   getSessionPath as getSessionStoragePath,
-} from '@craft-agent/shared/sessions'
-import { resetSummarizationClient } from '@craft-agent/shared/utils'
-import { generateMessageId } from '@craft-agent/shared/protocol'
+} from '@rox-one/shared/sessions'
+import { resetSummarizationClient } from '@rox-one/shared/utils'
+import { generateMessageId } from '@rox-one/shared/protocol'
 import type {
   CredentialResponse,
   PermissionResponseOptions,
   SendMessageOptions,
   FileAttachment,
-} from '@craft-agent/shared/protocol'
+} from '@rox-one/shared/protocol'
 import type { StoredAttachment, Message } from '@rox-one/core/types'
 import {
   applyBridgeUpdates,
@@ -401,7 +401,7 @@ export class SessionAuth {
       }
 
       // Update source config to mark as authenticated
-      const { markSourceAuthenticated } = await import('@craft-agent/shared/sources')
+      const { markSourceAuthenticated } = await import('@rox-one/shared/sources')
       markSourceAuthenticated(managed.workspace.rootPath, request.sourceSlug)
 
       // Mark source as unseen so fresh guide is injected on next message

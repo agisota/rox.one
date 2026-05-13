@@ -2,7 +2,7 @@ import {
   DEFAULT_LOCAL_SCOPE,
   deriveScopeFromAuth,
   type BrandedWorkspaceScope,
-} from '@craft-agent/shared/config'
+} from '@rox-one/shared/config'
 import type { RequestContext } from '../../transport/types'
 import type { HandlerDeps } from '../handler-deps'
 

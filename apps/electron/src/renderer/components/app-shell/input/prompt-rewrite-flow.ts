@@ -1,4 +1,4 @@
-import type { PromptRewriteOutput, PromptRewriteRequest } from '@craft-agent/shared/workbench';
+import type { PromptRewriteOutput, PromptRewriteRequest } from '@rox-one/shared/workbench';
 import type { ProductMode, ProductModeIntent } from './product-mode-toolbar';
 
 export const PROMPT_REWRITE_SPEC_BUILDER_EVENT = 'craft:spec-builder-intent';

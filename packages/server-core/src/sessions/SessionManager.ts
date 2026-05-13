@@ -6,7 +6,7 @@ import { basename, dirname, join } from 'path'
 import { existsSync } from 'fs'
 import { readFile, writeFile, mkdir } from 'fs/promises'
 import { randomUUID } from 'node:crypto'
-import { type AgentEvent, setPermissionMode, hydratePreviousPermissionMode, getPermissionModeDiagnostics, type PermissionMode, unregisterSessionScopedToolCallbacks, mergeSessionScopedToolCallbacks, AbortReason, type AuthRequest, type AuthResult, type CredentialAuthRequest, type BrowserPaneFns, generateConversationSummary } from '@craft-agent/shared/agent'
+import { type AgentEvent, setPermissionMode, hydratePreviousPermissionMode, getPermissionModeDiagnostics, type PermissionMode, unregisterSessionScopedToolCallbacks, mergeSessionScopedToolCallbacks, AbortReason, type AuthRequest, type AuthResult, type CredentialAuthRequest, type BrowserPaneFns, generateConversationSummary } from '@rox-one/shared/agent'
 import {
   resolveSessionConnection,
   createBackendFromConnection,
@@ -18,11 +18,11 @@ import {
   type BackendHostRuntimeContext,
   type BackendStorageScopeAuth,
   type PostInitResult,
-} from '@craft-agent/shared/agent/backend'
-import { DEFAULT_LOCAL_SCOPE, getLlmConnection, getLlmConnections, getDefaultLlmConnection, getDefaultThinkingLevel, resetManagedAnthropicAuthEnvVars, resolveMidStreamBehavior } from '@craft-agent/shared/config'
+} from '@rox-one/shared/agent/backend'
+import { DEFAULT_LOCAL_SCOPE, getLlmConnection, getLlmConnections, getDefaultLlmConnection, getDefaultThinkingLevel, resetManagedAnthropicAuthEnvVars, resolveMidStreamBehavior } from '@rox-one/shared/config'
 import { isValidWorkingDirectory } from '../utils/path-validation'
 import { InitGate } from '@rox-one/server-core/domain'
-import { i18n, LOCALE_REGISTRY, type LanguageCode } from '@craft-agent/shared/i18n'
+import { i18n, LOCALE_REGISTRY, type LanguageCode } from '@rox-one/shared/i18n'
 import {
   getWorkspaces,
   getWorkspaceByNameOrId,
@@ -34,10 +34,10 @@ import {
   MODEL_REGISTRY,
   type Workspace,
   type WorkspaceInfo,
-} from '@craft-agent/shared/config'
-import { installDefaultWorkbenchBundle } from '@craft-agent/shared/workbench/default-workspace-bundle'
+} from '@rox-one/shared/config'
+import { installDefaultWorkbenchBundle } from '@rox-one/shared/workbench/default-workspace-bundle'
 import type { ActiveSessionInfo, SessionProcessingStatus } from '@rox-one/core/types'
-import { loadWorkspaceConfig } from '@craft-agent/shared/workspaces'
+import { loadWorkspaceConfig } from '@rox-one/shared/workspaces'
 import {
   // Session persistence functions
   listSessions as listStoredSessions,
@@ -70,36 +70,36 @@ import {
   type SessionStatus,
   type SessionHeader,
   pickSessionFields,
-} from '@craft-agent/shared/sessions'
-import { loadWorkspaceSources, loadAllSources, getSourcesBySlugs, isSourceUsable, type LoadedSource, type McpServerConfig, getSourcesNeedingAuth, getSourceCredentialManager, getSourceServerBuilder, type SourceWithCredential, isApiOAuthProvider, hasRenewEndpoint, SERVER_BUILD_ERRORS, TokenRefreshManager, createTokenGetter } from '@craft-agent/shared/sources'
-import { ConfigWatcher, type ConfigWatcherCallbacks } from '@craft-agent/shared/config'
-import { getValidClaudeOAuthToken } from '@craft-agent/shared/auth'
-import { resolveAuthEnvVars } from '@craft-agent/shared/config'
-import { toolMetadataStore, getLastApiError } from '@craft-agent/shared/interceptor'
-import { isParentTaskTool } from '@craft-agent/shared/utils/toolNames'
-import { restoreFiles } from '@craft-agent/shared/utils/bundle-files'
-import { getCredentialManager } from '@craft-agent/shared/credentials'
+} from '@rox-one/shared/sessions'
+import { loadWorkspaceSources, loadAllSources, getSourcesBySlugs, isSourceUsable, type LoadedSource, type McpServerConfig, getSourcesNeedingAuth, getSourceCredentialManager, getSourceServerBuilder, type SourceWithCredential, isApiOAuthProvider, hasRenewEndpoint, SERVER_BUILD_ERRORS, TokenRefreshManager, createTokenGetter } from '@rox-one/shared/sources'
+import { ConfigWatcher, type ConfigWatcherCallbacks } from '@rox-one/shared/config'
+import { getValidClaudeOAuthToken } from '@rox-one/shared/auth'
+import { resolveAuthEnvVars } from '@rox-one/shared/config'
+import { toolMetadataStore, getLastApiError } from '@rox-one/shared/interceptor'
+import { isParentTaskTool } from '@rox-one/shared/utils/toolNames'
+import { restoreFiles } from '@rox-one/shared/utils/bundle-files'
+import { getCredentialManager } from '@rox-one/shared/credentials'
 import {
   getSessionShareProvider,
   mapShareProviderFailureToShareResult,
   sanitizeShareBundleForPublicViewer,
 } from './share-provider'
-import { McpClientPool, McpPoolServer } from '@craft-agent/shared/mcp'
-import { type Session, type SessionEvent, type FileAttachment, type SendMessageOptions, type UnreadSummary, type RemoteSessionTransferPayload, type ImportRemoteSessionTransferResult, RPC_CHANNELS, generateMessageId } from '@craft-agent/shared/protocol'
+import { McpClientPool, McpPoolServer } from '@rox-one/shared/mcp'
+import { type Session, type SessionEvent, type FileAttachment, type SendMessageOptions, type UnreadSummary, type RemoteSessionTransferPayload, type ImportRemoteSessionTransferResult, RPC_CHANNELS, generateMessageId } from '@rox-one/shared/protocol'
 import { messageToStored, storedToMessage, type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-one/core/types'
-import { formatPathsToRelative, formatToolInputPaths, perf, encodeIconToDataUrlAsync, getEmojiIcon, resetSummarizationClient, resolveToolIcon, readFileAttachment, selectSpreadMessages, normalizePath } from '@craft-agent/shared/utils'
-import { loadAllSkills, loadSkillBySlug, invalidateSkillsCache, type LoadedSkill } from '@craft-agent/shared/skills'
-import { invalidateContextFileCache } from '@craft-agent/shared/prompts/system'
-import { getToolIconsDir, getMiniModel } from '@craft-agent/shared/config'
-import { getDefaultSummarizationModel } from '@craft-agent/shared/config/models'
-import type { SummarizeCallback } from '@craft-agent/shared/sources'
-import { type ThinkingLevel, DEFAULT_THINKING_LEVEL, normalizeThinkingLevel } from '@craft-agent/shared/agent/thinking-levels'
-import { evaluateAutoLabels } from '@craft-agent/shared/labels/auto'
-import { listLabels, loadLabelConfig } from '@craft-agent/shared/labels/storage'
-import { extractLabelId, resolveSessionLabels } from '@craft-agent/shared/labels'
-import { ensureLabelsExist } from '@craft-agent/shared/labels/crud'
-import { loadStatusConfig } from '@craft-agent/shared/statuses/storage'
-import { AutomationSystem, createPromptHistoryEntry, appendAutomationHistoryEntry, type AutomationSystemMetadataSnapshot } from '@craft-agent/shared/automations'
+import { formatPathsToRelative, formatToolInputPaths, perf, encodeIconToDataUrlAsync, getEmojiIcon, resetSummarizationClient, resolveToolIcon, readFileAttachment, selectSpreadMessages, normalizePath } from '@rox-one/shared/utils'
+import { loadAllSkills, loadSkillBySlug, invalidateSkillsCache, type LoadedSkill } from '@rox-one/shared/skills'
+import { invalidateContextFileCache } from '@rox-one/shared/prompts/system'
+import { getToolIconsDir, getMiniModel } from '@rox-one/shared/config'
+import { getDefaultSummarizationModel } from '@rox-one/shared/config/models'
+import type { SummarizeCallback } from '@rox-one/shared/sources'
+import { type ThinkingLevel, DEFAULT_THINKING_LEVEL, normalizeThinkingLevel } from '@rox-one/shared/agent/thinking-levels'
+import { evaluateAutoLabels } from '@rox-one/shared/labels/auto'
+import { listLabels, loadLabelConfig } from '@rox-one/shared/labels/storage'
+import { extractLabelId, resolveSessionLabels } from '@rox-one/shared/labels'
+import { ensureLabelsExist } from '@rox-one/shared/labels/crud'
+import { loadStatusConfig } from '@rox-one/shared/statuses/storage'
+import { AutomationSystem, createPromptHistoryEntry, appendAutomationHistoryEntry, type AutomationSystemMetadataSnapshot } from '@rox-one/shared/automations'
 import { buildBackendRuntimeSignature, buildRestartRequiredSignature, filterAttachmentsForModelInput } from './runtime-config'
 import { importExternalAgentSessionIndex } from './external-agent-session-importer'
 import {
@@ -494,7 +494,7 @@ export class SessionManager implements ISessionManager {
       onSkillChange: async (slug, skill) => {
         sessionLog.info(`Skill '${slug}' changed:`, skill ? 'updated' : 'deleted')
         // Broadcast updated list to UI
-        const { loadAllSkills } = await import('@craft-agent/shared/skills')
+        const { loadAllSkills } = await import('@rox-one/shared/skills')
         const skills = loadAllSkills(workspaceRootPath)
         this.ipc.broadcastSkillsChanged(workspaceId, skills)
       },
@@ -772,7 +772,7 @@ export class SessionManager implements ISessionManager {
   async handleCredentialInput(
     sessionId: string,
     requestId: string,
-    response: import('@craft-agent/shared/protocol').CredentialResponse
+    response: import('@rox-one/shared/protocol').CredentialResponse
   ): Promise<void> {
     return this.auth.handleCredentialInput(sessionId, requestId, response)
   }
@@ -910,7 +910,7 @@ export class SessionManager implements ISessionManager {
     return managedToSession(m, { messages: m.messages })
   }
 
-  async createSession(workspaceId: string, options?: import('@craft-agent/shared/protocol').CreateSessionOptions): Promise<Session> {
+  async createSession(workspaceId: string, options?: import('@rox-one/shared/protocol').CreateSessionOptions): Promise<Session> {
     const workspace = getWorkspaceByNameOrId(workspaceId, DEFAULT_LOCAL_SCOPE)
     if (!workspace) {
       throw new Error(`Workspace ${workspaceId} not found`)
@@ -1759,7 +1759,7 @@ export class SessionManager implements ISessionManager {
           automationSystem: this.automationSystems.get(managed.workspace.rootPath),
           systemPromptPreset: managed.systemPromptPreset,
           debugMode: _platform?.isDebugMode ? { enabled: true, logFilePath: _platform.getLogFilePath?.() } : undefined,
-          enable1MContext: await (async () => { const { getEnable1MContext } = await import('@craft-agent/shared/config/storage'); return getEnable1MContext(DEFAULT_LOCAL_SCOPE); })(),
+          enable1MContext: await (async () => { const { getEnable1MContext } = await import('@rox-one/shared/config/storage'); return getEnable1MContext(DEFAULT_LOCAL_SCOPE); })(),
           // Image resize callback — prevents oversized images from entering conversation history
           onImageResize: async (filePath: string, maxSizeBytes: number): Promise<string | null> => {
             try {
@@ -2794,7 +2794,7 @@ export class SessionManager implements ISessionManager {
     }
 
     // Validate connection exists
-    const { getLlmConnection } = await import('@craft-agent/shared/config/storage')
+    const { getLlmConnection } = await import('@rox-one/shared/config/storage')
     const connection = getLlmConnection(connectionSlug, DEFAULT_LOCAL_SCOPE)
     if (!connection) {
       sessionLog.warn(`setSessionConnection: connection "${connectionSlug}" not found`)
@@ -2911,7 +2911,7 @@ export class SessionManager implements ISessionManager {
    * Share session to the web viewer
    * Uploads session data and returns shareable URL
    */
-  async shareToViewer(sessionId: string): Promise<import('@craft-agent/shared/protocol').ShareResult> {
+  async shareToViewer(sessionId: string): Promise<import('@rox-one/shared/protocol').ShareResult> {
     const managed = this.sessions.get(sessionId)
     if (!managed) {
       return { success: false, error: 'Session not found' }
@@ -2975,7 +2975,7 @@ export class SessionManager implements ISessionManager {
    * Update an existing shared session
    * Re-uploads session data to the same URL
    */
-  async updateShare(sessionId: string): Promise<import('@craft-agent/shared/protocol').ShareResult> {
+  async updateShare(sessionId: string): Promise<import('@rox-one/shared/protocol').ShareResult> {
     const managed = this.sessions.get(sessionId)
     if (!managed) {
       return { success: false, error: 'Session not found' }
@@ -3025,7 +3025,7 @@ export class SessionManager implements ISessionManager {
     }
   }
 
-  async getShareStatus(sessionId: string): Promise<import('@craft-agent/shared/protocol').PublicShareStatusResult> {
+  async getShareStatus(sessionId: string): Promise<import('@rox-one/shared/protocol').PublicShareStatusResult> {
     const managed = this.sessions.get(sessionId)
     if (!managed) {
       return { success: false, error: 'Session not found' }
@@ -3055,7 +3055,7 @@ export class SessionManager implements ISessionManager {
    * Revoke a shared session
    * Deletes from viewer and clears local shared state
    */
-  async revokeShare(sessionId: string): Promise<import('@craft-agent/shared/protocol').ShareResult> {
+  async revokeShare(sessionId: string): Promise<import('@rox-one/shared/protocol').ShareResult> {
     const managed = this.sessions.get(sessionId)
     if (!managed) {
       return { success: false, error: 'Session not found' }
@@ -4758,7 +4758,7 @@ export class SessionManager implements ISessionManager {
     requestId: string,
     allowed: boolean,
     alwaysAllow: boolean,
-    options?: import('@craft-agent/shared/protocol').PermissionResponseOptions,
+    options?: import('@rox-one/shared/protocol').PermissionResponseOptions,
   ): boolean {
     return this.auth.respondToPermission(sessionId, requestId, allowed, alwaysAllow, options)
   }
@@ -4767,7 +4767,7 @@ export class SessionManager implements ISessionManager {
    * Respond to a pending credential request.
    * Public on ISessionManager — delegates to the auth helper.
    */
-  async respondToCredential(sessionId: string, requestId: string, response: import('@craft-agent/shared/protocol').CredentialResponse): Promise<boolean> {
+  async respondToCredential(sessionId: string, requestId: string, response: import('@rox-one/shared/protocol').CredentialResponse): Promise<boolean> {
     return this.auth.respondToCredential(sessionId, requestId, response)
   }
 

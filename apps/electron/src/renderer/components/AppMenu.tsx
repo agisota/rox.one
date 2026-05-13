@@ -27,7 +27,7 @@ import {
 } from "../../shared/menu-schema"
 import type { MenuItem, MenuSection, SettingsMenuItem } from "../../shared/menu-schema"
 import { SETTINGS_ICONS } from "./icons/SettingsIcons"
-import { getDocUrl } from '@craft-agent/shared/docs/doc-links'
+import { getDocUrl } from '@rox-one/shared/docs/doc-links'
 
 // Map of action handlers for menu items that need custom behavior
 type MenuActionHandlers = {

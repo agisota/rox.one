@@ -3,7 +3,7 @@
  *
  * These were previously in apps/electron/src/shared/types.ts.
  * Extracted here so handler code in @rox-one/server-core can import
- * from @craft-agent/shared/protocol without reaching into the app.
+ * from @rox-one/shared/protocol without reaching into the app.
  */
 
 import type {

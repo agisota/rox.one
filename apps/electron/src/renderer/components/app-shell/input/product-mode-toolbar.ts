@@ -1,4 +1,4 @@
-import type { ProductMode } from '@craft-agent/shared/workbench/product-mode-registry';
+import type { ProductMode } from '@rox-one/shared/workbench/product-mode-registry';
 
 export type { ProductMode };
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { ThinkingPartnerOutput } from '@craft-agent/shared/workbench/thinking-partner';
+import type { ThinkingPartnerOutput } from '@rox-one/shared/workbench/thinking-partner';
 import { createProductModeIntent, type ProductModeIntent } from '../product-mode-toolbar';
 import {
   THINKING_PARTNER_SPEC_BUILDER_EVENT,

@@ -6,8 +6,8 @@
  */
 
 import type { ISessionManager } from '@rox-one/server-core/handlers'
-import type { PushTarget } from '@craft-agent/shared/protocol'
-import { RPC_CHANNELS } from '@craft-agent/shared/protocol'
+import type { PushTarget } from '@rox-one/shared/protocol'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
 import {
   evaluateBindingAccess,
   evaluatePreBindingAccess,

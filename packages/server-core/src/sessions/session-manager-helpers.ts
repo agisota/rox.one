@@ -9,9 +9,9 @@ import { readFile, writeFile, mkdir } from 'fs/promises'
 import { createScopedLogger, CONSOLE_LOGGER, type Logger } from '@rox-one/server-core/runtime'
 import {
   type AgentBackend,
-} from '@craft-agent/shared/agent/backend'
-import { type AuthRequest, type PermissionMode } from '@craft-agent/shared/agent'
-import { DEFAULT_LOCAL_SCOPE, getToolIconsDir, type Workspace } from '@craft-agent/shared/config'
+} from '@rox-one/shared/agent/backend'
+import { type AuthRequest, type PermissionMode } from '@rox-one/shared/agent'
+import { DEFAULT_LOCAL_SCOPE, getToolIconsDir, type Workspace } from '@rox-one/shared/config'
 import {
   type LoadedSource,
   isSourceUsable,
@@ -24,23 +24,23 @@ import {
   TokenRefreshManager,
   createTokenGetter,
   type SummarizeCallback,
-} from '@craft-agent/shared/sources'
-import { loadAllSkills } from '@craft-agent/shared/skills'
-import { McpClientPool, McpPoolServer } from '@craft-agent/shared/mcp'
+} from '@rox-one/shared/sources'
+import { loadAllSkills } from '@rox-one/shared/skills'
+import { McpClientPool, McpPoolServer } from '@rox-one/shared/mcp'
 import {
   type Session,
   type SessionEvent,
   type FileAttachment,
   type SendMessageOptions,
-} from '@craft-agent/shared/protocol'
+} from '@rox-one/shared/protocol'
 import {
   getSessionPath as getSessionStoragePath,
   pickSessionFields,
   type SessionHeader,
-} from '@craft-agent/shared/sessions'
+} from '@rox-one/shared/sessions'
 import { type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-one/core/types'
-import { perf, encodeIconToDataUrlAsync, getEmojiIcon, resolveToolIcon } from '@craft-agent/shared/utils'
-import { type ThinkingLevel, normalizeThinkingLevel } from '@craft-agent/shared/agent/thinking-levels'
+import { perf, encodeIconToDataUrlAsync, getEmojiIcon, resolveToolIcon } from '@rox-one/shared/utils'
+import { type ThinkingLevel, normalizeThinkingLevel } from '@rox-one/shared/agent/thinking-levels'
 import { normalizeBrowserToolName } from '@rox-one/server-core/domain'
 import { resizeIconBuffer } from '@rox-one/server-core/services'
 
@@ -373,7 +373,7 @@ export async function applyBridgeUpdates(
   agent: AgentInstance,
   sessionPath: string,
   enabledSources: LoadedSource[],
-  mcpServers: Record<string, import('@craft-agent/shared/agent/backend').SdkMcpServerConfig>,
+  mcpServers: Record<string, import('@rox-one/shared/agent/backend').SdkMcpServerConfig>,
   sessionId: string,
   workspaceRootPath: string,
   context: string,

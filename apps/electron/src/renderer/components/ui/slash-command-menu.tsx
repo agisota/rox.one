@@ -4,7 +4,7 @@ import { Command as CommandPrimitive } from 'cmdk'
 import { Check, Minimize2 } from 'lucide-react'
 import { Icon_Folder } from '@rox-one/ui'
 import { cn } from '@/lib/utils'
-import { PERMISSION_MODE_CONFIG, PERMISSION_MODE_ORDER, type PermissionMode } from '@craft-agent/shared/agent/modes'
+import { PERMISSION_MODE_CONFIG, PERMISSION_MODE_ORDER, type PermissionMode } from '@rox-one/shared/agent/modes'
 
 // ============================================================================
 // Types

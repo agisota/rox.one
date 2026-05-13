@@ -1,4 +1,4 @@
-import { RPC_CHANNELS } from '@craft-agent/shared/protocol'
+import { RPC_CHANNELS } from '@rox-one/shared/protocol'
 import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from './handler-deps'
 

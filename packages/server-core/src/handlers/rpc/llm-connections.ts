@@ -1,12 +1,12 @@
-import { RPC_CHANNELS, type LlmConnectionSetup } from '@craft-agent/shared/protocol'
-import { getLlmConnections, getLlmConnection, addLlmConnection, updateLlmConnection, deleteLlmConnection, getDefaultLlmConnection, setDefaultLlmConnection, touchLlmConnection, isCompatProvider, isAnthropicProvider, getDefaultModelsForConnection, getDefaultModelForConnection, getWorkspaceByNameOrId, type LlmConnection, type LlmConnectionWithStatus, toBedrockNativeId, deriveBedrockRegionPrefix } from '@craft-agent/shared/config'
-import { getCredentialManager } from '@craft-agent/shared/credentials'
-import { setSetupDeferred } from '@craft-agent/shared/config/storage'
+import { RPC_CHANNELS, type LlmConnectionSetup } from '@rox-one/shared/protocol'
+import { getLlmConnections, getLlmConnection, addLlmConnection, updateLlmConnection, deleteLlmConnection, getDefaultLlmConnection, setDefaultLlmConnection, touchLlmConnection, isCompatProvider, isAnthropicProvider, getDefaultModelsForConnection, getDefaultModelForConnection, getWorkspaceByNameOrId, type LlmConnection, type LlmConnectionWithStatus, toBedrockNativeId, deriveBedrockRegionPrefix } from '@rox-one/shared/config'
+import { getCredentialManager } from '@rox-one/shared/credentials'
+import { setSetupDeferred } from '@rox-one/shared/config/storage'
 import {
   resolveSetupTestConnectionHint,
   testBackendConnection,
   validateStoredBackendConnection,
-} from '@craft-agent/shared/agent/backend'
+} from '@rox-one/shared/agent/backend'
 import { getModelRefreshService } from '@rox-one/server-core/model-fetchers'
 import { parseTestConnectionError, createBuiltInConnection, validateModelList, piAuthProviderDisplayName, validateSetupTestInput, setupTestRequiresApiKey, resolveCustomEndpointSetup, resolveLlmEndpointDependencyRiskMode, resolveLlmProviderDependencyRiskMode, validatePublicCustomEndpointBaseUrl, validatePublicProviderSdkAccess } from '@rox-one/server-core/domain'
 import { buildBackendHostRuntimeContext } from '@rox-one/server-core/handlers'
@@ -301,7 +301,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
 
   // Unified connection test — uses the agent factory to spawn a real agent subprocess
   // and validate credentials via runMiniCompletion(). Same code path as actual chat.
-  server.handle(RPC_CHANNELS.settings.TEST_LLM_CONNECTION_SETUP, async (ctx, params: import('@craft-agent/shared/protocol').TestLlmConnectionParams): Promise<import('@craft-agent/shared/protocol').TestLlmConnectionResult> => {
+  server.handle(RPC_CHANNELS.settings.TEST_LLM_CONNECTION_SETUP, async (ctx, params: import('@rox-one/shared/protocol').TestLlmConnectionParams): Promise<import('@rox-one/shared/protocol').TestLlmConnectionResult> => {
     requireAdmin(deps, ctx)
     const { provider, apiKey, baseUrl, model, piAuthProvider, customEndpoint } = params
     const trimmedKey = apiKey?.trim() ?? ''
@@ -371,7 +371,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
       return []
     }
 
-    const { getPiApiKeyProviders } = await import('@craft-agent/shared/config/models-pi')
+    const { getPiApiKeyProviders } = await import('@rox-one/shared/config/models-pi')
     return getPiApiKeyProviders()
   })
 
@@ -384,7 +384,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
       return undefined
     }
 
-    const { getPiProviderBaseUrl } = await import('@craft-agent/shared/config/models-pi')
+    const { getPiProviderBaseUrl } = await import('@rox-one/shared/config/models-pi')
     return getPiProviderBaseUrl(provider)
   })
 
@@ -569,7 +569,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error)
       deps.platform.logger?.info(`[LLM_CONNECTION_TEST] Error for ${slug}: ${msg.slice(0, 500)}`)
-      const { parseValidationError } = await import('@craft-agent/shared/config')
+      const { parseValidationError } = await import('@rox-one/shared/config')
       return { success: false, error: parseValidationError(msg) }
     }
   })
@@ -609,7 +609,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
         }
       }
 
-      const { loadWorkspaceConfig, saveWorkspaceConfig } = await import('@craft-agent/shared/workspaces')
+      const { loadWorkspaceConfig, saveWorkspaceConfig } = await import('@rox-one/shared/workspaces')
       const config = loadWorkspaceConfig(workspace.rootPath)
       if (!config) {
         return { success: false, error: 'Failed to load workspace config' }
@@ -683,7 +683,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
   }> => {
     requireAdmin(deps, ctx)
     cleanupExpiredChatGptFlows()
-    const { prepareChatGptOAuth } = await import('@craft-agent/shared/auth')
+    const { prepareChatGptOAuth } = await import('@rox-one/shared/auth')
 
     const prepared = prepareChatGptOAuth()
     const flowId = randomUUID()
@@ -720,7 +720,7 @@ export function registerLlmConnectionsHandlers(server: RpcServer, deps: HandlerD
     }
 
     try {
-      const { exchangeChatGptTokens } = await import('@craft-agent/shared/auth')
+      const { exchangeChatGptTokens } = await import('@rox-one/shared/auth')
       const credentialManager = getCredentialManager()
 
       const tokens = await exchangeChatGptTokens(code, flow.codeVerifier)

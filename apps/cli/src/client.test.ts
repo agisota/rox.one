@@ -4,7 +4,7 @@ import {
   serializeEnvelope,
   deserializeEnvelope,
 } from '@rox-one/server-core/transport'
-import type { MessageEnvelope } from '@craft-agent/shared/protocol'
+import type { MessageEnvelope } from '@rox-one/shared/protocol'
 
 // ---------------------------------------------------------------------------
 // Mock WS server helpers

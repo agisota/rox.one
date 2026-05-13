@@ -19,7 +19,7 @@ import {
   createExperienceRuntimeStore,
   createInMemoryExperiencePersistenceAdapter,
   type ExperienceTruthState,
-} from '@craft-agent/shared/workbench';
+} from '@rox-one/shared/workbench';
 import {
   ExperienceCard,
   ExperienceMetricRow,

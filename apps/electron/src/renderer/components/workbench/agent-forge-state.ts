@@ -3,8 +3,8 @@ import type {
   AgentPackageVisibility,
   ExperienceTruthState,
   SkillContract,
-} from '@craft-agent/shared/workbench';
-import { assertPublicPackagePublishable } from '@craft-agent/shared/workbench/experience-layer-security';
+} from '@rox-one/shared/workbench';
+import { assertPublicPackagePublishable } from '@rox-one/shared/workbench/experience-layer-security';
 
 export type ForgeTrustInput = {
   reviewCount: number;

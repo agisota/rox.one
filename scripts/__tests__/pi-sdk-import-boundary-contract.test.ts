@@ -26,26 +26,26 @@ describe('PI SDK import boundary contract', () => {
     const llmConnections = read('packages/server-core/src/handlers/rpc/llm-connections.ts');
 
     expect(electronMain).toContain(
-      "from '@craft-agent/shared/config/models-pi'",
+      "from '@rox-one/shared/config/models-pi'",
     );
     expect(electronMain).not.toContain(
-      "getPiModelsForAuthProvider, getAllPiModels } from '@craft-agent/shared/config'",
+      "getPiModelsForAuthProvider, getAllPiModels } from '@rox-one/shared/config'",
     );
 
     expect(llmConnections).toContain(
-      "await import('@craft-agent/shared/config/models-pi')",
+      "await import('@rox-one/shared/config/models-pi')",
     );
     expect(llmConnections).not.toContain(
-      "{ getPiApiKeyProviders } = await import('@craft-agent/shared/config')",
+      "{ getPiApiKeyProviders } = await import('@rox-one/shared/config')",
     );
     expect(llmConnections).not.toContain(
-      "{ getPiProviderBaseUrl } = await import('@craft-agent/shared/config')",
+      "{ getPiProviderBaseUrl } = await import('@rox-one/shared/config')",
     );
   });
 
   it('keeps server-core PI SDK discovery imports behind public exposure guards', () => {
     const llmConnections = read('packages/server-core/src/handlers/rpc/llm-connections.ts');
-    const importStatement = "await import('@craft-agent/shared/config/models-pi')";
+    const importStatement = "await import('@rox-one/shared/config/models-pi')";
 
     const providersHandler = llmConnections.indexOf('server.handle(RPC_CHANNELS.pi.GET_API_KEY_PROVIDERS');
     const providersGuard = llmConnections.indexOf("surface: 'PI API key provider discovery'", providersHandler);

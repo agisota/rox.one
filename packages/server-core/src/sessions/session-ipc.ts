@@ -6,10 +6,10 @@
 import type { EventSink } from '@rox-one/server-core/transport'
 import type { IBrowserPaneManager } from '@rox-one/server-core/handlers'
 import type { Logger } from '@rox-one/server-core/runtime'
-import { type SessionEvent, type UnreadSummary, RPC_CHANNELS } from '@craft-agent/shared/protocol'
-import type { LoadedSource } from '@craft-agent/shared/sources'
-import type { LoadedSkill } from '@craft-agent/shared/skills'
-import type { ThemeOverrides } from '@craft-agent/shared/config'
+import { type SessionEvent, type UnreadSummary, RPC_CHANNELS } from '@rox-one/shared/protocol'
+import type { LoadedSource } from '@rox-one/shared/sources'
+import type { LoadedSkill } from '@rox-one/shared/skills'
+import type { ThemeOverrides } from '@rox-one/shared/config'
 import { DELTA_BATCH_INTERVAL_MS, type PendingDelta } from './session-manager-helpers'
 
 export interface SessionIPCDeps {

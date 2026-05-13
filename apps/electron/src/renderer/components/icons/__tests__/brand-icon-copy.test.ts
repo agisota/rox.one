@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { AGENT_WORKBENCH_BRAND_CONFIG } from '@craft-agent/shared/branding'
+import { AGENT_WORKBENCH_BRAND_CONFIG } from '@rox-one/shared/branding'
 import {
   getBrandIconAltText,
   getBrandLogoText,

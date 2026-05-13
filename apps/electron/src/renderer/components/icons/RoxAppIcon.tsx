@@ -1,4 +1,4 @@
-import { AGENT_WORKBENCH_BRAND_CONFIG, type BrandConfig } from "@craft-agent/shared/branding"
+import { AGENT_WORKBENCH_BRAND_CONFIG, type BrandConfig } from "@rox-one/shared/branding"
 import pzdrkIcon from "@/assets/pzdrk.png"
 import { getBrandIconAltText } from "./brand-icon-copy"
 

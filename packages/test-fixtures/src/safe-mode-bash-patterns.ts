@@ -5,7 +5,7 @@
 //
 // This module is a graph leaf: it must not import from any sibling workspace
 // package, so consumers infer pattern types from the literal rather than
-// referencing CompiledBashPattern from @craft-agent/shared.
+// referencing CompiledBashPattern from @rox-one/shared.
 
 export const TEST_MODE_CONFIG = {
   blockedTools: new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']),

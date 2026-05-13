@@ -19,8 +19,8 @@
     "noUnusedParameters": false,
     "baseUrl": ".",
     "paths": {
-      "@craft-agent/shared": ["../shared/src/index.ts"],
-      "@craft-agent/shared/*": ["../shared/src/*"],
+      "@rox-one/shared": ["../shared/src/index.ts"],
+      "@rox-one/shared/*": ["../shared/src/*"],
       "@rox-one/server-core": ["../server-core/src/index.ts"],
       "@rox-one/server-core/*": ["../server-core/src/*"],
       "@rox-one/core": ["../core/src/index.ts"],

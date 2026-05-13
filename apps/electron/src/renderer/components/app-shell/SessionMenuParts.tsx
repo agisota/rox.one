@@ -4,7 +4,7 @@ import { Check, Globe, Copy, RefreshCw, Link2Off } from 'lucide-react'
 import { toast } from 'sonner'
 import type { MenuComponents } from '@/components/ui/menu-context'
 import { getStatusIconStyle, type SessionStatusId, type SessionStatus } from '@/config/session-status-config'
-import { sortLabelsForDisplay, type LabelConfig } from '@craft-agent/shared/labels'
+import { sortLabelsForDisplay, type LabelConfig } from '@rox-one/shared/labels'
 import { LabelIcon } from '@/components/ui/label-icon'
 import { getShareFailureState } from './session-share-flow'
 

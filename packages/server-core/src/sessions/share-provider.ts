@@ -1,5 +1,5 @@
-import { VIEWER_URL } from '@craft-agent/shared/branding'
-import type { ShareResult } from '@craft-agent/shared/protocol'
+import { VIEWER_URL } from '@rox-one/shared/branding'
+import type { ShareResult } from '@rox-one/shared/protocol'
 
 import { createViewerShareFailureResult } from './share-errors'
 import { sanitizePublicPayload } from '../security/public-payload-sanitizer'

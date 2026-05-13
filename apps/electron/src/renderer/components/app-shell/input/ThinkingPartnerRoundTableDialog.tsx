@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ThinkingPartnerOutput } from '@craft-agent/shared/workbench/thinking-partner';
+import type { ThinkingPartnerOutput } from '@rox-one/shared/workbench/thinking-partner';
 import { Button } from '../../ui/button';
 import {
   Dialog,

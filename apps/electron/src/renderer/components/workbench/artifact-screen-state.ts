@@ -1,14 +1,14 @@
-import type { PromptRewriteOutput } from '@craft-agent/shared/workbench';
+import type { PromptRewriteOutput } from '@rox-one/shared/workbench';
 import {
   runReviewBoard,
   type ReviewBoardEvidence,
   type ReviewBoardResult,
-} from '@craft-agent/shared/workbench/review-board';
+} from '@rox-one/shared/workbench/review-board';
 import {
   generateTddTaskPack,
   type TddTaskPack,
-} from '@craft-agent/shared/workbench';
-import type { ProductMode, ValidationGate } from '@craft-agent/shared/workbench/product-mode-registry';
+} from '@rox-one/shared/workbench';
+import type { ProductMode, ValidationGate } from '@rox-one/shared/workbench/product-mode-registry';
 
 export type ArtifactScreenStatus = 'idle' | 'success' | 'error';
 
