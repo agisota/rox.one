@@ -75,9 +75,8 @@ close.
 bun run e2e:smoke -- --scenario s02-prompt-pipeline
 
 # Targeted Composer + pipeline tests
-bun test apps/electron/src/renderer/components/composer/**/__tests__/**
-bun test packages/server-core/src/handlers/rpc/__tests__/prompt*.test.ts
-bun test packages/server-core/src/handlers/rpc/__tests__/spec*.test.ts
+bun test apps/electron/src/renderer/components/app-shell/input/__tests__/prompt-rewrite-flow.test.ts apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-flow.test.ts apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-panel.test.tsx apps/electron/src/renderer/components/workbench/__tests__/spec-builder-screen.test.tsx apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx
+bun test packages/shared/src/workbench/__tests__/prompt-rewrite-engine.test.ts packages/shared/src/workbench/__tests__/spec-compiler.test.ts packages/shared/src/workbench/__tests__/tdd-task-generator.test.ts packages/shared/src/workbench/__tests__/review-board.test.ts
 
 # Agent contract gate
 bun run validate:agent-contract
@@ -103,8 +102,7 @@ screenshots, and any blocker ticket references.
 
 ## Current Blocker
 
-- `T353-rc-s02-smoke-harness-and-command-repair.md` — the required
-  `bun run e2e:smoke -- --scenario s02-prompt-pipeline` command reaches the
-  RC harness but exits with `Unsupported scenario "s02-prompt-pipeline"`.
-  The targeted test globs listed in this ticket also match zero files; adjacent
-  Composer/workbench pipeline tests pass when run by their current paths.
+- `T353-rc-s02-smoke-harness-and-command-repair.md` repaired the missing S02
+  harness registry entry and stale targeted command paths. S02 still needs a
+  full RC evidence rerun with screenshot/browser-console evidence before this
+  ticket can move to `DONE`.

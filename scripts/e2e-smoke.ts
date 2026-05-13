@@ -11,12 +11,29 @@ export interface SmokeScenario {
   requiredPlatform?: NodeJS.Platform
 }
 
+const S02_PROMPT_PIPELINE_TESTS = [
+  'apps/electron/src/renderer/components/app-shell/input/__tests__/prompt-rewrite-flow.test.ts',
+  'apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-flow.test.ts',
+  'apps/electron/src/renderer/components/app-shell/input/__tests__/composer-artifact-panel.test.tsx',
+  'apps/electron/src/renderer/components/workbench/__tests__/spec-builder-screen.test.tsx',
+  'apps/electron/src/renderer/components/workbench/__tests__/artifact-screens.test.tsx',
+  'packages/shared/src/workbench/__tests__/prompt-rewrite-engine.test.ts',
+  'packages/shared/src/workbench/__tests__/spec-compiler.test.ts',
+  'packages/shared/src/workbench/__tests__/tdd-task-generator.test.ts',
+  'packages/shared/src/workbench/__tests__/review-board.test.ts',
+] as const
+
 export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
   {
     id: 's01-registration',
     title: 'RC S01 registration and persisted login smoke',
     command: ['bun', 'run', 'electron:ui-smoke:packaged:mac'],
     requiredPlatform: 'darwin',
+  },
+  {
+    id: 's02-prompt-pipeline',
+    title: 'RC S02 prompt rewrite to review pipeline smoke',
+    command: ['bun', 'test', ...S02_PROMPT_PIPELINE_TESTS],
   },
 ]
 

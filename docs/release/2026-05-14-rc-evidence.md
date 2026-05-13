@@ -29,7 +29,7 @@ must reach `Pass` status before the `v1.0.0-rc.1` tag is pushed.
 | # | Scenario | Ticket | Status | Build SHA | Timestamp (UTC) | Notes |
 |---|----------|--------|--------|-----------|-----------------|-------|
 | S01 | Registration → multi-tenant login flow | [T339](../tickets/T339-rc-s01-multi-tenant-registration.md) | `Blocked` | — | `2026-05-13T23:01:02Z` | [T352](../tickets/T352-rc-e2e-smoke-harness-script.md) resolves the missing script. Current `bun run e2e:smoke -- --scenario s01-registration` reaches the harness and exits code 78 because S01 requires `darwin` while this host is `linux`. Account-session unit tests pass; no packaged S01 build was run on this host. |
-| S02 | Raw prompt → Rewrite → Spec → TDD → Review | [T340](../tickets/T340-rc-s02-prompt-pipeline-flow.md) | `Blocked` | `ccd7bd8c` | `2026-05-13T23:05:00Z` | `e2e:smoke` exits `Unsupported scenario "s02-prompt-pipeline"` and T340-listed target globs match zero files; blocker [T353](../tickets/T353-rc-s02-smoke-harness-and-command-repair.md). Adjacent renderer/shared pipeline tests pass. |
+| S02 | Raw prompt → Rewrite → Spec → TDD → Review | [T340](../tickets/T340-rc-s02-prompt-pipeline-flow.md) | `Blocked` | `fc162c4c` | `2026-05-13T23:05:00Z` | [T353](../tickets/T353-rc-s02-smoke-harness-and-command-repair.md) resolves the unsupported scenario and stale command paths. Current `bun run e2e:smoke -- --scenario s02-prompt-pipeline` passes 46 tests; screenshot/browser-console evidence is still pending. |
 | S03 | 24h mission → checkpoint → final verification | [T341](../tickets/T341-rc-s03-mission-checkpoint-verification.md) | `Todo` | — | — | |
 | S04 | Arena swarm → dedupe signals → Review Board → VDI update | [T342](../tickets/T342-rc-s04-arena-swarm-vdi-update.md) | `Todo` | — | — | |
 | S05 | Team invite → shared workspace → RBAC check | [T343](../tickets/T343-rc-s05-team-invite-rbac.md) | `Todo` | — | — | |
@@ -66,7 +66,7 @@ If any scenario produces a blocker, the new ticket is listed here:
 | Scenario | Blocker Ticket | Description | Status |
 |----------|---------------|-------------|--------|
 | S01 | [T352](../tickets/T352-rc-e2e-smoke-harness-script.md) | Missing root `e2e:smoke` script blocked the required RC smoke harness entry point; script now reaches an explicit host-environment blocker. | DONE |
-| S02 | [T353](../tickets/T353-rc-s02-smoke-harness-and-command-repair.md) | S02 is not registered in `e2e:smoke`, and T340 targeted validation commands point at stale paths. | Todo |
+| S02 | [T353](../tickets/T353-rc-s02-smoke-harness-and-command-repair.md) | S02 was not registered in `e2e:smoke`, and T340 targeted validation commands pointed at stale paths; both are repaired. | DONE |
 
 ---
 
