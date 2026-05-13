@@ -26,3 +26,17 @@ before RC.
 - [x] Existing Experience security tests continue to pass.
 - [x] Worklog complete.
 - [x] Scoped Lore commit created.
+
+## Completion
+
+RPC integration coverage for the T071 abuse-hardening primitives (`TokenBucket`,
+`SlidingWindowCounter`, `BudgetGuard`) is now in place. The integration test
+exercises each primitive in isolation, plus two composed scenarios that wrap a
+mock `RolesHandlerLike` to prove throttling and per-user budget exhaustion both
+short-circuit *before* the handler is reached. Clock is injected so the suite
+runs in ~43ms with no real-time waits.
+
+- Test file: `packages/server-core/src/handlers/rpc/__tests__/abuse-hardening-integration.test.ts`
+- Coverage: 10 tests, 53 `expect()` calls
+- Handler source intentionally untouched — wiring of these guards into the
+  real RPC handlers is tracked as T086b.

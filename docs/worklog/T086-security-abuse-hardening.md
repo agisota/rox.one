@@ -114,3 +114,60 @@ T087 will run the final RC build gate.
 | Existing Experience/security tests pass | Pass | Broad T086 security set |
 | Worklog complete | Pass | This file |
 | Commit exists | Pass | Scoped Lore commit for T086 |
+
+## 12. M.13 follow-up — RPC integration test for T071 primitives
+
+After T071 shipped `TokenBucket`, `SlidingWindowCounter`, and `BudgetGuard` to
+`packages/shared/src/security/` (PR #133), T086 needed a focused integration
+test that proves these primitives behave correctly end-to-end against a real
+handler call site without yet rewiring any handler source. T086b will land
+the actual RPC handler wiring; this pass establishes the safety net first.
+
+### Files touched
+
+- New: `packages/server-core/src/handlers/rpc/__tests__/abuse-hardening-integration.test.ts`
+- No handler source modified.
+- Ticket `## Completion` appended.
+
+### Test coverage
+
+10 tests, 53 `expect()` calls, suite runtime ~43 ms. Clock is injected so no
+real-time waits are needed and the suite is deterministic in CI.
+
+Per-primitive checks:
+
+- TokenBucket capacity=100, refill=100/s: 1000 immediate `tryAcquire(1)` admit
+  exactly 100 and reject 900; after draining, 500 ms simulated time refills 50
+  tokens and refills clamp at capacity; `tryAcquire(n)` does not mutate when
+  the request exceeds available tokens.
+- SlidingWindowCounter `windowMs=1000`: 50 records inside a fixed-clock window
+  return `count() == 50`; advancing past the window prunes all 50 events and
+  the next `record()` returns 1. Partial-window pruning verified separately.
+- BudgetGuard `budgetPerKey=10`: 5+5+1 returns ok/ok/exceeded with the right
+  `BudgetExceededError` payload; reset restores; per-key isolation holds;
+  negative and `NaN` amounts return `reason: 'invalid-amount'` without
+  mutating usage.
+
+Composed scenarios (mock `RolesHandlerLike`):
+
+- TokenBucket guard in front of mock handler: 12 calls, capacity 5, refill 0.
+  Exactly 5 reach the handler and 7 are short-circuited as throttled. The
+  `callCount()` spy confirms throttled calls never reach storage.
+- Combined TokenBucket + BudgetGuard: bucket capacity 10, per-user budget 3.
+  Abuser caps at 3 reaching the handler with 3 over-budget rejects; a
+  different user is unaffected.
+
+### Validation
+
+```bash
+bun test packages/server-core/src/handlers/rpc/__tests__/abuse-hardening-integration.test.ts
+bun run validate:rebrand
+bun run validate:agent-contract
+bun run validate:roadmap
+```
+
+### Rollback
+
+Revert the single commit on `feat/M13-T086-rpc-integration-v2`. The added test
+is the only artifact; no production source is touched and the T071 frozen
+primitives are not modified.
