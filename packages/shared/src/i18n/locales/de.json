@@ -862,6 +862,8 @@
   "settings.appearance.usingDefaultTheme": "Standarddesign wird verwendet",
   "settings.appearance.workspaceThemes": "Workspace-Designs",
   "settings.appearance.workspaceThemesDesc": "Designeinstellungen pro Workspace überschreiben",
+  "settings.auditLog.description": "Schreibgeschützter Verlauf von Rollenrechten, Missionsereignissen und Anmeldungen",
+  "settings.auditLog.title": "Audit-Log",
   "settings.input.autoCapitalisation": "Automatische Großschreibung",
   "settings.input.autoCapitalisationDesc": "Den ersten Buchstaben beim Tippen einer Nachricht automatisch großschreiben.",
   "settings.input.cmdEnterKey": "⌘ Enter",

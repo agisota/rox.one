@@ -126,6 +126,23 @@ export const TeamManagementIcon = ({ className }: IconProps) => (
   </svg>
 )
 
+/** Document-with-lines icon for the read-only audit log surface (T232). */
+export const AuditLogIcon = ({ className }: IconProps) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M6 2C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8.41421C20 7.88378 19.7893 7.37507 19.4142 7L15 2.58579C14.6249 2.21071 14.1162 2 13.5858 2H6ZM7 12C7 11.4477 7.44772 11 8 11H16C16.5523 11 17 11.4477 17 12C17 12.5523 16.5523 13 16 13H8C7.44772 13 7 12.5523 7 12ZM8 15C7.44772 15 7 15.4477 7 16C7 16.5523 7.44772 17 8 17H13C13.5523 17 14 16.5523 14 16C14 15.4477 13.5523 15 13 15H8ZM7 8C7 7.44772 7.44772 7 8 7H11C11.5523 7 12 7.44772 12 8C12 8.55228 11.5523 9 11 9H8C7.44772 9 7 8.55228 7 8Z"
+      fill="currentColor"
+    />
+  </svg>
+)
+
 /** Tag icon for labels */
 export const LabelsIcon = ({ className }: IconProps) => (
   <svg
@@ -222,6 +239,7 @@ export const SETTINGS_ICONS: Record<SettingsSubpage, React.ComponentType<IconPro
   permissions: PermissionsIcon,
   'team-management': TeamManagementIcon,
   'team-permissions': PermissionsIcon,
+  'audit-log': AuditLogIcon,
   labels: LabelsIcon,
   messaging: MessagingSettingsIcon,
   server: ServerSettingsIcon,
