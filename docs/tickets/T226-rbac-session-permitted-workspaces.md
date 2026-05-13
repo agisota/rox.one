@@ -1,5 +1,7 @@
 # T226 - RBAC session permittedWorkspaces wiring
 
+Status: DONE
+
 ## Context
 
 We are building a white-label fork of Craft Agents OSS into Agent Workbench Suite.
