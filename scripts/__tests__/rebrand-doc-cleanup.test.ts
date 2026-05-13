@@ -8,6 +8,7 @@ const legacyCli = `${legacyStem}-cli`;
 const legacyRepo = `${legacyStem}-agents-oss`;
 const legacyProduct = "Rox" + " Agent";
 const legacyProductPlural = `${legacyProduct}s`;
+const legacyAgentClass = "Rox" + "Agent";
 const legacyPackageScope = `@${legacyStem}-agent`;
 const upstreamRepoUrl = `https://github.com/lukilabs/${legacyRepo}`;
 const spokenWordmark = ["ROX", "ONE"].join(" ");
@@ -81,5 +82,25 @@ describe("R.4 documentation rebrand cleanup", () => {
     expect(snapshot).not.toContain(`structurally ${legacyProductPlural}`);
     expect(snapshot).not.toContain("Rox" + " permission modes");
     expect(snapshot).toContain(upstreamRepoUrl);
+  });
+
+  test("rewrites Electron README paths and ADR index rebrand references", () => {
+    const electronReadme = readText("apps/electron/README.md");
+    const adrIndex = readText("docs/decision-records/audit-harness/README.md");
+    const adr0005 = readText("docs/decision-records/audit-harness/0005-storage-tenancy-contract.md");
+
+    expect(electronReadme).toContain("# ROX.ONE Electron App");
+    expect(electronReadme).not.toContain(spokenWordmark);
+    expect(electronReadme).not.toContain(`${legacyProduct} workspaces`);
+    expect(electronReadme).not.toContain(legacyAgentClass);
+    expect(electronReadme).not.toContain(`Dev_${legacyStem[0].toUpperCase()}${legacyStem.slice(1)}_Agents`);
+    expect(electronReadme).not.toContain(`${legacyStem[0].toUpperCase()}${legacyStem.slice(1)} documents`);
+    expect(electronReadme).toContain("ClaudeAgent");
+    expect(electronReadme).toContain("ROX.ONE workspaces");
+    expect(electronReadme).toContain("~/.rox/logs/electron/main.log");
+
+    expect(adrIndex).toContain("0011");
+    expect(adrIndex).toContain("0011-rox-one-rebrand-canonical-tokens.md");
+    expect(adr0005).not.toContain(legacyProductPlural);
   });
 });

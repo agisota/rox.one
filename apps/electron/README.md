@@ -1,6 +1,8 @@
-# ROX ONE Electron App
+# ROX.ONE Electron App
 
-The primary desktop interface for ROX ONE, built with Electron + React. Provides a multi-session inbox with chat interface for interacting with Claude via Rox workspaces.
+The primary desktop interface for ROX.ONE, built with Electron + React.
+Provides a multi-session inbox with chat interface for interacting with Claude
+via ROX.ONE workspaces.
 
 ## Quick Start
 
@@ -19,7 +21,7 @@ apps/electron/
 │   │   ├── index.ts       # Window creation, app lifecycle
 │   │   ├── ipc.ts         # IPC handler registration
 │   │   ├── menu.ts        # Application menu (File, Edit, View, Help)
-│   │   ├── sessions.ts    # Session management, RoxAgent integration
+│   │   ├── sessions.ts    # Session management, ClaudeAgent integration
 │   │   ├── deep-link.ts   # Deep link URL parsing and handling
 │   │   ├── agent-service.ts # Agent listing, caching, auth checking
 │   │   └── sources-service.ts # Source and authentication service
@@ -88,7 +90,7 @@ if (billing.type === 'oauth_token' && billing.claudeOAuthToken) {
 
 ### 3. AgentEvent Type Mismatches
 
-The `AgentEvent` types from `RoxAgent` use different property names than you might expect:
+The `AgentEvent` types from `ClaudeAgent` use different property names than you might expect:
 
 | Event Type | Wrong | Correct |
 |------------|-------|---------|
@@ -111,16 +113,16 @@ const toolName = managed.pendingTools.get(event.toolUseId) || 'unknown'
 managed.pendingTools.delete(event.toolUseId)
 ```
 
-### 4. RoxAgent Constructor
+### 4. ClaudeAgent Constructor
 
-`RoxAgent` expects the full `Workspace` object, not just the ID:
+`ClaudeAgent` expects the full `Workspace` object, not just the ID:
 
 ```typescript
 // Wrong:
-new RoxAgent({ workspaceId: workspace.id, model })
+new ClaudeAgent({ workspaceId: workspace.id, model })
 
 // Correct:
-new RoxAgent({ workspace, model })
+new ClaudeAgent({ workspace, model })
 ```
 
 ### 5. esbuild Configuration
@@ -156,7 +158,7 @@ bun run sync-secrets
 **That's it!** Now `bun run electron:dev` and `bun run electron:start` work without prompts.
 
 **How it works:**
-- `.env.1password` contains `op://` references to the `Dev_Rox_Agents` vault
+- `.env.1password` contains `op://` references to the `Dev_ROX_ONE` vault
 - `bun run sync-secrets` resolves references → writes `.env` (gitignored)
 - Secrets are baked into the build at compile time via esbuild `--define` flags
 
@@ -202,6 +204,8 @@ Enable console logging by checking the terminal where you ran `electron:start`. 
 - `[SessionManager]` - Session lifecycle, auth setup
 - `[IPC]` - Inter-process communication
 
+Main-process logs are documented at `~/.rox/logs/electron/main.log`.
+
 DevTools opens automatically (configured in `index.ts`). Remove `mainWindow.webContents.openDevTools()` for production.
 
 ## Current Limitations
@@ -213,7 +217,7 @@ DevTools opens automatically (configured in `index.ts`). Remove `mainWindow.webC
 - **Session persistence** - Sessions, messages, and names are saved to disk
 - **File attachments** - Attach images, PDFs, and code files to messages
 - **AI-generated titles** - Sessions get automatic titles after first exchange
-- **Subagent support** - Load and apply agent definitions from Rox documents
+- **Subagent support** - Load and apply agent definitions from ROX.ONE documents
 - **Shell integration** - Open URLs in browser, open files in default apps
 - **Permission modes** - Three-level permission system (Explore, Ask to Edit, Auto)
 - **Background tasks** - Run long-running tasks in background with progress tracking
@@ -267,7 +271,7 @@ See `CLAUDE.md` for complete route reference.
 | File | Purpose |
 |------|---------|
 | `main/index.ts` | App entry, window creation |
-| `main/sessions.ts` | RoxAgent wrapper, event processing, source integration |
+| `main/sessions.ts` | ClaudeAgent wrapper, event processing, source integration |
 | `main/ipc.ts` | IPC channel handlers (sessions, files, shell) |
 | `main/menu.ts` | Application menu (File, Edit, View, Help) |
 | `main/deep-link.ts` | Deep link URL parsing and handling |
