@@ -1,5 +1,5 @@
 {
-  "name": "@craft-agent/messaging-gateway",
+  "name": "@rox-one/messaging-gateway",
   "version": "0.9.1",
   "license": "Apache-2.0",
   "description": "Messaging gateway for ROX — Telegram & WhatsApp",
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@rox-one/core": "workspace:*",
-    "@craft-agent/messaging-whatsapp-worker": "workspace:*",
+    "@rox-one/messaging-whatsapp-worker": "workspace:*",
     "@craft-agent/server-core": "workspace:*",
     "@craft-agent/shared": "workspace:*",
     "@larksuiteoapi/node-sdk": "^1.62.1",
