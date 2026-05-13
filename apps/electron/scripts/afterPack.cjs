@@ -84,14 +84,45 @@ module.exports = async function afterPack(context) {
 
   // electron-builder brands helper app display names, but CFBundleName can
   // still remain "Electron Helper" unless we normalize it before signing.
-  updatePlistString(path.join(bundlePath, 'Contents', 'Info.plist'), 'CFBundleName', 'ROX.ONE');
-  updatePlistString(path.join(bundlePath, 'Contents', 'Info.plist'), 'CFBundleDisplayName', 'ROX.ONE');
+  const rootInfoPlist = path.join(bundlePath, 'Contents', 'Info.plist');
+  updatePlistString(rootInfoPlist, 'CFBundleName', 'ROX.ONE');
+  updatePlistString(rootInfoPlist, 'CFBundleDisplayName', 'ROX.ONE');
   for (const helperName of helperNames) {
     updatePlistString(
       path.join(bundlePath, 'Contents', 'Frameworks', `${helperName}.app`, 'Contents', 'Info.plist'),
       'CFBundleName',
       helperName,
     );
+  }
+
+  // T250 trust-boundary post-pack guards: assert canonical bundle-id +
+  // build-number shape are present after electron-builder writes Info.plist.
+  // We log + fail loudly here rather than letting an off-scope identifier or
+  // a missing CFBundleVersion slip through to codesign.
+  try {
+    const plistJson = execFileSync('plutil', ['-convert', 'json', '-o', '-', rootInfoPlist], {
+      encoding: 'utf8',
+    });
+    const info = JSON.parse(plistJson);
+    const bundleId = info.CFBundleIdentifier;
+    const bundleVersion = info.CFBundleVersion;
+    if (typeof bundleId !== 'string' || !/^com\.rox\.one(\.[A-Za-z0-9-]+)*$/.test(bundleId)) {
+      throw new Error(`CFBundleIdentifier "${bundleId}" does not match com.rox.one[.*] scope`);
+    }
+    const versionString = String(bundleVersion ?? '');
+    if (!versionString || !versionString.split('.').every((seg) => /^\d+$/.test(seg))) {
+      throw new Error(`CFBundleVersion "${versionString}" is not a monotonic Apple build number`);
+    }
+    console.log(`afterPack: bundle-id=${bundleId} build=${versionString} (T250 boundary ok)`);
+  } catch (err) {
+    // plutil only ships on macOS; on cross-builds skip silently so Linux/Windows
+    // CI can still package without macOS host tools. The validator script
+    // catches the same gaps on darwin and in fixture-mode tests.
+    if (process.platform !== 'darwin') {
+      console.log(`afterPack: skipping bundle-id guard (non-darwin): ${err.message}`);
+    } else {
+      throw err;
+    }
   }
 
   // Check if pre-compiled Assets.car exists
