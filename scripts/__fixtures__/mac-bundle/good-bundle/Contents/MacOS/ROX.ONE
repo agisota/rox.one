@@ -1,0 +1,3 @@
+// Fixture-only stub native binary. Real bundles ship a Mach-O executable
+// here; the validator only needs the filename to exist so its native-binary
+// walker has something to assert against the signing-output sidecar.
