@@ -65,29 +65,40 @@ markers for follow-up slices.
   storage roots through `getConfigDirForScope()`, reducing cross-tenant write
   risk to one audited boundary.
 
-## Out of scope
+## Follow-up Status
 
-Deferred follow-up slices:
+The original C4 slice intentionally deferred storage-adjacent follow-ups. Phase
+1 has now implemented those follow-ups:
 
-- **Per-tenant credential key derivation.** C4 provides path-prefix isolation
-  only. `credentials/manager.ts` still uses the existing encryption substrate;
-  a future slice can derive tenant keys from the master key and workspace id.
+- **Remaining workspace RPC migrations.** Implemented by T213 (`8c1edf9`).
+  Every former C4 TODO in `workspace.ts` derives scope from trusted request
+  context and has flat, tenant, and forgery coverage.
+- **Electron main handler scope migration.** Implemented by T214 (`9b29b30`).
+  Electron main storage calls now use an explicit named global scope for
+  machine-wide handlers, with session-carrying storage moved through the
+  server-core scoped RPC surface.
+- **Server-core non-workspace RPC scope decisions.** Implemented by T215
+  (`ee47a29`). App/admin-global RPC handlers now use explicit global scope
+  helpers instead of ad hoc local scope literals.
+- **Pi-agent-server IPC scope propagation.** Implemented by T216 (`5e8b17a`).
+  The Pi subprocess receives an authenticated storage-scope envelope and
+  re-mints scope through the same trusted factory boundary.
+- **Per-tenant credential key derivation.** Implemented by T217 (`baee220`).
+  Active tenant credential stores derive tenant keys from the local master key
+  with workspace-id scoped HKDF metadata while single-user credentials remain
+  compatible.
+- **Queryable audit storage.** Implemented by T218 through T221 (`1e3c76e`,
+  `1f69afc`, `28cc2a2`, `ee49153`). ADR 0008 records the append-only audit
+  schema, structured writer fanout, query API, and retention policy.
+- **Data migration tooling.** Implemented by T222 (`9ffb0a3`). Operators can
+  dry-run, apply, and rollback local flat-to-tenant-prefixed data migration
+  with checksums, snapshots, a write lock, and idempotent reruns.
+
+Still out of scope for ADR 0007:
+
 - **RBAC-owned `session.permittedWorkspaces` population.** C4 consumes the
-  permitted workspace set but does not define role or team policy. That belongs
-  to the RBAC slice.
-- **Pi-agent-server IPC scope propagation.** Subprocesses continue to see
-  local-single-user storage. Cross-process scope serialization and integrity are
-  separate design problems.
-- **Data migration tooling.** Operators enabling `ROX_MULTI_TENANT=1` for
-  existing flat data need a migration tool to copy or move files into
-  `<configDir>/tenants/<workspaceId>/...`.
-- **Queryable audit storage.** C4 emits structured logger events. Search,
-  retention, and tamper-resistant audit storage are future work.
-- **Remaining webui handler migrations.** Only `workspace.ts:workspaces.GET` is
-  wired through `deriveScopeFromAuth` in this slice. Other handlers are marked
-  with C4 TODOs.
-- **Electron handler migrations.** `apps/electron/src/main/handlers/*` remain
-  `DEFAULT_LOCAL_SCOPE` headless/no-session paths for C4.
+  permitted workspace set but does not define role or team policy. Phase 2 owns
+  the RBAC policy model and session population path.
 
 ## Security Implications
 
@@ -101,8 +112,9 @@ Deferred follow-up slices:
   `getConfigDirForScope()`. Submodules no longer call `getConfigDir()` directly
   for scoped storage roots.
 - **Audit coverage.** The implemented audit surface covers factory downgrades,
-  forgery rejection, workspace-scope runtime downgrades, and unbranded
-  storage-bound scope breaches. Read-event audit is intentionally deferred.
+  forgery rejection, workspace-scope runtime downgrades, unbranded
+  storage-bound scope breaches, tenant credential access signals, queryable
+  audit storage, and explicit retention evaluation.
 
 ## Verification Gates
 
