@@ -1084,6 +1084,8 @@
   "settings.server.token": "Token",
   "settings.shortcuts.description": "Keyboard shortcuts",
   "settings.shortcuts.title": "Shortcuts",
+  "settings.teamPermissions.description": "Manage roles and grants on workspaces and orgs",
+  "settings.teamPermissions.title": "Team & permissions",
   "settings.tools.builtInBrowser": "Built-in browser",
   "settings.tools.builtInBrowserDesc": "Disable if you use external browser tools like Playwright, Puppeteer, or browser MCP servers.",
   "settings.tools.title": "Tools",
