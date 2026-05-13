@@ -24,8 +24,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../ui/dialog'
+import { Switch } from '../../ui/switch'
 import { useRegisterModal } from '../../../context/ModalContext'
 import { formatBytes } from './paste-image'
+import {
+  DEFAULT_BUDGET,
+  computeTargetDimensions,
+  shouldResize,
+  type ResizeBudget,
+} from './image-resize'
 
 /**
  * Subset of the paste-image preview the dialog actually renders. Mirrors the
@@ -52,10 +59,20 @@ export interface PasteImagePreviewDialogProps {
   image: PasteImagePreviewDialogImage | null
   /** Open-state change handler (Radix close-on-escape / overlay click). */
   onOpenChange: (open: boolean) => void
-  /** Confirm handler — caller forwards the image into the attachment path. */
-  onConfirm: () => void
+  /**
+   * Confirm handler — caller forwards the image into the attachment path.
+   * Receives the user's resize-toggle preference so the host can run the
+   * resize step before handing the image to `readFileAsAttachment` (T237b).
+   * Hosts on the legacy contract may ignore the argument.
+   */
+  onConfirm: (opts?: { resize: boolean }) => void
   /** Cancel handler — caller drops the pending paste. */
   onCancel: () => void
+  /**
+   * Optional resize budget override. Defaults to 2 MB / 2048px longest edge.
+   * Exposed for tests and a future "resize threshold" settings surface.
+   */
+  resizeBudget?: ResizeBudget
 }
 
 export function PasteImagePreviewDialog({
@@ -64,6 +81,7 @@ export function PasteImagePreviewDialog({
   onOpenChange,
   onConfirm,
   onCancel,
+  resizeBudget = DEFAULT_BUDGET,
 }: PasteImagePreviewDialogProps) {
   const { t } = useTranslation()
 
@@ -85,6 +103,23 @@ export function PasteImagePreviewDialog({
   )
 
   const hasDimensions = image != null && image.width > 0 && image.height > 0
+  // The resize toggle is only surfaced when the image trips the byte / pixel
+  // budget. Default ON so the recommendation is opt-out, not opt-in.
+  const overBudget = shouldResize(image, resizeBudget)
+  const [resizeOn, setResizeOn] = React.useState(true)
+  // Re-arm the toggle whenever a new image enters the dialog so a previous
+  // user's opt-out doesn't carry across sessions.
+  const dataUrlKey = image?.dataUrl ?? ''
+  React.useEffect(() => {
+    setResizeOn(true)
+  }, [dataUrlKey])
+
+  // Preview the post-resize dimensions for the recommendation row so the user
+  // can see exactly what they're about to attach.
+  const resizeTarget = React.useMemo(() => {
+    if (!overBudget || image == null) return null
+    return computeTargetDimensions(image.width, image.height, resizeBudget.maxLongestEdgePx)
+  }, [overBudget, image, resizeBudget.maxLongestEdgePx])
 
   return (
     <Dialog open={open && image != null} onOpenChange={handleOpenChange}>
@@ -136,6 +171,39 @@ export function PasteImagePreviewDialog({
                 </div>
               )}
             </div>
+            {overBudget ? (
+              <div
+                className="flex items-start justify-between gap-3 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm"
+                data-testid="composer-paste-image-preview-resize-row"
+              >
+                <label
+                  htmlFor="composer-paste-image-preview-resize-toggle"
+                  className="flex flex-col"
+                >
+                  <span className="font-medium">
+                    {t('workbench.composer.pasteImage.resizeToggle')}
+                  </span>
+                  {resizeTarget != null && resizeTarget.width > 0 ? (
+                    <span
+                      className="text-muted-foreground text-xs"
+                      data-testid="composer-paste-image-preview-resize-hint"
+                    >
+                      {t('workbench.composer.pasteImage.resizeHint', {
+                        width: resizeTarget.width,
+                        height: resizeTarget.height,
+                      })}
+                    </span>
+                  ) : null}
+                </label>
+                <Switch
+                  id="composer-paste-image-preview-resize-toggle"
+                  checked={resizeOn}
+                  onCheckedChange={setResizeOn}
+                  aria-label={t('workbench.composer.pasteImage.resizeToggle')}
+                  data-testid="composer-paste-image-preview-resize-switch"
+                />
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -153,7 +221,10 @@ export function PasteImagePreviewDialog({
           <Button
             onClick={() => {
               onOpenChange(false)
-              onConfirm()
+              // Forward the toggle state. When the image is under budget the
+              // toggle isn't shown and `resize` is `false` by definition so the
+              // host short-circuits the resize pass.
+              onConfirm({ resize: overBudget && resizeOn })
             }}
             data-testid="composer-paste-image-preview-confirm"
             disabled={image == null}

@@ -1488,6 +1488,8 @@
   "workbench.composer.pasteImage.cancel": "キャンセル",
   "workbench.composer.pasteImage.confirm": "追加",
   "workbench.composer.pasteImage.dimensions": "{{width}} × {{height}} ({{size}})",
+  "workbench.composer.pasteImage.resizeHint": "{{width}} × {{height}} にリサイズし、JPEG として再エンコードします。",
+  "workbench.composer.pasteImage.resizeToggle": "添付前にリサイズ (推奨)",
   "workbench.composer.pasteImage.title": "貼り付けた画像を追加",
   "workbench.composer.permission.awaiting": "エージェントを待機中…",
   "workbench.composer.voiceInput.aria-label": "音声入力",

@@ -185,7 +185,7 @@ describe('resizePreviewIfNeeded', () => {
   })
 
   it('routes through the resize path with injected loaders when over budget', async () => {
-    let receivedTarget: { width: number; height: number } | null = null
+    const receivedTargets: Array<{ width: number; height: number }> = []
     const image = mockImage({
       width: 4096,
       height: 2048,
@@ -194,14 +194,14 @@ describe('resizePreviewIfNeeded', () => {
     const got = await resizePreviewIfNeeded(image, DEFAULT_BUDGET, {
       decodeImage: async () => ({ width: 4096, height: 2048 } as unknown as HTMLImageElement),
       drawToDataUrl: (_img, target) => {
-        receivedTarget = target
+        receivedTargets.push(target)
         // Synthesise a small JPEG-shaped payload.
         return 'data:image/jpeg;base64,/9j/AA=='
       },
     })
-    expect(receivedTarget).not.toBeNull()
-    expect(receivedTarget?.width).toBe(2048)
-    expect(receivedTarget?.height).toBe(1024)
+    expect(receivedTargets.length).toBe(1)
+    expect(receivedTargets[0]?.width).toBe(2048)
+    expect(receivedTargets[0]?.height).toBe(1024)
     expect(got.dataUrl.startsWith('data:image/jpeg;base64,')).toBe(true)
     expect(got.width).toBe(2048)
     expect(got.height).toBe(1024)

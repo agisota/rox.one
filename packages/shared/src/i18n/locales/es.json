@@ -1488,6 +1488,8 @@
   "workbench.composer.pasteImage.cancel": "Cancelar",
   "workbench.composer.pasteImage.confirm": "Añadir",
   "workbench.composer.pasteImage.dimensions": "{{width}} × {{height}} ({{size}})",
+  "workbench.composer.pasteImage.resizeHint": "Se redimensionará a {{width}} × {{height}} y se volverá a codificar como JPEG.",
+  "workbench.composer.pasteImage.resizeToggle": "Redimensionar antes de adjuntar (recomendado)",
   "workbench.composer.pasteImage.title": "Añadir imagen pegada",
   "workbench.composer.permission.awaiting": "Esperando al agente…",
   "workbench.composer.voiceInput.aria-label": "Entrada de voz",
