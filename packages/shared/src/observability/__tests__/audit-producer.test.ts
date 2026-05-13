@@ -68,7 +68,7 @@ describe('createAuditProducer', () => {
       producer.emit(roleGrantedInput)
     })
 
-    expect(audit[0]?.correlationId).toBe('span-1')
+    expect(audit[0]?.correlationId).toBe(asCorrelationId('span-1'))
   })
 
   it('emit(): falls back to a synthesised correlation id when none is active', () => {
@@ -83,7 +83,7 @@ describe('createAuditProducer', () => {
   it('emit(): accepts an explicit correlationId override in the input', () => {
     const { producer, audit } = makeProducer()
     producer.emit({ ...roleGrantedInput, correlationId: asCorrelationId('explicit') })
-    expect(audit[0]?.correlationId).toBe('explicit')
+    expect(audit[0]?.correlationId).toBe(asCorrelationId('explicit'))
   })
 
   it('emit(): accepts an explicit ts override in the input', () => {
@@ -182,8 +182,8 @@ describe('createAuditProducer', () => {
       producer.emit(roleGrantedInput)
     })
 
-    expect(audit[0]?.correlationId).toBe('await-span')
-    expect(logs[0]?.correlationId).toBe('await-span')
+    expect(audit[0]?.correlationId).toBe(asCorrelationId('await-span'))
+    expect(logs[0]?.correlationId).toBe(asCorrelationId('await-span'))
   })
 
   it('emit(): produces deterministic events when correlation + ts are explicit', () => {

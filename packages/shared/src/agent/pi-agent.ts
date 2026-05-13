@@ -418,7 +418,7 @@ export class PiAgent extends BaseAgent {
           // Pass session dir for cross-process toolMetadataStore
           ...(sessionDir ? { ROX_SESSION_DIR: sessionDir } : {}),
           ROX_DEBUG: debugFlag,
-          ROX_DEBUG: debugFlag,
+          CRAFT_DEBUG: debugFlag,
         };
       })(),
     });

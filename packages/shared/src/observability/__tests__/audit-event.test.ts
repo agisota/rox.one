@@ -114,7 +114,7 @@ describe('isAuditEvent guard', () => {
   })
 
   it('rejects events missing required core fields', () => {
-    const base = roleGranted() as Record<string, unknown>
+    const base = roleGranted() as unknown as Record<string, unknown>
     for (const required of ['kind', 'ts', 'actor', 'subject', 'scope', 'correlationId']) {
       const broken = { ...base }
       delete broken[required]
