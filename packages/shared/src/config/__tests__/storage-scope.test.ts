@@ -67,6 +67,14 @@ describe('WorkspaceScope', () => {
     expect(getConfigDirForScope(DEFAULT_LOCAL_SCOPE)).toBe(getConfigDir())
   })
 
+  it('accepts official scopes minted through duplicate module instances', async () => {
+    const duplicateModule = await import(
+      `../storage-scope-auth.ts?dup=${Date.now()}`
+    ) as typeof import('../storage-scope-auth.ts')
+
+    expect(getConfigDirForScope(duplicateModule.DEFAULT_LOCAL_SCOPE)).toBe(getConfigDir())
+  })
+
   it('resolves branded workspace scope to tenant-prefixed dir when multi-tenant is active', () => {
     __setMultiTenantForTests(true)
     const scope = deriveScopeFromAuth(
@@ -100,12 +108,15 @@ describe('WorkspaceScope', () => {
     const stderr = captureStderrWrites()
 
     try {
-      expect(() => {
-        getConfigDirForScope({
-          kind: 'workspace',
-          workspaceId: 'W_FAKE',
-        } as unknown as BrandedWorkspaceScope)
-      }).toThrow(BrandedScopeBreachError)
+      const forgedScopes = [
+        { kind: 'local-single-user' },
+        { kind: 'workspace', workspaceId: 'W_FAKE' },
+      ]
+      for (const forgedScope of forgedScopes) {
+        expect(() => {
+          getConfigDirForScope(forgedScope as unknown as BrandedWorkspaceScope)
+        }).toThrow(BrandedScopeBreachError)
+      }
       expect(stderr.writes.join('')).toContain('scope.brand.cast_breach')
     } finally {
       stderr.restore()
