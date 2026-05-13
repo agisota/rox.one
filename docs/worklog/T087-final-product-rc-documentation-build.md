@@ -143,3 +143,60 @@ full suite then passed.
 | E2E evidence exists | Pass | `docs/release/e2e-evidence-2026-05-06.md` |
 | Final validation complete | Pass | Full T087 gate set passed |
 | Commit exists | Pass | `1190514` |
+
+---
+
+## M.19 addendum — v1.0.0 known limitations, migration guide, CHANGELOG
+
+Date: 2026-05-13
+Branch: `docs/M19-rc-documentation`
+
+### Summary
+
+Phase M.19 of the master roadmap re-opens this ticket to ship the second
+half of the v1.0.0 RC documentation pack: the honest known-limitations
+register, the upgrade walkthrough, and the canonical CHANGELOG.md. The
+earlier 2026-05-06 documents remain as historical record for the
+integration-wave RC.
+
+### Files added
+
+- `docs/release/v1-known-limitations.md` — 185 LOC. Multi-tenant
+  credential isolation carve-out (path-prefix only per ADR 0007), audit
+  store not tamper-resistant, Pi IPC documented bounds, RBAC `'org'`
+  partial resolution, public share adaptive-media best-effort, mission
+  scheduler soft-limit enforcement, mac signing notarization rules,
+  unsigned Linux build, env-var shim one-minor window, single bearer
+  token, in-memory persistence dev-only.
+- `docs/release/v1-migration-guide.md` — 211 LOC. Config dir migration via
+  R.8 shim, env-var rename table (`ROX_*` → `ROX_*`) with shim window,
+  package-scope rename `@rox-agent/*` → `@rox-one/*`, Docker image
+  rename `rox-agent-server` → `rox-one-server`, CLI binary alias
+  carve-out, revert advice with caveats.
+- `CHANGELOG.md` — 254 LOC. v1.0.0 entry in Keep a Changelog format
+  covering rebrand sweep R.0–R.10, multi-tenant ADR 0007, audit storage
+  ADR 0008, RBAC foundation M.2, persistent sessions, CLI, Composer
+  Mission Modes, skills and sources, permission modes, public sharing,
+  themes, and the M.19 documentation pack. Phase reference table cross-
+  references every `.swarm/master-roadmap-log.md` entry by commit SHA and
+  ticket id.
+
+### Files NOT changed in this addendum
+
+T072 ships `docs/release/v1-user-guide.md` and
+`docs/release/v1-admin-guide.md` in a separate atomic commit per the
+M.19 commit plan.
+
+### Validation
+
+- `bun run validate:rebrand` — exit 0.
+- `bun run validate:docs` — flagged `T227-rbac-admin-rpc.md missing Status
+  line` (stale ticket unrelated to M.19, pre-existing on main).
+- `git diff --check` — clean.
+
+### Atomic commit boundary
+
+This addendum + the three new artifacts (v1-known-limitations.md,
+v1-migration-guide.md, CHANGELOG.md) land in one T087-scoped commit. The
+T072 closeout (user guide + admin guide) lands in a separate atomic
+commit on the same branch.
