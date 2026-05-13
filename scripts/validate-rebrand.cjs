@@ -44,8 +44,8 @@ function isWholeFileAllowlisted(path) {
   // by construction — they are historical record, not branding drift.
   if (path === 'CHANGELOG.md') return true
   if (path.startsWith('docs/decision-records/')) return true
-  if (/^docs\/worklog\/T[0-2].*-.*\.md$/.test(path)) return true
-  if (/^docs\/tickets\/T[0-2].*-.*\.md$/.test(path)) return true
+  if (/^docs\/worklog\/T[0-3].*-.*\.md$/.test(path)) return true
+  if (/^docs\/tickets\/T[0-3].*-.*\.md$/.test(path)) return true
   if (path.startsWith('apps/electron/resources/release-notes/')) return true
   if (path.startsWith('.brv/') || path.startsWith('.swarm/') || path.startsWith('.git/')) return true
 
