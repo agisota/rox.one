@@ -11,7 +11,7 @@ import {
   RbacResolver,
   type RoleGrant,
 } from '@rox-one/shared/auth'
-import { TokenBucket } from '@rox-one/shared/security'
+import { BudgetGuard, TokenBucket } from '@rox-one/shared/security'
 import type {
   HandlerFn,
   RequestContext,
@@ -42,6 +42,7 @@ interface Harness {
   handlers: Map<string, HandlerFn>
   scheduler: MissionScheduler
   bucket: TokenBucket | undefined
+  budgetGuard: BudgetGuard<string> | undefined
   tick(ms: number): void
 }
 
@@ -56,6 +57,7 @@ function createHarness(opts: {
   bucketCapacity?: number
   bucketRefillPerSec?: number
   withLimiter?: boolean
+  budgetPerKey?: number
 } = {}): Harness {
   const handlers = new Map<string, HandlerFn>()
   const server: RpcServer = {
@@ -79,10 +81,15 @@ function createHarness(opts: {
       })
     : undefined
 
+  const budgetGuard = opts.budgetPerKey !== undefined
+    ? new BudgetGuard<string>({ budgetPerKey: opts.budgetPerKey })
+    : undefined
+
   const deps: HandlerDeps = {
     sessionManager: {} as HandlerDeps['sessionManager'],
     oauthFlowStore: {} as HandlerDeps['oauthFlowStore'],
     rbacResolver: resolver, missionScheduler: scheduler, rateLimiter: bucket,
+    budgetGuard,
     platform: {
       appRootPath: '/', resourcesPath: '/', isPackaged: false, appVersion: '0.0.0-test',
       isDebugMode: true,
@@ -92,7 +99,7 @@ function createHarness(opts: {
   }
 
   registerMissionsCoreHandlers(server, deps)
-  return { handlers, scheduler, bucket, tick(ms) { nowMs += ms } }
+  return { handlers, scheduler, bucket, budgetGuard, tick(ms) { nowMs += ms } }
 }
 
 function ctxFor(
@@ -103,6 +110,7 @@ function ctxFor(
 }
 
 const LIMITED = { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+const BUDGET_EXCEEDED = { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
 
 describe('missions.dispatchEvent — TokenBucket rate-limit (T071c)', () => {
   it('allows up to `capacity` dispatches in a burst, then rate-limits subsequent attempts', async () => {
@@ -192,6 +200,98 @@ describe('missions.dispatchEvent — backward compatibility (T071c)', () => {
       const r = await create(ctxFor('admin'))
       const d = await dispatch(ctxFor('admin'), { id: r.mission.id, event: { kind: 'Start' } })
       expect(d.ok).toBe(true)
+    }
+  })
+})
+
+describe('missions.dispatchEvent — BudgetGuard per-actor cap (T086b)', () => {
+  it('budget exhaustion returns budget-exceeded after the per-actor cap', async () => {
+    // Per-actor cap of 2 with no token-bucket. The first two dispatches
+    // succeed; the third returns the budget-exceeded envelope and must
+    // not mutate the mission state.
+    const h = createHarness({
+      initialGrants: [userGrant('admin', 'global', null, 'owner')],
+      budgetPerKey: 2,
+    })
+    const create = h.handlers.get(RPC_CHANNELS.missions.CREATE)!
+    const dispatch = h.handlers.get(RPC_CHANNELS.missions.DISPATCH_EVENT)!
+
+    const m1 = await create(ctxFor('admin'))
+    const m2 = await create(ctxFor('admin'))
+    const m3 = await create(ctxFor('admin'))
+
+    expect((await dispatch(ctxFor('admin'), { id: m1.mission.id, event: { kind: 'Start' } })).ok).toBe(true)
+    expect((await dispatch(ctxFor('admin'), { id: m2.mission.id, event: { kind: 'Start' } })).ok).toBe(true)
+    expect(await dispatch(ctxFor('admin'), { id: m3.mission.id, event: { kind: 'Start' } }))
+      .toEqual(BUDGET_EXCEEDED)
+
+    // Rejected dispatch leaves the mission Pending.
+    const rec = await h.scheduler.get(m3.mission.id as never)
+    expect(rec?.state.kind).toBe('Pending')
+    expect(h.budgetGuard!.usage('admin')).toBe(2)
+  })
+
+  it('different actor IDs have isolated budgets', async () => {
+    // Two global owners with cap 1 each. Both can land one dispatch
+    // before either is gated.
+    const h = createHarness({
+      initialGrants: [
+        userGrant('admin1', 'global', null, 'owner'),
+        userGrant('admin2', 'global', null, 'owner'),
+      ],
+      budgetPerKey: 1,
+    })
+    const create = h.handlers.get(RPC_CHANNELS.missions.CREATE)!
+    const dispatch = h.handlers.get(RPC_CHANNELS.missions.DISPATCH_EVENT)!
+
+    const m1 = await create(ctxFor('admin1'))
+    const m2 = await create(ctxFor('admin2'))
+    const m3 = await create(ctxFor('admin1'))
+    const m4 = await create(ctxFor('admin2'))
+
+    expect((await dispatch(ctxFor('admin1'), { id: m1.mission.id, event: { kind: 'Start' } })).ok).toBe(true)
+    expect((await dispatch(ctxFor('admin2'), { id: m2.mission.id, event: { kind: 'Start' } })).ok).toBe(true)
+    expect(await dispatch(ctxFor('admin1'), { id: m3.mission.id, event: { kind: 'Start' } }))
+      .toEqual(BUDGET_EXCEEDED)
+    expect(await dispatch(ctxFor('admin2'), { id: m4.mission.id, event: { kind: 'Start' } }))
+      .toEqual(BUDGET_EXCEEDED)
+    expect(h.budgetGuard!.usage('admin1')).toBe(1)
+    expect(h.budgetGuard!.usage('admin2')).toBe(1)
+  })
+
+  it('reset restores the per-actor budget', async () => {
+    // After exhaustion, `BudgetGuard.reset(key)` zeroes that actor's
+    // usage and subsequent dispatches succeed again.
+    const h = createHarness({
+      initialGrants: [userGrant('admin', 'global', null, 'owner')],
+      budgetPerKey: 1,
+    })
+    const create = h.handlers.get(RPC_CHANNELS.missions.CREATE)!
+    const dispatch = h.handlers.get(RPC_CHANNELS.missions.DISPATCH_EVENT)!
+
+    const m1 = await create(ctxFor('admin'))
+    const m2 = await create(ctxFor('admin'))
+
+    expect((await dispatch(ctxFor('admin'), { id: m1.mission.id, event: { kind: 'Start' } })).ok).toBe(true)
+    expect(await dispatch(ctxFor('admin'), { id: m2.mission.id, event: { kind: 'Start' } }))
+      .toEqual(BUDGET_EXCEEDED)
+
+    h.budgetGuard!.reset('admin')
+    expect((await dispatch(ctxFor('admin'), { id: m2.mission.id, event: { kind: 'Start' } })).ok).toBe(true)
+    expect(h.budgetGuard!.usage('admin')).toBe(1)
+  })
+
+  it('backward-compat: no budgetGuard => no error', async () => {
+    // The handler must behave identically to the pre-T086b baseline
+    // when no guard is wired. 10 create+dispatch cycles all succeed.
+    const h = createHarness({ initialGrants: [userGrant('admin', 'global', null, 'owner')] })
+    expect(h.budgetGuard).toBeUndefined()
+    const create = h.handlers.get(RPC_CHANNELS.missions.CREATE)!
+    const dispatch = h.handlers.get(RPC_CHANNELS.missions.DISPATCH_EVENT)!
+
+    for (let i = 0; i < 10; i++) {
+      const r = await create(ctxFor('admin'))
+      expect((await dispatch(ctxFor('admin'), { id: r.mission.id, event: { kind: 'Start' } })).ok).toBe(true)
     }
   })
 })
