@@ -17,5 +17,5 @@ M.2-foundation | 89e3423,375e89a | T224,T225 | 2026-05-13T18:57:16Z
 M.2-T226-rbac-resolver | cad0550 | T226 | 2026-05-13T19:08:05Z
 M.2-T227-foundation | 7e76711 | T227-part1 | 2026-05-13T19:16:40Z
 M.2-T227-complete | ca208d7 | T227 | 2026-05-13T19:22:30Z
-rebrand-R.10-roadmap-coherence-validator-repair | this commit | T321 | 2026-05-13T18:46:16Z
-rebrand-R.10-closeout-evidence-reconciliation | this commit | T322 | 2026-05-13T18:51:36Z
+rebrand-R.10-roadmap-coherence-validator-repair | f82da7f | T321 | 2026-05-13T18:46:16Z
+rebrand-R.10-closeout-evidence-reconciliation | e675d79 | T322 | 2026-05-13T18:51:36Z
