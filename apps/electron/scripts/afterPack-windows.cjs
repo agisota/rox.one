@@ -1,25 +1,10 @@
 /**
  * electron-builder afterPack hook (Windows variant) — M.18 T252.
- *
- * Mirror of `apps/electron/scripts/afterPack.cjs` (macOS) for Windows
- * NSIS / portable artifacts. Responsibilities:
- *
- *  1. Verify the canonical AppUserModelID / nsis.appId shape via the
- *     repo's `one.rox.workbench[.*]` or fallback `com.rox.one[.*]`
- *     pattern.
- *  2. Verify the FileVersion / ProductVersion shape is a dotted Windows
- *     version (a.b.c.d).
- *  3. Write a canonical `app-info.txt` sidecar next to the unpacked
- *     bundle so the boundary validator + CI evidence have a structured
- *     record to grep against.
- *  4. Emit the canonical `(T252 windows boundary ok)` marker that the
- *     validator looks for. The marker is appended to both the
- *     app-info.txt sidecar and (when present) the signing-output.txt
- *     sidecar produced by the signtool step.
- *
- * No real signtool invocation lives here. No credentials. This hook is
- * pure metadata mirroring; the actual Authenticode signing step is
- * driven by `.github/workflows/win-signed-release.yml` (T254 follow-up).
+ * Mirror of apps/electron/scripts/afterPack.cjs (macOS) for Windows.
+ * Validates canonical AppUserModelID + dotted FileVersion shape, writes
+ * app-info.txt sidecar, emits canonical (T252 windows boundary ok)
+ * marker into app-info.txt and (when present) signing-output.txt.
+ * No signtool invocation, no credentials — T254 follow-up adds those.
  */
 
 const path = require('path');
@@ -31,9 +16,7 @@ const T252_AFTER_PACK_MARKER = '(T252 windows boundary ok)';
 const DEFAULT_COMPANY_NAME = 'roxone';
 
 function readBuilderAppId(context) {
-  // electron-builder exposes the resolved appId at
-  // context.packager.config.appId. The win: block may override it via
-  // nsis.appId; we honor that first.
+  // win.appId / nsis.appId override the top-level appId when set.
   const config = context.packager && context.packager.config ? context.packager.config : {};
   const winConfig = config.win || {};
   const nsisConfig = config.nsis || {};
@@ -41,9 +24,7 @@ function readBuilderAppId(context) {
 }
 
 function readBuilderVersion(context) {
-  // electron-builder fills `buildVersion` from the config; if unset it
-  // falls back to package.json version. We coerce to string and pad
-  // dotted segments so `92` becomes `92.0.0.0` for the Windows shape.
+  // Pad dotted segments so `92` becomes `92.0.0.0` for the Windows shape.
   const config = context.packager && context.packager.config ? context.packager.config : {};
   const raw = String(config.buildVersion || (context.packager && context.packager.appInfo && context.packager.appInfo.version) || '');
   if (!raw) return '';
@@ -72,13 +53,9 @@ module.exports = async function afterPackWindows(context) {
     throw new Error(`afterPack-windows: FileVersion "${fileVersion}" is not a monotonic dotted Windows version`);
   }
 
-  const companyName = (context.packager && context.packager.config && context.packager.config.copyright)
-    ? DEFAULT_COMPANY_NAME
-    : DEFAULT_COMPANY_NAME;
+  const companyName = DEFAULT_COMPANY_NAME;
 
-  // Symlink-escape guard: walk the unpacked dir and reject any symlinks
-  // resolving outside it. electron-builder Windows artifacts normally have
-  // none, but `node_modules/.bin` junctions occasionally leak through.
+  // Symlink-escape guard: reject any symlink resolving outside the dir.
   const allFiles = walkFiles(appOutDir);
   for (const entry of allFiles) {
     let stat;
@@ -96,8 +73,7 @@ module.exports = async function afterPackWindows(context) {
   }
 
   // Emit canonical app-info.txt sidecar so the validator + CI evidence
-  // both have a deterministic place to read AppUserModelID, FileVersion,
-  // and the T252 boundary marker from.
+  // and CI evidence both have a deterministic record + T252 marker.
   const sidecarPath = path.join(appOutDir, 'app-info.txt');
   const sidecarBody = [
     '# ROX.ONE Windows app metadata (afterPack-windows)',
@@ -112,11 +88,8 @@ module.exports = async function afterPackWindows(context) {
   fs.writeFileSync(sidecarPath, sidecarBody, 'utf8');
   console.log(`afterPack-windows: wrote ${sidecarPath}`);
 
-  // If a signing-output.txt was produced by the CI signing step earlier in
-  // the pipeline, append the canonical marker so the validator can detect
-  // it without re-reading the app-info sidecar. The validator looks at
-  // both anyway, but appending here keeps the marker present in either
-  // location.
+  // If CI signing step left a signing-output.txt, append the marker so
+  // the validator catches it whichever sidecar it reads first.
   const signingOutputPath = path.join(appOutDir, 'signing-output.txt');
   if (fs.existsSync(signingOutputPath)) {
     fs.appendFileSync(signingOutputPath, `\n# ${T252_AFTER_PACK_MARKER}\n`, 'utf8');

@@ -1,22 +1,12 @@
 #!/usr/bin/env bun
 /**
  * Windows private-release trust-boundary validator (M.18 T252).
- *
  * Mirror of the Mac validator (T250) for Windows NSIS installers.
- *
- * Boundary contract:
- *  - Private/local RC builds: unsigned (no real cert), pinned canonical
- *    `one.rox.workbench.*` AppUserModelID / nsis.appId, monotonic
- *    Windows file-version shape (a.b.c.d), no `node_modules/.bin`
- *    symlinks escaping the install dir.
- *  - Public production: blocked until Authenticode/EV signing pipeline
- *    lands (T254+).
- *
- * Runs cross-platform: the static config/doc + fixture checks always
- * execute. On win32 a live signtool grep layers on top (when a signed
- * artifact is present at `apps/electron/release/win-unpacked/`).
- * Setting `WIN_BOUNDARY_FIXTURE_DIR=<path>` (or `--fixture <path>`)
- * forces fixture-mode bundle checks regardless of host.
+ * Boundary contract: private/local RC unsigned, pinned canonical
+ * `one.rox.workbench.*` AppUserModelID, monotonic dotted FileVersion,
+ * no symlinks escaping install dir. Public prod blocked until T254+.
+ * Cross-platform. Setting `WIN_BOUNDARY_FIXTURE_DIR=<path>` or
+ * `--fixture <path>` forces fixture-mode regardless of host.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync } from 'node:fs';
@@ -43,15 +33,13 @@ for (let index = 0; index < argv.length; index += 1) {
   }
 }
 
-/** Canonical AppUserModelID / nsis.appId pattern. `one.rox.workbench` is
- *  the registered base scope; per-channel installers may extend with
- *  `.rc`, `.beta`, etc. The fallback shape `com.rox.one.*` is also
- *  accepted because electron-builder defaults the Windows appId to the
- *  top-level `appId` in electron-builder.yml when nsis.appId is unset. */
+/** Canonical AppUserModelID. Accepts `one.rox.workbench[.*]` or the
+ *  fallback `com.rox.one[.*]` (electron-builder defaults Windows appId
+ *  to the top-level appId when nsis.appId is unset). */
 const WINDOWS_APP_ID_PATTERN = /^(one\.rox\.workbench|com\.rox\.one)(\.[A-Za-z0-9-]+)*$/;
 /** Windows FileVersion / ProductVersion: a.b.c.d dotted-numeric. */
 const WINDOWS_VERSION_PATTERN = /^\d+(\.\d+){0,3}$/;
-/** Canonical afterPack marker emitted by `apps/electron/scripts/afterPack-windows.cjs`. */
+/** Canonical afterPack marker emitted by afterPack-windows.cjs. */
 const T252_AFTER_PACK_MARKER = '(T252 windows boundary ok)';
 
 const REQUIRED_SIGNING_TOKENS = ['Subject:', 'Issuer:', 'SHA1 hash:'];
@@ -91,10 +79,7 @@ function run(command: string, args: string[]): { status: number | null; output: 
   return { status: result.status, output };
 }
 
-/** Minimal `Key=Value` text parser for the Windows app-info.txt sidecar.
- *  Lines starting with `#` are treated as comments. Mirrors what
- *  electron-builder's win-version-info emits when dumped via PowerShell
- *  `Get-Item app.exe | Format-List VersionInfo`. */
+/** Minimal `Key=Value` text parser for app-info.txt; `#` starts a comment. */
 function parseInfoText(text: string): Record<string, string> {
   const result: Record<string, string> = {};
   for (const rawLine of text.split(/\r?\n/)) {
@@ -163,9 +148,8 @@ function assertWindowsBundleContract({
     fail('CompanyName is missing from app-info.txt');
   }
 
-  // afterPack canonical marker: validator looks for it in signing-output.txt
-  // (or app-info.txt as a fallback) to confirm `afterPack-windows.cjs` ran
-  // and emitted the T252 boundary marker.
+  // afterPack canonical marker: validator looks for it in either sidecar
+  // to confirm afterPack-windows.cjs ran and emitted the T252 marker.
   const signingOutput = signingOutputPath && existsSync(signingOutputPath)
     ? readFileSync(signingOutputPath, 'utf8')
     : '';
@@ -174,10 +158,8 @@ function assertWindowsBundleContract({
     fail(`afterPack canonical marker missing: ${T252_AFTER_PACK_MARKER}`);
   }
 
-  // signtool / signing-output sidecar grep. In fixture mode we always run
-  // it because the fixture ships an explicit sidecar. In live mode (win32
-  // host) we only run it when `signtool verify` was piped into a sidecar
-  // alongside the unpacked bundle.
+  // signtool / signing-output sidecar grep. Fixture mode always runs it
+  // (sidecar present); live win32 only runs it when CI piped one in.
   if (signingOutput) {
     for (const token of REQUIRED_SIGNING_TOKENS) {
       if (!signingOutput.includes(token)) {
@@ -204,10 +186,7 @@ function assertWindowsBundleContract({
     }
   }
 
-  // Symlink boundary: every symlink under the bundle must resolve inside
-  // the bundle. Windows installers normally have no symlinks at all, but
-  // electron-builder occasionally produces junctioned `node_modules/.bin`
-  // entries that we want to reject if they escape the install root.
+  // Symlink boundary: reject any symlink resolving outside the bundle.
   for (const entry of allFiles) {
     let stat;
     try {
@@ -241,11 +220,6 @@ requireText(builderConfig, 'appId: com.rox.one', 'canonical bundle-id appId (sha
 requireText(builderConfig, 'win:', 'win: build block');
 requireText(builderConfig, 'target: nsis', 'nsis target for windows installer');
 requireText(builderConfig, 'afterPack: scripts/afterPack.cjs', 'macOS afterPack hook (shared)');
-// Per-T252 the windows-specific afterPack is composed via `extraMetadata` on
-// the win: block. We do not require electron-builder to chain a second
-// afterPack here because the canonical marker is written into the
-// signing-output sidecar by the CI signing step; the validator looks for
-// the marker regardless of which hook emitted it.
 requireText(builderConfig, 'nsis:', 'nsis: block');
 requireText(builderConfig, 'oneClick: true', 'nsis oneClick installer flag');
 requireText(builderConfig, 'perMachine: false', 'nsis perMachine=false (per-user install)');
@@ -287,11 +261,10 @@ if (!existsSync(winExePath)) {
   fail('missing packaged exe: apps/electron/release/win-unpacked/ROX.ONE.exe; run electron-builder --win first');
 }
 
-// Live signtool verify against the unpacked exe; emit canonical token check.
+// Live signtool verify against the unpacked exe. Local/private RC is
+// intentionally unsigned so a non-zero status is fine here; CI signing
+// builds (T254) swap in a stricter contract.
 const signtool = run('signtool', ['verify', '/pa', '/v', winExePath]);
-// Note: we do NOT fail when signtool's status is non-zero here because the
-// private/local RC build is intentionally unsigned. We just record the
-// output. CI signing builds will swap in a stricter contract via T254.
 if (signtool.status === 0) {
   for (const token of REQUIRED_SIGNING_TOKENS) {
     requireText(signtool.output, token, `required signtool token: ${token}`);
