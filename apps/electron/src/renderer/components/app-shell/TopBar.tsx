@@ -271,7 +271,7 @@ export function TopBar({
         {/* Configured app menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <TopBarButton aria-label={t("menu.roxMenu")}>
+            <TopBarButton aria-label={t("menu.appMenu")}>
               <RoxAgentsSymbol className="h-4 text-accent" />
             </TopBarButton>
           </DropdownMenuTrigger>
