@@ -1,6 +1,6 @@
 # T302 - Browser CDP test isolation
 
-Status: IN_PROGRESS
+Status: DONE
 Phase: R.6 support
 Ticket: docs/tickets/T302-browser-cdp-test-isolation.md
 
@@ -45,12 +45,18 @@ unchanged.
 ## 7. Validation commands run
 
 - `bun test apps/electron/src/main/__tests__/browser-pane-manager.test.ts apps/electron/src/main/__tests__/browser-cdp.test.ts`
+- `bun run typecheck`
+- `bun test`
 
 ## 8. Passing test output summary
 
 Green targeted order run:
 
 `84 pass, 0 fail, 195 expect() calls`
+
+Full suite after follow-up test hygiene repairs:
+
+`5527 pass, 13 skip, 0 fail, 1 snapshots, 20511 expect() calls`
 
 ## 9. Build output summary
 
@@ -67,5 +73,5 @@ TypeScript still checks against the real module shape.
 | Acceptance criterion | Status | Evidence |
 | --- | --- | --- |
 | Two-file order-dependent repro passes | Green | `84 pass, 0 fail` targeted run |
-| Full `bun test` no longer fails on BrowserCDP mock bleed-through | Pending | Full suite rerun still in progress after fix |
+| Full `bun test` no longer fails on BrowserCDP mock bleed-through | Green | `5527 pass, 13 skip, 0 fail` full suite |
 | No runtime source files changed | Green | Only `browser-cdp.test.ts` changed |
