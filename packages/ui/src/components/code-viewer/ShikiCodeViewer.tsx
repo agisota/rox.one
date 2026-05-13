@@ -3,14 +3,16 @@
  *
  * Platform-agnostic component for displaying code with:
  * - Line numbers
- * - Syntax highlighting via Shiki
+ * - Syntax highlighting via Shiki (via shared `getSingletonHighlighter`
+ *   adapter from `@rox-one/shared/highlight`; see M.11/T174 migration off
+ *   the raw `shiki` package onto the engine-agnostic adapter).
  * - Light/dark theme support
  * - Scrollable with custom scrollbar styling
  */
 
 import * as React from 'react'
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { codeToHtml, bundledLanguages, type BundledLanguage } from 'shiki'
+import { getSingletonHighlighter, resolveLanguage } from '@rox-one/shared/highlight'
 import { cn } from '../../lib/utils'
 import { LANGUAGE_MAP } from './language-map'
 
@@ -33,25 +35,10 @@ export interface ShikiCodeViewerProps {
   className?: string
 }
 
-// Map common extensions to Shiki language names
-const LANGUAGE_ALIASES: Record<string, BundledLanguage> = {
-  'js': 'javascript',
-  'ts': 'typescript',
-  'py': 'python',
-  'sh': 'bash',
-  'zsh': 'bash',
-  'yml': 'yaml',
-  'rb': 'ruby',
-  'rs': 'rust',
-  'kt': 'kotlin',
-  'objective-c': 'objc',
-  'objc': 'objc',
-}
-
-function isValidLanguage(lang: string): lang is BundledLanguage {
-  const normalized = LANGUAGE_ALIASES[lang] || lang
-  return normalized in bundledLanguages
-}
+// Language preload + alias logic lives in the shared `@rox-one/shared/highlight`
+// adapter (PRELOADED_LANGUAGES + LANGUAGE_ALIASES + resolveLanguage). This
+// component no longer maintains its own copy — `resolveLanguage` returns
+// null for unsupported fences and the adapter further falls back to 'text'.
 
 function getLanguageFromPath(filePath: string, explicit?: string): string {
   if (explicit) return explicit
@@ -76,11 +63,13 @@ export function ShikiCodeViewer({
   const [isLoading, setIsLoading] = useState(true)
   const hasCalledReady = useRef(false)
 
-  // Resolve language from props or file path
-  const resolvedLang = useMemo(() => {
+  // Resolve language from props or file path via the shared adapter — falls
+  // back to 'text' if the input is not in the curated preload set. The
+  // highlighter itself also resolves unsupported languages to 'text' as a
+  // second line of defence.
+  const resolvedLang: string = useMemo(() => {
     const lang = language || (filePath ? getLanguageFromPath(filePath) : 'text')
-    const lowered = lang.toLowerCase()
-    return LANGUAGE_ALIASES[lowered] || lowered
+    return resolveLanguage(lang) ?? 'text'
   }, [language, filePath])
 
   // Split code into lines for line numbers
@@ -93,11 +82,10 @@ export function ShikiCodeViewer({
     async function highlight() {
       // Use provided shikiTheme or fall back to github theme based on mode
       const resolvedShikiTheme = shikiTheme || (theme === 'dark' ? 'github-dark' : 'github-light')
-      const lang = isValidLanguage(resolvedLang) ? resolvedLang : 'text'
 
       try {
-        const html = await codeToHtml(code, {
-          lang,
+        const highlighter = await getSingletonHighlighter()
+        const html = await highlighter.highlight(code, resolvedLang, {
           theme: resolvedShikiTheme,
         })
 
