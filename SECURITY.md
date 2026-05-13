@@ -26,7 +26,7 @@ Include the following information:
 
 This policy applies to:
 - The ROX.ONE desktop application
-- The `@craft-agent/*` npm packages
+- The `@rox-one/*` npm packages
 - Official ROX.ONE repositories
 
 ### Out of Scope
