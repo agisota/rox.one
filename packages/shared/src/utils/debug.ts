@@ -53,6 +53,10 @@ export function enableDebug(): void {
   debugEnabled = true;
 }
 
+export function __setDebugEnabledForTests(enabled: boolean): void {
+  debugEnabled = enabled;
+}
+
 /**
  * Check if debug mode is enabled.
  */

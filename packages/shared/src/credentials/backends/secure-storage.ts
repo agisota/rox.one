@@ -48,6 +48,7 @@ import {
   type BrandedWorkspaceScope,
 } from '../../config/storage-scope.ts';
 import { isMultiTenantActivated } from '../../config/storage-scope-runtime.ts';
+import { appendStructuredAuditEvent } from '../../audit/index.ts';
 import { createLogger } from '../../utils/debug.ts';
 
 // File format constants
@@ -502,6 +503,10 @@ export class SecureStorageBackend implements CredentialBackend {
   private emitTenantAudit(event: string, payload: Record<string, unknown>): void {
     const tenantWorkspaceId = this.getTenantWorkspaceId();
     if (!tenantWorkspaceId) return;
+    appendStructuredAuditEvent('trace', event, {
+      workspaceId: tenantWorkspaceId,
+      ...payload,
+    });
     log.debug(JSON.stringify({
       level: 'trace',
       event,
