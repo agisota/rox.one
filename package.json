@@ -133,6 +133,8 @@
     "validate:mac-boundary-fixtures": "bun run scripts/validate-mac-boundary-fixtures.ts",
     "validate:windows-private-release-boundary": "bun run scripts/validate-windows-private-release-boundary.ts",
     "validate:windows-boundary-fixtures": "bun run scripts/validate-windows-boundary-fixtures.ts",
+    "validate:linux-private-release-boundary": "bun run scripts/validate-linux-private-release-boundary.ts",
+    "validate:linux-boundary-fixtures": "bun run scripts/validate-linux-boundary-fixtures.ts",
     "validate:e2e-core-scenarios": "bun run scripts/validate-e2e-core-scenarios.ts",
     "validate:packaged-artifacts": "bun run scripts/validate-packaged-artifacts.ts",
     "validate:bundle-policy": "bun run scripts/validate-bundle-policy.ts",

@@ -1,0 +1,4 @@
+# Stub AppImage placeholder for M.18 T253 good-AppDir fixture.
+# Real AppImages are squashfs binaries — we only need the filename
+# pattern to match rox-one(-...)*.AppImage so the validator walker
+# picks it up as canonical.

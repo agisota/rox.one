@@ -1,0 +1,14 @@
+Verifying: rox-one-1.2.3-x64.AppImage.sig
+
+gpg: assuming signed data in 'rox-one-1.2.3-x64.AppImage'
+gpg: Signature made Wed 13 May 2026 12:00:00 UTC
+gpg:                using RSA key 0000000000000000000000000000000000000000
+gpg: Good signature from "ROX.ONE Private RC <support@rox.one>" [ultimate]
+Primary key fingerprint: 0000 0000 0000 0000 0000  0000 0000 0000 0000 0000
+
+Signed native binaries:
+rox-one
+rox-one-1.2.3-x64.AppImage
+libnode.so
+
+# (T253 linux boundary ok)
