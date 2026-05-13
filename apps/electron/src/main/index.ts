@@ -243,7 +243,7 @@ import { applyConfiguredProxySettings } from './network-proxy'
 void applyConfiguredProxySettings()
 
 // Accept self-signed / untrusted certificates when connecting to a user-configured remote server.
-// Only bypasses cert validation for the exact CRAFT_SERVER_URL origin — all other connections
+// Only bypasses cert validation for the exact ROX_SERVER_URL origin — all other connections
 // use standard certificate verification. Without this, wss:// to self-signed servers fails with
 // ERR_CERT_AUTHORITY_INVALID because Chromium's WebSocket rejects untrusted certs.
 //
@@ -1031,8 +1031,8 @@ app.whenReady().then(async () => {
 
       // Headless: print connection details
       if (isHeadless) {
-        console.log(`CRAFT_SERVER_URL=${instance.protocol}://${instance.host}:${instance.port}`)
-        console.log(`CRAFT_SERVER_TOKEN=${instance.token}`)
+        console.log(`ROX_SERVER_URL=${instance.protocol}://${instance.host}:${instance.port}`)
+        console.log(`ROX_SERVER_TOKEN=${instance.token}`)
       }
     }
 

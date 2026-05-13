@@ -40,7 +40,7 @@ function createConsoleLogger(): Logger {
  * - CRAFT_RESOURCES_PATH — override resourcesPath (default: cwd/resources)
  * - CRAFT_IS_PACKAGED — 'true' for production (default: false)
  * - CRAFT_VERSION — app version string (default: '0.0.0-dev')
- * - CRAFT_DEBUG — 'true' to enable debug logging
+ * - ROX_DEBUG — 'true' to enable debug logging
  */
 export function createHeadlessPlatform(options?: { appVersion?: string }): PlatformServices {
   const logger = createConsoleLogger()

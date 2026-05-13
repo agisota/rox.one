@@ -3,22 +3,22 @@
  * @rox-one/server — standalone headless ROX server.
  *
  * Usage:
- *   CRAFT_SERVER_TOKEN=<secret> bun run packages/server/src/index.ts
+ *   ROX_SERVER_TOKEN=<secret> bun run packages/server/src/index.ts
  *
  * Environment:
- *   CRAFT_SERVER_TOKEN         — required bearer token for client auth
- *   CRAFT_RPC_HOST             — bind address (default: 127.0.0.1)
- *   CRAFT_RPC_PORT             — bind port (default: 9100)
- *   CRAFT_RPC_TLS_CERT         — path to PEM certificate file (enables TLS/wss)
- *   CRAFT_RPC_TLS_KEY          — path to PEM private key file (required with cert)
- *   CRAFT_RPC_TLS_CA           — path to PEM CA chain file (optional)
+ *   ROX_SERVER_TOKEN           — required bearer token for client auth
+ *   ROX_RPC_HOST               — bind address (default: 127.0.0.1)
+ *   ROX_RPC_PORT               — bind port (default: 9100)
+ *   ROX_RPC_TLS_CERT           — path to PEM certificate file (enables TLS/wss)
+ *   ROX_RPC_TLS_KEY            — path to PEM private key file (required with cert)
+ *   ROX_RPC_TLS_CA             — path to PEM CA chain file (optional)
  *   CRAFT_APP_ROOT             — app root path (default: cwd)
  *   CRAFT_RESOURCES_PATH       — resources path (default: cwd/resources)
  *   CRAFT_IS_PACKAGED          — 'true' for production (default: false)
  *   CRAFT_VERSION              — app version (default: 0.0.0-dev)
- *   CRAFT_DEBUG                — 'true' for debug logging
- *   CRAFT_WEBUI_DIR            — path to built web UI assets (enables web UI on RPC port)
- *   CRAFT_WEBUI_PASSWORD       — optional shorter password for legacy web login (falls back to CRAFT_SERVER_TOKEN)
+ *   ROX_DEBUG                  — 'true' for debug logging
+ *   ROX_WEBUI_DIR              — path to built web UI assets (enables web UI on RPC port)
+ *   CRAFT_WEBUI_PASSWORD       — optional shorter password for legacy web login (falls back to ROX_SERVER_TOKEN)
  *   CRAFT_WEBUI_SECURE_COOKIE  — optional true/false override for the session cookie Secure flag
  *   CRAFT_WEBUI_WS_URL         — optional browser-facing ws:// or wss:// URL returned by /api/config
  *   CRAFT_WEBUI_TRUSTED_PROXIES — optional comma/space-separated proxy peer IPs allowed to set forwarded headers
@@ -29,8 +29,8 @@
  *   CRAFT_MESSAGING_DEPENDENCY_RISK_MODE — private-local|public-untrusted|accepted-risk|isolated-worker
  *   RESEND_API_KEY             — optional Resend API key for account verification/reset emails
  *   CRAFT_EMAIL_FROM           — optional sender address for account emails
- *   CRAFT_MESSAGING_WA_WORKER  — absolute path to worker.cjs (default: packages/messaging-whatsapp-worker/dist/worker.cjs)
- *   CRAFT_MESSAGING_NODE_BIN   — Node binary used to spawn the WhatsApp worker (default: node)
+ *   ROX_MESSAGING_WA_WORKER    — absolute path to worker.cjs (default: packages/messaging-whatsapp-worker/dist/worker.cjs)
+ *   ROX_MESSAGING_NODE_BIN     — Node binary used to spawn the WhatsApp worker (default: node)
  */
 
 import { join } from 'node:path'
@@ -410,10 +410,10 @@ const healthServer = await startHealthHttpServer({
 })
 
 const serverProto = instance.protocol === 'wss' ? 'https' : 'http'
-console.log(`CRAFT_SERVER_URL=${instance.protocol}://${instance.host}:${instance.port}`)
-console.log(`CRAFT_SERVER_TOKEN=${instance.token ? `${instance.token.slice(0, 6)}…${instance.token.slice(-4)}` : ''}`)
+console.log(`ROX_SERVER_URL=${instance.protocol}://${instance.host}:${instance.port}`)
+console.log(`ROX_SERVER_TOKEN=${instance.token ? `${instance.token.slice(0, 6)}…${instance.token.slice(-4)}` : ''}`)
 if (webuiHandler) {
-  console.log(`CRAFT_WEBUI_URL=${serverProto}://0.0.0.0:${instance.port}`)
+  console.log(`ROX_WEBUI_URL=${serverProto}://0.0.0.0:${instance.port}`)
 }
 
 // Block binding to a non-localhost address without TLS — tokens would be sent in cleartext.
@@ -424,14 +424,14 @@ if (!isLocalBind && instance.protocol === 'ws') {
     console.warn(
       '\n⚠️  WARNING: Server is listening on a network address without TLS.\n' +
       '   Authentication tokens will be sent in cleartext.\n' +
-      '   Set CRAFT_RPC_TLS_CERT and CRAFT_RPC_TLS_KEY to enable wss://.\n'
+      '   Set ROX_RPC_TLS_CERT and ROX_RPC_TLS_KEY to enable wss://.\n'
     )
   } else {
     console.error(
       '\n❌  Refusing to bind to a network address without TLS.\n' +
       '   Authentication tokens would be sent in cleartext.\n\n' +
       '   Options:\n' +
-      '     1. Set CRAFT_RPC_TLS_CERT and CRAFT_RPC_TLS_KEY to enable wss://\n' +
+      '     1. Set ROX_RPC_TLS_CERT and ROX_RPC_TLS_KEY to enable wss://\n' +
       '     2. Pass --allow-insecure-bind to override (NOT recommended for production)\n'
     )
     await instance.stop()

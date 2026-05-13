@@ -52,9 +52,9 @@ async function spawnTestServer(extraEnv?: Record<string, string>): Promise<Spawn
       CRAFT_EMAIL_FROM: '',
       HOME: homeDir,
       CRAFT_APP_ROOT: homeDir,
-      CRAFT_SERVER_TOKEN: token,
-      CRAFT_RPC_PORT: '0',
-      CRAFT_RPC_HOST: '127.0.0.1',
+      ROX_SERVER_TOKEN: token,
+      ROX_RPC_PORT: '0',
+      ROX_RPC_HOST: '127.0.0.1',
       CRAFT_HEALTH_PORT: '0', // random port
     },
     stdout: 'pipe',
@@ -74,8 +74,8 @@ async function spawnTestServer(extraEnv?: Record<string, string>): Promise<Spawn
       const lines = buffer.split('\n')
       buffer = lines.pop() ?? ''
       for (const line of lines) {
-        if (line.startsWith('CRAFT_SERVER_URL=')) {
-          url = line.slice('CRAFT_SERVER_URL='.length).trim()
+        if (line.startsWith('ROX_SERVER_URL=')) {
+          url = line.slice('ROX_SERVER_URL='.length).trim()
         }
         if (url) {
           clearTimeout(timer)
@@ -114,7 +114,7 @@ async function spawnTestServer(extraEnv?: Record<string, string>): Promise<Spawn
       }
       clearTimeout(timer)
       if (!url) {
-        reject(new Error('Server exited before printing CRAFT_SERVER_URL'))
+        reject(new Error('Server exited before printing ROX_SERVER_URL'))
       }
     })()
   })
@@ -194,9 +194,9 @@ describe('headless server smoke test', () => {
         CRAFT_EMAIL_FROM: '',
         HOME: homeDir,
         CRAFT_APP_ROOT: homeDir,
-        CRAFT_SERVER_TOKEN: token,
-        CRAFT_RPC_PORT: '0',
-        CRAFT_RPC_HOST: '127.0.0.1',
+        ROX_SERVER_TOKEN: token,
+        ROX_RPC_PORT: '0',
+        ROX_RPC_HOST: '127.0.0.1',
       },
       stdout: 'pipe',
       stderr: 'pipe',
