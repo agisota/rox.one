@@ -14,7 +14,7 @@ import type { BackendConfig, PostInitResult, PermissionRequestType, SdkMcpServer
 import { parseError, type AgentError } from './errors.ts';
 import { mapClaudeSdkAssistantError, type ClaudeSdkApiError } from './claude-sdk-error-mapper.ts';
 import { runErrorDiagnostics } from './diagnostics.ts';
-import { loadStoredConfig, loadConfigDefaults, type Workspace, type AuthType, getDefaultLlmConnection, getLlmConnection } from '../config/storage.ts';
+import { DEFAULT_LOCAL_SCOPE, loadStoredConfig, loadConfigDefaults, type Workspace, type AuthType, getDefaultLlmConnection, getLlmConnection } from '../config/storage.ts';
 import { getValidClaudeOAuthToken } from '../auth/state.ts';
 import {
   clearClaudeBedrockRoutingEnvVars,
@@ -597,7 +597,7 @@ export class ClaudeAgent extends BaseAgent {
     // Initialize permission mode state with callbacks
     const sessionId = this.modeSessionId;
     // Get initial mode: from session, or from global default
-    const globalDefaults = loadConfigDefaults();
+    const globalDefaults = loadConfigDefaults(DEFAULT_LOCAL_SCOPE);
     const initialMode: PermissionMode = config.session?.permissionMode ?? globalDefaults.workspaceDefaults.permissionMode;
 
     initializeModeState(sessionId, initialMode, {
@@ -641,7 +641,7 @@ export class ClaudeAgent extends BaseAgent {
       return { authInjected: false, authWarning: 'No connection slug available', authWarningLevel: 'error' };
     }
 
-    const connection = getLlmConnection(slug);
+      const connection = getLlmConnection(slug, DEFAULT_LOCAL_SCOPE);
     if (!connection) {
       return { authInjected: false, authWarning: `Connection not found: ${slug}`, authWarningLevel: 'error' };
     }
@@ -868,8 +868,8 @@ export class ClaudeAgent extends BaseAgent {
       const model = this._model;
 
       // Log provider context for diagnostics (custom base URL = third-party provider)
-      const defaultConnSlug = getDefaultLlmConnection();
-      const defaultConn = defaultConnSlug ? getLlmConnection(defaultConnSlug) : null;
+      const defaultConnSlug = getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE);
+      const defaultConn = defaultConnSlug ? getLlmConnection(defaultConnSlug, DEFAULT_LOCAL_SCOPE) : null;
       const activeBaseUrl = defaultConn?.baseUrl;
       if (activeBaseUrl) {
         debug(`[chat] Custom provider: baseUrl=${activeBaseUrl}, model=${model}, hasApiKey=${!!process.env.ANTHROPIC_API_KEY}`);
@@ -1866,9 +1866,9 @@ This is a branched conversation. All prior messages in this conversation are par
 
           // Run diagnostics to identify specific cause (2s timeout)
           // Derive authType from the default LLM connection
-          const { getDefaultLlmConnection, getLlmConnection } = await import('../config/storage.ts');
-          const defaultConnSlug = getDefaultLlmConnection();
-          const connection = defaultConnSlug ? getLlmConnection(defaultConnSlug) : null;
+          const { DEFAULT_LOCAL_SCOPE, getDefaultLlmConnection, getLlmConnection } = await import('../config/storage.ts');
+          const defaultConnSlug = getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE);
+          const connection = defaultConnSlug ? getLlmConnection(defaultConnSlug, DEFAULT_LOCAL_SCOPE) : null;
           // Map connection authType to legacy AuthType format for diagnostics
           let diagnosticAuthType: AuthType | undefined;
           if (connection) {

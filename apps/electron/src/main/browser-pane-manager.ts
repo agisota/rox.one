@@ -19,7 +19,7 @@ import {
   type BrowserEmptyStateLaunchResult,
   type BrowserInstanceInfo,
 } from '../shared/types'
-import { DEFAULT_THEME, loadAppTheme } from '@craft-agent/shared/config'
+import { DEFAULT_LOCAL_SCOPE, DEFAULT_THEME, loadAppTheme } from '@craft-agent/shared/config'
 import { getBrowserLiveFxCornerRadii } from '../shared/browser-live-fx'
 import type { IBrowserPaneManager } from '@craft-agent/server-core/handlers'
 
@@ -1871,7 +1871,7 @@ export class BrowserPaneManager implements IBrowserPaneManager {
   /** Resolve the app's current accent color as a concrete CSS value (not a var reference). */
   private getResolvedAccentColor(): string {
     const isDark = nativeTheme.shouldUseDarkColors
-    const userTheme = loadAppTheme()
+    const userTheme = loadAppTheme(DEFAULT_LOCAL_SCOPE)
     const accent = isDark
       ? (userTheme?.dark?.accent ?? userTheme?.accent ?? DEFAULT_THEME.dark!.accent!)
       : (userTheme?.accent ?? DEFAULT_THEME.accent!)

@@ -1,6 +1,6 @@
 import { existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { ensureConfigDir } from './storage.ts';
+import { DEFAULT_LOCAL_SCOPE, ensureConfigDir } from './storage.ts';
 import { CONFIG_DIR } from './paths.ts';
 import { readJsonFileSync } from '../utils/files.ts';
 import { i18n } from '../i18n/index.ts';
@@ -52,7 +52,7 @@ export function loadPreferences(): UserPreferences {
 }
 
 export function savePreferences(prefs: UserPreferences): void {
-  ensureConfigDir();
+  ensureConfigDir(DEFAULT_LOCAL_SCOPE);
   prefs.updatedAt = Date.now();
   writeFileSync(PREFERENCES_FILE, JSON.stringify(prefs, null, 2), 'utf-8');
 }

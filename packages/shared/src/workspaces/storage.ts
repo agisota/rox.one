@@ -23,7 +23,7 @@ import { atomicWriteFileSync, readJsonFileSync } from '../utils/files.ts';
 import { getDefaultStatusConfig, saveStatusConfig, ensureDefaultIconFiles } from '../statuses/storage.ts';
 import { getDefaultLabelConfig, saveLabelConfig } from '../labels/storage.ts';
 import { installDefaultWorkbenchBundle } from '../workbench/default-workspace-bundle.ts';
-import { loadConfigDefaults } from '../config/storage.ts';
+import { DEFAULT_LOCAL_SCOPE, loadConfigDefaults } from '../config/storage.ts';
 import { parsePermissionMode, PERMISSION_MODE_ORDER } from '../agent/mode-types.ts';
 import { normalizeThinkingLevel } from '../agent/thinking-levels.ts';
 import type {
@@ -304,7 +304,7 @@ export function createWorkspaceAtPath(
   const slug = generateSlug(name);
 
   // Load global defaults from config-defaults.json
-  const globalDefaults = loadConfigDefaults();
+  const globalDefaults = loadConfigDefaults(DEFAULT_LOCAL_SCOPE);
 
   // Merge global defaults with provided defaults
   // AI settings (model, thinkingLevel, defaultLlmConnection) are left undefined

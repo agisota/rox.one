@@ -26,6 +26,7 @@ import type {
 import { ClaudeAgent } from '../claude-agent.ts';
 import { PiAgent } from '../pi-agent.ts';
 import {
+  DEFAULT_LOCAL_SCOPE,
   getLlmConnection,
   getDefaultLlmConnection,
   type LlmConnection,
@@ -325,20 +326,20 @@ export function resolveSessionConnection(
 ): LlmConnection | null {
   // 1. Session-level connection (locked after first message)
   if (sessionConnection) {
-    const connection = getLlmConnection(sessionConnection);
+    const connection = getLlmConnection(sessionConnection, DEFAULT_LOCAL_SCOPE);
     if (connection) return connection;
   }
 
   // 2. Workspace default
   if (workspaceDefaultConnection) {
-    const connection = getLlmConnection(workspaceDefaultConnection);
+    const connection = getLlmConnection(workspaceDefaultConnection, DEFAULT_LOCAL_SCOPE);
     if (connection) return connection;
   }
 
   // 3. Global default
-  const defaultSlug = getDefaultLlmConnection();
+  const defaultSlug = getDefaultLlmConnection(DEFAULT_LOCAL_SCOPE);
   if (!defaultSlug) return null;
-  return getLlmConnection(defaultSlug);
+  return getLlmConnection(defaultSlug, DEFAULT_LOCAL_SCOPE);
 }
 
 /**
@@ -450,7 +451,7 @@ export async function validateStoredBackendConnection(args: {
   hostRuntime: BackendHostRuntimeContext;
 }): Promise<StoredConnectionValidationResult> {
   try {
-    const connection = getLlmConnection(args.slug);
+    const connection = getLlmConnection(args.slug, DEFAULT_LOCAL_SCOPE);
     if (!connection) {
       return { success: false, error: 'Connection not found' };
     }
@@ -531,7 +532,7 @@ export function createBackendFromConnection(
   hostRuntime?: BackendHostRuntimeContext,
   providerOptions?: BackendProviderOptions,
 ): AgentBackend {
-  const connection = getLlmConnection(connectionSlug);
+  const connection = getLlmConnection(connectionSlug, DEFAULT_LOCAL_SCOPE);
   if (!connection) {
     throw new Error(`LLM connection not found: ${connectionSlug}`);
   }

@@ -1,11 +1,11 @@
-import { getNetworkProxySettings } from './storage.ts';
+import { DEFAULT_LOCAL_SCOPE, getNetworkProxySettings } from './storage.ts';
 
 /**
  * Convert stored proxy settings into environment variables for subprocesses.
  * Returns an empty object when proxy is disabled or not configured.
  */
 export function getProxyEnvVars(): Record<string, string> {
-  const settings = getNetworkProxySettings();
+  const settings = getNetworkProxySettings(DEFAULT_LOCAL_SCOPE);
   if (!settings?.enabled) return {};
 
   const env: Record<string, string> = {};

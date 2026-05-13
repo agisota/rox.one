@@ -25,7 +25,7 @@ import { debug } from '../utils/debug.ts';
 import { expandPath } from '../utils/paths.ts';
 import { readJsonFileSync } from '../utils/files.ts';
 import { perf } from '../utils/perf.ts';
-import { loadStoredConfig, type StoredConfig } from './storage.ts';
+import { DEFAULT_LOCAL_SCOPE, loadStoredConfig, type StoredConfig } from './storage.ts';
 import {
   validateConfig,
   validatePreferences,
@@ -308,7 +308,7 @@ export class ConfigWatcher {
    * Initialize LLM connections hash for change detection
    */
   private initLlmConnectionsHash(): void {
-    const config = loadStoredConfig();
+    const config = loadStoredConfig(DEFAULT_LOCAL_SCOPE);
     if (config) {
       const connections = config.llmConnections || [];
       this.lastLlmConnectionsHash = JSON.stringify(connections);
@@ -847,7 +847,7 @@ export class ConfigWatcher {
       return;
     }
 
-    const config = loadStoredConfig();
+    const config = loadStoredConfig(DEFAULT_LOCAL_SCOPE);
     if (config) {
       this.callbacks.onConfigChange?.(config);
 
@@ -976,7 +976,7 @@ export class ConfigWatcher {
    */
   private handleAppThemeChange(): void {
     debug('[ConfigWatcher] App theme.json changed');
-    const theme = loadAppTheme();
+    const theme = loadAppTheme(DEFAULT_LOCAL_SCOPE);
     this.callbacks.onAppThemeChange?.(theme);
   }
 
@@ -1091,7 +1091,7 @@ export class ConfigWatcher {
         this.callbacks.onPresetThemeChange?.(themeId, null);
 
         // Also notify list change
-        const allThemes = loadPresetThemes();
+        const allThemes = loadPresetThemes(DEFAULT_LOCAL_SCOPE);
         this.callbacks.onPresetThemesListChange?.(allThemes);
       }
       return;
@@ -1102,11 +1102,11 @@ export class ConfigWatcher {
       this.knownThemes.add(themeId);
     }
 
-    const theme = loadPresetTheme(themeId);
+    const theme = loadPresetTheme(themeId, DEFAULT_LOCAL_SCOPE);
     this.callbacks.onPresetThemeChange?.(themeId, theme);
 
     // Also notify list change in case name changed (affects sorting)
-    const allThemes = loadPresetThemes();
+    const allThemes = loadPresetThemes(DEFAULT_LOCAL_SCOPE);
     this.callbacks.onPresetThemesListChange?.(allThemes);
   }
 }
