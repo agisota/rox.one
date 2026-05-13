@@ -1,16 +1,12 @@
 import { describe, it, expect } from 'bun:test';
 import { TokenBucket, SlidingWindowCounter } from '../rate-limiter.ts';
 
-function makeClock(start: number = 0): { now: () => number; advance: (ms: number) => void; set: (ms: number) => void } {
+function makeClock(start = 0) {
   let t = start;
   return {
     now: () => t,
-    advance: (ms: number) => {
-      t += ms;
-    },
-    set: (ms: number) => {
-      t = ms;
-    },
+    advance: (ms: number) => { t += ms; },
+    set: (ms: number) => { t = ms; },
   };
 }
 
