@@ -2,6 +2,7 @@ import { RPC_CHANNELS } from '@rox-one/shared/protocol'
 import { getWorkspaceByNameOrId } from '@rox-one/shared/config'
 import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
+import { parseId, parseStringArray } from './_validators'
 
 export const HANDLED_CHANNELS = [
   RPC_CHANNELS.statuses.LIST,
@@ -10,8 +11,9 @@ export const HANDLED_CHANNELS = [
 
 export function registerStatusesHandlers(server: RpcServer, _deps: HandlerDeps): void {
   // List all statuses for a workspace
-  server.handle(RPC_CHANNELS.statuses.LIST, async (_ctx, workspaceId: string) => {
-    const workspace = getWorkspaceByNameOrId(workspaceId)
+  server.handle(RPC_CHANNELS.statuses.LIST, async (_ctx, workspaceId: unknown) => {
+    const wsId = parseId('workspaceId', workspaceId)
+    const workspace = getWorkspaceByNameOrId(wsId)
     if (!workspace) throw new Error('Workspace not found')
 
     const { listStatuses } = await import('@rox-one/shared/statuses')
@@ -20,11 +22,13 @@ export function registerStatusesHandlers(server: RpcServer, _deps: HandlerDeps):
 
   // Reorder statuses (drag-and-drop). Receives new ordered array of status IDs.
   // Config watcher will detect the file change and broadcast STATUSES_CHANGED.
-  server.handle(RPC_CHANNELS.statuses.REORDER, async (_ctx, workspaceId: string, orderedIds: string[]) => {
-    const workspace = getWorkspaceByNameOrId(workspaceId)
+  server.handle(RPC_CHANNELS.statuses.REORDER, async (_ctx, workspaceId: unknown, orderedIds: unknown) => {
+    const wsId = parseId('workspaceId', workspaceId)
+    const ids = parseStringArray('orderedIds', orderedIds, { maxLen: 256 })
+    const workspace = getWorkspaceByNameOrId(wsId)
     if (!workspace) throw new Error('Workspace not found')
 
     const { reorderStatuses } = await import('@rox-one/shared/statuses')
-    reorderStatuses(workspace.rootPath, orderedIds)
+    reorderStatuses(workspace.rootPath, ids)
   })
 }
