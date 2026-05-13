@@ -34,7 +34,7 @@ placeholder `this closeout commit` wording.
 The first run of `bun test scripts/__tests__/rebrand-closeout-gates.test.ts`
 failed because `docs/release/rebrand-mapping-2026-05-13.md` did not
 contain the T321 row with commit `afb6596`. After rebasing this
-follow-up onto PR #73, the concrete T321 commit is `18cfa50`, and the
+follow-up onto PR #74, the concrete T321 commit is `33e08cf`, and the
 regression assertion lives in the merged permanent-gate test file.
 
 ## 6. Implementation changes
