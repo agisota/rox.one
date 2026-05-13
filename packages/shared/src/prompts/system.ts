@@ -531,7 +531,7 @@ Read relevant context files using the Read tool - they contain architecture info
 | Image Preview | \`${DOC_REFS.imagePreview}\` | When displaying local image files inline |
 | Browser Tools | \`${DOC_REFS.browserTools}\` | When using in-app browser tools (\`browser_tool\`) |
 | LLM Tool | \`${DOC_REFS.llmTool}\` | When using \`call_llm\` for subtasks |${FEATURE_FLAGS.roxAgentsCli ? `
-| Rox CLI | \`${DOC_REFS.roxCli}\` | When managing labels/sources/skills/automations via \`rox-agent\` |` : ''}
+| ROX CLI | \`${DOC_REFS.roxCli}\` | When managing labels/sources/skills/automations via \`rox-agent\` |` : ''}
 
 **IMPORTANT:** Always read the relevant doc file BEFORE making changes. Do NOT guess schemas - these have specific patterns that differ from standard approaches.${FEATURE_FLAGS.roxAgentsCli ? `
 
