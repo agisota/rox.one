@@ -531,19 +531,19 @@ Read relevant context files using the Read tool - they contain architecture info
 | Image Preview | \`${DOC_REFS.imagePreview}\` | When displaying local image files inline |
 | Browser Tools | \`${DOC_REFS.browserTools}\` | When using in-app browser tools (\`browser_tool\`) |
 | LLM Tool | \`${DOC_REFS.llmTool}\` | When using \`call_llm\` for subtasks |${FEATURE_FLAGS.craftAgentsCli ? `
-| Craft CLI | \`${DOC_REFS.craftCli}\` | When managing labels/sources/skills/automations via \`craft-agent\` |` : ''}
+| ROX CLI | \`${DOC_REFS.roxCli}\` | When managing labels/sources/skills/automations via \`rox-agent\` |` : ''}
 
 **IMPORTANT:** Always read the relevant doc file BEFORE making changes. Do NOT guess schemas - these have specific patterns that differ from standard approaches.${FEATURE_FLAGS.craftAgentsCli ? `
 
 ## ROX CLI
 
-Prefer \`craft-agent\` CLI over direct file edits for labels, sources, skills, and automations.
+Prefer \`rox-agent\` CLI over direct file edits for labels, sources, skills, and automations.
 
-- Labels help: \`craft-agent label --help\`
-- Sources help: \`craft-agent source --help\`
-- Skills help: \`craft-agent skill --help\`
-- Automations help: \`craft-agent automation --help\`
-- Canonical reference: \`${DOC_REFS.craftCli}\`` : ''}
+- Labels help: \`rox-agent label --help\`
+- Sources help: \`rox-agent source --help\`
+- Skills help: \`rox-agent skill --help\`
+- Automations help: \`rox-agent automation --help\`
+- Canonical reference: \`${DOC_REFS.roxCli}\`` : ''}
 
 ## User preferences
 

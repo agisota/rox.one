@@ -2,9 +2,9 @@
 
 This guide explains how to configure automations in ROX to automate workflows based on events.
 
-> **CLI-first workflow (recommended):** Use `craft-agent automation ...` commands instead of editing JSON directly.
-> - `craft-agent automation --help`
-> - Canonical command reference: [craft-cli.md](./craft-cli.md)
+> **CLI-first workflow (recommended):** Use `rox-agent automation ...` commands instead of editing JSON directly.
+> - `rox-agent automation --help`
+> - Canonical command reference: [rox-cli.md](./rox-cli.md)
 
 ## What Are Automations?
 
@@ -25,18 +25,18 @@ Automations are configured in `automations.json` at the root of your workspace:
 ## Recommended CLI Commands
 
 ```bash
-craft-agent automation list
-craft-agent automation get <id>
-craft-agent automation create --event UserPromptSubmit --prompt "..."
-craft-agent automation update <id> --json '{...}'
-craft-agent automation enable <id>
-craft-agent automation disable <id>
-craft-agent automation duplicate <id>
-craft-agent automation history [<id>] --limit 20
-craft-agent automation last-executed <id>
-craft-agent automation test <id> --match "..."
-craft-agent automation lint
-craft-agent automation validate
+rox-agent automation list
+rox-agent automation get <id>
+rox-agent automation create --event UserPromptSubmit --prompt "..."
+rox-agent automation update <id> --json '{...}'
+rox-agent automation enable <id>
+rox-agent automation disable <id>
+rox-agent automation duplicate <id>
+rox-agent automation history [<id>] --limit 20
+rox-agent automation last-executed <id>
+rox-agent automation test <id> --match "..."
+rox-agent automation lint
+rox-agent automation validate
 ```
 
 ## Basic Structure
@@ -767,7 +767,7 @@ A single automation can have both prompt and webhook actions. They execute in or
             "method": "POST",
             "headers": {
               "Authorization": "Bearer ${CRAFT_WH_API_TOKEN}",
-              "X-Source": "craft-agent"
+              "X-Source": "rox-agent"
             },
             "body": {
               "event": "${CRAFT_EVENT}",
