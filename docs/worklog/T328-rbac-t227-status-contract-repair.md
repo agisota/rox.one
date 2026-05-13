@@ -6,15 +6,16 @@ Ticket: docs/tickets/T328-rbac-t227-status-contract-repair.md
 
 ## 1. Task summary
 
-Repair the required `Status:` metadata on the T227 RBAC ticket/worklog that
-arrived from PR #74.
+Repair the required `Status:` metadata on the foundation-only T227 RBAC
+ticket/worklog that arrived from PR #74.
 
 ## 2. Repo context discovered
 
 `bun run validate:agent-contract` failed on
 `T227-rbac-admin-rpc.md missing Status line` after the branch rebased onto
-`21f4543`. PR #74 is a foundation-only T227 landing with a pending handler
-test, so the metadata should be `IN_PROGRESS`, not `DONE`.
+`21f4543`. PR #74 was a foundation-only T227 landing with a pending handler
+test, so the metadata needed to be `IN_PROGRESS`, not `DONE`, until PR #75
+completed the handler slice.
 
 ## 3. Files inspected
 
@@ -36,8 +37,10 @@ catches missing ticket status metadata.
 
 ## 6. Implementation changes
 
-- Added `Status: IN_PROGRESS` to `docs/tickets/T227-rbac-admin-rpc.md`.
-- Added `Status: IN_PROGRESS` to `docs/worklog/T227-rbac-admin-rpc.md`.
+- Added `Status: IN_PROGRESS` to `docs/tickets/T227-rbac-admin-rpc.md` for
+  the PR #74 foundation state.
+- Added `Status: IN_PROGRESS` to `docs/worklog/T227-rbac-admin-rpc.md` for
+  the PR #74 foundation state.
 
 ## 7. Validation commands run
 
@@ -60,14 +63,14 @@ Not run. This ticket changes documentation metadata only.
 
 ## 10. Remaining risks
 
-T227 remains incomplete after the foundation-only PR #74. The pending handler
-test and full role-admin RPC implementation still need a later T227 follow-up
-before M.2 can close.
+This ticket's `IN_PROGRESS` repair was intentionally scoped to PR #74. PR #75
+later completed the T227 handler slice, and T331 updates the live T227
+metadata to `DONE`.
 
 ## 11. Acceptance criteria matrix
 
 - [x] Agent-contract validation fails before implementation for the expected T227 ticket.
-- [x] T227 ticket metadata includes `Status: IN_PROGRESS`.
-- [x] T227 worklog metadata includes `Status: IN_PROGRESS`.
+- [x] T227 ticket metadata included `Status: IN_PROGRESS` for the PR #74 foundation state.
+- [x] T227 worklog metadata included `Status: IN_PROGRESS` for the PR #74 foundation state.
 - [x] Agent-contract/docs validation passes.
 - [x] Worklog complete.

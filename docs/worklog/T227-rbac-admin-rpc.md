@@ -1,6 +1,6 @@
 # T227 - RBAC admin RPC handlers
 
-Status: IN_PROGRESS
+Status: DONE
 
 ## 1. Task summary
 

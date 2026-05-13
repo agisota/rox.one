@@ -1,6 +1,6 @@
 # T227 - RBAC admin RPC handlers
 
-Status: IN_PROGRESS
+Status: DONE
 
 ## Context
 
@@ -193,24 +193,24 @@ Before implementation:
 
 ## Acceptance Criteria
 
-- [ ] `roles.list` returns `SYSTEM_ROLES` plus any custom roles from the
+- [x] `roles.list` returns `SYSTEM_ROLES` plus any custom roles from the
       store.
-- [ ] `roles.create` is owner-gated, rejects system-id collisions, and
+- [x] `roles.create` is owner-gated, rejects system-id collisions, and
       adds the custom role to the store.
-- [ ] `roles.grant` is owner-gated, validates argument shape, and calls
+- [x] `roles.grant` is owner-gated, validates argument shape, and calls
       `grantStore.grant`.
-- [ ] `roles.revoke` is owner-gated, idempotent, and calls
+- [x] `roles.revoke` is owner-gated, idempotent, and calls
       `resolver.invalidateUser(grant.actorId)` after a successful removal.
-- [ ] Global owner can mutate any scope.
-- [ ] `RoleStore` unit tests pass.
-- [ ] Extended `GrantStore` mutation tests pass.
-- [ ] Resolver `ownerGrantsForUser` + `invalidateUser` tests pass.
-- [ ] RPC integration tests pass.
-- [ ] T226 `workspace-rbac-wire.test.ts` regression remains green.
-- [ ] C.4 `workspace-scope.test.ts` regression remains green.
-- [ ] `validate:rebrand` exits 0.
-- [ ] Worklog complete.
-- [ ] Commit created.
+- [x] Global owner can mutate any scope.
+- [x] `RoleStore` unit tests pass.
+- [x] Extended `GrantStore` mutation tests pass.
+- [x] Resolver `ownerGrantsForUser` + `invalidateUser` tests pass.
+- [x] RPC integration tests pass.
+- [x] T226 `workspace-rbac-wire.test.ts` regression remains green.
+- [x] C.4 `workspace-scope.test.ts` regression remains green.
+- [x] `validate:rebrand` exits 0.
+- [x] Worklog complete.
+- [x] Commit created.
 
 ## Out of scope for this cycle
 
