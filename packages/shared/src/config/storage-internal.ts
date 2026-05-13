@@ -12,6 +12,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { getConfigDir } from './paths.ts';
 import {
+  DEFAULT_LOCAL_SCOPE,
   isBrandedWorkspaceScope,
   type BrandedWorkspaceScope,
 } from './storage-scope-auth.ts';
@@ -20,20 +21,23 @@ import { createLogger } from '../utils/debug.ts';
 
 const log = createLogger('storage-scope');
 
-export function getConfigFile(): string {
-  return join(getConfigDir(), 'config.json');
+export function getConfigFile(scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): string {
+  return join(getConfigDirForScope(scope), 'config.json');
 }
 
-export function getConfigDefaultsFile(): string {
-  return join(getConfigDir(), 'config-defaults.json');
+export function getConfigDefaultsFile(scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): string {
+  return join(getConfigDirForScope(scope), 'config-defaults.json');
 }
 
-export function getWorkspacesDir(): string {
-  return join(getConfigDir(), 'workspaces');
+export function getWorkspacesDir(scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): string {
+  return join(getConfigDirForScope(scope), 'workspaces');
 }
 
-export function ensureWorkspaceDir(workspaceId: string): string {
-  const dir = join(getWorkspacesDir(), workspaceId);
+export function ensureWorkspaceDir(
+  workspaceId: string,
+  scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE,
+): string {
+  const dir = join(getWorkspacesDir(scope), workspaceId);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }

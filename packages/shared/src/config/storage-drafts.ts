@@ -9,12 +9,12 @@
 import { existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { readJsonFileSync } from '../utils/files.ts';
-import { getConfigDir } from './paths.ts';
 import { ensureConfigDir } from './storage-io.ts';
-import { DEFAULT_LOCAL_SCOPE, type WorkspaceScope } from './storage-scope.ts';
+import { DEFAULT_LOCAL_SCOPE, type BrandedWorkspaceScope } from './storage-scope.ts';
+import { getConfigDirForScope } from './storage-internal.ts';
 
-function getDraftsFile(): string {
-  return join(getConfigDir(), 'drafts.json');
+function getDraftsFile(scope: BrandedWorkspaceScope): string {
+  return join(getConfigDirForScope(scope), 'drafts.json');
 }
 
 export interface DraftAttachmentContent {
@@ -96,12 +96,13 @@ function isEmptyDraft(draft: SessionDraft): boolean {
  * Load all drafts from disk. Entries that don't parse as SessionDraft
  * (e.g. pre-upgrade string drafts) are discarded silently.
  */
-function loadDraftsData(): DraftsData {
+function loadDraftsData(scope: BrandedWorkspaceScope): DraftsData {
+  const draftsFile = getDraftsFile(scope);
   try {
-    if (!existsSync(getDraftsFile())) {
+    if (!existsSync(draftsFile)) {
       return { drafts: {}, updatedAt: 0 };
     }
-    const raw = readJsonFileSync<{ drafts?: Record<string, unknown>; updatedAt?: number }>(getDraftsFile());
+    const raw = readJsonFileSync<{ drafts?: Record<string, unknown>; updatedAt?: number }>(draftsFile);
     const drafts: Record<string, SessionDraft> = {};
     for (const [sessionId, value] of Object.entries(raw.drafts ?? {})) {
       if (isSessionDraft(value)) {
@@ -114,17 +115,17 @@ function loadDraftsData(): DraftsData {
   }
 }
 
-function saveDraftsData(data: DraftsData): void {
-  ensureConfigDir();
+function saveDraftsData(data: DraftsData, scope: BrandedWorkspaceScope): void {
+  ensureConfigDir(scope);
   data.updatedAt = Date.now();
-  writeFileSync(getDraftsFile(), JSON.stringify(data, null, 2), 'utf-8');
+  writeFileSync(getDraftsFile(scope), JSON.stringify(data, null, 2), 'utf-8');
 }
 
 /**
  * Get the persisted draft for a session (text + attachment refs).
  */
-export function getSessionDraft(sessionId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): SessionDraft | null {
-  const data = loadDraftsData();
+export function getSessionDraft(sessionId: string, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): SessionDraft | null {
+  const data = loadDraftsData(_scope);
   return data.drafts[sessionId] ?? null;
 }
 
@@ -132,8 +133,8 @@ export function getSessionDraft(sessionId: string, _scope: WorkspaceScope = DEFA
  * Set the draft for a session. Empty drafts (no text and no attachments)
  * are removed from disk.
  */
-export function setSessionDraft(sessionId: string, draft: SessionDraft, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const data = loadDraftsData();
+export function setSessionDraft(sessionId: string, draft: SessionDraft, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const data = loadDraftsData(_scope);
   if (isEmptyDraft(draft)) {
     delete data.drafts[sessionId];
   } else {
@@ -144,7 +145,7 @@ export function setSessionDraft(sessionId: string, draft: SessionDraft, _scope: 
         : {}),
     };
   }
-  saveDraftsData(data);
+  saveDraftsData(data, _scope);
 }
 
 function normalizeDraftAttachment(ref: DraftAttachmentRef): DraftAttachmentRef {
@@ -163,16 +164,16 @@ function normalizeDraftAttachment(ref: DraftAttachmentRef): DraftAttachmentRef {
   return base;
 }
 
-export function deleteSessionDraft(sessionId: string, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const data = loadDraftsData();
+export function deleteSessionDraft(sessionId: string, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const data = loadDraftsData(_scope);
   delete data.drafts[sessionId];
-  saveDraftsData(data);
+  saveDraftsData(data, _scope);
 }
 
 /**
  * Get all drafts as a record keyed by sessionId.
  */
-export function getAllSessionDrafts(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): Record<string, SessionDraft> {
-  const data = loadDraftsData();
+export function getAllSessionDrafts(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): Record<string, SessionDraft> {
+  const data = loadDraftsData(_scope);
   return data.drafts;
 }

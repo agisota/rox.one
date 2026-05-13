@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
-import { mkdtempSync, rmSync } from 'fs'
+import { existsSync, mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { enableDebug } from '../../utils/debug'
@@ -10,6 +10,7 @@ import {
   __resetMultiTenantForTests,
   __setMultiTenantForTests,
 } from '../storage-scope-runtime'
+import { setSessionDraft } from '../storage-drafts'
 
 function captureStderrWrites() {
   const writes: string[] = []
@@ -109,5 +110,26 @@ describe('WorkspaceScope', () => {
     } finally {
       stderr.restore()
     }
+  })
+
+  it('routes storage submodule writes through the tenant-prefixed config dir', () => {
+    __setMultiTenantForTests(true)
+    const scope = deriveScopeFromAuth(
+      { userId: 'u1', permittedWorkspaces: ['W42'] },
+      'W42',
+    )
+
+    setSessionDraft('s1', { text: 'tenant draft' }, scope)
+
+    expect(existsSync(join(getConfigDir(), 'tenants', 'W42', 'drafts.json'))).toBe(true)
+    expect(existsSync(join(getConfigDir(), 'drafts.json'))).toBe(false)
+  })
+
+  it('rejects unbranded scope literals at storage submodule call sites', () => {
+    if (false) {
+      // @ts-expect-error - storage submodules require BrandedWorkspaceScope.
+      setSessionDraft('s1', { text: 'forged draft' }, { kind: 'local-single-user' })
+    }
+    expect(true).toBe(true)
   })
 })

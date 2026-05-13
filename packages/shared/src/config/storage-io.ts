@@ -11,7 +11,6 @@ import { initializeDocs } from '../docs/index.ts';
 import { expandPath, toPortablePath, getBundledAssetsDir } from '../utils/paths.ts';
 import { debug } from '../utils/debug.ts';
 import { readJsonFileSync } from '../utils/files.ts';
-import { getConfigDir } from './paths.ts';
 import { type ConfigDefaults } from './config-defaults-schema.ts';
 import { parsePermissionMode, PERMISSION_MODE_ORDER } from '../agent/mode-types.ts';
 import type { PermissionMode } from '../agent/mode-manager.ts';
@@ -21,8 +20,8 @@ import {
   createWorkspaceAtPath,
 } from '../workspaces/storage.ts';
 import { ensureToolIcons } from './storage-tool-icons.ts';
-import { getConfigFile, getConfigDefaultsFile } from './storage-internal.ts';
-import { DEFAULT_LOCAL_SCOPE, type WorkspaceScope } from './storage-scope.ts';
+import { getConfigDirForScope, getConfigFile, getConfigDefaultsFile } from './storage-internal.ts';
+import { DEFAULT_LOCAL_SCOPE, type BrandedWorkspaceScope } from './storage-scope.ts';
 
 // Re-export base types from core (single source of truth)
 export type {
@@ -82,8 +81,8 @@ export interface StoredConfig {
   migrationsApplied?: string[];
 }
 
-// Track if config-defaults have been synced this session (prevents re-sync on hot reload)
-let configDefaultsSynced = false;
+// Track config-defaults synced per scoped config root (prevents re-sync on hot reload)
+const configDefaultsSynced = new Set<string>();
 
 /**
  * Sync config-defaults.json from bundled assets.
@@ -115,16 +114,17 @@ const FALLBACK_CONFIG_DEFAULTS: ConfigDefaults = {
   },
 };
 
-function syncConfigDefaults(): void {
-  if (configDefaultsSynced && existsSync(getConfigDefaultsFile())) return;
-  configDefaultsSynced = true;
+function syncConfigDefaults(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const defaultsFile = getConfigDefaultsFile(_scope);
+  if (configDefaultsSynced.has(defaultsFile) && existsSync(defaultsFile)) return;
+  configDefaultsSynced.add(defaultsFile);
 
   // Get bundled config-defaults.json from resources folder
   const bundledDir = getBundledAssetsDir('.');
   if (!bundledDir) {
     debug('[config] No bundled assets dir found - using fallback config-defaults');
-    if (!existsSync(getConfigDefaultsFile())) {
-      writeFileSync(getConfigDefaultsFile(), JSON.stringify(FALLBACK_CONFIG_DEFAULTS, null, 2), 'utf-8');
+    if (!existsSync(defaultsFile)) {
+      writeFileSync(defaultsFile, JSON.stringify(FALLBACK_CONFIG_DEFAULTS, null, 2), 'utf-8');
     }
     return;
   }
@@ -132,15 +132,15 @@ function syncConfigDefaults(): void {
   const bundledFile = join(bundledDir, 'config-defaults.json');
   if (!existsSync(bundledFile)) {
     debug('[config] Bundled config-defaults.json not found at: ' + bundledFile + ' - using fallback');
-    if (!existsSync(getConfigDefaultsFile())) {
-      writeFileSync(getConfigDefaultsFile(), JSON.stringify(FALLBACK_CONFIG_DEFAULTS, null, 2), 'utf-8');
+    if (!existsSync(defaultsFile)) {
+      writeFileSync(defaultsFile, JSON.stringify(FALLBACK_CONFIG_DEFAULTS, null, 2), 'utf-8');
     }
     return;
   }
 
   // Sync from bundled file (same pattern as docs)
   const content = readFileSync(bundledFile, 'utf-8');
-  writeFileSync(getConfigDefaultsFile(), content, 'utf-8');
+  writeFileSync(defaultsFile, content, 'utf-8');
   debug('[config] Synced config-defaults.json from bundled assets');
 }
 
@@ -148,15 +148,17 @@ function syncConfigDefaults(): void {
  * Load config defaults from ~/.rox/config-defaults.json
  * This file is synced from bundled assets on every launch.
  */
-export function loadConfigDefaults(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): ConfigDefaults {
-  if (!existsSync(getConfigDefaultsFile())) {
-    if (!existsSync(getConfigDir())) {
-      mkdirSync(getConfigDir(), { recursive: true });
+export function loadConfigDefaults(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): ConfigDefaults {
+  const defaultsFile = getConfigDefaultsFile(_scope);
+  const configDir = getConfigDirForScope(_scope);
+  if (!existsSync(defaultsFile)) {
+    if (!existsSync(configDir)) {
+      mkdirSync(configDir, { recursive: true });
     }
-    ensureConfigDefaults();
+    ensureConfigDefaults(_scope);
   }
 
-  const defaults = readJsonFileSync<ConfigDefaults>(getConfigDefaultsFile());
+  const defaults = readJsonFileSync<ConfigDefaults>(defaultsFile);
 
   const parsedPermissionMode =
     typeof defaults.workspaceDefaults?.permissionMode === 'string'
@@ -188,14 +190,14 @@ export function loadConfigDefaults(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE)
  * Ensure config-defaults.json exists and is up-to-date.
  * Syncs from bundled assets on every launch (like docs, themes, permissions).
  */
-export function ensureConfigDefaults(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  syncConfigDefaults();
+export function ensureConfigDefaults(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  syncConfigDefaults(_scope);
 }
 
 let initializedConfigDir: string | null = null;
 
-export function ensureConfigDir(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  const configDir = getConfigDir();
+export function ensureConfigDir(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const configDir = getConfigDirForScope(_scope);
   if (initializedConfigDir === configDir) return;
 
   if (!existsSync(configDir)) {
@@ -205,20 +207,21 @@ export function ensureConfigDir(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): v
   initializeDocs();
 
   // Initialize config defaults
-  ensureConfigDefaults();
+  ensureConfigDefaults(_scope);
 
   // Initialize tool icons (CLI tool icons for turn card display)
-  ensureToolIcons();
+  ensureToolIcons(_scope);
 
   initializedConfigDir = configDir;
 }
 
-export function loadStoredConfig(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): StoredConfig | null {
+export function loadStoredConfig(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): StoredConfig | null {
+  const configFile = getConfigFile(_scope);
   try {
-    if (!existsSync(getConfigFile())) {
+    if (!existsSync(configFile)) {
       return null;
     }
-    const config = readJsonFileSync<StoredConfig>(getConfigFile());
+    const config = readJsonFileSync<StoredConfig>(configFile);
 
     // Must have workspaces array
     if (!Array.isArray(config.workspaces)) {
@@ -260,8 +263,8 @@ export function loadStoredConfig(_scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): 
 // - getAnthropicApiKey() → credentialManager.getLlmApiKey(connectionSlug)
 // - getClaudeOAuthToken() → credentialManager.getLlmOAuth(connectionSlug)
 
-export function saveConfig(config: StoredConfig, _scope: WorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
-  ensureConfigDir();
+export function saveConfig(config: StoredConfig, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  ensureConfigDir(_scope);
 
   // Convert paths to portable form (~ prefix) for cross-machine compatibility
   const storageConfig: StoredConfig = {
@@ -272,7 +275,7 @@ export function saveConfig(config: StoredConfig, _scope: WorkspaceScope = DEFAUL
     })),
   };
 
-  writeFileSync(getConfigFile(), JSON.stringify(storageConfig, null, 2), 'utf-8');
+  writeFileSync(getConfigFile(_scope), JSON.stringify(storageConfig, null, 2), 'utf-8');
 }
 
 // Legacy updateApiKey() removed - use setupLlmConnection IPC handler instead.
@@ -282,28 +285,31 @@ export function saveConfig(config: StoredConfig, _scope: WorkspaceScope = DEFAUL
 // - getAnthropicBaseUrl/setAnthropicBaseUrl -> use connection.baseUrl
 // - getCustomModel/setCustomModel -> use connection.defaultModel
 
-export function getConfigPath(): string {
-  return getConfigFile();
+export function getConfigPath(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): string {
+  return getConfigFile(_scope);
 }
 
 /**
  * Clear all configuration and credentials (for logout).
  * Deletes config file and credentials file.
  */
-export async function clearAllConfig(): Promise<void> {
+export async function clearAllConfig(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): Promise<void> {
+  const configDir = getConfigDirForScope(_scope);
+
   // Delete config file
-  if (existsSync(getConfigFile())) {
-    rmSync(getConfigFile());
+  const configFile = getConfigFile(_scope);
+  if (existsSync(configFile)) {
+    rmSync(configFile);
   }
 
   // Delete credentials file
-  const credentialsFile = join(getConfigDir(), 'credentials.enc');
+  const credentialsFile = join(configDir, 'credentials.enc');
   if (existsSync(credentialsFile)) {
     rmSync(credentialsFile);
   }
 
   // Optionally: Delete workspace data (conversations)
-  const workspacesDir = join(getConfigDir(), 'workspaces');
+  const workspacesDir = join(configDir, 'workspaces');
   if (existsSync(workspacesDir)) {
     rmSync(workspacesDir, { recursive: true });
   }
