@@ -1,99 +1,124 @@
-# Tenant Credential Key Derivation - Implementation Plan
+# Tenant Credential Key Derivation Implementation Plan
 
-> Follow the repository TDD loop. Update
-> `docs/worklog/T217-tenant-credential-key-derivation.md` after each
-> evidence-bearing step.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add tenant-specific encryption keys for workspace-scoped credential
-stores while preserving the flat single-user credential file.
+**Goal:** Encrypt workspace-scoped credential stores with tenant-derived keys while preserving existing local-single-user credentials.
 
-**Spec:** `docs/superpowers/specs/2026-05-15-tenant-credential-key-derivation-design.md`
+**Architecture:** Add a scope-aware credential manager/backend. Keep the local master key unchanged, derive workspace keys with HKDF, store KDF metadata in the encrypted payload, and read legacy flat credentials as a fallback only when tenant reads miss.
 
-**Ticket:** `docs/tickets/T217-tenant-credential-key-derivation.md`
+**Tech Stack:** Bun tests, TypeScript, Node `crypto` AES-256-GCM/PBKDF2/HKDF, existing `BrandedWorkspaceScope` storage scope APIs.
 
-**Branch:** `chore/phase-1-ticket-renumbering`
+---
 
-## Files Created
+## File Structure
 
-| Path | Responsibility |
+| File | Responsibility |
 | --- | --- |
-| `packages/shared/src/credentials/__tests__/tenant-key-derivation.test.ts` | Covers flat compatibility, tenant fallback/write split, KDF metadata, cross-tenant decrypt rejection, and audit events. |
-| `docs/superpowers/specs/2026-05-15-tenant-credential-key-derivation-design.md` | Locks the Phase 1.4 credential key derivation design. |
-| `docs/tickets/T217-tenant-credential-key-derivation.md` | Ticket contract for the implementation. |
-| `docs/worklog/T217-tenant-credential-key-derivation.md` | Evidence log with red/green validation and acceptance matrix. |
-
-## Files Modified
-
-| Path | Change |
-| --- | --- |
-| `packages/shared/src/credentials/manager.ts` | Accept a branded scope, build tenant primary plus flat fallback backends, keep default singleton flat. |
-| `packages/shared/src/credentials/backends/secure-storage.ts` | Resolve credential file by scope, derive tenant HKDF keys, write versioned tenant store metadata, emit audit events. |
-| `packages/shared/src/credentials/index.ts` | Export any new public credential-scope types or reset helpers needed by tests. |
-| `docs/superpowers/goals/2026-05-13-agent-workbench-suite-master-roadmap-goal.md` | Correct Phase 1 ticket reservations after T216 was consumed by Phase 1.3. |
-| `docs/superpowers/goals/2026-05-13-rox-one-rebrand-sweep-goal.md` | Keep the rebrand blocker aligned with the shifted Phase 1 closeout ticket. |
+| `packages/shared/src/credentials/backends/credential-kdf.ts` | Pure key-derivation helpers and KDF version constants. |
+| `packages/shared/src/credentials/backends/secure-storage.ts` | Scope-aware credential file resolution, encrypted store metadata, tenant fallback reads, and trace audit events. |
+| `packages/shared/src/credentials/manager.ts` | Scoped manager constructor and singleton lookup keyed by branded scope. |
+| `packages/shared/src/credentials/index.ts` | Export scoped manager types/helpers needed by callers. |
+| `packages/shared/src/config/storage-llm-connections.ts` | Use the scoped credential manager where a storage scope is already passed. |
+| `packages/shared/src/config/storage-workspaces.ts` | Use scoped manager for workspace credential cleanup. |
+| `packages/shared/src/credentials/__tests__/secure-storage-scope.test.ts` | Tenant KDF, legacy fallback, metadata, and audit tests. |
+| `packages/shared/src/credentials/__tests__/manager-scope.test.ts` | Scoped manager isolation tests. |
+| `docs/tickets/T223-tenant-credential-key-derivation.md` | Ticket acceptance criteria. |
+| `docs/worklog/T223-tenant-credential-key-derivation.md` | Required 11-section worklog and validation evidence. |
 
 ## Tasks
 
-- [x] **Task 1: Repair roadmap ticket reservations**
-  - Update Phase 1.3 to record the landed `T216` ticket.
-  - Move Phase 1.4 to `T217`, Phase 1.5 to `T218`-`T221`, Phase 1.6 to
-    `T222`, and Phase 1 closeout to `T223`.
-  - Shift unstarted future roadmap reservations beginning at Phase 2 by one
-    slot so no future ticket collides with Phase 1 closeout.
+### Task 1: Red credential backend tests
 
-- [x] **Task 2: Write credential red tests**
-  - Add `tenant-key-derivation.test.ts`.
-  - Prove flat single-user path remains flat.
-  - Prove tenant fallback reads existing flat credentials before tenant writes.
-  - Prove tenant writes use a versioned KDF envelope.
-  - Prove tenant B cannot decrypt tenant A's copied credential file.
-  - Prove read/write audit events emit.
+- [ ] Create `packages/shared/src/credentials/__tests__/secure-storage-scope.test.ts`.
+- [ ] Add tests that set `ROX_CONFIG_DIR` and `HOME` to temp directories before dynamic imports.
+- [ ] Cover tenant A writes not readable by tenant B, copied tenant A file rejected by tenant B key, local-single-user writes under the flat config dir, tenant reads falling back to legacy flat credentials, KDF version metadata, and trace audit events.
+- [ ] Run:
 
-- [x] **Task 3: Implement scoped credential manager construction**
-  - Add a constructor scope with `DEFAULT_LOCAL_SCOPE` as the default.
-  - Keep `getCredentialManager()` returning the default flat singleton for
-    existing callers.
-  - Add per-scope singleton caching for future tenant-aware callers without
-    caching raw scope literals.
+```bash
+bun test packages/shared/src/credentials/__tests__/secure-storage-scope.test.ts
+```
 
-- [x] **Task 4: Implement tenant-aware secure storage backend**
-  - Resolve file path from the branded scope.
-  - Keep local flat credentials at `<configDir>/credentials.enc`.
-  - Route active workspace scopes to
-    `<configDir>/tenants/<workspaceId>/credentials.enc`.
-  - Derive local PBKDF2 master key exactly as before.
-  - Derive tenant key with HKDF-SHA256 and the workspace id as salt.
-  - Skip legacy local-key fallback for tenant files so copied flat or foreign
-    tenant files do not decrypt.
+Expected before implementation: fail because `SecureStorageBackend` is not scope-aware and has no KDF metadata.
 
-- [x] **Task 5: Add versioned tenant metadata and audit**
-  - Write tenant store `version: 2`.
-  - Add `metadata.kdfVersion: 1` and `metadata.workspaceId`.
-  - Emit trace-level structured events for tenant read/write/delete/list.
+### Task 2: Red scoped manager tests
 
-- [x] **Task 6: Validate and close**
-  - Run targeted credential tests.
-  - Run C4 storage/auth/runtime regressions.
-  - Run typecheck, lint, full tests, build, docs validation, agent-contract
-    validation, and diff check.
-  - Update ticket/worklog to `Status: DONE`.
-  - Commit with the Lore protocol.
+- [ ] Create `packages/shared/src/credentials/__tests__/manager-scope.test.ts`.
+- [ ] Cover `getCredentialManager(DEFAULT_LOCAL_SCOPE)` preserving the local singleton and different workspace scopes receiving isolated managers/backends.
+- [ ] Run:
 
-## Validation Matrix
+```bash
+bun test packages/shared/src/credentials/__tests__/manager-scope.test.ts
+```
 
-- `bun test packages/shared/src/credentials/__tests__/tenant-key-derivation.test.ts`
-- `bun test packages/shared/src/credentials/__tests__/*`
-- `bun test packages/shared/src/config/__tests__/storage-scope-auth.test.ts packages/shared/src/config/__tests__/storage-scope-runtime.test.ts packages/shared/src/config/__tests__/storage-scope.test.ts`
-- `bun run typecheck`
-- `bun run lint`
-- `bun test`
-- `bun run build`
-- `bun run validate:agent-contract`
-- `bun run validate:docs`
-- `git diff --check`
+Expected before implementation: fail because `getCredentialManager` accepts no scope.
 
-## Stop Condition
+### Task 3: Implement KDF helpers
 
-Stop only when T217 has passing validation evidence, a complete 11-section
-worklog, a Lore commit, and the roadmap can continue to Phase 1.5 with no
-ticket-number collision.
+- [ ] Create `packages/shared/src/credentials/backends/credential-kdf.ts`.
+- [ ] Export `TENANT_CREDENTIAL_KDF_VERSION = "rox.credentials.v1"`.
+- [ ] Export helpers that derive the existing machine master key with PBKDF2 and derive tenant keys with HKDF using workspace id as salt and the version string as info.
+- [ ] Re-run the red tests and confirm remaining failures point at backend integration, not missing helper imports.
+
+### Task 4: Make `SecureStorageBackend` scope-aware
+
+- [ ] Add backend options for `scope`, optional test `configDir`, and optional test `machineId`.
+- [ ] Resolve credential file paths through the branded scope and scoped config dir.
+- [ ] Store encrypted metadata containing KDF version and scope kind.
+- [ ] Use the local machine master key unchanged for `DEFAULT_LOCAL_SCOPE`.
+- [ ] Use HKDF tenant keys for workspace scopes.
+- [ ] Add tenant read fallback to the legacy flat store.
+- [ ] Emit trace audit events for tenant read/write/delete/fallback operations.
+- [ ] Run:
+
+```bash
+bun test packages/shared/src/credentials/__tests__/secure-storage-scope.test.ts
+```
+
+Expected after implementation: pass.
+
+### Task 5: Wire scoped credential managers
+
+- [ ] Update `CredentialManager` to accept a scope and pass it to `SecureStorageBackend`.
+- [ ] Update `getCredentialManager(scope = DEFAULT_LOCAL_SCOPE)` to return the existing local singleton for local scope and stable scoped managers for workspace scopes.
+- [ ] Update scoped storage call sites in `storage-llm-connections.ts` and `storage-workspaces.ts`.
+- [ ] Run:
+
+```bash
+bun test packages/shared/src/credentials/__tests__/manager-scope.test.ts
+```
+
+Expected after implementation: pass.
+
+### Task 6: Compatibility validation
+
+- [ ] Run existing adjacent tests:
+
+```bash
+bun test packages/shared/src/sources/__tests__/credential-manager-expiry.test.ts packages/shared/src/sources/__tests__/credential-manager-integration.test.ts packages/shared/src/sources/__tests__/credential-manager-renew.test.ts packages/shared/src/config/__tests__/storage-scope-auth.test.ts packages/shared/src/config/__tests__/storage-scope.test.ts packages/shared/src/config/__tests__/storage-scope-runtime.test.ts
+```
+
+- [ ] Run roadmap targeted test command:
+
+```bash
+bun test packages/shared/src/credentials/__tests__/*
+```
+
+- [ ] Run package and repo gates:
+
+```bash
+cd packages/shared && bunx tsc --noEmit
+bun run validate:docs
+bun run validate:agent-contract
+bun run typecheck
+bun run lint
+bun run build
+bun test
+```
+
+### Task 7: Docs, commit, PR, and roadmap log
+
+- [ ] Update the ticket and worklog with passing evidence.
+- [ ] Commit with the Lore protocol and OmX coauthor trailer.
+- [ ] Push and create a PR.
+- [ ] Merge once GitHub reports no pending or failing checks.
+- [ ] Append Phase 1.4 to `.swarm/master-roadmap-log.md` after the merge SHA is known.
