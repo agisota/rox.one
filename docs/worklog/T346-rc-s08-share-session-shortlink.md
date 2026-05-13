@@ -73,6 +73,16 @@ The following filters did not match any test files:
 
 No runtime files were changed.
 
+After T359, the S08 smoke command reaches the harness and passes current
+deterministic share provider/UI-state coverage:
+
+```text
+[e2e-smoke] pass s08-share-session-shortlink
+20 pass
+0 fail
+76 expect() calls
+```
+
 ## 7. Validation Commands Run
 
 ```bash
@@ -81,12 +91,18 @@ bun test packages/server-core/src/**/__tests__/shortlink*.test.ts
 bun test packages/shared/src/**/__tests__/share*.test.ts
 bun test packages/shared/src/**/__tests__/share-payload-secret*.test.ts
 bun test packages/server-core/src/sessions/share-provider.test.ts packages/server-core/src/sessions/share-errors.test.ts packages/server-core/src/sessions/session-share-provider.test.ts apps/electron/src/renderer/components/app-shell/__tests__/session-share-flow.test.ts
+bun test scripts/__tests__/e2e-smoke-harness.test.ts
+bun run e2e:smoke -- --scenario s08-share-session-shortlink
 ```
 
 ## 8. Passing Test Output Summary
 
 - Current adjacent share shortlink/provider tests: 20 pass, 0 fail, 76
   expectations.
+- `bun test scripts/__tests__/e2e-smoke-harness.test.ts`: 9 pass, 0 fail, 42
+  expectations.
+- `bun run e2e:smoke -- --scenario s08-share-session-shortlink`: 20 pass, 0
+  fail, 76 expectations.
 
 ## 9. Build Output Summary
 
@@ -94,7 +110,6 @@ No build was run because this ticket made no runtime/source changes.
 
 ## 10. Remaining Risks
 
-- S08 smoke harness entry is not registered yet; T359 tracks that repair.
 - S08 has not produced packaged Electron share-flow screenshots or
   browser-console evidence.
 - The passing tests prove deterministic share provider/state behavior, not a full
@@ -113,3 +128,4 @@ No build was run because this ticket made no runtime/source changes.
 | Screenshot evidence captured and referenced | Blocked | No screenshot captured in current deterministic test harness |
 | RC evidence row S08 updated | Pass | `docs/release/2026-05-14-rc-evidence.md` row S08 is `Blocked` |
 | Initial blocking ticket filed | Pass | `T359-rc-s08-smoke-harness-and-command-repair.md` |
+| S08 deterministic harness path repaired | Pass | T359 registers S08 and `e2e:smoke` passes 20 tests |

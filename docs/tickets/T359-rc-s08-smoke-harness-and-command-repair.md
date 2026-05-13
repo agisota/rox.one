@@ -1,6 +1,6 @@
 # T359 - RC S08 Smoke Harness And Command Repair
 
-Status: Todo
+Status: DONE
 
 ## Context
 
@@ -52,15 +52,15 @@ git diff --check
 
 ## Acceptance Criteria
 
-- [ ] Harness contract test fails before implementation for unsupported S08.
-- [ ] `s08-share-session-shortlink` is listed in supported scenarios.
-- [ ] S08 smoke runs current session share provider integration tests.
-- [ ] S08 smoke runs current share provider contract/security tests.
-- [ ] S08 smoke runs current share error mapping tests.
-- [ ] S08 smoke runs current renderer share-flow state tests.
-- [ ] T346 no longer references stale shortlink/share globs.
-- [ ] Existing S01 Linux host-blocker behavior is unchanged.
-- [ ] Worklog captures red/green evidence.
+- [x] Harness contract test fails before implementation for unsupported S08.
+- [x] `s08-share-session-shortlink` is listed in supported scenarios.
+- [x] S08 smoke runs current session share provider integration tests.
+- [x] S08 smoke runs current share provider contract/security tests.
+- [x] S08 smoke runs current share error mapping tests.
+- [x] S08 smoke runs current renderer share-flow state tests.
+- [x] T346 no longer references stale shortlink/share globs.
+- [x] Existing S01 Linux host-blocker behavior is unchanged.
+- [x] Worklog captures red/green evidence.
 
 ## Worklog
 
