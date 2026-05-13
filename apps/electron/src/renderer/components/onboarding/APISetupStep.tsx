@@ -190,7 +190,7 @@ export function APISetupStep({
 
   const SEGMENT_LABELS: Record<ProviderSegment, string> = {
     anthropic: t("onboarding.apiSetup.claude"),
-    pi: t("onboarding.apiSetup.roxAgentsBackend"),
+    pi: t("onboarding.apiSetup.roxBackend"),
   }
 
   const SEGMENT_DESCRIPTIONS: Record<ProviderSegment, React.ReactNode> = {
