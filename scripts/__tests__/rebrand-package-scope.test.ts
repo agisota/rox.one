@@ -23,6 +23,8 @@ const legacyMessagingGatewayPackage = `${legacyScope}/messaging-gateway`;
 const roxMessagingGatewayPackage = `${roxScope}/messaging-gateway`;
 const legacyMessagingWhatsappWorkerPackage = `${legacyScope}/messaging-whatsapp-worker`;
 const roxMessagingWhatsappWorkerPackage = `${roxScope}/messaging-whatsapp-worker`;
+const legacyPiAgentServerPackage = `${legacyScope}/pi-agent-server`;
+const roxPiAgentServerPackage = `${roxScope}/pi-agent-server`;
 
 function readText(path: string): string {
   return readFileSync(join(repoRoot, path), "utf8");
@@ -230,5 +232,18 @@ describe("R.5 package-scope rebrand", () => {
     const lockfile = readText("bun.lock");
     expect(lockfile).toContain(roxMessagingGatewayPackage);
     expect(lockfile).toContain(roxMessagingWhatsappWorkerPackage);
+  });
+
+  test("renames the Pi agent server workspace package to the ROX scope", () => {
+    const piAgentServerPackageJson = readJson("packages/pi-agent-server/package.json");
+    expect(piAgentServerPackageJson.name).toBe(roxPiAgentServerPackage);
+
+    const activeFiles = [...listFiles("apps"), ...listFiles("packages"), "bun.lock"];
+    const legacyMatches = activeFiles.filter((path) => readText(path).includes(legacyPiAgentServerPackage));
+    expect(legacyMatches).toEqual([]);
+
+    const roxMatches = activeFiles.filter((path) => readText(path).includes(roxPiAgentServerPackage));
+    expect(roxMatches.length).toBeGreaterThan(0);
+    expect(readText("bun.lock")).toContain(roxPiAgentServerPackage);
   });
 });

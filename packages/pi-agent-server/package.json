@@ -1,5 +1,5 @@
 {
-  "name": "@rox-agent/pi-agent-server",
+  "name": "@rox-one/pi-agent-server",
   "version": "0.9.1",
   "license": "Apache-2.0",
   "description": "Out-of-process Pi agent server communicating via JSONL over stdio",
