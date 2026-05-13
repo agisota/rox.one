@@ -84,7 +84,7 @@ import {
   mapShareProviderFailureToShareResult,
   sanitizeShareBundleForPublicViewer,
 } from './share-provider'
-import { RoxMcpClient, McpClientPool, McpPoolServer } from '@rox-agent/shared/mcp'
+import { McpClientPool, McpPoolServer } from '@rox-agent/shared/mcp'
 import { type Session, type SessionEvent, type FileAttachment, type SendMessageOptions, type UnreadSummary, type RemoteSessionTransferPayload, type ImportRemoteSessionTransferResult, RPC_CHANNELS, generateMessageId } from '@rox-agent/shared/protocol'
 import { messageToStored, storedToMessage, type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-agent/core/types'
 import { formatPathsToRelative, formatToolInputPaths, perf, encodeIconToDataUrlAsync, getEmojiIcon, resetSummarizationClient, resolveToolIcon, readFileAttachment, selectSpreadMessages, normalizePath } from '@rox-agent/shared/utils'

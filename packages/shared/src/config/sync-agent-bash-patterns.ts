@@ -48,7 +48,7 @@ function main() {
   const nextConfig = syncRoxAgentPatterns(config)
 
   writeFileSync(targetPath, `${JSON.stringify(nextConfig, null, 2)}\n`, 'utf-8')
-  process.stdout.write(`Synced rox-agent bash patterns in ${targetPath}\n`)
+  process.stdout.write(`Synced ROX agent bash patterns in ${targetPath}\n`)
 }
 
 if (import.meta.main) {

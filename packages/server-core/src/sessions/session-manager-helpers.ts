@@ -26,7 +26,7 @@ import {
   type SummarizeCallback,
 } from '@rox-agent/shared/sources'
 import { loadAllSkills } from '@rox-agent/shared/skills'
-import { RoxMcpClient, McpClientPool, McpPoolServer } from '@rox-agent/shared/mcp'
+import { McpClientPool, McpPoolServer } from '@rox-agent/shared/mcp'
 import {
   type Session,
   type SessionEvent,
