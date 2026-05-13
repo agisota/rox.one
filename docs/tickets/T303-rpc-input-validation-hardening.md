@@ -1,4 +1,4 @@
-# T038-rpc-input-validation-hardening
+# T303-input-validation-hardening
 
 Status: DONE
 
@@ -60,7 +60,7 @@ follow-up tickets for MED-risk handlers.
 ## Constraints honored
 
 - No new external deps. Zod is in `@rox-one/shared` but server-core does
-  not depend on it; introducing the dep edge is out of scope for T038
+  not depend on it; introducing the dep edge is out of scope for T303
   and deferred to T052/T071.
 - `roles.ts` and `missions.ts` are explicitly **not touched** (other
   agents may be editing those).
@@ -92,7 +92,7 @@ follow-up tickets for MED-risk handlers.
 - [x] `bun run validate:rebrand` passes.
 - [x] Pre-existing failures in `validate:agent-contract` (T223 Status
   format) and `validate:roadmap` (M.1.3b phase heading) confirmed
-  unchanged from origin/main; out of scope for T038.
+  unchanged from origin/main; out of scope for T303.
 - [x] Worklog complete.
 - [x] No new external dependencies introduced.
 
@@ -104,5 +104,5 @@ follow-up tickets for MED-risk handlers.
 - **T071** — formal Zod schemas for handlers with mature domain
   validators (`llm-connections`, `workspace`) once the dep edge is
   approved.
-- **T038-roles** — separate audit pass for `roles.ts` after concurrent
+- **T303-roles** — separate audit pass for `roles.ts` after concurrent
   RBAC work lands.

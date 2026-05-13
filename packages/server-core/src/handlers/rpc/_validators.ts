@@ -1,5 +1,5 @@
 /**
- * Boundary input validators for public RPC handlers (M.13 T038).
+ * Boundary input validators for public RPC handlers (M.13 T303).
  *
  * Hand-rolled, zero-dependency parsers that narrow untrusted RPC payloads
  * into well-typed values before they reach domain logic. Each parser
@@ -9,7 +9,7 @@
  *
  * Why hand-rolled instead of zod: `@rox-one/server-core` does not
  * directly depend on `zod` and adding the dep edge is out of scope for
- * T038 per the no-new-deps rule. The parsers below are intentionally
+ * T303 per the no-new-deps rule. The parsers below are intentionally
  * narrow and only cover the high-risk handler surface from the audit
  * doc `docs/release/rpc-input-validation-audit.md`. T052/T071 will
  * introduce zod schemas for the broader RPC boundary when the dep edge

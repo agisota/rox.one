@@ -1,4 +1,4 @@
-# T038 worklog — RPC input-validation hardening (M.13)
+# T303 worklog — RPC input-validation hardening (M.13)
 
 ## 1. Goal
 
@@ -56,7 +56,7 @@ matching `@rox-one/shared/colors::EntityColor`.
 
 ## 5. Why hand-rolled instead of zod
 
-`@rox-one/server-core` does not depend on `zod` today. The T038 prompt
+`@rox-one/server-core` does not depend on `zod` today. The T303 prompt
 forbids adding new external deps. Zod is in the repo via
 `@rox-one/shared` but introducing the dep edge is broader than this
 ticket's scope. The hand-rolled validators are intentionally narrow,
@@ -148,8 +148,8 @@ assertions still pass alongside the 50 new ones.
 | `packages/server-core/src/handlers/rpc/skills.ts`                                               | modified | 129 |
 | `packages/server-core/src/handlers/rpc/__tests__/input-validation-hardening.test.ts`            | new      | 309 |
 | `docs/release/rpc-input-validation-audit.md`                                                    | new      | 80  |
-| `docs/tickets/T038-rpc-input-validation-hardening.md`                                           | new      | —   |
-| `docs/worklog/T038-rpc-input-validation-hardening.md`                                           | new      | —   |
+| `docs/tickets/T303-input-validation-hardening.md`                                           | new      | —   |
+| `docs/worklog/T303-input-validation-hardening.md`                                           | new      | —   |
 
 ## 11. Deviations from the prompt
 
@@ -165,7 +165,7 @@ assertions still pass alongside the 50 new ones.
 
 - **T052** — boundary parse for MED-risk handlers.
 - **T071** — formal zod schemas once the dep edge is approved.
-- **T038-roles** — separate audit pass for `roles.ts`.
+- **T303-roles** — separate audit pass for `roles.ts`.
 
 ## 13. Closeout
 
@@ -179,4 +179,4 @@ assertions still pass alongside the 50 new ones.
 - All validation gates that exist for this work pass; pre-existing
   failures on `validate:agent-contract` and `validate:roadmap` are
   documented as reproduced from bare `origin/main` and unrelated to
-  T038.
+  T303.

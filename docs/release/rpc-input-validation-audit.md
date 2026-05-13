@@ -1,4 +1,4 @@
-# RPC Input-Validation Audit (T038)
+# RPC Input-Validation Audit (T303)
 
 M.13 security hardening. Audit of `packages/server-core/src/handlers/rpc/`.
 
@@ -27,7 +27,7 @@ Helper files (no `server.handle`) are excluded: `account-ownership.ts`,
 | `oauth.ts`                | 4                   | Flow-store cross-check is the primary guard; payload not parsed                        | MED   | T052 follow-up    |
 | `onboarding.ts`           | 8                   | Free-form `mcpUrl`, `authorizationCode`, `connectionSlug`; no parse                    | HIGH  | T052 follow-up    |
 | `resources.ts`            | 2                   | `ResourceBundle`/`ExportResourcesOptions` are TS-typed; domain validates downstream    | MED   | T052 follow-up    |
-| `roles.ts`                | 4                   | **EXCLUDED from this PR** (other agents editing); has dedicated RBAC guards            | n/a   | T038-roles        |
+| `roles.ts`                | 4                   | **EXCLUDED from this PR** (other agents editing); has dedicated RBAC guards            | n/a   | T303-roles        |
 | `sessions.ts`             | 25                  | Domain-side validation in SessionManager                                               | MED   | T052 follow-up    |
 | `settings.ts`             | 29                  | Per-key handlers with narrow signatures; partial parse                                 | MED   | T052 follow-up    |
 | `server.ts`               | 6                   | Lifecycle channels; no untrusted payload                                               | LOW   | none              |
@@ -76,5 +76,5 @@ to match the existing handler error shape.
 - **T071** — formal Zod schemas for handlers that already have domain
   validators (`llm-connections`, `workspace`) to align wire-shape and
   domain types.
-- **T038-roles** — separate audit pass for `roles.ts` once concurrent
+- **T303-roles** — separate audit pass for `roles.ts` once concurrent
   RBAC work lands.

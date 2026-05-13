@@ -1,5 +1,5 @@
 /**
- * M.13 T038 — boundary input validation tests for labels/statuses/skills.
+ * M.13 T303 — boundary input validation tests for labels/statuses/skills.
  *
  * For each handler hardened, we verify the boundary parser:
  *   1. rejects empty payload
@@ -46,7 +46,7 @@ function expectInvalid(fn: () => unknown, messageFragment?: string): InvalidInpu
   return caught as InvalidInputError
 }
 
-describe('M.13 T038 — boundary input validators', () => {
+describe('M.13 T303 — boundary input validators', () => {
   describe('invalidInput()', () => {
     it('throws Error & { code: INVALID_INPUT }', () => {
       expectInvalid(() => invalidInput('synthesized error'), 'synthesized error')
