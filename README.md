@@ -58,8 +58,10 @@ rox-cli ping
 
 ## Acknowledgements
 
-ROX.ONE descends from the Apache-2.0 upstream at https://github.com/lukilabs/rox-agents-oss.
-License and notice attribution are preserved in [LICENSE](LICENSE), [NOTICE](NOTICE), and [TRADEMARK.md](TRADEMARK.md).
+ROX.ONE descends from the Apache-2.0 upstream at
+https://github.com/lukilabs/rox-agents-oss. License and notice attribution
+are preserved in [LICENSE](LICENSE), [NOTICE](NOTICE), and
+[TRADEMARK.md](TRADEMARK.md).
 
 ## License
 
