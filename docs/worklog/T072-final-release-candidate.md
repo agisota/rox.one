@@ -202,3 +202,51 @@ of their startup smoke path and reached the ready marker.
 | Final validation commands recorded | DONE | Worklog sections 7-9 and final RC section 10 |
 | Worklog complete | DONE | This file |
 | Scoped commit exists | DONE | This T072 scoped commit |
+
+---
+
+## M.19 addendum — v1.0.0 RC documentation pack
+
+Date: 2026-05-13
+Branch: `docs/M19-rc-documentation`
+
+### Summary
+
+Phase M.19 of the master roadmap re-opens this ticket to produce the
+v1.0.0-targeted documentation pack (user guide + admin guide). The earlier
+2026-05-06 documents remain as historical record for the integration-wave
+RC. The new documents are authored under canonical ROX.ONE branding and
+canonical config-dir / env-var paths.
+
+### Files added
+
+- `docs/release/v1-user-guide.md` — 437 LOC. Quick start, workspaces and
+  sessions, Composer Mission Modes (`command`/`game`/`arena`), skills and
+  sources, permission modes (Explore/Ask to Edit/Auto), long-running
+  missions, public sharing, themes, RBAC team admin, troubleshooting,
+  data layout, telemetry. Screenshot placeholders flagged for the design
+  pass.
+- `docs/release/v1-admin-guide.md` — 411 LOC. Deployment models, multi-
+  tenant setup (`ROX_MULTI_TENANT=1`), RBAC administration, persistence
+  backends, backups, observability with the audit-query API,
+  security ops, upgrade path with the env-var deprecation timeline,
+  air-gapped install. Cross-references ADR 0007 + ADR 0008.
+
+### Files NOT changed in this addendum
+
+T087 ships `docs/release/v1-known-limitations.md`,
+`docs/release/v1-migration-guide.md`, and `CHANGELOG.md` in a separate
+atomic commit per the M.19 commit plan.
+
+### Validation
+
+- `bun run validate:rebrand` — exit 0.
+- `bun run validate:docs` — flagged `T227-rbac-admin-rpc.md missing Status
+  line` (stale ticket unrelated to M.19, pre-existing on main).
+- `git diff --check` — clean.
+
+### Atomic commit boundary
+
+Per the M.19 commit plan, this addendum + the two new v1 docs land in one
+T072-scoped commit. The T087 closeout (Known Limitations + Migration Guide
++ CHANGELOG.md) lands in a second atomic commit on the same branch.
