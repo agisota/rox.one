@@ -17,7 +17,7 @@ These are non-negotiable for the entire spine run. They were locked by the opera
 |---|---|---|---|
 | 1 | **Canonical brand token** | `ROX.ONE` (wordmark, with dot) + `ROX ONE` (spoken form) | Wordmark goes everywhere written: README, code, `package.json`, ADRs, brand assets. Spoken form is for voice-over / marketing audio only and does not appear in code. |
 | 2 | **Package scope** | `@rox-one/*` (kebab-case) | Matches the existing `@rox-one/marketing` package already in the workspace. |
-| 3 | **Coordination — Lane R waits for Lane M Phase 1** | `T222-c4-followups-closeout` must be `Status: DONE` before any R-phase runs | **Now satisfied** at `f9ea575`. Rebrand is unblocked. |
+| 3 | **Coordination — Lane R waits for Lane M Phase 1** | `T223-c4-followups-closeout` must be `Status: DONE` before any R-phase runs | **Now satisfied** at `f9ea575`. Rebrand is unblocked. |
 | 4 | **Git history rewrite** | Authorized via `git filter-repo` in Phase R.11, **as the last step before the v1.0.0 tag** | The operator explicitly waived the CLAUDE.md "never force-push to main" rule for this one-time pre-release cleanup. R.11 has nine hard prerequisites and a two-pass backup procedure documented in the rebrand-sweep detail file. |
 
 ## Read first (once, before any phase)
@@ -107,12 +107,12 @@ If any check fails, **stop and report**.
 |---|---|---|---|---|---|---|
 | M | M.1.1 | Workspace RPC full scope migration | ✓ DONE | master-roadmap | T213 | `8c1edf9` |
 | M | M.1.2 | Electron main handlers scope migration | ✓ DONE | master-roadmap | T214 | `9b29b30` |
-| M | M.1.3 | Server-core RPC handlers scope migration | ✓ DONE | master-roadmap | T-server-core | `ee47a29` |
-| M | M.1.3b | Pi IPC scope propagation | ✓ DONE | master-roadmap | T215 | `5e8b17a` |
-| M | M.1.4 | Tenant credential KDF | ✓ DONE | master-roadmap | T216 | `baee220` |
-| M | M.1.5 | Queryable audit storage backend (4 sub-commits) | ✓ DONE | master-roadmap | T217-T220 | `1e3c76e..ee49153` |
-| M | M.1.6 | Multi-tenant data migration tool | ✓ DONE | master-roadmap | T221 | `9ffb0a3` |
-| M | M.1.7 | Phase 1 closeout | ✓ DONE | master-roadmap | T222 | `f9ea575` |
+| M | M.1.3 | Server-core RPC handlers scope migration | ✓ DONE | master-roadmap | T215 | `ee47a29` |
+| M | M.1.3b | Pi IPC scope propagation | ✓ DONE | master-roadmap | T216 | `5e8b17a` |
+| M | M.1.4 | Tenant credential KDF | ✓ DONE | master-roadmap | T217 | `baee220` |
+| M | M.1.5 | Queryable audit storage backend (4 sub-commits) | ✓ DONE | master-roadmap | T218-T221 | `1e3c76e..ee49153` |
+| M | M.1.6 | Multi-tenant data migration tool | ✓ DONE | master-roadmap | T222 | `9ffb0a3` |
+| M | M.1.7 | Phase 1 closeout | ✓ DONE | master-roadmap | T223 | `f9ea575` |
 | R | R.0 | Canonical brand decision + ADR 0011 + `validate:rebrand` gate | ✓ DONE | rebrand-sweep | T260-T262 | `61016f9` |
 | R | R.1 | Surface text completion (i18n, READMEs, HTML titles, log paths) | ✓ DONE | rebrand-sweep | T263 | `4f02515` |
 | R | R.2 | Code identifier renames (`RoxAppIcon` → `RoxAppIcon` etc.) | ✓ DONE | rebrand-sweep | T264-T266 | `3d945c4` |
