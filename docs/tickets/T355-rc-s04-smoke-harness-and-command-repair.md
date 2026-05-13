@@ -1,6 +1,6 @@
 # T355 - RC S04 Smoke Harness And Command Repair
 
-Status: Todo
+Status: DONE
 
 ## Context
 
