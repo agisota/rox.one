@@ -172,6 +172,7 @@ interface BrowserInstance {
   networkLogs: BrowserNetworkEntry[]
   downloads: BrowserDownloadEntry[]
   lastLaunchToken: string | null
+  hungTab: boolean
 }
 
 interface CreateBrowserInstanceOptions {
@@ -481,6 +482,7 @@ export class BrowserPaneManager implements IBrowserPaneManager {
       networkLogs: [],
       downloads: [],
       lastLaunchToken: null,
+      hungTab: false,
     }
 
     const defaultUa = pageView.webContents.userAgent || ''
@@ -3235,6 +3237,16 @@ export class BrowserPaneManager implements IBrowserPaneManager {
     instance.window.on('closed', () => {
       this.finalizeDestroyedInstance(instance, 'closed')
     })
+
+    pageWc.on('unresponsive', () => {
+      instance.hungTab = true
+      this.emitStateChange(instance)
+    })
+
+    pageWc.on('responsive', () => {
+      instance.hungTab = false
+      this.emitStateChange(instance)
+    })
   }
 
   private toInfo(instance: BrowserInstance): BrowserInstanceInfo {
@@ -3252,6 +3264,7 @@ export class BrowserPaneManager implements IBrowserPaneManager {
       isVisible: instance.isVisible,
       agentControlActive: !!instance.agentControl?.active,
       themeColor: instance.themeColor,
+      hungTab: instance.hungTab,
     }
   }
 

@@ -584,6 +584,7 @@ export interface BrowserInstanceInfo {
   isVisible: boolean
   agentControlActive: boolean
   themeColor: string | null
+  hungTab: boolean
 }
 
 export interface DeepLinkNavigation {
