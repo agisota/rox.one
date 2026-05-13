@@ -24,3 +24,12 @@ M.2-T229-rbac-e2e | 01d1553 | T229 | 2026-05-13T19:59:42Z
 M.2-T230-adr-rbac-policy | 48c227e | T230 | 2026-05-13T19:59:42Z
 M.4-account-session-persistence | 2ca16c2 | T063 | 2026-05-13T19:59:42Z
 M.16-bundle-policy-gate | 27ead4f | T092,T118,T124 | 2026-05-13T19:59:42Z
+M.2-T228-rbac-admin-ui | e5fe897 | T228 | 2026-05-13T20:10:00Z
+M.10-composer-pillar-4-spec-T234 | 43e5d26 | T233,T234 | 2026-05-13T20:13:50Z
+M.19-rc-documentation | dbc57d4 | T072,T087 | 2026-05-13T20:14:00Z
+M.11-shiki-migration-core-T172 | ff54073 | T172 | 2026-05-13T20:14:00Z
+M.13-T243-scope-forgery-property-tests | 476b1a5 | T243 | 2026-05-13T20:14:00Z
+M.14-T245-observability-producer-surface | 8ec016a | T245 | 2026-05-13T20:25:00Z
+M.8-T241-durable-mission-scheduler | 429f430 | T241 | 2026-05-13T20:25:00Z
+M.7-T240-provider-orchestration-backbone | 4004bf6 | T240 | 2026-05-13T20:25:00Z
+M.18-T250-mac-trust-boundary | a88f2fd | T250 | 2026-05-13T20:25:00Z
