@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { piDriver } from './pi.ts';
+import { buildVersionedEndpoint, piDriver } from './pi.ts';
 
 describe('piDriver.buildRuntime custom endpoint models', () => {
   it('forwards storage-scope auth inputs into the Pi runtime payload', () => {
@@ -102,6 +102,59 @@ describe('piDriver dependency risk guard', () => {
 });
 
 describe('piDriver.testConnection', () => {
+  it('builds versioned endpoint paths without duplicating /v1', () => {
+    expect(buildVersionedEndpoint('https://api.zed.md/v1', '/chat/completions')).toBe('https://api.zed.md/v1/chat/completions');
+    expect(buildVersionedEndpoint('https://api.anthropic.com', '/messages')).toBe('https://api.anthropic.com/v1/messages');
+  });
+
+  it('validates OpenAI-compatible custom endpoints with direct chat completions HTTP', async () => {
+    const previousMode = process.env.CRAFT_PI_PROVIDER_DEPENDENCY_RISK_MODE;
+    const previousFetch = globalThis.fetch;
+    const requests: Array<{ url: string; init?: RequestInit }> = [];
+
+    process.env.CRAFT_PI_PROVIDER_DEPENDENCY_RISK_MODE = 'private-local';
+    globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
+      const [input, init] = args;
+      requests.push({ url: String(input), init });
+      return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), { status: 200 });
+    }) as typeof fetch;
+
+    try {
+      const result = await piDriver.testConnection?.({
+        provider: 'pi',
+        apiKey: 'zed-test-key',
+        model: 'cx/gpt-5.5',
+        baseUrl: 'https://api.zed.md/v1',
+        connection: {
+          providerType: 'pi_compat',
+          piAuthProvider: 'openai',
+          customEndpoint: { api: 'openai-completions' },
+        },
+        hostRuntime: {
+          appRootPath: process.cwd(),
+          isPackaged: false,
+        },
+        resolvedPaths: {},
+        timeoutMs: 1_000,
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(requests).toHaveLength(1);
+      const request = requests[0];
+      expect(request).toBeDefined();
+      expect(request!.url).toBe('https://api.zed.md/v1/chat/completions');
+      expect((request!.init?.headers as Record<string, string>).authorization).toBe('Bearer zed-test-key');
+      expect(JSON.parse(request!.init?.body as string).model).toBe('cx/gpt-5.5');
+    } finally {
+      globalThis.fetch = previousFetch;
+      if (previousMode === undefined) {
+        delete process.env.CRAFT_PI_PROVIDER_DEPENDENCY_RISK_MODE;
+      } else {
+        process.env.CRAFT_PI_PROVIDER_DEPENDENCY_RISK_MODE = previousMode;
+      }
+    }
+  });
+
   it('keeps Anthropic-compatible endpoint resolution available through the lazy registry path', async () => {
     const previousMode = process.env.CRAFT_PI_PROVIDER_DEPENDENCY_RISK_MODE;
     const previousFetch = globalThis.fetch;

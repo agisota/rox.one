@@ -186,6 +186,65 @@ async function fetchCopilotModels(
   throw new Error('No Copilot models available from any source.');
 }
 
+export function buildVersionedEndpoint(baseUrl: string, path: string): string {
+  const root = baseUrl.trim().replace(/\/+$/, '');
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return root.endsWith('/v1')
+    ? `${root}${normalizedPath}`
+    : `${root}/v1${normalizedPath}`;
+}
+
+function buildOpenAiCompatibleChatCompletionsRequest(
+  apiKey: string,
+  baseUrl: string,
+  model: string,
+  signal: AbortSignal,
+): { url: string; init: RequestInit } {
+  return {
+    url: buildVersionedEndpoint(baseUrl, '/chat/completions'),
+    init: {
+      method: 'POST',
+      signal,
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 16,
+        stream: false,
+        messages: [{ role: 'user', content: 'Say ok' }],
+      }),
+    },
+  };
+}
+
+async function testOpenAiCompatible(
+  apiKey: string,
+  baseUrl: string,
+  model: string,
+  timeoutMs: number,
+): Promise<{ success: boolean; error?: string }> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const request = buildOpenAiCompatibleChatCompletionsRequest(apiKey, baseUrl, model, controller.signal);
+
+  try {
+    const res = await fetch(request.url, request.init);
+    if (res.ok) return { success: true };
+
+    const text = await res.text().catch(() => '');
+    return { success: false, error: `${res.status} ${text}`.slice(0, 500) };
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') {
+      return { success: false, error: 'Connection test timed out' };
+    }
+    return { success: false, error: (err as Error).message };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Lightweight direct HTTP test for Pi providers that expose an Anthropic-compatible
  * messages endpoint. Avoids spawning a full Pi subprocess (which can exceed the
@@ -197,7 +256,7 @@ async function testAnthropicCompatible(
   model: string,
   timeoutMs: number,
 ): Promise<{ success: boolean; error?: string }> {
-  const url = `${baseUrl.replace(/\/$/, '')}/v1/messages`;
+  const url = buildVersionedEndpoint(baseUrl, '/messages');
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -291,11 +350,30 @@ export const piDriver: ProviderDriver = {
   },
   testConnection: async (args: DriverTestConnectionArgs): Promise<{ success: boolean; error?: string } | null> => {
     const piAuthProvider = args.connection?.piAuthProvider;
-    if (!piAuthProvider) {
+    const customEndpointApi = args.connection?.customEndpoint?.api;
+    if (!piAuthProvider && !customEndpointApi) {
       // No provider hint — fall back to generic subprocess path
       return null;
     }
     assertPiProviderDependencyRiskAllowed(resolvePiProviderDependencyRiskModeForHost(args.hostRuntime));
+
+    if (customEndpointApi) {
+      const baseUrl = args.baseUrl?.trim();
+      if (!baseUrl) {
+        return { success: false, error: 'Could not determine API endpoint for custom provider' };
+      }
+      const bareModel = args.model.startsWith('pi/') ? args.model.slice(3) : args.model;
+      if (customEndpointApi === 'openai-completions') {
+        return testOpenAiCompatible(args.apiKey, baseUrl, bareModel, args.timeoutMs);
+      }
+      if (customEndpointApi === 'anthropic-messages') {
+        return testAnthropicCompatible(args.apiKey, baseUrl, bareModel, args.timeoutMs);
+      }
+    }
+
+    if (!piAuthProvider) {
+      return { success: false, error: 'Could not determine Pi auth provider for connection test' };
+    }
 
     // Resolve the model's API type from the Pi SDK registry.
     // For anthropic-messages providers, do a lightweight direct HTTP test

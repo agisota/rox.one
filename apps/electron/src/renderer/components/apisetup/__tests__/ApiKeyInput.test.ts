@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  resolveEndpointSubmitMetadata,
   resolvePiAuthProviderForSubmit,
   resolvePresetStateForBaseUrlChange,
+  ZED_MD_MODELS,
 } from '../submit-helpers'
 import { pickTierDefaults, resolveTierModels } from '../tier-models'
 
@@ -57,6 +59,49 @@ describe('resolvePiAuthProviderForSubmit', () => {
 
   it('passes through non-custom presets unchanged', () => {
     expect(resolvePiAuthProviderForSubmit('google', 'anthropic')).toBe('google')
+  })
+})
+
+describe('resolveEndpointSubmitMetadata', () => {
+  it('keeps the ZED.MD preset model list exactly aligned with the ROX operator contract', () => {
+    expect(ZED_MD_MODELS).toBe('cx/gpt-5.5,cx/gpt-5.5-xhigh,cx/gpt-5.5-medium,glm/glm-5.1,glm/glm-5-turbo,kmc/kimi-latest,kimi,deepseek,dugin400,cheap,fast200,cx/gpt-5.3-codex-spark,cx/gpt-5.3-codex-spark-xhigh,xai/grok-4.3,xai/grok-4.3-reasoning')
+  })
+
+  it('routes the ZED.MD preset as an OpenAI-compatible custom endpoint', () => {
+    expect(resolveEndpointSubmitMetadata({
+      activePreset: 'zed-md',
+      effectiveBaseUrl: 'https://api.zed.md/v1',
+      customApi: 'anthropic-messages',
+      presetCustomApi: 'openai-completions',
+      effectivePiAuthProvider: undefined,
+    })).toEqual({
+      customEndpoint: { api: 'openai-completions' },
+      piAuthProvider: 'openai',
+    })
+  })
+
+  it('preserves Pi provider routing for non-custom preset submissions', () => {
+    expect(resolveEndpointSubmitMetadata({
+      activePreset: 'openrouter',
+      effectiveBaseUrl: 'https://openrouter.ai/api/v1',
+      customApi: 'openai-completions',
+      effectivePiAuthProvider: 'openrouter',
+    })).toEqual({
+      customEndpoint: undefined,
+      piAuthProvider: 'openrouter',
+    })
+  })
+
+  it('uses the selected protocol for arbitrary custom endpoint submissions', () => {
+    expect(resolveEndpointSubmitMetadata({
+      activePreset: 'custom',
+      effectiveBaseUrl: 'https://my-anthropic-proxy.internal/v1',
+      customApi: 'anthropic-messages',
+      effectivePiAuthProvider: undefined,
+    })).toEqual({
+      customEndpoint: { api: 'anthropic-messages' },
+      piAuthProvider: 'anthropic',
+    })
   })
 })
 

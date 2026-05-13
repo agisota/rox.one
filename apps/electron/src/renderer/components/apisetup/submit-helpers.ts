@@ -1,5 +1,25 @@
 export type PresetKey = string
 
+import type { CustomEndpointApi, CustomEndpointConfig } from '@config/llm-connections'
+
+export const ZED_MD_MODELS = [
+  'cx/gpt-5.5',
+  'cx/gpt-5.5-xhigh',
+  'cx/gpt-5.5-medium',
+  'glm/glm-5.1',
+  'glm/glm-5-turbo',
+  'kmc/kimi-latest',
+  'kimi',
+  'deepseek',
+  'dugin400',
+  'cheap',
+  'fast200',
+  'cx/gpt-5.3-codex-spark',
+  'cx/gpt-5.3-codex-spark-xhigh',
+  'xai/grok-4.3',
+  'xai/grok-4.3-reasoning',
+].join(',')
+
 /**
  * Preset keys that are regional variants of a canonical Pi auth provider.
  * The Pi SDK recognizes both 'minimax' and 'minimax-cn' as separate providers
@@ -51,5 +71,31 @@ export function resolvePresetStateForBaseUrlChange(params: {
   return {
     activePreset: 'custom',
     lastNonCustomPreset,
+  }
+}
+
+export function resolveEndpointSubmitMetadata(params: {
+  activePreset: PresetKey
+  effectiveBaseUrl: string
+  customApi: CustomEndpointApi
+  presetCustomApi?: CustomEndpointApi
+  effectivePiAuthProvider?: string
+}): {
+  customEndpoint?: CustomEndpointConfig
+  piAuthProvider?: string
+} {
+  const endpointApi = params.presetCustomApi
+    ?? (params.activePreset === 'custom' ? params.customApi : undefined)
+
+  if (!endpointApi || !params.effectiveBaseUrl.trim()) {
+    return {
+      customEndpoint: undefined,
+      piAuthProvider: params.effectivePiAuthProvider,
+    }
+  }
+
+  return {
+    customEndpoint: { api: endpointApi },
+    piAuthProvider: endpointApi === 'anthropic-messages' ? 'anthropic' : 'openai',
   }
 }
