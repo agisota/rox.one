@@ -1,8 +1,9 @@
 # T286 - Rebrand env-var call-site migration
 
-Status: IN_PROGRESS
+Status: DONE
 Phase: R.6
 Ticket: docs/tickets/T286-rebrand-env-var-call-site-migration.md
+R.6 merge evidence: `777ada7` (`Complete R.6 env-var rename with readEnv() shim (#66)`)
 
 ## 1. Task summary
 
@@ -66,11 +67,23 @@ out-of-package callers.
 
 ## 8. Passing test output summary
 
-To be filled at green.
+- Runtime canonical-16 read audit:
+  `rg -n "process\\.env\\.ROX_(SERVER_TOKEN|SERVER_URL|RPC_HOST|RPC_PORT|RPC_TLS_CERT|RPC_TLS_KEY|RPC_TLS_CA|TLS_CA|DEBUG|DEV_RUNTIME|BUNDLED_ASSETS_ROOT|WEBUI_DIR|WEBUI_PORT|MESSAGING_WA_WORKER|MESSAGING_NODE_BIN|CONFIG_DIR)" packages apps scripts --glob '!**/__tests__/**' --glob '!**/*.test.ts'`
+  found only compatibility writes (`scripts/electron-dev.ts`,
+  `apps/electron/src/main/index.ts`) and the non-canonical
+  `ROX_DEBUG_SSE_RAW` read.
+- `bun run validate:rebrand`: `rebrand validation passed: no forbidden
+  tokens outside the allowlist`.
+- `bun run typecheck`: exit 0.
+- `bun run lint`: exit 0.
+- Full `bun test`: 5258 pass, 13 skip, 0 fail, 1 snapshot, 13419 expects
+  across 5271 tests in 476 files.
 
 ## 9. Build output summary
 
-To be filled at green.
+`bun run build` completed successfully. Electron main, preload, renderer,
+resources, and assets builds completed; the only observed output of note was
+the existing Vite large-chunk warning.
 
 ## 10. Remaining risks
 
@@ -87,4 +100,9 @@ To be filled at green.
 
 ## 11. Acceptance criteria matrix
 
-Filled at green.
+| Acceptance criterion | Status | Evidence |
+|---|---|---|
+| Every runtime call site uses `readEnv()` | Pass | Canonical-16 `process.env.ROX_*` read audit found no remaining runtime reads; accepted compatibility writes remain |
+| No test in scope regresses by more than 1 case vs main | Pass | Full `bun test`: 5258 pass, 13 skip, 0 fail |
+| `validate:rebrand` shows a smaller `ROX_` finding count | Pass | Final validator exits 0 with no forbidden tokens outside allowlist |
+| `bun run build` passes | Pass | Branch-level build exits 0 |

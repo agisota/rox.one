@@ -1,8 +1,9 @@
 # T288 - Rebrand env-var deprecation warning coverage
 
-Status: IN_PROGRESS
+Status: DONE
 Phase: R.6
 Ticket: docs/tickets/T288-rebrand-env-var-deprecation-warning-coverage.md
+R.6 merge evidence: `777ada7` (`Complete R.6 env-var rename with readEnv() shim (#66)`)
 
 ## 1. Task summary
 
@@ -48,11 +49,22 @@ Full matrix (see T286 worklog for output).
 
 ## 8. Passing test output summary
 
-Filled at green.
+- `bun test packages/shared/src/utils/__tests__/env-compat.test.ts`: 6 pass,
+  0 fail, 17 expect calls.
+- Full `bun test`: 5258 pass, 13 skip, 0 fail, 1 snapshot, 13419 expects
+  across 5271 tests in 476 files.
+- `bun run validate:rebrand`: `rebrand validation passed: no forbidden
+  tokens outside the allowlist`.
+- `bun run validate:roadmap`: `validate:roadmap OK -- 46 phases, 111 tickets
+  across detail files`.
+- `.swarm/master-roadmap-log.md` records
+  `rebrand-R.6-env-var-shim | 777ada7 | T285,T286,T287,T288`.
 
 ## 9. Build output summary
 
-Filled at green.
+`bun run build` completed successfully. Electron main, preload, renderer,
+resources, and assets builds completed; the only observed output of note was
+the existing Vite large-chunk warning.
 
 ## 10. Remaining risks
 
@@ -66,4 +78,9 @@ Filled at green.
 
 ## 11. Acceptance criteria matrix
 
-Filled at green.
+| Acceptance criterion | Status | Evidence |
+|---|---|---|
+| All four T285-T288 tickets carry a referenced commit SHA | Pass | T285, T286, T287, and T288 ticket metadata reference R.6 merge commit `777ada7` |
+| Deprecation warning test passes locally and in the focused run | Pass | Focused env-compat test: 6 pass, 0 fail, 17 expects |
+| Phase ledger line appended for `rebrand-R.6-env-var-shim` | Pass | `.swarm/master-roadmap-log.md` records `rebrand-R.6-env-var-shim | 777ada7 | T285,T286,T287,T288` |
+| No regression beyond the 1-test budget on full `bun test` | Pass | Full `bun test`: 5258 pass, 13 skip, 0 fail |
