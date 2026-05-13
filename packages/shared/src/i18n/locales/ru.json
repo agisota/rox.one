@@ -1475,6 +1475,8 @@
   "workbench.brand.section": "Приложение",
   "workbench.brand.support": "Поддержка",
   "workbench.composer.actions.removeRecentFolder": "Удалить последнюю папку",
+  "workbench.composer.emphasis.toolbar.aria-label": "Форматирование",
+  "workbench.composer.emphasis.toolbar.tooltip": "{{label}} ({{shortcut}})",
   "workbench.composer.input.editLabel": "Редактирование сообщения",
   "workbench.composer.input.label": "Редактор сообщения",
   "workbench.composer.permission.awaiting": "Ожидание агента…",

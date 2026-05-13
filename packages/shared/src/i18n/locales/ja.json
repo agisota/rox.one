@@ -1475,6 +1475,8 @@
   "workbench.brand.section": "Application",
   "workbench.brand.support": "Support",
   "workbench.composer.actions.removeRecentFolder": "最近のフォルダーを削除",
+  "workbench.composer.emphasis.toolbar.aria-label": "書式",
+  "workbench.composer.emphasis.toolbar.tooltip": "{{label}} ({{shortcut}})",
   "workbench.composer.input.editLabel": "メッセージを編集",
   "workbench.composer.input.label": "メッセージエディタ",
   "workbench.composer.permission.awaiting": "エージェントを待機中…",
