@@ -282,6 +282,7 @@ async function buildWhatsAppWorker(): Promise<void> {
       "--platform=node",
       "--format=cjs",
       "--target=node20",
+      "--conditions=module-sync",
       `--outfile=${WA_WORKER_OUTPUT}`,
       "--external:electron",
       // Baileys' runtime-optional features — wrapped in try/catch at the
