@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { OAuthFlowStore } from '@rox-one/shared/auth'
 import { DEFAULT_LOCAL_SCOPE, ensureConfigDir, loadStoredConfig, saveConfig } from '@rox-one/shared/config'
 import { CONFIG_DIR } from '@rox-one/shared/config/paths'
-import { setBundledAssetsRoot } from '@rox-one/shared/utils'
+import { readEnv, setBundledAssetsRoot } from '@rox-one/shared/utils'
 import { WsRpcServer, type WsRpcTlsOptions } from '../transport/server'
 import type { EventSink, RpcServer, SessionCookieValidationResult } from '../transport/types'
 import { createHeadlessPlatform } from '../runtime/platform-headless'
@@ -255,9 +255,9 @@ function ensureGlobalConfigExists(platform: PlatformServices): void {
 export async function bootstrapServer<TSessionManager, THandlerDeps>(
   options: ServerBootstrapOptions<TSessionManager, THandlerDeps>,
 ): Promise<ServerInstance<TSessionManager>> {
-  const serverToken = options.serverToken ?? process.env.CRAFT_SERVER_TOKEN
+  const serverToken = options.serverToken ?? readEnv('ROX_SERVER_TOKEN')
   if (!serverToken) {
-    throw new Error('Server token is required. Pass options.serverToken or set CRAFT_SERVER_TOKEN.')
+    throw new Error('Server token is required. Pass options.serverToken or set ROX_SERVER_TOKEN.')
   }
 
   const entropy = validateTokenEntropy(serverToken)
@@ -268,7 +268,7 @@ export async function bootstrapServer<TSessionManager, THandlerDeps>(
   const platform = options.platformFactory?.() ?? createHeadlessPlatform({ appVersion: options.serverVersion })
 
   const bundledAssetsRoot = options.bundledAssetsRoot
-    ?? process.env.CRAFT_BUNDLED_ASSETS_ROOT
+    ?? readEnv('ROX_BUNDLED_ASSETS_ROOT')
     ?? process.cwd()
   setBundledAssetsRoot(bundledAssetsRoot)
 
@@ -285,8 +285,8 @@ export async function bootstrapServer<TSessionManager, THandlerDeps>(
   const modelRefreshService = options.initModelRefreshService()
   const sessionManager = options.createSessionManager()
 
-  const rpcHost = options.rpcHost ?? process.env.CRAFT_RPC_HOST ?? '127.0.0.1'
-  const rpcPortRaw = options.rpcPort ?? parseInt(process.env.CRAFT_RPC_PORT ?? '9100', 10)
+  const rpcHost = options.rpcHost ?? readEnv('ROX_RPC_HOST') ?? '127.0.0.1'
+  const rpcPortRaw = options.rpcPort ?? parseInt(readEnv('ROX_RPC_PORT') ?? '9100', 10)
   if (!Number.isFinite(rpcPortRaw) || rpcPortRaw < 0 || rpcPortRaw > 65535) {
     throw new Error(`Invalid RPC port: ${rpcPortRaw}`)
   }

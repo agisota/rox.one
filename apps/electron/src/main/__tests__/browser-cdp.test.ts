@@ -22,7 +22,7 @@ mock.module('../logger', () => {
   }
 })
 
-const { BrowserCDP } = await import('../browser-cdp')
+const { BrowserCDP } = await import('../browser-cdp.ts' + '?real') as typeof import('../browser-cdp.ts')
 
 // ============================================================================
 // Mock Helpers

@@ -7,7 +7,7 @@
  *   the active workspace (local or remote). Workspace switches swap the
  *   workspace client transparently.
  *
- * Thin-client mode (CRAFT_SERVER_URL):
+ * Thin-client mode (ROX_SERVER_URL, with legacy CRAFT_SERVER_URL via shim):
  *   Creates a single WsRpcClient connected to the remote server.
  *   All channels go to the remote server.
  *
@@ -24,6 +24,7 @@ import { buildClientApi } from '../transport/build-api'
 import { CHANNEL_MAP } from '../transport/channel-map'
 import { createCallbackServer } from '@rox-one/shared/auth/callback-server'
 import { CHATGPT_OAUTH_CONFIG } from '@rox-one/shared/auth/chatgpt-oauth-config'
+import { readEnv } from '@rox-one/shared/utils'
 import {
   CLIENT_OPEN_EXTERNAL,
   CLIENT_OPEN_PATH,
@@ -53,7 +54,8 @@ interface TransportClient extends RpcClient {
 // ---------------------------------------------------------------------------
 
 const webContentsId: number = ipcRenderer.sendSync('__get-web-contents-id')
-const isClientOnly = !!process.env.CRAFT_SERVER_URL
+const remoteServerUrl = readEnv('ROX_SERVER_URL')
+const isClientOnly = !!remoteServerUrl
 
 let client: TransportClient
 
@@ -62,8 +64,8 @@ if (isClientOnly) {
   // Single WsRpcClient connected directly to the remote server.
   // No local server, no routing — all channels go to remote.
 
-  const wsUrl = process.env.CRAFT_SERVER_URL!
-  const wsToken = process.env.CRAFT_SERVER_TOKEN ?? ''
+  const wsUrl = remoteServerUrl!
+  const wsToken = readEnv('ROX_SERVER_TOKEN') ?? ''
 
   // Block unencrypted ws:// to non-localhost servers — tokens would be sent in cleartext
   const parsed = new URL(wsUrl)
@@ -72,7 +74,7 @@ if (isClientOnly) {
     throw new Error(
       `Refusing to connect to remote server over unencrypted ws://. ` +
       `Use wss:// (TLS) for non-localhost connections. ` +
-      `Set CRAFT_RPC_TLS_CERT/KEY on the server to enable TLS.`
+      `Set ROX_RPC_TLS_CERT/KEY on the server to enable TLS.`
     )
   }
 

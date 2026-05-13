@@ -17,7 +17,9 @@ const WEBUI_DIR = process.env.ROX_AUTH_WEBUI_DIR || dirname(LOGIN_HTML)
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
 const EMAIL_FROM = process.env.ROX_AUTH_EMAIL_FROM || 'ROX ONE <noreply@rox.one>'
 const ALLOW_EMAIL_LOG_FALLBACK = process.env.ROX_AUTH_ALLOW_EMAIL_LOG_FALLBACK === '1'
-const CONFIGURED_JWT_SECRET = process.env.ROX_AUTH_JWT_SECRET || process.env.CRAFT_AUTH_JWT_SECRET || process.env.CRAFT_SERVER_TOKEN || process.env.ROX_AUTH_SECRET || ''
+// Phase R.6: prefer canonical ROX_* names; CRAFT_* fallbacks kept for one
+// minor version. ROX_SERVER_TOKEN ranks ahead of the legacy CRAFT_SERVER_TOKEN.
+const CONFIGURED_JWT_SECRET = process.env.ROX_AUTH_JWT_SECRET || process.env.CRAFT_AUTH_JWT_SECRET || process.env.ROX_SERVER_TOKEN || process.env.CRAFT_SERVER_TOKEN || process.env.ROX_AUTH_SECRET || ''
 if (!CONFIGURED_JWT_SECRET && process.env.ROX_AUTH_ALLOW_EPHEMERAL_JWT_SECRET !== '1') {
   console.error('[rox-auth] ROX_AUTH_JWT_SECRET is required. Set ROX_AUTH_ALLOW_EPHEMERAL_JWT_SECRET=1 only for local throwaway development.')
   process.exit(1)

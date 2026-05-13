@@ -7,6 +7,7 @@ import { spawn, type Subprocess } from "bun";
 import { existsSync, rmSync, cpSync, readFileSync, statSync, mkdirSync, copyFileSync, renameSync, writeFileSync } from "fs";
 import { join, basename } from "path";
 import * as esbuild from "esbuild";
+import { readEnv } from "../packages/shared/src/utils/env-compat";
 import { downloadUv, type Platform, type Arch } from "./build/common";
 
 const ROOT_DIR = join(import.meta.dir, "..");
@@ -92,9 +93,13 @@ function detectInstance(): void {
     process.env.CRAFT_INSTANCE_NUMBER = instanceNum;
     process.env.CRAFT_VITE_PORT = `${instanceNum}173`;
     process.env.CRAFT_APP_NAME = `${BRAND_NAME} [${instanceNum}]`;
-    process.env.CRAFT_CONFIG_DIR = join(process.env.HOME || "", `.rox-${instanceNum}`);
+    // Phase R.6: write both canonical ROX_CONFIG_DIR and legacy
+    // CRAFT_CONFIG_DIR so subprocesses on either path see the same value.
+    const configDir = join(process.env.HOME || "", `.rox-${instanceNum}`);
+    process.env.ROX_CONFIG_DIR = configDir;
+    process.env.CRAFT_CONFIG_DIR = configDir;
     process.env.CRAFT_DEEPLINK_SCHEME = `rox${instanceNum}`;
-    console.log(`🔢 Instance ${instanceNum} detected: port=${process.env.CRAFT_VITE_PORT}, config=${process.env.CRAFT_CONFIG_DIR}`);
+    console.log(`🔢 Instance ${instanceNum} detected: port=${process.env.CRAFT_VITE_PORT}, config=${configDir}`);
   }
 }
 
@@ -346,10 +351,14 @@ function getElectronEnv(): Record<string, string> {
   // It checks: CODEX_PATH env var > bundled binary > local dev fork > system PATH.
   // You can override with CODEX_PATH env var if needed for debugging.
 
+  // Phase R.6: pass both ROX_CONFIG_DIR (canonical) and CRAFT_CONFIG_DIR
+  // (legacy) so child processes still on the legacy path keep working.
+  const configDir = readEnv("ROX_CONFIG_DIR") || "";
   return {
     ...process.env as Record<string, string>,
     VITE_DEV_SERVER_URL: `http://localhost:${vitePort}`,
-    CRAFT_CONFIG_DIR: process.env.CRAFT_CONFIG_DIR || "",
+    ROX_CONFIG_DIR: configDir,
+    CRAFT_CONFIG_DIR: configDir,
     CRAFT_APP_NAME: process.env.CRAFT_APP_NAME || BRAND_NAME,
     CRAFT_DEEPLINK_SCHEME: process.env.CRAFT_DEEPLINK_SCHEME || "rox",
     CRAFT_INSTANCE_NUMBER: process.env.CRAFT_INSTANCE_NUMBER || "",

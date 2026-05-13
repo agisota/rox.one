@@ -3,13 +3,15 @@ import { execFileSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import type { BackendHostRuntimeContext } from '../types.ts';
 import { setPathToClaudeCodeExecutable } from '../../options.ts';
+import { readEnv } from '../../../utils/env-compat.ts';
 
 /**
  * When set, the resolver walks further up from the .app bundle to find SDK,
  * interceptor, and bun in the monorepo / on the system PATH.
  * Intended for local `electron:dist:mac` builds that skip `build-dmg.sh`.
+ * Reads ROX_DEV_RUNTIME (legacy CRAFT_DEV_RUNTIME via the shim).
  */
-const IS_DEV_RUNTIME = !!process.env.CRAFT_DEV_RUNTIME;
+const IS_DEV_RUNTIME = !!readEnv('ROX_DEV_RUNTIME');
 
 export interface ResolvedBackendRuntimePaths {
   /**
