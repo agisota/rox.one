@@ -16,8 +16,8 @@ After rebasing onto `baadce6`, T321 became a new local commit, while
 `docs/tickets/T322-rebrand-closeout-evidence-reconciliation.md`,
 `docs/worklog/T322-rebrand-closeout-evidence-reconciliation.md`, and the
 permanent gate still expected the previous row.
-After later rebases onto `6d6e23a` and `21f4543`, the same gate caught
-additional drift; the current post-PR #74 T321 commit is `33e08cf`.
+After later rebases onto `6d6e23a`, `21f4543`, and `533d837`, the same gate
+caught additional drift; the current post-PR #75 T321 commit is `f82da7f`.
 
 ## 3. Files inspected
 
@@ -46,7 +46,7 @@ previous T321 row.
 - Updated the R.10 permanent gate to derive the current T321 commit from
   git before checking release mapping evidence.
 - Updated `docs/release/rebrand-mapping-2026-05-13.md` to record the
-  post-PR #74 T321 commit `33e08cf`.
+  post-PR #75 T321 commit `f82da7f`.
 - Updated the T322 ticket/worklog evidence wording so it requires the
   current concrete T321 SHA instead of naming the rebased-away SHA.
 
@@ -97,7 +97,7 @@ closeout evidence after a local rebase.
 ## 11. Acceptance criteria matrix
 
 - [x] The revised permanent gate fails before docs are refreshed.
-- [x] The release mapping records T321 as `33e08cf`.
+- [x] The release mapping records T321 as `f82da7f`.
 - [x] T322 ticket/worklog evidence no longer names the stale T321 SHA.
 - [x] Rebrand/docs/roadmap/typecheck/lint/test/build gates stay green.
 - [x] Worklog complete.
