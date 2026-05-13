@@ -173,20 +173,10 @@ No security findings. The wiring path is the canonical one:
 | Gate                                       | Result                          |
 | ------------------------------------------ | ------------------------------- |
 | `bun test rpc/__tests__/ missions/__tests__/` | 199 / 199 pass               |
-| `bun run validate:rebrand`                 | pre-existing failure on origin/main; 108 findings unchanged by this slice |
-| `bun run validate:agent-contract`          | pass (259 tickets recognised)   |
+| `bun run validate:rebrand`                 | pass (clean after PR #97 fix)   |
+| `bun run validate:agent-contract`          | pass (260 tickets recognised)   |
 | `bun run validate:roadmap`                 | pass (46 phases, 111 tickets)   |
 | `bunx tsc --noEmit` (server-core)          | pass (zero errors)              |
-
-**`validate:rebrand` pre-existing failure note**: the T256 stricter
-validator landed simultaneously with origin/main fixes that did not
-cover every legacy token site (`~/.rox`, `ROX_`, `RoxMcpClient`, etc.
-in files outside the current allowlist). Running the validator against
-the unmodified `origin/main` checkout reproduces the same 108 findings.
-None of the T246 files (`roles.ts`, `scheduler.ts`, `handler-deps.ts`,
-the two new test files, the new docs) contain any forbidden token, so
-this slice does not regress the gate further. The repo-level cleanup
-is out of scope for T246 and should be tracked separately.
 
 ## 9. Files touched
 
