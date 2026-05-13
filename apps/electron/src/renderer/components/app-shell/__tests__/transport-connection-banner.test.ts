@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test'
-import { setupI18n } from '@craft-agent/shared/i18n/setupI18n'
+import { i18n, setupI18n } from '@craft-agent/shared/i18n/setupI18n'
 
-// Bootstrap i18next with bundled English resources before importing the
-// component-under-test so its top-level i18n.t() calls return real strings.
+// Bootstrap i18next and pin the language asserted by this copy contract.
 setupI18n()
+i18n.changeLanguage('en')
 
 import {
   getTransportBannerCopy,
