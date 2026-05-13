@@ -225,11 +225,11 @@ describe("R.9 community-link audit", () => {
         expectedId: "non-rox-x-handle",
       },
       {
-        line: "url: 'https://github.com/lukilabs/rox-agents-oss/pulls',",
+        line: `url: '${upstreamRepoUrl}/pulls',`,
         expectedId: "upstream-pulls-tab",
       },
       {
-        line: "Track our rox community at the forum.",
+        line: "Track our craft community at the forum.",
         expectedId: "rox-community-text",
       },
     ];

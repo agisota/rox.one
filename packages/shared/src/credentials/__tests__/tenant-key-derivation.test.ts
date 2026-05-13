@@ -63,6 +63,16 @@ describe('tenant credential key derivation', () => {
     expect(existsSync(join(tempConfigDir!, 'tenants'))).toBe(false);
   });
 
+  it('reloads DEFAULT_LOCAL_SCOPE credentials from the existing flat file', async () => {
+    const writer = new CredentialManager(DEFAULT_LOCAL_SCOPE);
+    await writer.setApiKey('flat-secret');
+
+    const reader = new CredentialManager(DEFAULT_LOCAL_SCOPE);
+
+    expect(await reader.getApiKey()).toBe('flat-secret');
+    expect(existsSync(join(tempConfigDir!, 'credentials.enc'))).toBe(true);
+  });
+
   it('reads legacy flat credentials as fallback but writes new tenant credentials separately', async () => {
     const localManager = new CredentialManager(DEFAULT_LOCAL_SCOPE);
     await localManager.setApiKey('legacy-flat-secret');

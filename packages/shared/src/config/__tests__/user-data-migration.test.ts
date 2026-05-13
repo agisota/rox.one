@@ -279,7 +279,7 @@ describe('migrateUserDataIfNeeded', () => {
     const sandbox = makeFixtureRoot('r8-priority-')
     const legacyA = join(sandbox, '.rox-agent')
     const legacyB = join(sandbox, '.rox')
-    const newRoot = join(sandbox, '.rox')
+    const newRoot = join(sandbox, '.rox-new')
     const { logger } = makeLogger()
 
     // Both legacies seeded with DIFFERENT contents so we can prove which

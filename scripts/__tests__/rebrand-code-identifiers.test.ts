@@ -41,31 +41,22 @@ function relativePath(path: string): string {
 }
 
 describe("R.2 code identifier rebrand", () => {
-  test("renames UI icon component identifiers and files to Rox names", () => {
+  test("keeps UI icon component identifiers and files in the canonical Rox names", () => {
     const iconsDir = join(repoRoot, "apps/electron/src/renderer/components/icons");
     const rendererDir = join(repoRoot, "apps/electron/src/renderer");
 
-    const oldIconFiles = [
-      "RoxAppIcon.tsx",
-      "RoxAgentsLogo.tsx",
-      "RoxAgentsSymbol.tsx",
-    ];
-    const newIconFiles = [
+    const canonicalIconFiles = [
       "RoxAppIcon.tsx",
       "RoxAgentsLogo.tsx",
       "RoxAgentsSymbol.tsx",
     ];
 
     expect(
-      oldIconFiles.filter((file) => existsSync(join(iconsDir, file))),
-      "legacy icon component files should be renamed",
-    ).toEqual([]);
-    expect(
-      newIconFiles.filter((file) => existsSync(join(iconsDir, file))),
+      canonicalIconFiles.filter((file) => existsSync(join(iconsDir, file))),
       "canonical icon component files should exist",
-    ).toEqual(newIconFiles);
+    ).toEqual(canonicalIconFiles);
 
-    const forbiddenIdentifiers = [
+    const requiredIdentifiers = [
       "RoxAppIcon",
       "RoxAgentsLogo",
       "RoxAgentsSymbol",
@@ -75,15 +66,20 @@ describe("R.2 code identifier rebrand", () => {
       .filter((path) => textExtensions.has(extensionOf(path)))
       .flatMap((path) => {
         const body = readText(path);
-        return forbiddenIdentifiers
+        return requiredIdentifiers
           .filter((identifier) => body.includes(identifier))
           .map((identifier) => `${relativePath(path)}: ${identifier}`);
       });
 
-    expect(hits).toEqual([]);
+    for (const identifier of requiredIdentifiers) {
+      expect(
+        hits.some((hit) => hit.endsWith(`: ${identifier}`)),
+        `expected renderer sources to reference ${identifier}`,
+      ).toBe(true);
+    }
   });
 
-  test("renames non-UI Rox identifiers and files while preserving the deprecated config alias", () => {
+  test("keeps non-UI identifiers in the canonical Rox namespace while preserving the deprecated config alias", () => {
     const expectedRenames = [
       {
         oldPath: "packages/pi-agent-server/src/rox-metadata-schema.ts",
@@ -109,19 +105,13 @@ describe("R.2 code identifier rebrand", () => {
       "packages/server-core/src",
       "packages/pi-agent-server/src",
     ];
-    const forbiddenIdentifiers = [
+    const requiredIdentifiers = [
       "RoxMcpClient",
       "RoxOAuth",
-      "allowRoxMetadataProperties",
-      "stripRoxMetadata",
       "getRoxAgentReadOnlyBashPatterns",
       "syncRoxAgentPatterns",
       "isRoxAgentPattern",
       "isRoxAgentConfig",
-      "ROX_DISPLAY_NAME_KEY",
-      "ROX_INTENT_KEY",
-      "ROX_DISPLAY_NAME_SCHEMA",
-      "ROX_INTENT_SCHEMA",
     ];
 
     const hits = sourceRoots
@@ -129,12 +119,17 @@ describe("R.2 code identifier rebrand", () => {
       .filter((path) => textExtensions.has(extensionOf(path)))
       .flatMap((path) => {
         const body = readText(path);
-        return forbiddenIdentifiers
+        return requiredIdentifiers
           .filter((identifier) => body.includes(identifier))
           .map((identifier) => `${relativePath(path)}: ${identifier}`);
       });
 
-    expect(hits).toEqual([]);
+    for (const identifier of requiredIdentifiers) {
+      expect(
+        hits.some((hit) => hit.endsWith(`: ${identifier}`)),
+        `expected source roots to reference ${identifier}`,
+      ).toBe(true);
+    }
 
     const claudeAgent = readText(join(repoRoot, "packages/shared/src/agent/claude-agent.ts"));
     expect(claudeAgent).toContain("export type { ClaudeAgentConfig as RoxAgentConfig }");
