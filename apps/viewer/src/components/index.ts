@@ -1,5 +1,5 @@
 /**
- * Component exports for @rox-agent/viewer
+ * Component exports for @rox-one/viewer
  */
 
 export { SessionUpload } from './SessionUpload'

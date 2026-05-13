@@ -1,5 +1,5 @@
 {
-  "name": "@rox-agent/viewer",
+  "name": "@rox-one/viewer",
   "version": "0.9.1",
   "license": "Apache-2.0",
   "description": "Web viewer for ROX ONE sessions - upload and share session transcripts",

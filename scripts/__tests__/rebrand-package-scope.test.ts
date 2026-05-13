@@ -31,6 +31,7 @@ const legacyServerPackage = `${legacyScope}/server`;
 const roxServerPackage = `${roxScope}/server`;
 const legacyServerCorePackage = `${legacyScope}/server-core`;
 const roxServerCorePackage = `${roxScope}/server-core`;
+const appPackages = ["cli", "electron", "viewer", "webui"] as const;
 
 function readText(path: string): string {
   return readFileSync(join(repoRoot, path), "utf8");
@@ -347,5 +348,35 @@ describe("R.5 package-scope rebrand", () => {
     );
     expect(roxMatches.length).toBeGreaterThan(0);
     expect(containsPackageReference(readText("bun.lock"), roxSharedPackage)).toBe(true);
+  });
+
+  test("renames the app workspace packages to the ROX scope", () => {
+    for (const app of appPackages) {
+      const appPackageJson = readJson(`apps/${app}/package.json`);
+      expect(appPackageJson.name).toBe(`${roxScope}/${app}`);
+    }
+
+    const activeFiles = [
+      ...listFiles("apps"),
+      ...listFiles("packages"),
+      ...listFiles("scripts"),
+      "package.json",
+      "bun.lock",
+    ];
+
+    for (const app of appPackages) {
+      const legacyPackage = `${legacyScope}/${app}`;
+      const roxPackage = `${roxScope}/${app}`;
+      const legacyMatches = activeFiles.filter((path) =>
+        containsPackageReference(readText(path), legacyPackage),
+      );
+      expect(legacyMatches).toEqual([]);
+
+      const roxMatches = activeFiles.filter((path) =>
+        containsPackageReference(readText(path), roxPackage),
+      );
+      expect(roxMatches.length).toBeGreaterThan(0);
+      expect(containsPackageReference(readText("bun.lock"), roxPackage)).toBe(true);
+    }
   });
 });
