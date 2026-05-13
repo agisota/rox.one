@@ -1,13 +1,7 @@
 /**
- * @rox-one/shared/security/budget-guard
- *
- * Per-key budget exhaustion guard. Tracks accumulated usage against a fixed
- * budget and rejects consumption that would exceed it. Pure data structure,
- * zero I/O. Pairs with `TokenBucket` from `./rate-limiter.ts` for combined
- * per-user rate-limit + lifetime budget enforcement.
- *
- * Result type uses a discriminated union so callers handle exhaustion as data
- * rather than exceptions on the hot path.
+ * T071 round-2 budget guard: per-key exhaustion tracker. Pure data structure,
+ * zero I/O. Pairs with TokenBucket for combined rate-limit + lifetime budget.
+ * Returns discriminated union so callers handle exhaustion as data.
  */
 
 export type BudgetResult =
@@ -47,10 +41,7 @@ export interface BudgetGuardOptions {
   budgetPerKey: number;
 }
 
-/**
- * Per-key budget tracker. Keys are arbitrary strings (e.g. user id, IP, API
- * key id). Usage is held in-memory; persistence is out of scope.
- */
+/** Per-key budget tracker. Keys are arbitrary strings (user id, IP, API key id). */
 export class BudgetGuard<TKey extends string = string> {
   private readonly budget: number;
   private readonly used: Map<TKey, number> = new Map();
@@ -62,11 +53,7 @@ export class BudgetGuard<TKey extends string = string> {
     this.budget = options.budgetPerKey;
   }
 
-  /**
-   * Attempt to consume `amount` from the budget for `key`. Returns a result
-   * carrying either the new remaining balance, or a structured error when the
-   * spend would exceed budget. Never mutates state on rejection.
-   */
+  /** Consume `amount` for `key`. Returns Result; never mutates on rejection. */
   consume(key: TKey, amount: number): BudgetResult {
     if (!Number.isFinite(amount) || amount < 0) {
       return {
@@ -98,31 +85,24 @@ export class BudgetGuard<TKey extends string = string> {
     return { ok: true, remaining: this.budget - nextUsed };
   }
 
-  /** Current usage for `key`. Defaults to 0 for unseen keys. */
   usage(key: TKey): number {
     return this.used.get(key) ?? 0;
   }
 
-  /** Remaining budget for `key`. */
   remaining(key: TKey): number {
     return this.budget - this.usage(key);
   }
 
   /** Reset usage for `key` (or all keys if omitted). */
   reset(key?: TKey): void {
-    if (key === undefined) {
-      this.used.clear();
-    } else {
-      this.used.delete(key);
-    }
+    if (key === undefined) this.used.clear();
+    else this.used.delete(key);
   }
 
-  /** Total tracked keys. Useful for cardinality alerts. */
   keyCount(): number {
     return this.used.size;
   }
 
-  /** The configured per-key budget. */
   getBudget(): number {
     return this.budget;
   }

@@ -1,14 +1,4 @@
-/**
- * @rox-one/shared/security
- *
- * Abuse-hardening primitives shipped for T071 (round 2):
- *
- * - `TokenBucket` / `SlidingWindowCounter`: pure rate-limit data structures.
- * - `BudgetGuard`: per-key budget exhaustion tracker.
- *
- * All exports are pure, framework-free, and clock-injectable. RPC integration
- * (per-IP + per-user wiring) ships as T071b.
- */
+/** T071 round-2 abuse-hardening primitives. RPC integration ships as T071b. */
 
 export {
   TokenBucket,

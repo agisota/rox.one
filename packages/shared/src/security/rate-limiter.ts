@@ -1,24 +1,7 @@
 /**
- * @rox-one/shared/security/rate-limiter
- *
- * Abuse-hardening primitives for T071 (round 2): pure rate-limit data
- * structures with injected clock for deterministic testing and zero I/O.
- *
- * - `TokenBucket`: classic token bucket with continuous refill. `tryAcquire(n)`
- *   returns `true` when capacity allows the spend, `false` otherwise. Buckets
- *   never exceed their capacity, never go negative, and clamp pathological
- *   clock regressions to "no time elapsed".
- *
- * - `SlidingWindowCounter`: rolling-window event counter. `record()` registers
- *   a single event and returns the count of events inside the current window.
- *   `count()` is a read-only peek that prunes expired events.
- *
- * Both classes are framework-free, accept an injected `clock: () => number`
- * (milliseconds), and are pure with respect to the world outside the instance.
- * No `Date.now()` is called directly so tests can fully control time.
- *
- * Integration into RPC handlers ships as T071b — this module only ships
- * primitives + tests.
+ * T071 round-2 rate-limit primitives: TokenBucket + SlidingWindowCounter.
+ * Pure data structures, zero I/O, clock injected for deterministic tests.
+ * RPC integration is T071b.
  */
 
 export type Clock = () => number;
@@ -34,13 +17,7 @@ export interface TokenBucketOptions {
   clock: Clock;
 }
 
-/**
- * Pure token-bucket rate limiter.
- *
- * Tokens accrue continuously at `refillRatePerSec` and are capped at
- * `capacity`. A successful `tryAcquire(n)` decrements the available tokens by
- * `n`; failure leaves the bucket unchanged.
- */
+/** Token bucket: continuous refill at `refillRatePerSec`, hard-capped at `capacity`. */
 export class TokenBucket {
   private readonly capacity: number;
   private readonly refillRatePerSec: number;
@@ -71,10 +48,7 @@ export class TokenBucket {
     this.lastRefillMs = this.clock();
   }
 
-  /**
-   * Attempt to consume `n` tokens. Returns `true` and decrements the bucket on
-   * success; returns `false` and leaves the bucket unchanged on failure.
-   */
+  /** Consume `n` tokens. Returns true and decrements on success; no-op on failure. */
   tryAcquire(n: number = 1): boolean {
     if (!Number.isFinite(n) || n <= 0) {
       throw new RangeError('TokenBucket.tryAcquire: n must be a positive finite number');
@@ -88,18 +62,17 @@ export class TokenBucket {
     return true;
   }
 
-  /** Current available tokens after refill. Useful for tests and metrics. */
+  /** Current available tokens after refill. */
   available(): number {
     this.refill();
     return this.tokens;
   }
 
-  /** Bucket capacity. */
   getCapacity(): number {
     return this.capacity;
   }
 
-  /** Reset the bucket to full capacity at the current clock time. */
+  /** Restore to full capacity at the current clock time. */
   reset(): void {
     this.tokens = this.capacity;
     this.lastRefillMs = this.clock();
@@ -127,11 +100,7 @@ export interface SlidingWindowOptions {
   maxEvents?: number;
 }
 
-/**
- * Sliding-window counter. Stores timestamps of recent events and exposes the
- * count inside the rolling window. Events older than `windowMs` are pruned
- * lazily on each call.
- */
+/** Sliding-window event counter; events older than `windowMs` are pruned lazily. */
 export class SlidingWindowCounter {
   private readonly windowMs: number;
   private readonly clock: Clock;
@@ -154,10 +123,7 @@ export class SlidingWindowCounter {
     this.events = [];
   }
 
-  /**
-   * Record a single event and return the count of events inside the current
-   * window (inclusive of the new event).
-   */
+  /** Record one event; returns the count inside the current window. */
   record(): number {
     const now = this.clock();
     this.prune(now);
@@ -169,22 +135,19 @@ export class SlidingWindowCounter {
     return this.events.length;
   }
 
-  /** Peek at the current count without recording. */
+  /** Peek at the count without recording. */
   count(): number {
     const now = this.clock();
     this.prune(now);
     return this.events.length;
   }
 
-  /** Clear all events. */
   reset(): void {
     this.events = [];
   }
 
   private prune(now: number): void {
     const cutoff = now - this.windowMs;
-    // Events are stored monotonically (modulo clock regression). Shift from the
-    // front while expired.
     let i = 0;
     while (i < this.events.length && this.events[i]! <= cutoff) {
       i++;
