@@ -4,6 +4,7 @@ import { describe, expect, it } from 'bun:test';
 
 const rootDir = join(import.meta.dir, '..', '..');
 const electronResourcesDir = join(rootDir, 'apps/electron/resources');
+const checkoutMtimeSkewMs = 1000;
 
 function resourcePath(relativePath: string): string {
   return join(electronResourcesDir, relativePath);
@@ -28,7 +29,7 @@ describe('macOS Liquid Glass icon contract', () => {
 
     const assetsCarMtime = statSync(assetsCar).mtimeMs;
     const staleSources = iconSources
-      .filter((source) => existsSync(source) && statSync(source).mtimeMs > assetsCarMtime)
+      .filter((source) => existsSync(source) && statSync(source).mtimeMs - assetsCarMtime > checkoutMtimeSkewMs)
       .map((source) => relative(rootDir, source));
 
     expect(staleSources).toEqual([]);
@@ -39,6 +40,8 @@ describe('macOS Liquid Glass icon contract', () => {
 
     expect(afterPack).toContain("resources', 'icon.icon', 'icon.json'");
     expect(afterPack).toContain('liquidGlassIconManifest');
+    expect(afterPack).toContain('ICON_SOURCE_MTIME_SKEW_MS = 1000');
+    expect(afterPack).toContain('freshestSourceMtime - assetsCarMtime > ICON_SOURCE_MTIME_SKEW_MS');
   });
 
   it('keeps the packaged icon name aligned with actool output', () => {
