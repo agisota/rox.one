@@ -1,6 +1,6 @@
 # T346 - RC Scenario S08: Share Session → Public Shortlink Opens
 
-Status: Todo
+Status: Blocked
 
 ## Context
 
