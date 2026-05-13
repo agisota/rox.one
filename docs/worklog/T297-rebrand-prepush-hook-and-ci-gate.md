@@ -314,6 +314,26 @@ timings).
   independently of husky. So the CI step is robust against that
   misconfiguration.
 
+## 12. Post-rewrite recovery note
+
+A pre-rewrite recovery snapshot was preserved at
+`.pre-rewrite-recovery/preserved-uncommitted-work/T297-prepush-hook/`.
+That snapshot was taken before the filter-repo history rewrite that
+produced the current `main` at `e1107441`. The rewrite squashed T297
+into commit `ff687795` ("Complete R.10 final rebrand sweep + permanent
+gate + rebrand-v1 tag (#71)") with the following minor deviations from
+the preserved snapshot:
+
+- `.husky/pre-push` comment block was polished (rewrite author added
+  the husky v9.1 user-shim layout explanation).
+- `scripts/__tests__/rebrand-prepush-hook.test.ts` was renamed to
+  `scripts/__tests__/rebrand-permanent-gate.test.ts` and expanded
+  (adds a `bun run validate:rebrand` live-execution test and uses
+  `execFileSync` rather than filesystem reads alone).
+
+All four acceptance criteria are met on current `main`. The preserved
+snapshot is superseded and no further cherry-pick is required.
+
 ## 11. Acceptance criteria matrix
 
 - [x] `.husky/pre-push` exists, executable (`-rwxr-xr-x`), with husky
