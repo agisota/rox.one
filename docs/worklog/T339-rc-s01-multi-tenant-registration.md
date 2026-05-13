@@ -47,8 +47,16 @@ Observed failure:
 error: Script not found "e2e:smoke"
 ```
 
-This fails before Electron can launch, so it blocks the S01 smoke run rather
+This failed before Electron could launch, so it blocked the S01 smoke run rather
 than proving a product runtime failure.
+
+After `T352`, the same command reaches the harness and fails with an explicit
+host-environment blocker on this Linux host:
+
+```text
+[e2e-smoke] scenario s01-registration requires darwin; current platform is linux. This is a host-environment blocker, not a missing script.
+error: script "e2e:smoke" exited with code 78
+```
 
 ## 6. Implementation Changes
 
@@ -56,6 +64,8 @@ than proving a product runtime failure.
 - Filed blocker ticket `T352-rc-e2e-smoke-harness-script.md`.
 - Updated the RC evidence table row for S01 to `Blocked`.
 - Added the blocker to the RC evidence blocker table.
+- After `T352`, updated the current blocker from missing script to the macOS
+  packaged-app host requirement.
 
 No runtime files were changed.
 
@@ -64,6 +74,7 @@ No runtime files were changed.
 ```bash
 bun run e2e:smoke -- --scenario s01-registration
 bun test apps/electron/src/main/__tests__/account-session*.test.ts
+bun test scripts/__tests__/e2e-smoke-harness.test.ts
 bun run validate:agent-contract
 bun run validate:docs
 bun run validate:rebrand
@@ -75,7 +86,11 @@ git diff --check
 
 - `bun test apps/electron/src/main/__tests__/account-session*.test.ts`: 10
   pass, 0 fail, 23 expectations.
-- `bun run validate:agent-contract`: ok, 11 skills, 305 tickets, 7 required
+- `bun test scripts/__tests__/e2e-smoke-harness.test.ts`: 2 pass, 0 fail, 4
+  expectations.
+- `bun run e2e:smoke -- --scenario s01-registration`: reaches the harness and
+  exits code 78 with an explicit `darwin` host requirement.
+- `bun run validate:agent-contract`: ok, 11 skills, 306 tickets, 7 required
   docs.
 - `bun run validate:docs`: ok, architecture docs and sync-v2 design validated.
 - `bun run validate:rebrand`: passed with no forbidden tokens outside the
@@ -90,8 +105,8 @@ smoke did not reach a launchable Electron path.
 ## 10. Remaining Risks
 
 - S01 has not validated the actual registration UI, restart hydration,
-  screenshots, or cross-tenant isolation because the shared RC smoke harness
-  entry point is missing.
+  screenshots, or cross-tenant isolation because this Linux host cannot run the
+  packaged macOS UI smoke required by the current S01 harness route.
 - The account-session unit tests are green, but they are not a substitute for
   the required clean-build Electron smoke.
 - `T352` must land before S01 can be re-run.
@@ -100,13 +115,13 @@ smoke did not reach a launchable Electron path.
 
 | Criterion | Status | Evidence |
 |---|---|---|
-| New user can complete registration flow on a clean Electron build | Blocked | Missing `e2e:smoke` script prevents smoke launch |
-| Post-login home screen is visible without errors | Blocked | Missing `e2e:smoke` script prevents smoke launch |
-| App restart shows the user as still logged in | Blocked | Missing `e2e:smoke` script prevents smoke launch |
-| `$userData/session.enc` is present and non-empty after login | Blocked | Smoke not launchable; unit persistence coverage is green |
-| `session.enc` is absent or invalid-on-decrypt after logout | Blocked | Smoke not launchable; unit logout/corrupt-session coverage is green |
-| Storage writes route to tenant prefix with `ROX_MULTI_TENANT=1` | Blocked | Smoke not launchable |
-| Two accounts cannot read each other's workspace data | Blocked | Smoke not launchable |
-| Screenshot evidence referenced in RC evidence doc | Blocked | No screenshot possible before smoke harness exists |
+| New user can complete registration flow on a clean Electron build | Blocked | Current harness route requires macOS packaged-app host |
+| Post-login home screen is visible without errors | Blocked | Current harness route requires macOS packaged-app host |
+| App restart shows the user as still logged in | Blocked | Current harness route requires macOS packaged-app host |
+| `$userData/session.enc` is present and non-empty after login | Blocked | macOS smoke pending; unit persistence coverage is green |
+| `session.enc` is absent or invalid-on-decrypt after logout | Blocked | macOS smoke pending; unit logout/corrupt-session coverage is green |
+| Storage writes route to tenant prefix with `ROX_MULTI_TENANT=1` | Blocked | macOS smoke pending |
+| Two accounts cannot read each other's workspace data | Blocked | macOS smoke pending |
+| Screenshot evidence referenced in RC evidence doc | Blocked | No screenshot possible on current Linux host |
 | RC evidence row S01 updated | Pass | `docs/release/2026-05-14-rc-evidence.md` row S01 is `Blocked` |
-| Blocking ticket filed | Pass | `T352-rc-e2e-smoke-harness-script.md` |
+| Initial blocking ticket filed | Pass | `T352-rc-e2e-smoke-harness-script.md` |

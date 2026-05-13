@@ -1,6 +1,6 @@
 # T352 - RC E2E smoke harness script
 
-Status: Todo
+Status: DONE
 
 ## Context
 
@@ -49,12 +49,12 @@ bun run validate:docs
 
 ## Acceptance Criteria
 
-- [ ] `bun run e2e:smoke -- --scenario s01-registration` no longer fails with
+- [x] `bun run e2e:smoke -- --scenario s01-registration` no longer fails with
       `Script not found "e2e:smoke"`.
-- [ ] Unsupported scenario ids fail closed with a clear message.
-- [ ] S01 can proceed to either a real pass/fail smoke result or an explicit
+- [x] Unsupported scenario ids fail closed with a clear message.
+- [x] S01 can proceed to either a real pass/fail smoke result or an explicit
       host-environment blocker.
-- [ ] T339 can be re-run and updated from `Blocked` to `DONE` only after the
+- [x] T339 can be re-run and updated from `Blocked` to `DONE` only after the
       smoke result and screenshots are captured.
 
 ## Worklog

@@ -103,6 +103,9 @@ screenshots, and any blocker ticket references.
 
 ## Current Blocker
 
-- `T352-rc-e2e-smoke-harness-script.md` — the required
-  `bun run e2e:smoke -- --scenario s01-registration` command currently exits
-  with `Script not found "e2e:smoke"`, so the S01 Electron smoke cannot start.
+- `T352-rc-e2e-smoke-harness-script.md` resolved the missing root
+  `e2e:smoke` script. The current S01 run now reaches the harness and exits
+  with an explicit host-environment blocker on this Linux host:
+  `scenario s01-registration requires darwin; current platform is linux`.
+  S01 still needs a macOS packaged-app smoke run to capture UI screenshots and
+  restart/tenant-isolation evidence.

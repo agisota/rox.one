@@ -28,7 +28,7 @@ must reach `Pass` status before the `v1.0.0-rc.1` tag is pushed.
 
 | # | Scenario | Ticket | Status | Build SHA | Timestamp (UTC) | Notes |
 |---|----------|--------|--------|-----------|-----------------|-------|
-| S01 | Registration → multi-tenant login flow | [T339](../tickets/T339-rc-s01-multi-tenant-registration.md) | `Blocked` | `66252d82` | `2026-05-13T22:54:17Z` | Required `bun run e2e:smoke -- --scenario s01-registration` exits `Script not found "e2e:smoke"`; blocker [T352](../tickets/T352-rc-e2e-smoke-harness-script.md). Account-session unit tests pass. |
+| S01 | Registration → multi-tenant login flow | [T339](../tickets/T339-rc-s01-multi-tenant-registration.md) | `Blocked` | — | `2026-05-13T23:01:02Z` | [T352](../tickets/T352-rc-e2e-smoke-harness-script.md) resolves the missing script. Current `bun run e2e:smoke -- --scenario s01-registration` reaches the harness and exits code 78 because S01 requires `darwin` while this host is `linux`. Account-session unit tests pass; no packaged S01 build was run on this host. |
 | S02 | Raw prompt → Rewrite → Spec → TDD → Review | [T340](../tickets/T340-rc-s02-prompt-pipeline-flow.md) | `Todo` | — | — | |
 | S03 | 24h mission → checkpoint → final verification | [T341](../tickets/T341-rc-s03-mission-checkpoint-verification.md) | `Todo` | — | — | |
 | S04 | Arena swarm → dedupe signals → Review Board → VDI update | [T342](../tickets/T342-rc-s04-arena-swarm-vdi-update.md) | `Todo` | — | — | |
@@ -65,7 +65,7 @@ If any scenario produces a blocker, the new ticket is listed here:
 
 | Scenario | Blocker Ticket | Description | Status |
 |----------|---------------|-------------|--------|
-| S01 | [T352](../tickets/T352-rc-e2e-smoke-harness-script.md) | Missing root `e2e:smoke` script blocks the required RC smoke harness entry point. | Todo |
+| S01 | [T352](../tickets/T352-rc-e2e-smoke-harness-script.md) | Missing root `e2e:smoke` script blocked the required RC smoke harness entry point; script now reaches an explicit host-environment blocker. | DONE |
 
 ---
 
