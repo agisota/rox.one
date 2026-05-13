@@ -86,6 +86,7 @@ async function main(): Promise<void> {
       "--platform=node",
       "--format=cjs",
       "--target=node20",
+      "--conditions=module-sync",
       `--outfile=${OUTPUT}`,
       // Inject build provenance. The worker logs these on startup so an
       // operator can confirm a rebuild actually propagated to the running
