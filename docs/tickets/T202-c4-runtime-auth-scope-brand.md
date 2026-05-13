@@ -1,5 +1,7 @@
 # T202 - C4 runtime/auth storage scope brand
 
+Status: DONE
+
 ## Context
 
 We are building a white-label fork of Rox Agents OSS into Agent Workbench Suite.
