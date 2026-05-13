@@ -100,7 +100,7 @@
     "zod": ">=3.0.0"
   },
   "devDependencies": {
-    "@rox-agent/test-fixtures": "workspace:*",
+    "@rox-one/test-fixtures": "workspace:*",
     "@types/shell-quote": "^1.7.5",
     "@types/uuid": "^11.0.0"
   }

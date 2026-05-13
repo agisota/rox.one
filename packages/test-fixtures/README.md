@@ -1,4 +1,4 @@
-# @rox-agent/test-fixtures
+# @rox-one/test-fixtures
 
 Shared test fixtures (fakes, configs, builders) that more than one test file in the monorepo consumes.
 
