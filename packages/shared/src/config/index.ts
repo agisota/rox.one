@@ -9,6 +9,13 @@ export * from './theme.ts';
 export * from './validators.ts';
 export * from './cli-domains.ts';
 export {
+  migrateUserDataIfNeeded,
+  type MigrationLogger,
+  type MigrationOptions,
+  type MigrationReason,
+  type MigrationResult,
+} from './user-data-migration.ts';
+export {
   ConfigWatcher,
   createConfigWatcher,
   type ConfigWatcherCallbacks,
