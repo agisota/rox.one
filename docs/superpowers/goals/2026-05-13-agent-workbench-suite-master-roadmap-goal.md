@@ -67,7 +67,9 @@ Then check ticket status for every ticket referenced below by reading `Status:` 
 
 # Phase 1 — Complete the C.4 follow-ons
 
-The C.4 design spec deferred six concrete follow-ups. They are all in scope now.
+The C.4 design spec deferred six concrete follow-ups. Phase 1 also tracks
+the later server-core RPC split that landed between Electron handler
+migration and Pi IPC propagation.
 
 ### Phase 1.1 — Migrate the remaining `workspace.ts` RPC handlers through `deriveScopeFromAuth`
 
@@ -93,7 +95,19 @@ The C.4 design spec deferred six concrete follow-ups. They are all in scope now.
 - **Validation:** Electron typecheck + `bun test apps/electron/src/main/handlers/__tests__/**` + full suite.
 - **Stopping condition:** every session-carrying handler uses `deriveScopeFromAuth`; headless exceptions are documented; tests prove tenant routing in multi-tenant mode.
 
-### Phase 1.3 — Pi-agent-server IPC scope propagation
+### Phase 1.3 — Server-core RPC handlers scope migration
+
+- **Read first:** `packages/server-core/src/handlers/rpc/*`; ADR 0007 §"Out of scope" → remaining server-core RPC handler migration entry.
+- **New ticket:** `T215-c4-server-core-rpc-handlers-scope-migration`.
+- **Work breakdown:**
+  1. Map every server-core RPC handler storage call site not covered by `workspace.ts`.
+  2. Pass a branded storage scope explicitly at each storage submodule boundary.
+  3. Derive scope from authenticated session context when available; document flat-scope exceptions.
+  4. Add regression coverage for tenant routing and flat single-user preservation.
+- **Validation:** targeted RPC tests + `bun run typecheck` + full suite.
+- **Stopping condition:** every touched server-core RPC handler has an explicit storage scope decision; tests prove the intended routing.
+
+### Phase 1.3b — Pi-agent-server IPC scope propagation
 
 - **Read first:** `packages/server-core/src/sessions/SessionManager.ts`; the Pi subprocess bootstrap; ADR 0007 §"Out of scope" → Pi IPC propagation entry.
 - **New spec + plan:** `docs/superpowers/specs/2026-05-14-pi-ipc-scope-propagation-design.md` and `docs/superpowers/plans/2026-05-14-pi-ipc-scope-propagation.md` (use the same shape as the C.4 design/plan).
@@ -147,7 +161,7 @@ The C.4 design spec deferred six concrete follow-ups. They are all in scope now.
 
 ### Phase 1 closeout
 
-After 1.1 → 1.6: write `docs/worklog/T223-c4-followups-closeout.md` summarizing all six follow-ons with commit SHAs, then update ADR 0007 to mark these items implemented (not deferred).
+After 1.1 → 1.6, including the inserted 1.3b IPC bridge: write `docs/worklog/T223-c4-followups-closeout.md` summarizing all follow-ons with commit SHAs, then update ADR 0007 to mark these items implemented (not deferred).
 
 ---
 
