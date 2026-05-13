@@ -1,0 +1,229 @@
+name: Mac Signed Release
+
+# M.18 T251: signed-build + notarization workflow.
+#
+# Trigger model: workflow_dispatch only. We never auto-run this on push or
+# pull_request because it consumes real Apple Developer credentials and
+# produces a notarized artifact that should ship by intent, not by accident.
+#
+# Secrets contract (all gated; if any are missing the job fails fast before
+# reaching codesign):
+#   CSC_LINK                       base64-encoded p12 Developer ID certificate
+#   CSC_KEY_PASSWORD               password for the p12
+#   APPLE_ID                       Apple ID used for notarytool
+#   APPLE_APP_SPECIFIC_PASSWORD    app-specific password for notarytool
+#   APPLE_TEAM_ID                  10-char Apple Developer team identifier
+#
+# Untrusted-input safety: `inputs.tag` is only ever fed to a shell via the
+# INPUT_TAG env var (never via inline GitHub expression interpolation), and
+# only after a strict regex check. All other shell consumers of secret/input
+# values follow the same env-var pattern.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (required, must match v[0-9]+.[0-9]+.[0-9]+(-rc.[0-9]+)?)"
+        required: true
+        type: string
+
+concurrency:
+  group: mac-signed-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  mac-signed-release:
+    name: ROX ONE macOS signed + notarized DMG
+    runs-on: macos-15-xlarge
+    timeout-minutes: 75
+    env:
+      ROX_HEADLESS: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Tag-protection guard. The dispatch input is untrusted, so it is fed
+      # via env (never inline) and pattern-validated before any later step
+      # references it. This blocks `; rm -rf` style payloads in the tag and
+      # also stops accidental runs against non-release refs.
+      - name: Validate release tag pattern
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          CANDIDATE="${INPUT_TAG#refs/tags/}"
+          echo "Candidate release tag: ${CANDIDATE}"
+          if [[ ! "${CANDIDATE}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::release tag '${CANDIDATE}' does not match v[0-9]+.[0-9]+.[0-9]+(-rc.[0-9]+)?"
+            exit 1
+          fi
+          echo "RELEASE_TAG=${CANDIDATE}" >> "$GITHUB_ENV"
+
+      # Secrets pre-flight. If any required Apple credential is missing we
+      # fail fast before electron-builder, before codesign, before any
+      # network call so a misconfigured environment cannot silently produce
+      # an ad-hoc build masquerading as a signed release.
+      - name: Verify signing secrets present
+        shell: bash
+        env:
+          HAVE_CSC_LINK: ${{ secrets.CSC_LINK != '' }}
+          HAVE_CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD != '' }}
+          HAVE_APPLE_ID: ${{ secrets.APPLE_ID != '' }}
+          HAVE_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD != '' }}
+          HAVE_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID != '' }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for var in HAVE_CSC_LINK HAVE_CSC_KEY_PASSWORD HAVE_APPLE_ID HAVE_APPLE_APP_SPECIFIC_PASSWORD HAVE_APPLE_TEAM_ID; do
+            value="${!var}"
+            if [ "${value}" != "true" ]; then
+              echo "::error::missing required secret: ${var#HAVE_}"
+              missing=1
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then
+            echo "::error::signed-release workflow requires all five Apple signing/notarization secrets. Aborting before electron-builder."
+            exit 1
+          fi
+          echo "All five signing/notarization secrets are present."
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Prepare signed-release logs
+        run: mkdir -p .ci-logs/mac-signed-release
+
+      # Run the validator fixture suite ahead of electron-builder so any
+      # boundary regression (entitlements, appId, buildVersion) is caught
+      # before we burn signing minutes.
+      - name: Validate mac-boundary fixtures
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:mac-boundary-fixtures 2>&1 | tee .ci-logs/mac-signed-release/validate-mac-boundary-fixtures.log
+
+      - name: Validate private mac release trust boundary
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:mac-private-release-boundary 2>&1 | tee .ci-logs/mac-signed-release/validate-mac-private-release-boundary.log
+
+      - name: Build Electron app
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run electron:build 2>&1 | tee .ci-logs/mac-signed-release/electron-build.log
+
+      # Run electron-builder for macOS with real signing identity. We pass
+      # --publish=never so the action never uploads to a release page; the
+      # workflow uploads the .dmg as a workflow artifact instead. Secrets
+      # are wired via env so electron-builder + @electron/notarize pick them
+      # up without appearing in logs.
+      - name: Package + sign macOS DMG
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -o pipefail
+          bunx electron-builder --mac --arm64 --publish=never 2>&1 | tee .ci-logs/mac-signed-release/electron-builder.log
+
+      # Post-pack: verify the signature is a real Developer ID and that the
+      # team identifier matches the secret. Any deviation aborts before
+      # notarization is attempted.
+      - name: Codesign verify signed bundle
+        shell: bash
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          APP_PATH="apps/electron/release/mac-arm64/ROX.ONE.app"
+          if [ ! -d "${APP_PATH}" ]; then
+            echo "::error::expected packaged app at ${APP_PATH}"
+            exit 1
+          fi
+          OUT="$(codesign -dv --verbose=4 --entitlements - "${APP_PATH}" 2>&1)"
+          echo "${OUT}" | tee .ci-logs/mac-signed-release/codesign-verify.log
+          if ! echo "${OUT}" | grep -q "Identifier=com.rox.one"; then
+            echo "::error::codesign identifier missing com.rox.one"; exit 1
+          fi
+          if echo "${OUT}" | grep -q "Signature=adhoc"; then
+            echo "::error::bundle is ad-hoc signed; signed-release run requires Developer ID"; exit 1
+          fi
+          if ! echo "${OUT}" | grep -q "TeamIdentifier=${APPLE_TEAM_ID}"; then
+            echo "::error::codesign TeamIdentifier mismatch"; exit 1
+          fi
+          codesign --verify --deep --strict --verbose=2 "${APP_PATH}" 2>&1 | tee -a .ci-logs/mac-signed-release/codesign-verify.log
+
+      # Notarize the produced .dmg via notarytool, then staple the ticket
+      # back onto the .dmg so Gatekeeper can verify offline. We submit the
+      # .dmg (not the .app) because notarytool prefers a single archive.
+      - name: Notarize + staple DMG
+        shell: bash
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          DMG_PATH="apps/electron/release/ROX-ONE-arm64.dmg"
+          if [ ! -f "${DMG_PATH}" ]; then
+            echo "::error::expected DMG at ${DMG_PATH}"
+            exit 1
+          fi
+          xcrun notarytool submit "${DMG_PATH}" \
+            --apple-id "${APPLE_ID}" \
+            --password "${APPLE_APP_SPECIFIC_PASSWORD}" \
+            --team-id "${APPLE_TEAM_ID}" \
+            --wait --timeout 30m 2>&1 | tee .ci-logs/mac-signed-release/notarytool.log
+          xcrun stapler staple "${DMG_PATH}" 2>&1 | tee .ci-logs/mac-signed-release/stapler.log
+          xcrun stapler validate "${DMG_PATH}" 2>&1 | tee -a .ci-logs/mac-signed-release/stapler.log
+
+      - name: Compute signed artifact checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=".ci-logs/mac-signed-release/release-checksums.txt"
+          {
+            echo "# ROX.ONE signed release ${RELEASE_TAG} SHA-256 checksums"
+            echo "# generated at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > "${OUT}"
+          shasum -a 256 apps/electron/release/ROX-ONE-arm64.dmg >> "${OUT}"
+          cat "${OUT}"
+
+      - name: Upload signed DMG artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-signed-mac-arm64
+          path: |
+            apps/electron/release/ROX-ONE-arm64.dmg
+            .ci-logs/mac-signed-release/release-checksums.txt
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload signed-release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-signed-release-evidence
+          path: |
+            .ci-logs/mac-signed-release/**/*.log
+            .ci-logs/mac-signed-release/release-checksums.txt
+          retention-days: 14
+          if-no-files-found: warn
