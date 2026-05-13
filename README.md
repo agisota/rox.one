@@ -75,8 +75,8 @@ irm https://app.rox.one/install-app.ps1 | iex
 ### Build from Source
 
 ```bash
-git clone https://github.com/lukilabs/craft-agents-oss.git
-cd craft-agents-oss
+git clone https://github.com/agisota/rox-one-terminal.git
+cd rox-one-terminal
 bun install
 bun run electron:start
 ```
@@ -223,8 +223,8 @@ docker run -d \
   -p 9100:9100 \
   -e CRAFT_SERVER_TOKEN=<token> \
   -e CRAFT_RPC_HOST=0.0.0.0 \
-  -v craft-data:/root/.rox \
-  craft-agents-server
+  -v rox-data:/root/.rox \
+  rox-one-server
 ```
 
 To enable TLS in Docker, mount your certificates and set the env vars:
@@ -237,8 +237,8 @@ docker run -d \
   -e CRAFT_RPC_TLS_CERT=/certs/cert.pem \
   -e CRAFT_RPC_TLS_KEY=/certs/key.pem \
   -v ./certs:/certs:ro \
-  -v craft-data:/root/.rox \
-  craft-agents-server
+  -v rox-data:/root/.rox \
+  rox-one-server
 ```
 
 ## CLI Client
@@ -252,7 +252,7 @@ A terminal client that connects to a running ROX server over WebSocket (`ws://` 
 bun run apps/cli/src/index.ts --help
 
 # Or add to your PATH
-alias craft-cli="bun run $(pwd)/apps/cli/src/index.ts"
+alias rox-cli="bun run $(pwd)/apps/cli/src/index.ts"
 ```
 
 ### Connection
@@ -265,7 +265,7 @@ export CRAFT_SERVER_URL=ws://127.0.0.1:9100
 export CRAFT_SERVER_TOKEN=<your-token>
 
 # Or via flags
-craft-cli --url ws://127.0.0.1:9100 --token <token> ping
+rox-cli --url ws://127.0.0.1:9100 --token <token> ping
 ```
 
 For TLS connections (`wss://`), use `--tls-ca <path>` for self-signed certificates.
@@ -312,38 +312,38 @@ The `run` command is fully self-contained — it spawns a headless server, creat
 
 ```bash
 # Quick connectivity check
-craft-cli ping
+rox-cli ping
 
 # List sessions (human-readable)
-craft-cli sessions
+rox-cli sessions
 
 # Send a message and stream the AI response
-craft-cli send abc-123 "What files are in the current directory?"
+rox-cli send abc-123 "What files are in the current directory?"
 
 # Pipe input
-echo "Summarize this" | craft-cli send abc-123
+echo "Summarize this" | rox-cli send abc-123
 
 # JSON output for scripting
-craft-cli --json workspaces | jq '.[].name'
+rox-cli --json workspaces | jq '.[].name'
 
 # Self-contained run (spawns its own server)
-craft-cli run "Summarize the README"
-craft-cli run --workspace-dir ./my-project --source github "List open PRs"
+rox-cli run "Summarize the README"
+rox-cli run --workspace-dir ./my-project --source github "List open PRs"
 
 # Multi-provider support
-craft-cli run --provider openai --model gpt-4o "Summarize this repo"
-GOOGLE_API_KEY=... craft-cli run --provider google --model gemini-2.0-flash "Hello"
-craft-cli run --provider anthropic --base-url https://openrouter.ai/api/v1 --api-key $OR_KEY "Hello"
+rox-cli run --provider openai --model gpt-4o "Summarize this repo"
+GOOGLE_API_KEY=... rox-cli run --provider google --model gemini-2.0-flash "Hello"
+rox-cli run --provider anthropic --base-url https://openrouter.ai/api/v1 --api-key $OR_KEY "Hello"
 
 # Validate the server (auto-spawns if no --url)
-craft-cli --validate-server
-craft-cli --validate-server --url ws://127.0.0.1:9100 --token <token>
+rox-cli --validate-server
+rox-cli --validate-server --url ws://127.0.0.1:9100 --token <token>
 ```
 
 ## Architecture
 
 ```
-craft-agent/
+rox-one-terminal/
 ├── apps/
 │   ├── cli/                   # Terminal client (CLI)
 │   └── electron/              # Desktop GUI (primary)
@@ -376,7 +376,7 @@ bun run electron:start
 # Type checking
 bun run typecheck:all
 
-# Debug logging (writes to ~/Library/Logs/@craft-agent/electron/)
+# Debug logging (writes to ~/.rox/logs/electron/main.log)
 # Logs are automatically enabled in development
 ```
 
@@ -591,18 +591,18 @@ To launch the packaged app with verbose logging enabled, use `-- --debug` (note 
 
 **Windows (PowerShell):**
 ```powershell
-& "$env:LOCALAPPDATA\Programs\@craft-agentelectron\ROX.ONE.exe" -- --debug
+& "$env:LOCALAPPDATA\Programs\ROX.ONE\ROX.ONE.exe" -- --debug
 ```
 
 **Linux:**
 ```bash
-./craft-agents -- --debug
+./rox-one -- --debug
 ```
 
 Logs are written to:
-- **macOS:** `~/Library/Logs/@craft-agent/electron/main.log`
-- **Windows:** `%APPDATA%\@craft-agent\electron\logs\main.log`
-- **Linux:** `~/.config/@craft-agent/electron/logs/main.log`
+- **macOS:** `~/.rox/logs/electron/main.log`
+- **Windows:** `%APPDATA%\ROX.ONE\logs\main.log`
+- **Linux:** `~/.rox/logs/electron/main.log`
 
 ## Audit harness
 
@@ -640,7 +640,13 @@ This project uses the [Claude Agent SDK](https://www.npmjs.com/package/@anthropi
 
 ### Trademark
 
-"ROX" and "ROX.ONE" are trademarks of roxone See [TRADEMARK.md](TRADEMARK.md) for usage guidelines.
+"ROX" and "ROX.ONE" are trademarks of roxone. See [TRADEMARK.md](TRADEMARK.md) for usage guidelines.
+
+## Acknowledgements
+
+ROX.ONE is a white-label fork of the upstream Craft Agents OSS project at
+https://github.com/lukilabs/craft-agents-oss. Apache 2.0 attribution is
+preserved in [LICENSE](LICENSE), [NOTICE](NOTICE), and [TRADEMARK.md](TRADEMARK.md).
 
 ## Contributing
 
