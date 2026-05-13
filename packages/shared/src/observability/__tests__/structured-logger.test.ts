@@ -71,7 +71,7 @@ describe('createStructuredLogger', () => {
     })
     logger.info('outside-span')
 
-    expect(records[0]?.correlationId).toBe('span-X')
+    expect(records[0]?.correlationId).toBe(asCorrelationId('span-X'))
     expect(records[1]?.correlationId).toBeUndefined()
   })
 
