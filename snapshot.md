@@ -59,7 +59,8 @@ docs were added.
 The canonical upstream project should be verified explicitly before merge work:
 
 ```text
-candidate upstream: https://github.com/lukilabs/craft-agents-oss
+candidate upstream: https://github.com/lukilabs/rox-agents-oss.git
+legal-preserve attribution URL: https://github.com/lukilabs/craft-agents-oss
 observed tags: v0.9.0, v0.9.1
 local package.json version: 0.8.12
 ```
