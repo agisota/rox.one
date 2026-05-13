@@ -93,7 +93,7 @@ import { ensureToolIcons, ensurePresetThemes } from '@rox-one/shared/config'
 import { readEnv, setBundledAssetsRoot } from '@rox-one/shared/utils'
 import { initializeBackendHostRuntime } from '@rox-one/shared/agent/backend'
 import { setPowerShellValidatorRoot } from '@rox-one/shared/agent'
-import { handleDeepLink } from './deep-link'
+import { handleDeepLink, sanitizeDeepLinkUrl } from './deep-link'
 import { BrowserPaneManager } from './browser-pane-manager'
 import { OAuthFlowStore } from '@rox-one/shared/auth'
 import { registerThumbnailScheme, registerThumbnailHandler } from './thumbnail-protocol'
@@ -312,7 +312,9 @@ if (!gotTheLock) {
   app.on('second-instance', (_event, commandLine, _workingDirectory) => {
     // Someone tried to run a second instance, we should focus our window.
     // On Windows/Linux, the deeplink is in commandLine
-    const url = commandLine.find(arg => arg.startsWith(`${DEEPLINK_SCHEME}://`) || arg.startsWith('roxagents://'))
+    const rawUrl = commandLine.find(arg => arg.startsWith(`${DEEPLINK_SCHEME}://`) || arg.startsWith('roxagents://'))
+    // W-3: sanitize argv URL before passing to handler (scheme allowlist, max length, no control chars)
+    const url = rawUrl ? sanitizeDeepLinkUrl(rawUrl) : undefined
     if (url && windowManager) {
       mainLog.info('Received deeplink from second instance:', url)
       handleDeepLink(url, windowManager, moduleSink ?? undefined, moduleClientResolver ?? undefined).catch(err => {
