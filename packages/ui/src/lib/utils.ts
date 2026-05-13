@@ -1,5 +1,5 @@
 /**
- * Utility functions for @rox-agent/ui
+ * Utility functions for @rox-one/ui
  */
 
 import { type ClassValue, clsx } from 'clsx'

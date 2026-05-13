@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Spinner } from "@rox-agent/ui"
+import { Spinner } from "@rox-one/ui"
 import { RoxAgentsSymbol } from "@/components/icons/RoxAgentsSymbol"
 import { StepFormLayout } from "./primitives"
 

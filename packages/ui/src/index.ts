@@ -1,5 +1,5 @@
 /**
- * @rox-agent/ui - Shared React UI components for ROX
+ * @rox-one/ui - Shared React UI components for ROX
  *
  * This package provides platform-agnostic UI components that work in both:
  * - Electron desktop app (full interactive mode)

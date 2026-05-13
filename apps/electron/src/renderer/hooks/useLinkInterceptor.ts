@@ -15,7 +15,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { classifyFile, type FilePreviewType } from '@rox-agent/ui'
+import { classifyFile, type FilePreviewType } from '@rox-one/ui'
 import { getLanguageFromPath } from '@/lib/file-utils'
 
 // ── Preview state types ────────────────────────────────────────────────────────

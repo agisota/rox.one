@@ -6,7 +6,7 @@ import {
   UserMessageBubble,
   type ActivityItem,
   type ResponseContent,
-} from '@rox-agent/ui'
+} from '@rox-one/ui'
 
 // Import sample workflows
 import {

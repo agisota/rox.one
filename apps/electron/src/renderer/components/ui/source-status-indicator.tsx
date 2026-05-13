@@ -16,7 +16,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@rox-agent/ui'
+} from '@rox-one/ui'
 import type { SourceConnectionStatus } from '../../../shared/types'
 
 export interface SourceStatusIndicatorProps {

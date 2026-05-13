@@ -9,7 +9,7 @@ import {
   Spinner,
   UserMessageBubble,
   SystemMessage,
-} from '@rox-agent/ui'
+} from '@rox-one/ui'
 import { ExternalLink } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { cn } from '@/lib/utils'
@@ -18,7 +18,7 @@ import type { Message } from '../../../shared/types'
 
 // ============================================================================
 // Message Components - Demo components for playground preview
-// Uses shared components from @rox-agent/ui where available
+// Uses shared components from @rox-one/ui where available
 // ============================================================================
 
 /** Assistant message bubble - left aligned white card (playground demo version) */
@@ -315,7 +315,7 @@ const config = {
         </div>
       </section>
 
-      {/* Section: SystemMessage (from @rox-agent/ui) */}
+      {/* Section: SystemMessage (from @rox-one/ui) */}
       <section>
         <h2 className="text-lg font-semibold mb-4 text-foreground/80">SystemMessage (Shared)</h2>
         <div className="bg-muted/20 rounded-lg">
@@ -563,7 +563,7 @@ export const messagesComponents: ComponentEntry[] = [
     id: 'user-message-bubble',
     name: 'UserMessageBubble',
     category: 'Chat Messages',
-    description: 'Right-aligned user message bubble (from @rox-agent/ui)',
+    description: 'Right-aligned user message bubble (from @rox-one/ui)',
     component: UserMessageBubble,
     props: [
       {
@@ -626,7 +626,7 @@ export const messagesComponents: ComponentEntry[] = [
     id: 'system-message',
     name: 'SystemMessage',
     category: 'Chat Messages',
-    description: 'System/info/warning/error message (from @rox-agent/ui)',
+    description: 'System/info/warning/error message (from @rox-one/ui)',
     component: SystemMessage,
     props: [
       {

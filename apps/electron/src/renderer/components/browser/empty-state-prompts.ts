@@ -1,4 +1,4 @@
-import type { BrowserEmptyPromptSample } from '@rox-agent/ui'
+import type { BrowserEmptyPromptSample } from '@rox-one/ui'
 
 export const EMPTY_STATE_PROMPT_SAMPLES: readonly BrowserEmptyPromptSample[] = [
   {

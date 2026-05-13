@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useState, useCallback } from 'react'
 import { Key, User, Lock, Eye, EyeOff, CheckCircle2, XCircle, type LucideIcon } from 'lucide-react'
-import { Spinner } from '@rox-agent/ui'
+import { Spinner } from '@rox-one/ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

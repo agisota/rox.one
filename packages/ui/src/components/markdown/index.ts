@@ -1,5 +1,5 @@
 /**
- * Markdown component exports for @rox-agent/ui
+ * Markdown component exports for @rox-one/ui
  */
 
 export { Markdown, MemoizedMarkdown, type MarkdownProps, type RenderMode } from './Markdown'

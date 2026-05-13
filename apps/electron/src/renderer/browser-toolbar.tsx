@@ -12,7 +12,7 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import { setupI18n } from '@rox-agent/shared/i18n'
 import { EyeOff, X, XCircle } from 'lucide-react'
-import { BrowserControls } from '@rox-agent/ui'
+import { BrowserControls } from '@rox-one/ui'
 import { HeaderIconButton } from '@/components/ui/HeaderIconButton'
 import {
   DropdownMenu,

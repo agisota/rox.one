@@ -12,7 +12,7 @@ import { Provider as JotaiProvider, createStore } from 'jotai'
 import { I18nextProvider } from 'react-i18next'
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
-import { TooltipProvider } from '@rox-agent/ui'
+import { TooltipProvider } from '@rox-one/ui'
 import { ReducedMotionProvider } from '@/context/ReducedMotionContext'
 
 // Initialize a minimal i18n instance for tests. Real translations are not

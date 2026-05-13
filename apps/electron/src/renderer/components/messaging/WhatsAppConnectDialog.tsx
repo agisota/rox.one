@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { Spinner } from '@rox-agent/ui'
+import { Spinner } from '@rox-one/ui'
 import { useActiveWorkspace } from '@/context/AppShellContext'
 import type { WhatsAppUiEvent } from '../../../shared/types'
 

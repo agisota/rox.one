@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import type { ActivityItem } from '@rox-agent/ui'
+import type { ActivityItem } from '@rox-one/ui'
 import { collectFileChangesFromActivities, getFirstFileChangeIdForActivity } from '../file-changes'
 
 function activity(overrides: Partial<ActivityItem>): ActivityItem {

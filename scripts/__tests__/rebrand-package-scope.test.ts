@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 
@@ -6,9 +7,10 @@ const repoRoot = join(import.meta.dir, "../..");
 const legacyStem = "cr" + "aft";
 const legacyScope = `@${legacyStem}-agent`;
 const roxScope = "@rox-one";
-const packageName = "test-fixtures";
-const legacyFixturePackage = `${legacyScope}/${packageName}`;
-const roxFixturePackage = `${roxScope}/${packageName}`;
+const legacyFixturePackage = `${legacyScope}/test-fixtures`;
+const roxFixturePackage = `${roxScope}/test-fixtures`;
+const legacyUiPackage = `${legacyScope}/ui`;
+const roxUiPackage = `${roxScope}/ui`;
 
 function readText(path: string): string {
   return readFileSync(join(repoRoot, path), "utf8");
@@ -16,6 +18,30 @@ function readText(path: string): string {
 
 function readJson(path: string): Record<string, unknown> {
   return JSON.parse(readText(path)) as Record<string, unknown>;
+}
+
+function listFiles(root: string): string[] {
+  const absoluteRoot = join(repoRoot, root);
+  const entries = readdirSync(absoluteRoot, { withFileTypes: true });
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const relativePath = join(root, entry.name);
+    const absolutePath = join(repoRoot, relativePath);
+    if (entry.isDirectory()) {
+      if (entry.name === "dist" || entry.name === "node_modules") continue;
+      files.push(...listFiles(relativePath));
+      continue;
+    }
+
+    if (!entry.isFile()) continue;
+    const stats = statSync(absolutePath);
+    if (stats.size > 2_000_000) continue;
+    if (!/\.(css|json|md|ts|tsx)$/.test(entry.name)) continue;
+    files.push(relativePath);
+  }
+
+  return files;
 }
 
 describe("R.5 package-scope rebrand", () => {
@@ -44,5 +70,31 @@ describe("R.5 package-scope rebrand", () => {
     const lockfile = readText("bun.lock");
     expect(lockfile).toContain(roxFixturePackage);
     expect(lockfile).not.toContain(legacyFixturePackage);
+  });
+
+  test("renames the shared UI workspace package to the ROX scope", () => {
+    const uiPackageJson = readJson("packages/ui/package.json");
+    expect(uiPackageJson.name).toBe(roxUiPackage);
+
+    const dependencyPackages = [
+      "apps/electron/package.json",
+      "apps/viewer/package.json",
+      "apps/webui/package.json",
+    ];
+
+    for (const path of dependencyPackages) {
+      const packageJson = readJson(path);
+      const dependencies = packageJson.dependencies as Record<string, string>;
+      expect(dependencies[roxUiPackage], path).toBe("workspace:*");
+      expect(dependencies[legacyUiPackage], path).toBeUndefined();
+    }
+
+    const activeFiles = [...listFiles("apps"), ...listFiles("packages"), "bun.lock"];
+    const legacyMatches = activeFiles.filter((path) => readText(path).includes(legacyUiPackage));
+    expect(legacyMatches).toEqual([]);
+
+    const roxMatches = activeFiles.filter((path) => readText(path).includes(roxUiPackage));
+    expect(roxMatches.length).toBeGreaterThan(0);
+    expect(readText("bun.lock")).toContain(roxUiPackage);
   });
 });

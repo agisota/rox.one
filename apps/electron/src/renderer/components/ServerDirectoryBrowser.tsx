@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { useRegisterModal } from '@/context/ModalContext'
 import type { DirectoryListingResult } from '../../shared/types'
 import { FolderIcon, FolderSymlinkIcon, ChevronRightIcon } from 'lucide-react'
-import { Spinner } from '@rox-agent/ui'
+import { Spinner } from '@rox-one/ui'
 
 /**
  * Detect paths that are clearly from the wrong platform.

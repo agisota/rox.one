@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 import { Button, type ButtonProps } from "@/components/ui/button"
-import { Spinner } from "@rox-agent/ui"
+import { Spinner } from "@rox-one/ui"
 
 /* =============================================================================
    ADD WORKSPACE PRIMITIVES
