@@ -862,6 +862,8 @@
   "settings.appearance.usingDefaultTheme": "using default theme",
   "settings.appearance.workspaceThemes": "Workspace Themes",
   "settings.appearance.workspaceThemesDesc": "Override theme settings per workspace",
+  "settings.auditLog.description": "Read-only history of role grants, mission lifecycle, and login events",
+  "settings.auditLog.title": "Audit log",
   "settings.input.autoCapitalisation": "Auto capitalisation",
   "settings.input.autoCapitalisationDesc": "Automatically capitalise the first letter when typing a message.",
   "settings.input.cmdEnterKey": "⌘ Enter",

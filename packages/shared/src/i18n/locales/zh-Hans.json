@@ -862,6 +862,8 @@
   "settings.appearance.usingDefaultTheme": "使用默认主题",
   "settings.appearance.workspaceThemes": "Workspace 主题",
   "settings.appearance.workspaceThemesDesc": "按 Workspace 覆盖主题设置",
+  "settings.auditLog.description": "角色授权、任务生命周期和登录事件的只读历史",
+  "settings.auditLog.title": "审计日志",
   "settings.input.autoCapitalisation": "自动大写",
   "settings.input.autoCapitalisationDesc": "输入消息时自动大写首字母。",
   "settings.input.cmdEnterKey": "⌘ Enter",

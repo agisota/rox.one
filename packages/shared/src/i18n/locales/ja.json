@@ -862,6 +862,8 @@
   "settings.appearance.usingDefaultTheme": "デフォルトテーマを使用中",
   "settings.appearance.workspaceThemes": "Workspaceテーマ",
   "settings.appearance.workspaceThemesDesc": "Workspaceごとにテーマ設定を上書きします",
+  "settings.auditLog.description": "ロール付与、ミッションのライフサイクル、ログインイベントの読み取り専用履歴",
+  "settings.auditLog.title": "監査ログ",
   "settings.input.autoCapitalisation": "自動大文字化",
   "settings.input.autoCapitalisationDesc": "メッセージを入力するとき、最初の文字を自動的に大文字にします。",
   "settings.input.cmdEnterKey": "⌘ Enter",

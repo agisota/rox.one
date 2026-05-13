@@ -862,6 +862,8 @@
   "settings.appearance.usingDefaultTheme": "używa domyślnego motywu",
   "settings.appearance.workspaceThemes": "Motywy Workspace",
   "settings.appearance.workspaceThemesDesc": "Nadpisz ustawienia motywu dla każdego Workspace",
+  "settings.auditLog.description": "Historia tylko do odczytu uprawnień, zdarzeń misji i logowań",
+  "settings.auditLog.title": "Dziennik audytu",
   "settings.input.autoCapitalisation": "Automatyczna wielka litera",
   "settings.input.autoCapitalisationDesc": "Automatycznie pisz pierwszą literę wielką podczas wpisywania wiadomości.",
   "settings.input.cmdEnterKey": "⌘ Enter",
