@@ -9,3 +9,4 @@ rebrand-R.4-doc-plan-cleanup | 5bfd87a,1cd54cf,0fd740f,cb34ecd | T269,T270,T271,
 rebrand-R.5-package-scope-renames | acc1946,76b85ec,f07da34,09ef0ef,34dc261,35098cc,f7c2a15,d7a9af1,8a390ec,baad43e,3ab5324,2c70ed4 | T273,T274,T275,T276,T277,T278,T279,T280,T281,T282,T283,T284 | 2026-05-13T16:07:51Z
 rebrand-R.6-env-var-shim | 777ada7 | T285,T286,T287,T288 | 2026-05-13T16:30:00Z
 rebrand-R.7-docker-ci-build | 1766229,24b0d01,23a3b73 | T289,T290,T291 | 2026-05-13T20:35:00Z
+rebrand-R.8-user-data-migration | 3f9ea58,efdf1bc,f39d087 | T292,T293,T294 | 2026-05-13T21:00:00Z
