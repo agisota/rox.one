@@ -205,6 +205,11 @@ const accountApiProxy = createAccountApiProxy({
   sessionStore: createFileAccountSessionStore({
     filePath: join(app.getPath('userData'), 'account-session.enc'),
     safeStorage,
+    logger: {
+      info: (message, meta) => mainLog.info(message, meta),
+      warn: (message, meta) => mainLog.warn(message, meta),
+      error: (message, meta) => mainLog.error(message, meta),
+    },
   }),
 })
 
