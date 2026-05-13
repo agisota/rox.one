@@ -1,6 +1,6 @@
 # T341 - RC Scenario S03: 24h Mission → Checkpoint → Final Verification
 
-Status: Todo
+Status: Blocked
 
 ## Context
 
