@@ -59,4 +59,14 @@ describe("R.10 permanent validate:rebrand gate", () => {
     }
     expect(matches.length).toBeGreaterThan(0);
   });
+
+  test("closeout mapping records concrete R.10 follow-up commit evidence", () => {
+    const mapping = read(join(repoRoot, "docs/release/rebrand-mapping-2026-05-13.md"));
+    const t296Worklog = read(join(repoRoot, "docs/worklog/T296-rebrand-sweep-closeout.md"));
+
+    expect(mapping).toContain("| R.10 follow-up | T321 | `d0b2528` |");
+    expect(mapping).toContain("validate:roadmap OK");
+    expect(mapping).not.toContain("this closeout commit");
+    expect(t296Worklog).not.toContain("this closeout commit");
+  });
 });
