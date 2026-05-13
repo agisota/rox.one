@@ -1084,6 +1084,8 @@
   "settings.server.token": "Token",
   "settings.shortcuts.description": "Tastaturkürzel",
   "settings.shortcuts.title": "Tastaturkürzel",
+  "settings.teamPermissions.description": "Rollen und Grants in Workspaces und Organisationen verwalten",
+  "settings.teamPermissions.title": "Team und Berechtigungen",
   "settings.tools.builtInBrowser": "Integrierter Browser",
   "settings.tools.builtInBrowserDesc": "Deaktivieren, wenn Sie externe Browser-Werkzeuge wie Playwright, Puppeteer oder Browser-MCP-Server verwenden.",
   "settings.tools.title": "Werkzeuge",

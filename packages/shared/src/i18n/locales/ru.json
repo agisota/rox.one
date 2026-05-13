@@ -1084,6 +1084,8 @@
   "settings.server.token": "Токен",
   "settings.shortcuts.description": "Сочетания клавиш",
   "settings.shortcuts.title": "Клавиши",
+  "settings.teamPermissions.description": "Управление ролями и грантами в рабочих областях и организациях",
+  "settings.teamPermissions.title": "Команда и разрешения",
   "settings.tools.builtInBrowser": "Встроенный браузер",
   "settings.tools.builtInBrowserDesc": "Отключите, если используете внешние браузерные инструменты: Playwright, Puppeteer или MCP-серверы браузера.",
   "settings.tools.title": "Инструменты",

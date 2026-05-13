@@ -1084,6 +1084,8 @@
   "settings.server.token": "Token",
   "settings.shortcuts.description": "Billentyűparancsok",
   "settings.shortcuts.title": "Billentyűparancsok",
+  "settings.teamPermissions.description": "Szerepkörök és jogosultságok kezelése munkaterületeken és szervezetekben",
+  "settings.teamPermissions.title": "Csapat és engedélyek",
   "settings.tools.builtInBrowser": "Beépített böngésző",
   "settings.tools.builtInBrowserDesc": "Tiltsd le, ha külső böngészőeszközöket használsz, például Playwright, Puppeteer vagy böngésző MCP szervereket.",
   "settings.tools.title": "Eszközök",
