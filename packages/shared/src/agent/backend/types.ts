@@ -42,10 +42,22 @@ export interface BackendRuntimeUpdate {
     piAuthProvider?: string;
     customEndpoint?: { api: string; supportsImages?: boolean };
     customModels?: Array<string | { id: string; contextWindow?: number; supportsImages?: boolean }>;
+    storageScopeAuth?: BackendStorageScopeAuth;
     [key: string]: unknown;
   };
 }
 import type { AutomationSystem } from '../../automations/index.ts';
+
+export interface BackendStorageScopeAuth {
+  requestedWorkspaceId: string | null;
+  permittedWorkspaces: readonly string[];
+  userId?: string;
+  reqId?: string;
+}
+
+export interface PiStorageScopeAuthEnvelope extends BackendStorageScopeAuth {
+  integrityToken: string;
+}
 
 /**
  * Provider identifier for AI backends.
@@ -184,6 +196,12 @@ export interface CoreBackendConfig {
 
   /** Headless mode flag (disables interactive tools) */
   isHeadless?: boolean;
+
+  /**
+   * Auth-bound inputs for subprocesses that must re-mint storage scope inside
+   * their own process. Branded scopes are intentionally not serializable.
+   */
+  storageScopeAuth?: BackendStorageScopeAuth;
 
   /** Skip agent-level config file watching (server already owns a workspace-level watcher) */
   skipConfigWatcher?: boolean;
