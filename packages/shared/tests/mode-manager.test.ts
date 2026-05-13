@@ -8,7 +8,7 @@
  * mode-manager-write-detection.test.ts, mode-manager-powershell.test.ts,
  * mode-manager-windows-paths.test.ts.
  *
- * The shared TEST_MODE_CONFIG fixture lives in @craft-agent/test-fixtures.
+ * The shared TEST_MODE_CONFIG fixture lives in @rox-one/test-fixtures.
  */
 import { describe, it, expect } from 'bun:test';
 import { join } from 'path';
@@ -25,7 +25,7 @@ import {
   type CompiledBashPattern,
 } from '../src/agent/mode-manager.ts';
 
-import { TEST_MODE_CONFIG } from '@craft-agent/test-fixtures';
+import { TEST_MODE_CONFIG } from '@rox-one/test-fixtures';
 describe('hasDangerousSubstitution', () => {
   describe('command substitution $() (should be blocked)', () => {
     const commandSubstitutionAttacks = [
