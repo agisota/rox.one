@@ -8,6 +8,8 @@ This file accumulates release notes for the next unreleased version. PRs that ad
 
 ## Improvements
 
+- **ROX.ONE surface copy polish** — Remaining active Electron/WebUI surface text now uses the dotted ROX.ONE wordmark in app titles, onboarding labels, menu accessibility copy, bundled automation docs, and messaging playground previews.
+
 ## Bug Fixes
 
 ## Breaking Changes
