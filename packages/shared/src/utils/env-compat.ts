@@ -2,16 +2,16 @@
  * Backward-compatible environment variable reader for the ROX.ONE rebrand.
  *
  * Reads the canonical `ROX_*` environment variable when set. Falls back to
- * the matching legacy `ROX_*` variable for one minor version, emitting a
+ * the matching legacy `CRAFT_*` variable for one minor version, emitting a
  * single deprecation warning on stderr the first time each legacy name is
  * observed in the current process.
  *
- * The legacy `ROX_*` fallback is scheduled for removal in the minor
+ * The legacy `CRAFT_*` fallback is scheduled for removal in the minor
  * release following the one that ships this shim. See Phase R.6 of the
  * rebrand-sweep goal doc for the policy.
  */
 
-const LEGACY_PREFIX = 'ROX' + '_';
+const LEGACY_PREFIX = 'CRAFT' + '_';
 const NEW_PREFIX = 'ROX_';
 
 const warnedLegacyEnvVars = new Set<string>();
@@ -29,7 +29,7 @@ function emitEnvDeprecationWarning(legacyName: string, newName: string): void {
 
 /**
  * Read an environment variable, preferring the canonical `ROX_*` name and
- * falling back to the legacy `ROX_*` name with a one-time deprecation
+ * falling back to the legacy `CRAFT_*` name with a one-time deprecation
  * warning.
  *
  * @param name - The canonical environment variable name (e.g. `ROX_DEBUG`).
