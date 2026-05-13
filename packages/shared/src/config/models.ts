@@ -97,6 +97,15 @@ export const MODEL_REGISTRY: ModelDefinition[] = [
     contextWindow: 1_000_000,
   },
   {
+    id: 'claude-opus-4-6',
+    name: 'Opus 4.6',
+    shortName: 'Opus',
+    description: 'Most capable for complex work',
+    descriptionKey: 'model.opusDesc',
+    provider: 'anthropic',
+    contextWindow: 1_000_000,
+  },
+  {
     id: 'claude-sonnet-4-6',
     name: 'Sonnet 4.6',
     shortName: 'Sonnet',
