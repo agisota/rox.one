@@ -1,6 +1,6 @@
 # T345 - RC Scenario S07: Sync Push/Pull → Conflict → Explicit Resolution
 
-Status: Todo
+Status: Blocked
 
 ## Context
 
