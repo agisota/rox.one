@@ -12,7 +12,7 @@ stop state. The destructive history rewrite has not started.
 ## 2. Repo context discovered
 
 The rebrand-sweep goal requires R.11 to run only after all hard prerequisites
-are true. Current staged report-only preflight evidence after T383:
+are true. Current staged report-only preflight evidence after T387:
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
@@ -20,6 +20,7 @@ are true. Current staged report-only preflight evidence after T383:
 | No open PRs | `gh pr list --state open --json number,title,headRefName,url --limit 200` returned `[]` | Green |
 | `rebrand-v1` tag exists | Preflight reports pass | Green |
 | Backup tag exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
+| Backup branch exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | Offline mirror exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | `git-filter-repo` available | Preflight reports pass after T371 PATH bridge | Green |
 | R.11 closeout ticket exists | Exact files `docs/tickets/T298-rebrand-git-history-rewrite.md` and `docs/worklog/T298-rebrand-git-history-rewrite.md` exist with `Status: BLOCKED`; this is distinct from the unrelated `T298-rc-preflight` ticket | Green |
@@ -110,10 +111,11 @@ exited 0 with no output.
 No build expected for this scaffold. The future destructive rewrite must run
 the full post-rewrite build matrix before this ticket can become `DONE`.
 
-### Current follow-up evidence, 2026-05-14T02:49:26Z
+### Current follow-up evidence, 2026-05-14T03:02:19Z
 
-T375 through T383 refreshed the blocker state after PR #205 merged, after
-the staged preflight split landed, and after the R.11 local path runbook repair:
+T375 through T387 refreshed the blocker state after PR #205 merged, after
+the staged preflight split landed, after the R.11 local path runbook repair,
+and after the pre-rewrite backup branch check landed:
 
 - GitHub reports no open PRs.
 - GitHub fork count is `0`.
@@ -135,6 +137,8 @@ the staged preflight split landed, and after the R.11 local path runbook repair:
 - The exact R.11 closeout ticket/worklog pair exists and remains
   `Status: BLOCKED`; do not confuse it with the unrelated, already-complete
   `T298-rc-preflight` release-readiness ticket.
+- The explicit pre-rewrite helper now checks all three mandatory backup
+  artifacts from the runbook: backup tag, backup branch, and offline mirror.
 
 The latest default pre-backup preflight remains red on one blocker:
 
@@ -147,16 +151,18 @@ The latest explicit pre-rewrite preflight remains red on backup artifacts:
 
 ```text
 backup-tag           fail    pre-rebrand-history-rewrite-backup ...
+backup-branch        fail    backup/pre-rebrand-history-rewrite-...
 offline-mirror       fail    /tmp/rox-one-terminal-backup-2026-0...
-red - 2 R.11 pre-rewrite prerequisite(s) failing
+red - 3 R.11 pre-rewrite prerequisite(s) failing
 ```
 
 ## 10. Remaining risks
 
-R.11 pre-backup remains blocked by active goal state. Backup tag and offline
-mirror creation must wait until that hard stop is truthfully cleared. After
-backup creation, `bun run rebrand:r11-preflight --stage pre-rewrite` must pass
-before any `git filter-repo` invocation.
+R.11 pre-backup remains blocked by active goal state. Backup tag, backup branch,
+and offline mirror creation must wait until that hard stop is truthfully
+cleared. After backup creation,
+`bun run rebrand:r11-preflight --stage pre-rewrite` must pass before any
+`git filter-repo` invocation.
 
 ## 11. Acceptance criteria matrix
 
@@ -165,7 +171,7 @@ before any `git filter-repo` invocation.
 | R.11 preflight is green before backup creation | Blocked | Default pre-backup gate fails only on active goal |
 | Backup tag exists on origin | Blocked | Not created while preflight is red |
 | Backup branch exists on origin | Blocked | Not created while preflight is red |
-| Offline mirror exists | Blocked | Not created while pre-backup gate is red |
+| Offline mirror exists | Blocked | Not created while preflight is red |
 | `git filter-repo` command history is recorded | Blocked | `git filter-repo` has not run |
 | Legal-preserve byte diffs are empty | Blocked | Cannot run before rewrite |
 | Dockerfile upstream attribution URL remains intact | Blocked | Must verify after rewrite |
