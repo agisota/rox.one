@@ -46,6 +46,12 @@ const activeGoalInventoryPath = join(
   'release',
   'r11-active-goal-inventory-2026-05-14.md',
 )
+const blockerInventoryIndexPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-blocker-inventory-index-2026-05-14.md',
+)
 const currentMainValidationPath = join(
   repoRoot,
   'docs',
@@ -240,6 +246,42 @@ describe('R.11 completion audit', () => {
     expect(currentBlockers).toContain('Current checkout is main')
     expect(currentBlockers).toContain('pass')
     expect(audit).toContain('This does not satisfy the final post-rewrite validation requirement')
+  })
+
+  test('indexes every current blocker inventory artifact', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const currentBlockers =
+      audit.split('## Current Blockers')[1]?.split('## Operator-Owned Unblock Checklist')[0] ?? ''
+    const blockerInventoryIndex = readFileSync(blockerInventoryIndexPath, 'utf8')
+
+    expect(currentBlockers).toContain('docs/release/r11-blocker-inventory-index-2026-05-14.md')
+    expect(blockerInventoryIndex).toContain('Status: REPORT-ONLY BLOCKER INDEX')
+
+    for (const expected of [
+      'no-active-goal',
+      'fork-review',
+      'rebrand-tag-local-sync',
+      'rebrand-tag-on-main',
+      'backup-tag',
+      'backup-branch',
+      'offline-mirror',
+      'remote-branch-review',
+      'legal-file-LICENSE',
+      'legal-file-NOTICE',
+      'legal-file-TRADEMARK.md',
+      'history-scan',
+      'docs/release/r11-active-goal-inventory-2026-05-14.md',
+      'docs/release/r11-fork-review-inventory-2026-05-14.md',
+      'docs/release/r11-tag-drift-inventory-2026-05-14.md',
+      'docs/release/r11-backup-artifact-inventory-2026-05-14.md',
+      'docs/release/r11-remote-branch-review-2026-05-14.md',
+      'docs/release/r11-legal-preserve-inventory-2026-05-14.md',
+      'docs/release/r11-history-scan-inventory-2026-05-14.md',
+    ]) {
+      expect(blockerInventoryIndex).toContain(expected)
+    }
+
+    expect(blockerInventoryIndex).toContain('does not authorize destructive R.11 work')
   })
 
   test('records the active goal blocker as a dedicated inventory', () => {
