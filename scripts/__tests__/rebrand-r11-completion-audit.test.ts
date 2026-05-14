@@ -164,6 +164,7 @@ describe('R.11 completion audit', () => {
       'backup-branch',
       'offline-mirror',
       'remote-branch-review',
+      'fork-review',
       'legal-file-LICENSE',
       'legal-file-NOTICE',
       'legal-file-TRADEMARK.md',
@@ -172,6 +173,20 @@ describe('R.11 completion audit', () => {
     ]) {
       expect(currentBlockers).toContain(blockerId)
     }
+  })
+
+  test('records the current fork-review blocker count', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const hardPrereqs =
+      audit.split('## R.11 Hard Prerequisite Evidence')[1]?.split('## Current Main Validation Matrix')[0] ?? ''
+    const currentBlockers =
+      audit.split('## Current Blockers')[1]?.split('## Operator-Owned Unblock Checklist')[0] ?? ''
+
+    expect(hardPrereqs).toContain('6. Fork review')
+    expect(hardPrereqs).toContain('GitHub reports 1 fork(s); expected 0')
+    expect(hardPrereqs).toContain('Blocked')
+    expect(currentBlockers).toContain('fork-review')
+    expect(currentBlockers).toContain('GitHub reports 1 fork(s); expected 0')
   })
 
   test('records the current remote branch review blocker count', () => {

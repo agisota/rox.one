@@ -19,7 +19,7 @@ durable audit at `docs/release/r11-completion-audit-2026-05-14.md`:
 | --- | --- | --- |
 | No active `/goal` runs | `get_goal` still reports the rebrand-sweep goal active | Blocked |
 | No open PRs | `gh pr list --state open --json number,title,headRefName,url --limit 200` returned `[]` | Green |
-| Fork count reviewed | Preflight reports expected fork count `0` | Green |
+| Fork count reviewed | Preflight reports `fork-review` fail: GitHub reports 1 fork(s); expected 0 | Blocked |
 | R.0-R.10 closeouts done | Preflight reports exact rebrand ticket/worklog closeouts present and done | Green |
 | C4 Phase 1 closeout done | Preflight reports exact T223 closeout ticket done | Green |
 | RBAC Phase 2 closeout done | Preflight reports exact T229 closeout ticket done | Green |
@@ -140,7 +140,8 @@ remote-branch-review preflight rows landed, and after the report-only
 history/legal-preserve gates were added and wired into the R.11 goal:
 
 - GitHub reports no open PRs.
-- GitHub fork count is `0`.
+- GitHub fork review is currently blocked: GitHub reports 1 fork(s); expected
+  0.
 - `main` and `origin/main` are synchronized (`origin/main...HEAD` is `0 0`
   in clean post-push checks).
 - `rebrand-v1` exists on `origin`.
@@ -181,8 +182,8 @@ history/legal-preserve gates were added and wired into the R.11 goal:
 - The explicit pre-rewrite helper now checks all three mandatory backup
   artifacts from the runbook: backup tag, backup branch, and offline mirror.
 - The report-only helper now checks fork count against
-  `ROX_R11_EXPECTED_FORKS` (default `0`), and the latest run reports the
-  expected count.
+  `ROX_R11_EXPECTED_FORKS` (default `0`), and the latest run reports
+  `fork-review` fail because GitHub reports 1 fork(s); expected 0.
 - The helper now checks exact R.0-R.10 rebrand ticket/worklog closeouts, exact
   T223 C4 Phase 1 closeout status, and exact T229 RBAC Phase 2 closeout
   status before any R.11 backup or rewrite action.
@@ -194,10 +195,11 @@ history/legal-preserve gates were added and wired into the R.11 goal:
   the latest run reports 139 branches outside `main` and the R.11 backup
   branch.
 
-The latest post-push default pre-backup preflight reports three blockers:
+The latest post-push default pre-backup preflight reports four blockers:
 
 ```text
 no-active-goal       fail    Missing ROX_R11_NO_ACTIVE_GOAL=1 ac...
+fork-review          fail    GitHub reports 1 fork(s); expected 0.
 rebrand-tag-local-sync fail  Local rebrand-v1 target differs fro...
 rebrand-tag-on-main  fail    rebrand-v1 target is missing from o...
 main-sync            pass    origin/main...main is 0 0.
@@ -205,7 +207,7 @@ worktree-clean       pass    git status --porcelain is empty.
 rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
 phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
 phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
-red — 3 R.11 pre-backup prerequisite(s) failing
+red — 4 R.11 pre-backup prerequisite(s) failing
 ```
 
 The latest explicit pre-rewrite preflight remains red on tag drift,
@@ -218,12 +220,13 @@ backup-tag           fail    pre-rebrand-history-rewrite-backup ...
 backup-branch        fail    backup/pre-rebrand-history-rewrite-...
 offline-mirror       fail    /tmp/rox-one-terminal-backup-2026-0...
 remote-branch-review fail    origin has 139 non-main/non-R.11-ba...
+fork-review          fail    GitHub reports 1 fork(s); expected 0.
 main-sync            pass    origin/main...main is 0 0.
 worktree-clean       pass    git status --porcelain is empty.
 rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
 phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
 phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
-red — 6 R.11 pre-rewrite prerequisite(s) failing
+red — 7 R.11 pre-rewrite prerequisite(s) failing
 ```
 
 The latest legal-preserve runner remains blocked on the missing backup tag but
@@ -239,8 +242,9 @@ red - 3 R.11 legal-preserve check(s) failing
 
 ## 10. Remaining risks
 
-R.11 pre-backup remains blocked by active goal state, local/remote
-`rebrand-v1` tag drift, and the off-main `rebrand-v1` target. Backup tag,
+R.11 pre-backup remains blocked by active goal state, fork count drift,
+local/remote `rebrand-v1` tag drift, and the off-main `rebrand-v1` target.
+Backup tag,
 backup branch, offline mirror creation, and remote branch cleanup/review must
 wait until those hard stops are truthfully cleared and a separate R.11 unblock
 path authorizes them. After backup creation, `bun run rebrand:r11-preflight
@@ -250,7 +254,7 @@ path authorizes them. After backup creation, `bun run rebrand:r11-preflight
 
 | Acceptance criterion | Status | Evidence |
 | --- | --- | --- |
-| R.11 preflight is green before backup creation | Blocked | Default pre-backup gate fails on active goal, `rebrand-tag-local-sync`, and `rebrand-tag-on-main` |
+| R.11 preflight is green before backup creation | Blocked | Default pre-backup gate fails on active goal, `fork-review`, `rebrand-tag-local-sync`, and `rebrand-tag-on-main` |
 | Backup tag exists on origin | Blocked | Not created while preflight is red |
 | Backup branch exists on origin | Blocked | Not created while preflight is red |
 | Offline mirror exists | Blocked | Not created while preflight is red |
