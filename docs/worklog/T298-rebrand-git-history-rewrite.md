@@ -12,7 +12,7 @@ stop state. The destructive history rewrite has not started.
 ## 2. Repo context discovered
 
 The rebrand-sweep goal requires R.11 to run only after all hard prerequisites
-are true. Current staged report-only preflight evidence after T394:
+are true. Current staged report-only preflight evidence after T395:
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
@@ -23,6 +23,7 @@ are true. Current staged report-only preflight evidence after T394:
 | C4 Phase 1 closeout done | Preflight reports exact T223 closeout ticket done | Green |
 | RBAC Phase 2 closeout done | Preflight reports exact T229 closeout ticket done | Green |
 | `rebrand-v1` tag exists | Preflight reports pass | Green |
+| Local `rebrand-v1` matches origin | Preflight reports fail | Blocked |
 | `rebrand-v1` tag target is on `origin/main` | Preflight reports fail | Blocked |
 | Backup tag exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | Backup branch exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
@@ -116,17 +117,19 @@ exited 0 with no output.
 No build expected for this scaffold. The future destructive rewrite must run
 the full post-rewrite build matrix before this ticket can become `DONE`.
 
-### Current follow-up evidence, 2026-05-14T03:27:04Z
+### Current follow-up evidence, 2026-05-14T03:39:12Z
 
-T375 through T394 refreshed the blocker state after PR #205 merged, after
+T375 through T395 refreshed the blocker state after PR #205 merged, after
 the staged preflight split landed, after the R.11 local path runbook repair,
 after the pre-rewrite backup branch check landed, and after the fork-review
-closeout-prerequisite, and tag-on-main preflight rows landed:
+closeout-prerequisite, tag-on-main, and local-tag-sync preflight rows landed:
 
 - GitHub reports no open PRs.
 - GitHub fork count is `0`.
 - `origin/main...HEAD` is `0 0`.
 - `rebrand-v1` exists on `origin`.
+- Local `rebrand-v1^{commit}` and origin `refs/tags/rebrand-v1^{}` currently
+  differ.
 - The `rebrand-v1` target is not currently on `origin/main` ancestry.
 - `pre-rebrand-history-rewrite-backup` does not exist on `origin`.
 - `/tmp/rox-one-terminal-backup-2026-05-13.git` does not exist.
@@ -154,45 +157,53 @@ closeout-prerequisite, and tag-on-main preflight rows landed:
   status before any R.11 backup or rewrite action.
 - The helper now checks whether the remote `rebrand-v1` target is on
   `origin/main` ancestry; the latest run reports it is not.
+- The helper now checks whether local `rebrand-v1` and origin `rebrand-v1`
+  peel to the same commit; the latest run reports they do not.
 
-The latest default pre-backup preflight remains red on two blockers:
+The latest pre-commit default pre-backup preflight reports the new tag drift
+blocker. It also reports `worktree-clean` while the T395 changes are
+uncommitted:
 
 ```text
 no-active-goal       fail    Missing ROX_R11_NO_ACTIVE_GOAL=1 ac...
+rebrand-tag-local-sync fail  Local rebrand-v1 target differs fro...
 rebrand-tag-on-main  fail    rebrand-v1 target is missing from o...
+worktree-clean       fail    git status --porcelain is not empty.
 rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
 phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
 phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
-red - 2 R.11 pre-backup prerequisite(s) failing
+red - 4 R.11 pre-backup prerequisite(s) failing
 ```
 
-The latest explicit pre-rewrite preflight remains red on tag-on-main and backup
-artifacts:
+The latest pre-commit explicit pre-rewrite preflight remains red on tag drift,
+tag-on-main, backup artifacts, and the dirty worktree:
 
 ```text
+rebrand-tag-local-sync fail  Local rebrand-v1 target differs fro...
 rebrand-tag-on-main  fail    rebrand-v1 target is missing from o...
 backup-tag           fail    pre-rebrand-history-rewrite-backup ...
 backup-branch        fail    backup/pre-rebrand-history-rewrite-...
 offline-mirror       fail    /tmp/rox-one-terminal-backup-2026-0...
+worktree-clean       fail    git status --porcelain is not empty.
 rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
 phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
 phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
-red - 4 R.11 pre-rewrite prerequisite(s) failing
+red - 6 R.11 pre-rewrite prerequisite(s) failing
 ```
 
 ## 10. Remaining risks
 
-R.11 pre-backup remains blocked by active goal state and the off-main
-`rebrand-v1` target. Backup tag, backup branch, and offline mirror creation
-must wait until those hard stops are truthfully cleared. After backup creation,
-`bun run rebrand:r11-preflight --stage pre-rewrite` must pass before any
-`git filter-repo` invocation.
+R.11 pre-backup remains blocked by active goal state, local/remote
+`rebrand-v1` tag drift, and the off-main `rebrand-v1` target. Backup tag,
+backup branch, and offline mirror creation must wait until those hard stops are
+truthfully cleared. After backup creation, `bun run rebrand:r11-preflight
+--stage pre-rewrite` must pass before any `git filter-repo` invocation.
 
 ## 11. Acceptance criteria matrix
 
 | Acceptance criterion | Status | Evidence |
 | --- | --- | --- |
-| R.11 preflight is green before backup creation | Blocked | Default pre-backup gate fails on active goal and `rebrand-tag-on-main` |
+| R.11 preflight is green before backup creation | Blocked | Default pre-backup gate fails on active goal, `rebrand-tag-local-sync`, and `rebrand-tag-on-main` |
 | Backup tag exists on origin | Blocked | Not created while preflight is red |
 | Backup branch exists on origin | Blocked | Not created while preflight is red |
 | Offline mirror exists | Blocked | Not created while preflight is red |

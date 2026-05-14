@@ -24,6 +24,7 @@ export interface R11PreflightSnapshot {
   masterPhase1CloseoutDone: boolean
   masterPhase2CloseoutDone: boolean
   rebrandTagPresent: boolean
+  rebrandTagLocalMatchesRemote: boolean
   rebrandTagOnMain: boolean
   backupTagPresent: boolean
   backupBranchPresent: boolean
@@ -222,6 +223,19 @@ export function evaluateR11Preflight(
     snapshot.rebrandTagPresent
       ? pass('rebrand-tag', 'rebrand-v1 tag exists', 'rebrand-v1 is visible on origin.')
       : fail('rebrand-tag', 'rebrand-v1 tag exists', 'rebrand-v1 is missing.'),
+  )
+  results.push(
+    snapshot.rebrandTagLocalMatchesRemote
+      ? pass(
+          'rebrand-tag-local-sync',
+          'Local rebrand-v1 matches origin',
+          'Local rebrand-v1 and origin rebrand-v1 peel to the same commit.',
+        )
+      : fail(
+          'rebrand-tag-local-sync',
+          'Local rebrand-v1 matches origin',
+          'Local rebrand-v1 target differs from origin or is missing.',
+        ),
   )
   results.push(
     snapshot.rebrandTagOnMain
@@ -479,6 +493,21 @@ export function collectR11PreflightSnapshot(
     ],
     repoRoot,
   )
+  const rebrandTagLocalMatchesRemote = run(
+    [
+      'bash',
+      '-lc',
+      [
+        "remote_tag_commit=$(git ls-remote --tags origin 'refs/tags/rebrand-v1^{}' | awk '{print $1}')",
+        "if [ -z \"$remote_tag_commit\" ]; then remote_tag_commit=$(git ls-remote --tags origin 'refs/tags/rebrand-v1' | awk '{print $1}'); fi",
+        "local_tag_commit=$(git rev-parse --verify 'rebrand-v1^{commit}' 2>/dev/null)",
+        'test -n "$remote_tag_commit"',
+        'test -n "$local_tag_commit"',
+        'test "$remote_tag_commit" = "$local_tag_commit"',
+      ].join(' && '),
+    ],
+    repoRoot,
+  )
   const sync = run(
     ['git', 'rev-list', '--left-right', '--count', 'origin/main...main'],
     repoRoot,
@@ -497,6 +526,7 @@ export function collectR11PreflightSnapshot(
     masterPhase1CloseoutDone: isDoneTicket(repoRoot, MASTER_PHASE_1_CLOSEOUT_TICKET),
     masterPhase2CloseoutDone: isDoneTicket(repoRoot, MASTER_PHASE_2_CLOSEOUT_TICKET),
     rebrandTagPresent: remoteTags.includes('refs/tags/rebrand-v1'),
+    rebrandTagLocalMatchesRemote: rebrandTagLocalMatchesRemote.exitCode === 0,
     rebrandTagOnMain: rebrandTagOnMain.exitCode === 0,
     backupTagPresent: remoteTags.includes('refs/tags/pre-rebrand-history-rewrite-backup'),
     backupBranchPresent: remoteBackupBranch.includes(
