@@ -139,6 +139,17 @@ export function migrateUserDataIfNeeded(
     return { migrated: false, reason: 'no-legacy-path' }
   }
 
+  // Self-copy guard: if the resolved legacy source IS the canonical newRoot
+  // (e.g. fresh post-rebrand install with no `.rox-agent/` legacy tree, only
+  // `.rox/` which is both a legacy entry and the new canonical path), the
+  // data is already at its destination. `fs.cpSync(p, p)` throws
+  // `ERR_FS_CP_EINVAL`, so short-circuit here. Write the marker so subsequent
+  // launches take the already-migrated fast path.
+  if (source === newRoot) {
+    writeMarker(newRoot, markerName, source)
+    return { migrated: false, reason: 'already-migrated', source }
+  }
+
   // Conflict: legacy + new root both present, no marker. Refuse to merge.
   // If newRoot is itself one of the legacyRoots (e.g. ~/.rox/ listed as a
   // lower-priority source after ~/.rox-agent/), it is a migration source, not
