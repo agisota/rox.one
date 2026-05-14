@@ -22,6 +22,7 @@ function passingSnapshot(
     masterPhase1CloseoutDone: true,
     masterPhase2CloseoutDone: true,
     rebrandTagPresent: true,
+    rebrandTagOnMain: true,
     backupTagPresent: true,
     backupBranchPresent: true,
     offlineMirrorPresent: true,
@@ -111,6 +112,16 @@ describe('evaluateR11Preflight', () => {
       .toMatchObject({ passed: false })
   })
 
+  test('fails closed when the rebrand-v1 tag target is not on origin main', () => {
+    const report = evaluateR11Preflight(passingSnapshot({
+      rebrandTagOnMain: false,
+    }))
+
+    expect(report.allPassed).toBe(false)
+    expect(report.results.find((result) => result.id === 'rebrand-tag-on-main'))
+      .toMatchObject({ passed: false })
+  })
+
   test('fails closed when rebrand and roadmap closeout prerequisites are incomplete', () => {
     const report = evaluateR11Preflight(passingSnapshot({
       rebrandPhaseCloseoutIssues: [
@@ -144,6 +155,7 @@ describe('evaluateR11Preflight', () => {
       masterPhase1CloseoutDone: false,
       masterPhase2CloseoutDone: false,
       rebrandTagPresent: false,
+      rebrandTagOnMain: false,
       backupTagPresent: false,
       backupBranchPresent: false,
       offlineMirrorPresent: false,
@@ -155,10 +167,11 @@ describe('evaluateR11Preflight', () => {
     }))
 
     expect(report.allPassed).toBe(false)
-    expect(report.results.filter((result) => !result.passed)).toHaveLength(12)
+    expect(report.results.filter((result) => !result.passed)).toHaveLength(13)
     expect(formatR11PreflightReport(report)).toContain('#189')
     expect(formatR11PreflightReport(report)).toContain('fork-review')
     expect(formatR11PreflightReport(report)).toContain('rebrand-closeouts')
+    expect(formatR11PreflightReport(report)).toContain('rebrand-tag-on-main')
     expect(formatR11PreflightReport(report)).toContain('phase2-rbac-closeout')
     expect(formatR11PreflightReport(report)).toContain('r11-closeout-worklog')
     expect(formatR11PreflightReport(report)).toContain('red')
