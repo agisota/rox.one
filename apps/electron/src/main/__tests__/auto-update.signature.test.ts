@@ -26,7 +26,22 @@
  *        update-downloaded / update-not-available / error events.
  */
 
-import { describe, it, expect, beforeEach, mock } from 'bun:test'
+import { describe, it, expect, beforeEach, afterAll, mock } from 'bun:test'
+import * as realSharedConfig from '@rox-one/shared/config'
+import * as realSharedFiles from '@rox-one/shared/utils/files'
+import * as realSharedVersion from '@rox-one/shared/version'
+import * as realFs from 'node:fs'
+import * as realOs from 'node:os'
+import * as realPath from 'node:path'
+
+const actualGetDismissedUpdateVersion = realSharedConfig.getDismissedUpdateVersion
+const actualClearDismissedUpdateVersion = realSharedConfig.clearDismissedUpdateVersion
+const actualGetAppVersion = realSharedVersion.getAppVersion
+const actualReadJsonFileSync = realSharedFiles.readJsonFileSync
+const actualFsExistsSync = realFs.existsSync
+const actualFsReaddirSync = realFs.readdirSync
+const actualPathJoin = realPath.join
+const actualOsPlatform = realOs.platform
 
 // ─── Mock logger first (before any module under test is imported) ─────────────
 
@@ -58,59 +73,206 @@ mock.module('../logger', () => {
 
 // ─── Mock Electron ─────────────────────────────────────────────────────────────
 
+class MockBrowserWindow {
+  static fromWebContents = mock((_webContents: unknown) => null)
+  static getFocusedWindow = mock(() => null)
+  static getAllWindows = mock(() => [])
+
+  webContents = {
+    id: 1,
+    reload: mock(() => {}),
+    reloadIgnoringCache: mock(() => {}),
+    send: mock((_channel: string, _payload?: unknown) => {}),
+  }
+
+  getBrowserViews = mock(() => [])
+}
+
+class MockBrowserView {
+  webContents = {
+    id: 2,
+    reload: mock(() => {}),
+    reloadIgnoringCache: mock(() => {}),
+    send: mock((_channel: string, _payload?: unknown) => {}),
+  }
+}
+
+const mockNativeImage = () => ({
+  isEmpty: () => true,
+  getSize: () => ({ width: 0, height: 0 }),
+  resize: () => mockNativeImage(),
+  toPNG: () => Buffer.from(''),
+  toJPEG: () => Buffer.from(''),
+})
+
+const mockSession = {
+  setPermissionCheckHandler: mock((_handler: unknown) => {}),
+  setPermissionRequestHandler: mock((_handler: unknown) => {}),
+  webRequest: {
+    onBeforeRequest: mock((_handler: unknown) => {}),
+    onCompleted: mock((_handler: unknown) => {}),
+    onErrorOccurred: mock((_handler: unknown) => {}),
+  },
+  on: mock((_event: string, _handler: unknown) => {}),
+}
+
 mock.module('electron', () => ({
   app: {
+    isPackaged: false,
     getName: mock(() => 'rox-one'),
     getPath: mock((name: string) => `/tmp/mock-${name}`),
+    getAppPath: mock(() => '/tmp/mock-app'),
+    quit: mock(() => {}),
+    exit: mock((_code?: number) => {}),
+    dock: { setIcon: mock((_icon: unknown) => {}), setBadge: mock((_badge: string) => {}) },
+    setBadgeCount: mock((_count: number) => {}),
+  },
+  BrowserWindow: MockBrowserWindow,
+  BrowserView: MockBrowserView,
+  Menu: {
+    buildFromTemplate: mock((_template: unknown[]) => ({ popup: mock(() => {}) })),
+    setApplicationMenu: mock((_menu: unknown) => {}),
+    getApplicationMenu: mock(() => null),
   },
   ipcMain: {
     handle: mock(() => {}),
+    on: mock(() => {}),
+    removeHandler: mock(() => {}),
+    removeAllListeners: mock(() => {}),
+  },
+  nativeTheme: {
+    shouldUseDarkColors: false,
+    on: mock((_event: string, _handler: unknown) => {}),
+  },
+  nativeImage: {
+    createFromPath: mock((_path: string) => mockNativeImage()),
+    createFromDataURL: mock((_url: string) => mockNativeImage()),
+    createFromBuffer: mock((_buffer: Buffer) => mockNativeImage()),
+    createEmpty: mock(() => mockNativeImage()),
+  },
+  dialog: {
+    showOpenDialog: mock(async () => ({ canceled: true, filePaths: [] })),
+    showMessageBox: mock(async () => ({ response: 0 })),
+  },
+  shell: {
+    openExternal: mock(async () => {}),
+    openPath: mock(async () => ''),
+    showItemInFolder: mock((_path: string) => {}),
+  },
+  screen: {
+    getDisplayMatching: mock(() => ({ workArea: { x: 0, y: 0, width: 1440, height: 900 } })),
+  },
+  session: {
+    defaultSession: mockSession,
+    fromPartition: mock((_partition: string) => mockSession),
+  },
+  safeStorage: {
+    isEncryptionAvailable: mock(() => false),
+    encryptString: mock((value: string) => Buffer.from(value)),
+    decryptString: mock((value: Buffer) => value.toString('utf8')),
+  },
+  powerSaveBlocker: {
+    start: mock((_type: string) => 1),
+    stop: mock((_id: number) => {}),
+    isStarted: mock((_id: number) => false),
+  },
+  Notification: class {
+    static isSupported() { return false }
+    on() {}
+    show() {}
   },
 }))
 
 // ─── Mock shared modules ───────────────────────────────────────────────────────
 
+const mockGetAppVersion = mock(actualGetAppVersion)
+mockGetAppVersion.mockImplementation(() => '0.9.2')
+
 mock.module('@rox-one/shared/version', () => ({
-  getAppVersion: mock(() => '0.9.2'),
+  ...realSharedVersion,
+  getAppVersion: mockGetAppVersion,
   APP_VERSION: '0.9.2',
 }))
 
+const mockGetDismissedUpdateVersion = mock(actualGetDismissedUpdateVersion)
+const mockClearDismissedUpdateVersion = mock(actualClearDismissedUpdateVersion)
+mockGetDismissedUpdateVersion.mockImplementation(() => null)
+mockClearDismissedUpdateVersion.mockImplementation(() => {})
+
 mock.module('@rox-one/shared/config', () => ({
-  getDismissedUpdateVersion: mock(() => null),
-  clearDismissedUpdateVersion: mock(() => {}),
+  ...realSharedConfig,
+  getDismissedUpdateVersion: mockGetDismissedUpdateVersion,
+  clearDismissedUpdateVersion: mockClearDismissedUpdateVersion,
 }))
 
+const mockReadJsonFileSync = mock(actualReadJsonFileSync)
+mockReadJsonFileSync.mockImplementation(() => null)
+
 mock.module('@rox-one/shared/utils/files', () => ({
-  readJsonFileSync: mock(() => null),
+  ...realSharedFiles,
+  readJsonFileSync: mockReadJsonFileSync,
 }))
 
 // ─── Mock menu (async import inside update-downloaded handler) ────────────────
 
 mock.module('../menu', () => ({
+  createApplicationMenu: mock(() => {}),
+  setMenuEventSink: mock(() => {}),
   rebuildMenu: mock(() => {}),
 }))
 
 // ─── Mock fs (used by checkForExistingDownload) ────────────────────────────────
 
-const mockFsExistsSync = mock((_path: string) => false)
-const mockFsReaddirSync = mock((_path: string) => [] as string[])
+const mockFsExistsSync = mock(actualFsExistsSync)
+const mockFsReaddirSync = mock(actualFsReaddirSync)
+mockFsExistsSync.mockImplementation(() => false)
+mockFsReaddirSync.mockImplementation(() => [])
 
-mock.module('fs', () => ({
+const mockFsModule = () => ({
+  ...realFs,
   existsSync: mockFsExistsSync,
   readdirSync: mockFsReaddirSync,
-}))
+})
+
+mock.module('fs', mockFsModule)
+mock.module('node:fs', mockFsModule)
 
 // ─── Mock path (used by getUpdateCacheDir) ─────────────────────────────────────
 
-mock.module('path', () => ({
-  join: (...parts: string[]) => parts.join('/'),
-}))
+const mockPathJoin = mock(actualPathJoin)
+mockPathJoin.mockImplementation((...parts: string[]) => parts.join('/'))
+
+const mockPathModule = () => ({
+  ...realPath,
+  join: mockPathJoin,
+})
+
+mock.module('path', mockPathModule)
+mock.module('node:path', mockPathModule)
 
 // ─── Mock os ──────────────────────────────────────────────────────────────────
 
-mock.module('os', () => ({
-  platform: mock(() => 'linux'),
-}))
+const mockOsPlatform = mock(actualOsPlatform)
+mockOsPlatform.mockImplementation(() => 'linux')
+
+const mockOsModule = () => ({
+  ...realOs,
+  platform: mockOsPlatform,
+})
+
+mock.module('os', mockOsModule)
+mock.module('node:os', mockOsModule)
+
+afterAll(() => {
+  mockGetAppVersion.mockImplementation(actualGetAppVersion)
+  mockGetDismissedUpdateVersion.mockImplementation(actualGetDismissedUpdateVersion)
+  mockClearDismissedUpdateVersion.mockImplementation(actualClearDismissedUpdateVersion)
+  mockReadJsonFileSync.mockImplementation(actualReadJsonFileSync)
+  mockFsExistsSync.mockImplementation(actualFsExistsSync)
+  mockFsReaddirSync.mockImplementation(actualFsReaddirSync)
+  mockPathJoin.mockImplementation(actualPathJoin)
+  mockOsPlatform.mockImplementation(actualOsPlatform)
+})
 
 // semver is NOT mocked — the real package is used so W-3 tests exercise
 // actual semver comparison logic. Only platform-native and unavailable
@@ -123,10 +285,11 @@ mock.module('os', () => ({
 //   c) checkForUpdates() propagates errors rather than swallowing them silently
 
 type EventHandler = (...args: unknown[]) => void | Promise<void>
+type MockUpdateResult = { updateInfo: null | { version: string } }
 const autoUpdaterListeners: Record<string, EventHandler[]> = {}
 
 // Tracks calls made to the mocked autoUpdater
-const mockCheckForUpdates = mock(async () => ({ updateInfo: null }))
+const mockCheckForUpdates = mock(async (): Promise<MockUpdateResult> => ({ updateInfo: null }))
 const mockQuitAndInstall = mock((_isSilent: boolean, _isForceRunAfter: boolean) => {})
 
 const mockAutoUpdater = {

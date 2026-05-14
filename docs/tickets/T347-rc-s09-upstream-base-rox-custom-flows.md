@@ -1,6 +1,6 @@
 # T347 - RC Scenario S09: Upstream Base Still Passes ROX Custom Flows
 
-Status: Todo
+Status: Blocked
 
 ## Context
 

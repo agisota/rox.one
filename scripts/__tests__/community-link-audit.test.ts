@@ -109,6 +109,7 @@ const PATTERNS: readonly ForbiddenPattern[] = [
     // via WHOLE_FILE_ALLOWLIST.
     regex: new RegExp(`${legacyAgentsRepoUrl}(?!\\.git|/issues|/pulls)\\b`),
     description: `${upstreamRepoUrl} as standalone reference (non-attribution)`,
+    lineAllowlist: [`Local legal-preserve attribution URL | \`${legacyAgentsRepoUrl}`],
   },
   {
     id: "upstream-pulls-tab",
