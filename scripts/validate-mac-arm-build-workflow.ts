@@ -6,6 +6,7 @@ const root = process.cwd();
 const workflowPath = path.join(root, '.github/workflows/mac-arm-build.yml');
 const builderConfigPath = path.join(root, 'apps/electron/electron-builder.yml');
 const beforeBuildHookPath = path.join(root, 'apps/electron/scripts/beforeBuild.cjs');
+const afterSignHookPath = path.join(root, 'apps/electron/scripts/afterSign.cjs');
 const macArmConfigPath = path.join(root, 'apps/electron/electron-builder.mac-arm64.yml');
 const macArmScriptPath = path.join(root, 'scripts/electron-dist-dev-mac-arm64.ts');
 
@@ -52,6 +53,10 @@ if (!existsSync(beforeBuildHookPath)) {
   fail('missing apps/electron/scripts/beforeBuild.cjs');
 }
 
+if (!existsSync(afterSignHookPath)) {
+  fail('missing apps/electron/scripts/afterSign.cjs');
+}
+
 if (!existsSync(macArmScriptPath)) {
   fail('missing scripts/electron-dist-dev-mac-arm64.ts');
 }
@@ -59,6 +64,7 @@ if (!existsSync(macArmScriptPath)) {
 const workflow = readFileSync(workflowPath, 'utf8');
 const builderConfig = readFileSync(builderConfigPath, 'utf8');
 const beforeBuildHook = readFileSync(beforeBuildHookPath, 'utf8');
+const afterSignHook = readFileSync(afterSignHookPath, 'utf8');
 const macArmConfig = readFileSync(macArmConfigPath, 'utf8');
 const macArmScript = readFileSync(macArmScriptPath, 'utf8');
 
@@ -91,8 +97,15 @@ if (macArmConfig.includes('- x64')) {
   fail('arm64 electron-builder config must not include x64 target arch');
 }
 requireText(builderConfig, 'beforeBuild: scripts/beforeBuild.cjs', 'external node_modules beforeBuild hook');
+requireText(builderConfig, 'afterSign: scripts/afterSign.cjs', 'private mac hardened-runtime afterSign hook');
 requireText(builderConfig, 'identity: "-"', 'ad-hoc mac signing identity');
 requireText(beforeBuildHook, 'return false', 'beforeBuild external node_modules signal');
+requireText(afterSignHook, 'ROX_DEV_RUNTIME', 'private mac afterSign dev-runtime guard');
+requireText(afterSignHook, 'codesign', 'private mac afterSign codesign invocation');
+requireText(afterSignHook, "'--options'", 'private mac afterSign codesign options flag');
+requireText(afterSignHook, "'runtime'", 'private mac afterSign hardened runtime option');
+requireText(afterSignHook, "'--entitlements'", 'private mac afterSign entitlements flag');
+requireText(afterSignHook, 'build/entitlements.mac.plist', 'private mac afterSign entitlements path');
 requireText(macArmScript, "arch: ['arm64']", 'generated arm64-only builder target');
 requireText(macArmScript, 'downloadBun', 'Darwin arm64 Bun runtime download');
 requireText(macArmScript, "platform: 'darwin'", 'Darwin runtime platform');
