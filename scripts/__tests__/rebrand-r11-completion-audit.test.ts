@@ -121,6 +121,20 @@ describe('R.11 completion audit', () => {
     expect(promptChecklist).toContain('Blocked')
   })
 
+  test('keeps prompt checklist history-scan command aligned with current blockers', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const promptChecklist =
+      audit.split('## Prompt-to-Artifact Checklist')[1]?.split('## R.11 Hard Prerequisite Evidence')[0] ?? ''
+    const historyScanRow = promptChecklist
+      .split('\n')
+      .find((line) => line.includes('| history scan clean |')) ?? ''
+
+    expect(historyScanRow).toContain('bun run rebrand:r11-history-scan')
+    expect(historyScanRow).toContain('81 forbidden-token patch lines')
+    expect(historyScanRow).not.toContain('REBRAND_R11_HISTORY_MAX_FINDINGS=8')
+    expect(historyScanRow).not.toContain('bounded historical findings')
+  })
+
   test('records the post-rewrite commit-count artifact as blocked evidence', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const promptChecklist =
