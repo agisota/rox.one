@@ -53,6 +53,11 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+        env:
+          # Authenticated GitHub API for @vscode/ripgrep postinstall.
+          # Unauthenticated requests hit the public 60 req/hour limit and
+          # return 403 on the ripgrep release download.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Validate E2E core contract
         run: bun run validate:e2e-core-scenarios
