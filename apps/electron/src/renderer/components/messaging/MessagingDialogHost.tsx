@@ -17,7 +17,13 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { messagingDialogAtom } from '@/atoms/messaging'
 import { PairingCodeDialog } from './PairingCodeDialog'
-import { WhatsAppConnectDialog } from './WhatsAppConnectDialog'
+
+// T132: WhatsAppConnectDialog pulls qrcode.react (~44 KB raw) and only renders
+// when the user explicitly enters the WhatsApp connect flow. Lazy-load it so
+// the QR code library is deferred from the main app-shell chunk.
+const WhatsAppConnectDialog = React.lazy(() =>
+  import('./WhatsAppConnectDialog').then((m) => ({ default: m.WhatsAppConnectDialog })),
+)
 
 export function MessagingDialogHost() {
   const [state, setState] = useAtom(messagingDialogAtom)
@@ -105,11 +111,16 @@ export function MessagingDialogHost() {
         botUsername={state.kind === 'pairing' ? state.botUsername : undefined}
         error={state.kind === 'pairing' ? state.error : undefined}
       />
-      <WhatsAppConnectDialog
-        open={state.kind === 'wa_connect'}
-        onOpenChange={(o) => { if (!o) close() }}
-        onConnected={handleWhatsAppConnected}
-      />
+      {/* Only mount when the dialog is open so the lazy chunk is fetched on demand. */}
+      {state.kind === 'wa_connect' ? (
+        <React.Suspense fallback={null}>
+          <WhatsAppConnectDialog
+            open
+            onOpenChange={(o) => { if (!o) close() }}
+            onConnected={handleWhatsAppConnected}
+          />
+        </React.Suspense>
+      ) : null}
     </>
   )
 }

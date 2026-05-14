@@ -37,10 +37,9 @@ import { useSessionSelection, useIsMultiSelectActive, useSelectedIds, useSelecti
 import { sourceSelection, skillSelection, automationSelection } from '@/hooks/useEntitySelection'
 import { extractLabelId } from '@rox-one/shared/labels'
 import type { SessionStatusId } from '@/config/session-status-config'
-import { SourceInfoPage, ChatPage } from '@/pages'
-import SkillInfoPage from '@/pages/SkillInfoPage'
+import ChatPage from '@/pages/ChatPage'
 import { getSettingsPageComponent } from '@/pages/settings/settings-pages'
-import { AutomationInfoPage } from '../automations/AutomationInfoPage'
+// AutomationInfoPage is wired below as a lazy chunk — see T132 block.
 import { RouteErrorBoundary } from '../RouteErrorBoundary'
 import { ExperienceGlobalHud } from '../workbench/ExperienceGlobalHud'
 import { createInitialExperienceRuntimeState, type ExperienceLayer } from '@rox-one/shared/workbench'
@@ -51,6 +50,18 @@ import { SendResourceToWorkspaceDialog, type SendResourceType } from './SendReso
 // T132: lazy-load WorkbenchRoutePage — it is never visible on cold start
 const WorkbenchRoutePage = React.lazy(() =>
   import(/* webpackChunkName: 'workbench' */ '../workbench/WorkbenchRoutePage').then((m) => ({ default: m.WorkbenchRoutePage }))
+)
+
+// T132: SourceInfoPage and SkillInfoPage pull @tanstack/react-table (~21 KB gz)
+// plus heavy Info_* components. Neither is on the cold-start render path —
+// they only mount when the user opens a source/skill detail. Lazy-load them so
+// the table layer stays out of the main app-shell chunk.
+const SourceInfoPage = React.lazy(() => import('@/pages/SourceInfoPage'))
+const SkillInfoPage = React.lazy(() => import('@/pages/SkillInfoPage'))
+// AutomationInfoPage pulls `croner` (~8 KB gz) plus rich detail UI; only mounts
+// when a single automation is selected.
+const AutomationInfoPage = React.lazy(() =>
+  import('../automations/AutomationInfoPage').then((m) => ({ default: m.AutomationInfoPage })),
 )
 
 const EMPTY_EXPERIENCE_RUNTIME_STATE = createInitialExperienceRuntimeState()
@@ -288,10 +299,12 @@ export function MainContentPanel({
       return wrapWithStoplight(
         <Panel variant="grow" className={className}>
           <RouteErrorBoundary name="source-info">
-            <SourceInfoPage
-              sourceSlug={navState.details.sourceSlug}
-              workspaceId={activeWorkspaceId || ''}
-            />
+            <React.Suspense fallback={<div className="flex h-full w-full bg-background" />}>
+              <SourceInfoPage
+                sourceSlug={navState.details.sourceSlug}
+                workspaceId={activeWorkspaceId || ''}
+              />
+            </React.Suspense>
           </RouteErrorBoundary>
         </Panel>
       )
@@ -324,11 +337,13 @@ export function MainContentPanel({
       return wrapWithStoplight(
         <Panel variant="grow" className={className}>
           <RouteErrorBoundary name="skill-info">
-            <SkillInfoPage
-              skillSlug={navState.details.skillSlug}
-              workspaceId={activeWorkspaceId || ''}
-              workingDirectory={activeSessionWorkingDirectory}
-            />
+            <React.Suspense fallback={<div className="flex h-full w-full bg-background" />}>
+              <SkillInfoPage
+                skillSlug={navState.details.skillSlug}
+                workspaceId={activeWorkspaceId || ''}
+                workingDirectory={activeSessionWorkingDirectory}
+              />
+            </React.Suspense>
           </RouteErrorBoundary>
         </Panel>
       )
@@ -362,16 +377,18 @@ export function MainContentPanel({
       if (automation) {
         return wrapWithStoplight(
           <Panel variant="grow" className={className}>
-            <AutomationInfoPage
-              automation={automation}
-              executions={executions}
-              testResult={automationTestResults?.[automation.id]}
-              onTest={onTestAutomation ? () => onTestAutomation(automation.id) : undefined}
-              onToggleEnabled={onToggleAutomation ? () => onToggleAutomation(automation.id) : undefined}
-              onDuplicate={onDuplicateAutomation ? () => onDuplicateAutomation(automation.id) : undefined}
-              onDelete={onDeleteAutomation ? () => onDeleteAutomation(automation.id) : undefined}
-              onReplay={onReplayAutomation}
-            />
+            <React.Suspense fallback={<div className="flex h-full w-full bg-background" />}>
+              <AutomationInfoPage
+                automation={automation}
+                executions={executions}
+                testResult={automationTestResults?.[automation.id]}
+                onTest={onTestAutomation ? () => onTestAutomation(automation.id) : undefined}
+                onToggleEnabled={onToggleAutomation ? () => onToggleAutomation(automation.id) : undefined}
+                onDuplicate={onDuplicateAutomation ? () => onDuplicateAutomation(automation.id) : undefined}
+                onDelete={onDeleteAutomation ? () => onDeleteAutomation(automation.id) : undefined}
+                onReplay={onReplayAutomation}
+              />
+            </React.Suspense>
           </Panel>
         )
       }

@@ -17,7 +17,12 @@ import {
 } from "@/components/ui/styled-dropdown"
 import { CrossfadeAvatar } from "@/components/ui/avatar"
 import { FadingText } from "@/components/ui/fading-text"
-import { WorkspaceCreationScreen } from "@/components/workspace"
+// T132: WorkspaceCreationScreen drags @paper-design/shaders-react (~38 KB raw)
+// for the dithering shader, plus four step screens. It only mounts after the
+// user clicks "Add workspace", so defer it from the main app-shell chunk.
+const WorkspaceCreationScreen = React.lazy(() =>
+  import("@/components/workspace").then((m) => ({ default: m.WorkspaceCreationScreen })),
+)
 import { waitForTransportConnected } from '@/lib/transport-wait'
 import { useWorkspaceIcons } from "@/hooks/useWorkspaceIcon"
 import { useTransportConnectionState } from "@/hooks/useTransportConnectionState"
@@ -175,12 +180,14 @@ export function WorkspaceSwitcher({
       {/* Full-screen workspace creation overlay */}
       <AnimatePresence>
         {showCreationScreen && (
-          <WorkspaceCreationScreen
-            onWorkspaceCreated={handleWorkspaceCreated}
-            onClose={handleCloseCreationScreen}
-            reconnectWorkspace={reconnectTarget ?? undefined}
-            onReconnectWorkspace={handleReconnectWorkspace}
-          />
+          <React.Suspense fallback={null}>
+            <WorkspaceCreationScreen
+              onWorkspaceCreated={handleWorkspaceCreated}
+              onClose={handleCloseCreationScreen}
+              reconnectWorkspace={reconnectTarget ?? undefined}
+              onReconnectWorkspace={handleReconnectWorkspace}
+            />
+          </React.Suspense>
         )}
       </AnimatePresence>
 

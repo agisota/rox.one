@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import * as Icons from 'lucide-react'
+import { Globe, Monitor, PanelRightOpen, XCircle } from 'lucide-react'
 import { Spinner } from '@rox-one/ui'
 import {
   DropdownMenu,
@@ -220,7 +220,7 @@ export function BrowserTabStrip({
           disabled={!canUseLiveWindowActions}
           onSelect={() => focusBrowserTab(instance)}
         >
-          <Icons.Monitor className="h-3.5 w-3.5" />
+          <Monitor className="h-3.5 w-3.5" />
           Show Browser Tab
         </StyledDropdownMenuItem>
 
@@ -228,7 +228,7 @@ export function BrowserTabStrip({
           disabled={!canOpenSession}
           onSelect={() => openSessionUsingBrowser(instance)}
         >
-          <Icons.PanelRightOpen className="h-3.5 w-3.5" />
+          <PanelRightOpen className="h-3.5 w-3.5" />
           {openSessionLabel}
         </StyledDropdownMenuItem>
 
@@ -239,7 +239,7 @@ export function BrowserTabStrip({
           disabled={!canUseLiveWindowActions}
           onSelect={() => terminateBrowserTab(instance)}
         >
-          <Icons.XCircle className="h-3.5 w-3.5" />
+          <XCircle className="h-3.5 w-3.5" />
           Terminate Browser
         </StyledDropdownMenuItem>
       </>
@@ -288,7 +288,7 @@ export function BrowserTabStrip({
                     {instance.isLoading ? (
                       <Spinner className="text-[10px]" />
                     ) : (
-                      <Icons.Globe className="h-3.5 w-3.5" />
+                      <Globe className="h-3.5 w-3.5" />
                     )}
                     <span className="truncate">{displayLabel}</span>
                   </StyledDropdownMenuSubTrigger>

@@ -8,7 +8,45 @@
  */
 
 import { useTranslation } from "react-i18next"
-import * as Icons from "lucide-react"
+import {
+  // Static icons used directly in TopBar JSX.
+  AppWindow,
+  Bug,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  CircleUserRound,
+  DatabaseZap,
+  Download,
+  ExternalLink,
+  Globe,
+  HelpCircle,
+  Keyboard,
+  LogOut,
+  MessageSquare,
+  Plus,
+  Settings,
+  Webhook,
+  Zap,
+  // Dynamic menu-schema icons resolved by name via MENU_ICON_MAP below.
+  // Listed explicitly so Rollup tree-shakes the rest of lucide-react out of
+  // the main chunk (T132 budget). See `getIcon` for the lookup site.
+  ClipboardPaste,
+  Copy,
+  Eye,
+  Focus,
+  Maximize2,
+  Minimize2,
+  PanelLeft,
+  Pencil,
+  Redo2,
+  RotateCcw,
+  Scissors,
+  TextSelect,
+  Undo2,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@rox-one/ui"
 import { RoxAgentsSymbol } from "../icons/RoxAgentsSymbol"
 import { PanelLeftRounded } from "../icons/PanelLeftRounded"
@@ -68,9 +106,36 @@ const roleHandlers: Record<string, () => void> = {
 const RIGHT_SLOT_FULL_BADGES_THRESHOLD = 420
 const RIGHT_SLOT_TWO_BADGES_THRESHOLD = 300
 
+/**
+ * Static map from menu-schema icon name → Lucide icon component.
+ *
+ * IMPORTANT (T132): this map MUST be kept in sync with the `icon` strings used
+ * in apps/electron/src/shared/menu-schema.ts. An explicit map keeps Rollup's
+ * tree-shaking honest — using `Icons[name]` against a `import * as Icons`
+ * namespace defeats tree-shaking and re-bundles the entire lucide-react icon
+ * set (~919 KB raw / ~280 KB gz) into the main chunk.
+ */
+const MENU_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  AppWindow,
+  ClipboardPaste,
+  Copy,
+  Eye,
+  Focus,
+  Maximize2,
+  Minimize2,
+  PanelLeft,
+  Pencil,
+  Redo2,
+  RotateCcw,
+  Scissors,
+  TextSelect,
+  Undo2,
+  ZoomIn,
+  ZoomOut,
+}
+
 function getIcon(name: string): React.ComponentType<{ className?: string }> | null {
-  const IconComponent = Icons[name as keyof typeof Icons] as React.ComponentType<{ className?: string }> | undefined
-  return IconComponent ?? null
+  return MENU_ICON_MAP[name] ?? null
 }
 
 function renderMenuItem(
@@ -283,7 +348,7 @@ export function TopBar({
             </StyledDropdownMenuItem>
             {onNewWindow && (
               <StyledDropdownMenuItem onClick={onNewWindow}>
-                <Icons.AppWindow className="h-3.5 w-3.5" />
+                <AppWindow className="h-3.5 w-3.5" />
                 {t("menu.newWindow")}
                 {newWindowHotkey && <DropdownMenuShortcut className="pl-6">{newWindowHotkey}</DropdownMenuShortcut>}
               </StyledDropdownMenuItem>
@@ -299,12 +364,12 @@ export function TopBar({
 
             <DropdownMenuSub>
               <StyledDropdownMenuSubTrigger>
-                <Icons.Settings className="h-3.5 w-3.5" />
+                <Settings className="h-3.5 w-3.5" />
                 {t("sidebar.settings")}
               </StyledDropdownMenuSubTrigger>
               <StyledDropdownMenuSubContent>
                 <StyledDropdownMenuItem onClick={onOpenSettings}>
-                  <Icons.Settings className="h-3.5 w-3.5" />
+                  <Settings className="h-3.5 w-3.5" />
                   {t("menu.settings")}
                   {settingsHotkey && <DropdownMenuShortcut className="pl-6">{settingsHotkey}</DropdownMenuShortcut>}
                 </StyledDropdownMenuItem>
@@ -326,17 +391,17 @@ export function TopBar({
 
             <DropdownMenuSub>
               <StyledDropdownMenuSubTrigger>
-                <Icons.HelpCircle className="h-3.5 w-3.5" />
+                <HelpCircle className="h-3.5 w-3.5" />
                 {t("menu.help")}
               </StyledDropdownMenuSubTrigger>
               <StyledDropdownMenuSubContent>
                 <StyledDropdownMenuItem onClick={() => window.electronAPI.openUrl(getBrandDocsUrl(undefined, AGENT_WORKBENCH_BRAND_CONFIG))}>
-                  <Icons.HelpCircle className="h-3.5 w-3.5" />
+                  <HelpCircle className="h-3.5 w-3.5" />
                   {t("menu.helpAndDocs")}
-                  <Icons.ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
+                  <ExternalLink className="h-3 w-3 ml-auto text-muted-foreground" />
                 </StyledDropdownMenuItem>
                 <StyledDropdownMenuItem onClick={onOpenKeyboardShortcuts}>
-                  <Icons.Keyboard className="h-3.5 w-3.5" />
+                  <Keyboard className="h-3.5 w-3.5" />
                   {t("menu.keyboardShortcuts")}
                   {keyboardShortcutsHotkey && <DropdownMenuShortcut className="pl-6">{keyboardShortcutsHotkey}</DropdownMenuShortcut>}
                 </StyledDropdownMenuItem>
@@ -347,21 +412,21 @@ export function TopBar({
               <>
                 <DropdownMenuSub>
                   <StyledDropdownMenuSubTrigger>
-                    <Icons.Bug className="h-3.5 w-3.5" />
+                    <Bug className="h-3.5 w-3.5" />
                     Debug
                   </StyledDropdownMenuSubTrigger>
                   <StyledDropdownMenuSubContent>
                     <StyledDropdownMenuItem onClick={() => window.electronAPI.checkForUpdates()}>
-                      <Icons.Download className="h-3.5 w-3.5" />
+                      <Download className="h-3.5 w-3.5" />
                       Check for Updates
                     </StyledDropdownMenuItem>
                     <StyledDropdownMenuItem onClick={() => window.electronAPI.installUpdate()}>
-                      <Icons.Download className="h-3.5 w-3.5" />
+                      <Download className="h-3.5 w-3.5" />
                       Install Update
                     </StyledDropdownMenuItem>
                     <StyledDropdownMenuSeparator />
                     <StyledDropdownMenuItem onClick={() => window.electronAPI.menuToggleDevTools()}>
-                      <Icons.Bug className="h-3.5 w-3.5" />
+                      <Bug className="h-3.5 w-3.5" />
                       Toggle DevTools
                       <DropdownMenuShortcut className="pl-6">{isMac ? '⌥⌘I' : 'Ctrl+Shift+I'}</DropdownMenuShortcut>
                     </StyledDropdownMenuItem>
@@ -373,7 +438,7 @@ export function TopBar({
             <StyledDropdownMenuSeparator />
 
             <StyledDropdownMenuItem onClick={() => window.electronAPI.menuQuit()}>
-              <Icons.LogOut className="h-3.5 w-3.5" />
+              <LogOut className="h-3.5 w-3.5" />
               {t("menu.quitRoxAgents")}
               {quitHotkey && <DropdownMenuShortcut className="pl-6">{quitHotkey}</DropdownMenuShortcut>}
             </StyledDropdownMenuItem>
@@ -386,7 +451,7 @@ export function TopBar({
           <Tooltip>
             <TooltipTrigger asChild>
               <TopBarButton onClick={onBack} disabled={!canGoBack} aria-label={t("common.back")}>
-                <Icons.ChevronLeft className="h-[18px] w-[18px] text-foreground/70" strokeWidth={1.5} />
+                <ChevronLeft className="h-[18px] w-[18px] text-foreground/70" strokeWidth={1.5} />
               </TopBarButton>
             </TooltipTrigger>
             <TooltipContent side="bottom">{t("common.back")} {goBackHotkey}</TooltipContent>
@@ -395,7 +460,7 @@ export function TopBar({
           <Tooltip>
             <TooltipTrigger asChild>
               <TopBarButton onClick={onForward} disabled={!canGoForward} aria-label={t("common.forward")}>
-                <Icons.ChevronRight className="h-[18px] w-[18px] text-foreground/70" strokeWidth={1.5} />
+                <ChevronRight className="h-[18px] w-[18px] text-foreground/70" strokeWidth={1.5} />
               </TopBarButton>
             </TooltipTrigger>
             <TooltipContent side="bottom">{t("common.forward")} {goForwardHotkey}</TooltipContent>
@@ -424,7 +489,7 @@ export function TopBar({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <TopBarButton aria-label={t("menu.addPanelMenu")} className="ml-1 h-[26px] w-[26px] rounded-lg">
-              <Icons.Plus className="h-4 w-4 text-foreground/50" strokeWidth={1.5} />
+              <Plus className="h-4 w-4 text-foreground/50" strokeWidth={1.5} />
             </TopBarButton>
           </DropdownMenuTrigger>
           <StyledDropdownMenuContent align="end" minWidth="min-w-56">
@@ -433,7 +498,7 @@ export function TopBar({
               {t("session.newSessionInPanel")}
             </StyledDropdownMenuItem>
             <StyledDropdownMenuItem onClick={onAddBrowserPanel}>
-              <Icons.Globe className="h-3.5 w-3.5" />
+              <Globe className="h-3.5 w-3.5" />
               {browserTabLabel}
             </StyledDropdownMenuItem>
           </StyledDropdownMenuContent>
@@ -447,7 +512,7 @@ export function TopBar({
               className="h-[26px] w-[26px] rounded-lg"
               onClick={() => onOpenSettingsSubpage('account')}
             >
-              <Icons.CircleUserRound className="h-4 w-4 text-foreground/50" strokeWidth={1.5} />
+              <CircleUserRound className="h-4 w-4 text-foreground/50" strokeWidth={1.5} />
             </TopBarButton>
           </TooltipTrigger>
           <TooltipContent side="bottom">{t("settings.account.title")}</TooltipContent>
@@ -457,43 +522,43 @@ export function TopBar({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <TopBarButton aria-label={t("menu.helpAndDocs")} className="h-[26px] w-[26px] rounded-lg">
-              <Icons.HelpCircle className="h-4 w-4 text-foreground/50" strokeWidth={1.5} />
+              <HelpCircle className="h-4 w-4 text-foreground/50" strokeWidth={1.5} />
             </TopBarButton>
           </DropdownMenuTrigger>
           <StyledDropdownMenuContent align="end" minWidth="min-w-48">
             <StyledDropdownMenuItem onClick={() => window.electronAPI.openUrl(getDocUrl('sources'))}>
-              <Icons.DatabaseZap className="h-3.5 w-3.5" />
+              <DatabaseZap className="h-3.5 w-3.5" />
               <span className="flex-1">{t("sidebar.sources")}</span>
-              <Icons.ExternalLink className="h-3 w-3 text-muted-foreground" />
+              <ExternalLink className="h-3 w-3 text-muted-foreground" />
             </StyledDropdownMenuItem>
             <StyledDropdownMenuItem onClick={() => window.electronAPI.openUrl(getDocUrl('skills'))}>
-              <Icons.Zap className="h-3.5 w-3.5" />
+              <Zap className="h-3.5 w-3.5" />
               <span className="flex-1">{t("sidebar.skills")}</span>
-              <Icons.ExternalLink className="h-3 w-3 text-muted-foreground" />
+              <ExternalLink className="h-3 w-3 text-muted-foreground" />
             </StyledDropdownMenuItem>
             <StyledDropdownMenuItem onClick={() => window.electronAPI.openUrl(getDocUrl('statuses'))}>
-              <Icons.CheckCircle2 className="h-3.5 w-3.5" />
+              <CheckCircle2 className="h-3.5 w-3.5" />
               <span className="flex-1">{t("sidebar.statuses")}</span>
-              <Icons.ExternalLink className="h-3 w-3 text-muted-foreground" />
+              <ExternalLink className="h-3 w-3 text-muted-foreground" />
             </StyledDropdownMenuItem>
             <StyledDropdownMenuItem onClick={() => window.electronAPI.openUrl(getDocUrl('permissions'))}>
-              <Icons.Settings className="h-3.5 w-3.5" />
+              <Settings className="h-3.5 w-3.5" />
               <span className="flex-1">{t("settings.permissions.title")}</span>
-              <Icons.ExternalLink className="h-3 w-3 text-muted-foreground" />
+              <ExternalLink className="h-3 w-3 text-muted-foreground" />
             </StyledDropdownMenuItem>
             <StyledDropdownMenuItem onClick={() => window.electronAPI.openUrl(getDocUrl('automations'))}>
-              <Icons.Webhook className="h-3.5 w-3.5" />
+              <Webhook className="h-3.5 w-3.5" />
               <span className="flex-1">{t("sidebar.automations")}</span>
-              <Icons.ExternalLink className="h-3 w-3 text-muted-foreground" />
+              <ExternalLink className="h-3 w-3 text-muted-foreground" />
             </StyledDropdownMenuItem>
             <StyledDropdownMenuItem onClick={() => window.electronAPI.openUrl(getDocUrl('messaging'))}>
-              <Icons.MessageSquare className="h-3.5 w-3.5" />
+              <MessageSquare className="h-3.5 w-3.5" />
               <span className="flex-1">{t("settings.messaging.title")}</span>
-              <Icons.ExternalLink className="h-3 w-3 text-muted-foreground" />
+              <ExternalLink className="h-3 w-3 text-muted-foreground" />
             </StyledDropdownMenuItem>
             <StyledDropdownMenuSeparator />
             <StyledDropdownMenuItem onClick={() => window.electronAPI.openUrl(getBrandDocsUrl(undefined, AGENT_WORKBENCH_BRAND_CONFIG))}>
-              <Icons.ExternalLink className="h-3.5 w-3.5" />
+              <ExternalLink className="h-3.5 w-3.5" />
               <span className="flex-1">{t("menu.allDocumentation")}</span>
             </StyledDropdownMenuItem>
           </StyledDropdownMenuContent>

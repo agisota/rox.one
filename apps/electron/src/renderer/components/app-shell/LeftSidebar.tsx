@@ -11,7 +11,26 @@ import {
 } from '@/components/ui/styled-context-menu'
 import { ContextMenuProvider } from '@/components/ui/menu-context'
 import { SidebarMenu, type SidebarMenuType } from './SidebarMenu'
-import { SortableList, type SortableItemData } from '@/components/ui/sortable-list'
+import type { SortableItemData } from '@/components/ui/sortable-list'
+
+// T132: SortableList drags ~21 KB gz of @dnd-kit/{core,sortable,utilities}
+// into whatever chunk it lands in. Only the All-Sessions status reorder UI
+// uses it, and never on initial paint — keep it out of the main app-shell
+// chunk by importing the implementation on demand.
+//
+// React.lazy strips the component's generic. We re-export a typed shape
+// that mirrors the original SortableList signature for our single call site.
+interface LazySortableListProps<T extends SortableItemData> {
+  items: T[]
+  onReorder: (items: T[]) => void
+  renderItem: (item: T, isDragging: boolean) => React.ReactNode
+  renderOverlay?: (item: T) => React.ReactNode
+  showOverlay?: boolean
+  className?: string
+}
+const SortableList = React.lazy(() =>
+  import('@/components/ui/sortable-list').then((m) => ({ default: m.SortableList })),
+) as unknown as <T extends SortableItemData>(props: LazySortableListProps<T>) => React.JSX.Element
 
 /** Context menu configuration for sidebar items */
 export interface SidebarContextMenuConfig {
@@ -375,57 +394,74 @@ function SortableStatusList({ items, onReorder, getItemProps, focusedItemId, tra
           className="absolute left-[13px] top-1 bottom-1 w-px bg-foreground/10"
           aria-hidden="true"
         />
-        <SortableList
-          items={sortableItems}
-          onReorder={handleReorder}
-          className="grid gap-0.5"
-          renderItem={(item) => (
-            <div className="group/section">
-              {item.contextMenu ? (
-                <ContextMenu modal={true}>
-                  <ContextMenuTrigger asChild>
-                    <SidebarButton
-                      link={item}
-                      itemProps={getItemProps?.(item.id)}
-                    />
-                  </ContextMenuTrigger>
-                  <StyledContextMenuContent>
-                    <ContextMenuProvider>
-                      <SidebarMenu
-                        type={item.contextMenu.type}
-                        statusId={item.contextMenu.statusId}
-                        labelId={item.contextMenu.labelId}
-                        onConfigureStatuses={item.contextMenu.onConfigureStatuses}
-                        onMarkAllRead={item.contextMenu.onMarkAllRead}
-                        onConfigureLabels={item.contextMenu.onConfigureLabels}
-                        onAddLabel={item.contextMenu.onAddLabel}
-                        onDeleteLabel={item.contextMenu.onDeleteLabel}
-                        onAddSource={item.contextMenu.onAddSource}
-                        onAddSkill={item.contextMenu.onAddSkill}
-                        onAddAutomation={item.contextMenu.onAddAutomation}
-                        sourceType={item.contextMenu.sourceType}
-                        onConfigureViews={item.contextMenu.onConfigureViews}
-                        viewId={item.contextMenu.viewId}
-                        onDeleteView={item.contextMenu.onDeleteView}
-                      />
-                    </ContextMenuProvider>
-                  </StyledContextMenuContent>
-                </ContextMenu>
-              ) : (
-                <SidebarButton
-                  link={item}
-                  itemProps={getItemProps?.(item.id)}
-                />
-              )}
+        <React.Suspense
+          fallback={
+            // Static, non-draggable rendering while the @dnd-kit chunk loads.
+            // Matches the SortableList output so the layout doesn't shift.
+            <div className="grid gap-0.5">
+              {sortableItems.map((item) => (
+                <div key={item.id} className="group/section">
+                  <SidebarButton
+                    link={item}
+                    itemProps={getItemProps?.(item.id)}
+                  />
+                </div>
+              ))}
             </div>
-          )}
-          renderOverlay={(item) => (
-            <SidebarButton
-              link={item}
-              isOverlay={true}
-            />
-          )}
-        />
+          }
+        >
+          <SortableList
+            items={sortableItems}
+            onReorder={handleReorder}
+            className="grid gap-0.5"
+            renderItem={(item) => (
+              <div className="group/section">
+                {item.contextMenu ? (
+                  <ContextMenu modal={true}>
+                    <ContextMenuTrigger asChild>
+                      <SidebarButton
+                        link={item}
+                        itemProps={getItemProps?.(item.id)}
+                      />
+                    </ContextMenuTrigger>
+                    <StyledContextMenuContent>
+                      <ContextMenuProvider>
+                        <SidebarMenu
+                          type={item.contextMenu.type}
+                          statusId={item.contextMenu.statusId}
+                          labelId={item.contextMenu.labelId}
+                          onConfigureStatuses={item.contextMenu.onConfigureStatuses}
+                          onMarkAllRead={item.contextMenu.onMarkAllRead}
+                          onConfigureLabels={item.contextMenu.onConfigureLabels}
+                          onAddLabel={item.contextMenu.onAddLabel}
+                          onDeleteLabel={item.contextMenu.onDeleteLabel}
+                          onAddSource={item.contextMenu.onAddSource}
+                          onAddSkill={item.contextMenu.onAddSkill}
+                          onAddAutomation={item.contextMenu.onAddAutomation}
+                          sourceType={item.contextMenu.sourceType}
+                          onConfigureViews={item.contextMenu.onConfigureViews}
+                          viewId={item.contextMenu.viewId}
+                          onDeleteView={item.contextMenu.onDeleteView}
+                        />
+                      </ContextMenuProvider>
+                    </StyledContextMenuContent>
+                  </ContextMenu>
+                ) : (
+                  <SidebarButton
+                    link={item}
+                    itemProps={getItemProps?.(item.id)}
+                  />
+                )}
+              </div>
+            )}
+            renderOverlay={(item) => (
+              <SidebarButton
+                link={item}
+                isOverlay={true}
+              />
+            )}
+          />
+        </React.Suspense>
         {/* Non-sortable trailing items (e.g., Flagged, Archived) */}
         {trailingItems && trailingItems.length > 0 && (
           <>
