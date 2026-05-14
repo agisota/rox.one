@@ -24,8 +24,13 @@ function passingSnapshot(
     rebrandTagPresent: true,
     rebrandTagLocalMatchesRemote: true,
     rebrandTagOnMain: true,
+    mainCommit: '1111111111111111111111111111111111111111',
     backupTagPresent: true,
+    backupTagCommit: '1111111111111111111111111111111111111111',
+    backupTagMatchesMain: true,
     backupBranchPresent: true,
+    backupBranchCommit: '1111111111111111111111111111111111111111',
+    backupBranchMatchesMain: true,
     offlineMirrorPresent: true,
     staleRemoteBranches: [],
     currentBranch: 'main',
@@ -43,13 +48,17 @@ describe('evaluateR11Preflight', () => {
   test('pre-backup stage does not require backup artifacts before they can be created', () => {
     const report = evaluateR11Preflight(passingSnapshot({
       backupTagPresent: false,
+      backupTagMatchesMain: false,
       backupBranchPresent: false,
+      backupBranchMatchesMain: false,
       offlineMirrorPresent: false,
     }))
 
     expect(report.allPassed).toBe(true)
     expect(report.results.some((result) => result.id === 'backup-tag')).toBe(false)
+    expect(report.results.some((result) => result.id === 'backup-tag-target')).toBe(false)
     expect(report.results.some((result) => result.id === 'backup-branch')).toBe(false)
+    expect(report.results.some((result) => result.id === 'backup-branch-target')).toBe(false)
     expect(report.results.some((result) => result.id === 'offline-mirror')).toBe(false)
   })
 
@@ -67,6 +76,8 @@ describe('evaluateR11Preflight', () => {
       .toMatchObject({ passed: false })
     expect(report.results.find((result) => result.id === 'offline-mirror'))
       .toMatchObject({ passed: false })
+    expect(report.results.some((result) => result.id === 'backup-tag-target')).toBe(false)
+    expect(report.results.some((result) => result.id === 'backup-branch-target')).toBe(false)
   })
 
   test('pre-rewrite stage requires the backup branch before filter-repo', () => {
@@ -77,6 +88,44 @@ describe('evaluateR11Preflight', () => {
     expect(report.allPassed).toBe(false)
     expect(report.results.find((result) => result.id === 'backup-branch'))
       .toMatchObject({ passed: false })
+  })
+
+  test('pre-rewrite stage fails when the backup tag target differs from main', () => {
+    const report = evaluateR11Preflight(passingSnapshot({
+      mainCommit: '1111111111111111111111111111111111111111',
+      backupTagCommit: '2222222222222222222222222222222222222222',
+      backupTagMatchesMain: false,
+    }), { stage: 'pre-rewrite' })
+    const target = report.results.find((result) => result.id === 'backup-tag-target')
+    const targetDetail = String(target?.detail ?? '')
+
+    expect(report.allPassed).toBe(false)
+    expect(target)
+      .toMatchObject({
+        passed: false,
+        detail: expect.stringContaining('2222222222222222222222222222222222222222'),
+      })
+    expect(targetDetail.includes('1111111111111111111111111111111111111111'))
+      .toBe(true)
+  })
+
+  test('pre-rewrite stage fails when the backup branch target differs from main', () => {
+    const report = evaluateR11Preflight(passingSnapshot({
+      mainCommit: '1111111111111111111111111111111111111111',
+      backupBranchCommit: '3333333333333333333333333333333333333333',
+      backupBranchMatchesMain: false,
+    }), { stage: 'pre-rewrite' })
+    const target = report.results.find((result) => result.id === 'backup-branch-target')
+    const targetDetail = String(target?.detail ?? '')
+
+    expect(report.allPassed).toBe(false)
+    expect(target)
+      .toMatchObject({
+        passed: false,
+        detail: expect.stringContaining('3333333333333333333333333333333333333333'),
+      })
+    expect(targetDetail.includes('1111111111111111111111111111111111111111'))
+      .toBe(true)
   })
 
   test('pre-backup stage does not require stale remote branch cleanup before backups exist', () => {
@@ -355,6 +404,23 @@ describe('R.11 goal documentation', () => {
     expect(goal).toContain('bun run rebrand:r11-preflight --stage pre-rewrite')
   })
 
+  test('documents backup target checks enforced by the pre-rewrite gate', () => {
+    const goal = readFileSync(
+      join(
+        repoRoot,
+        'docs',
+        'superpowers',
+        'goals',
+        '2026-05-13-rox-one-rebrand-sweep-goal.md',
+      ),
+      'utf8',
+    )
+
+    expect(goal).toContain('backup tag and backup branch targets must match `main`')
+    expect(goal).toContain('backup-tag-target')
+    expect(goal).toContain('backup-branch-target')
+  })
+
   test('includes the backup branch in R.11 stopping conditions', () => {
     const goal = readFileSync(
       join(
@@ -367,7 +433,7 @@ describe('R.11 goal documentation', () => {
       'utf8',
     )
 
-    expect(goal).toContain('- Backup tag, backup branch, and backup mirror all exist.')
+    expect(goal).toContain('- Backup tag, backup branch, and backup mirror all exist;')
     expect(goal).toContain(
       '`pre-rebrand-history-rewrite-backup` tag and `backup/pre-rebrand-history-rewrite-2026-05-13` branch exist on `origin`',
     )
