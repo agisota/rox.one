@@ -33,6 +33,8 @@ function passingSnapshot(
     backupBranchCommit: '1111111111111111111111111111111111111111',
     backupBranchMatchesMain: true,
     offlineMirrorPresent: true,
+    offlineMirrorMainCommit: '1111111111111111111111111111111111111111',
+    offlineMirrorMatchesMain: true,
     staleRemoteBranches: [],
     currentBranch: 'main',
     currentBranchIsMain: true,
@@ -53,6 +55,7 @@ describe('evaluateR11Preflight', () => {
       backupBranchPresent: false,
       backupBranchMatchesMain: false,
       offlineMirrorPresent: false,
+      offlineMirrorMatchesMain: false,
     }))
 
     expect(report.allPassed).toBe(true)
@@ -61,6 +64,7 @@ describe('evaluateR11Preflight', () => {
     expect(report.results.some((result) => result.id === 'backup-branch')).toBe(false)
     expect(report.results.some((result) => result.id === 'backup-branch-target')).toBe(false)
     expect(report.results.some((result) => result.id === 'offline-mirror')).toBe(false)
+    expect(report.results.some((result) => result.id === 'offline-mirror-target')).toBe(false)
   })
 
   test('pre-rewrite stage requires backup artifacts before filter-repo', () => {
@@ -79,6 +83,7 @@ describe('evaluateR11Preflight', () => {
       .toMatchObject({ passed: false })
     expect(report.results.some((result) => result.id === 'backup-tag-target')).toBe(false)
     expect(report.results.some((result) => result.id === 'backup-branch-target')).toBe(false)
+    expect(report.results.some((result) => result.id === 'offline-mirror-target')).toBe(false)
   })
 
   test('pre-rewrite stage requires the backup branch before filter-repo', () => {
@@ -124,6 +129,25 @@ describe('evaluateR11Preflight', () => {
       .toMatchObject({
         passed: false,
         detail: expect.stringContaining('3333333333333333333333333333333333333333'),
+      })
+    expect(targetDetail.includes('1111111111111111111111111111111111111111'))
+      .toBe(true)
+  })
+
+  test('pre-rewrite stage fails when the offline mirror main target differs from main', () => {
+    const report = evaluateR11Preflight(passingSnapshot({
+      mainCommit: '1111111111111111111111111111111111111111',
+      offlineMirrorMainCommit: '4444444444444444444444444444444444444444',
+      offlineMirrorMatchesMain: false,
+    }), { stage: 'pre-rewrite' })
+    const target = report.results.find((result) => result.id === 'offline-mirror-target')
+    const targetDetail = String(target?.detail ?? '')
+
+    expect(report.allPassed).toBe(false)
+    expect(target)
+      .toMatchObject({
+        passed: false,
+        detail: expect.stringContaining('4444444444444444444444444444444444444444'),
       })
     expect(targetDetail.includes('1111111111111111111111111111111111111111'))
       .toBe(true)
@@ -432,6 +456,22 @@ describe('R.11 goal documentation', () => {
     expect(goal).toContain('backup tag and backup branch targets must match `main`')
     expect(goal).toContain('backup-tag-target')
     expect(goal).toContain('backup-branch-target')
+  })
+
+  test('documents offline mirror target checks enforced by the pre-rewrite gate', () => {
+    const goal = readFileSync(
+      join(
+        repoRoot,
+        'docs',
+        'superpowers',
+        'goals',
+        '2026-05-13-rox-one-rebrand-sweep-goal.md',
+      ),
+      'utf8',
+    )
+
+    expect(goal).toContain('offline mirror `main` target must match `main`')
+    expect(goal).toContain('offline-mirror-target')
   })
 
   test('includes the backup branch in R.11 stopping conditions', () => {

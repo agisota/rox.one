@@ -36,6 +36,8 @@ export interface R11PreflightSnapshot {
   backupBranchCommit?: string
   backupBranchMatchesMain: boolean
   offlineMirrorPresent: boolean
+  offlineMirrorMainCommit?: string
+  offlineMirrorMatchesMain: boolean
   staleRemoteBranches: string[]
   currentBranch?: string
   currentBranchIsMain: boolean
@@ -344,6 +346,21 @@ export function evaluateR11Preflight(
             `${DEFAULT_OFFLINE_MIRROR} is missing.`,
           ),
     )
+    if (snapshot.offlineMirrorPresent) {
+      results.push(
+        snapshot.offlineMirrorMatchesMain
+          ? pass(
+              'offline-mirror-target',
+              'Offline mirror matches main',
+              `${DEFAULT_OFFLINE_MIRROR} main and local main both point to ${describeCommit(snapshot.mainCommit)}.`,
+            )
+          : fail(
+              'offline-mirror-target',
+              'Offline mirror matches main',
+              `${DEFAULT_OFFLINE_MIRROR} main target ${describeCommit(snapshot.offlineMirrorMainCommit)} differs from local main ${describeCommit(snapshot.mainCommit)}.`,
+            ),
+      )
+    }
     if (snapshot.staleRemoteBranchesError) {
       results.push(
         fail(
@@ -651,6 +668,26 @@ export function collectR11PreflightSnapshot(
   const backupBranchMatchesMain = Boolean(
     mainCommit && backupBranchCommit && mainCommit === backupBranchCommit,
   )
+  const offlineMirrorPresent = existsSync(DEFAULT_OFFLINE_MIRROR)
+  const offlineMirrorMainCommitResult = offlineMirrorPresent
+    ? run(
+        [
+          'git',
+          '--git-dir',
+          DEFAULT_OFFLINE_MIRROR,
+          'rev-parse',
+          '--verify',
+          'refs/heads/main^{commit}',
+        ],
+        repoRoot,
+      )
+    : { exitCode: 1, stdout: '', stderr: '' }
+  const offlineMirrorMainCommit = offlineMirrorMainCommitResult.exitCode === 0
+    ? offlineMirrorMainCommitResult.stdout || undefined
+    : undefined
+  const offlineMirrorMatchesMain = Boolean(
+    mainCommit && offlineMirrorMainCommit && mainCommit === offlineMirrorMainCommit,
+  )
   const sync = run(
     ['git', 'rev-list', '--left-right', '--count', 'origin/main...main'],
     repoRoot,
@@ -686,7 +723,9 @@ export function collectR11PreflightSnapshot(
     ),
     backupBranchCommit,
     backupBranchMatchesMain,
-    offlineMirrorPresent: existsSync(DEFAULT_OFFLINE_MIRROR),
+    offlineMirrorPresent,
+    offlineMirrorMainCommit,
+    offlineMirrorMatchesMain,
     staleRemoteBranches,
     staleRemoteBranchesError,
     currentBranch,
