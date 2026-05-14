@@ -27,6 +27,8 @@ tokens, or environment-specific secrets.
 
 - Add CircleCI jobs for the validation, secret scan, e2e core, and mac ARM
   packaging gates that are currently blocked in GitHub Actions.
+- Add a `build` compatibility job so CircleCI v1.1 default branch triggers do
+  not fail before reaching the named validation jobs.
 - Keep the commands aligned with the existing GitHub workflow scripts.
 
 ## Required Subagents
@@ -57,5 +59,7 @@ None.
 - [x] CircleCI config parses as YAML.
 - [x] CircleCI config includes validate, secret scan, e2e core, and mac ARM
   jobs.
+- [x] CircleCI config includes a default `build` job for v1.1 API
+  compatibility.
 - [x] Existing CI contract validator remains green.
 - [x] No secrets are committed.
