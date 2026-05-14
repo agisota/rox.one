@@ -48,7 +48,7 @@ Concrete deliverables:
 | rebrand-v1 tag on main | `bun run rebrand:r11-preflight` | Origin tag exists, but local tag differs from origin and origin target is not on `origin/main` ancestry | Blocked |
 | backup tag, branch, and mirror | `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite` | Backup tag, backup branch, and offline mirror are missing; after they exist, the same preflight also enforces `backup-tag-target`, `backup-branch-target`, and `offline-mirror-target` | Blocked |
 | mapping report closeout SHA | `docs/release/rebrand-mapping-2026-05-13.md` | R.11 row says `BLOCKED - pending destructive rewrite closeout SHA` | Blocked |
-| history scan clean | `REBRAND_R11_HISTORY_MAX_FINDINGS=8 bun run rebrand:r11-history-scan` | Exits red with bounded historical findings | Blocked |
+| history scan clean | `bun run rebrand:r11-history-scan` | Exits red with `81 forbidden-token patch lines` outside the legal-preserve allowlist | Blocked |
 | README post-rewrite coordination banner | `README.md` § "After R.11 history rewrite" | Only required after force-push; the 72-hour visible banner is blocked until R.11 actually rewrites and pushes history | Blocked |
 | pre/post commit count delta | `git rev-list --count main`; `git log --oneline \| wc -l` | Only available after rewritten ancestry exists; the filter-repo delta cannot be documented until R.11 actually rewrites history | Blocked |
 | Legal-preserve gate | `bun run rebrand:r11-legal-preserve` | Legal-file checks fail because backup tag is missing; Dockerfile attribution passes | Blocked |
