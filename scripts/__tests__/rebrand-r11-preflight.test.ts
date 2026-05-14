@@ -1,9 +1,13 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 
 import {
   evaluateR11Preflight,
   formatR11PreflightReport,
 } from '../rebrand-r11-preflight'
+
+const repoRoot = join(import.meta.dir, '..', '..')
 
 describe('evaluateR11Preflight', () => {
   test('passes only when every destructive R.11 prerequisite is true', () => {
@@ -61,5 +65,23 @@ describe('evaluateR11Preflight', () => {
     expect(report.results.filter((result) => !result.passed)).toHaveLength(9)
     expect(formatR11PreflightReport(report)).toContain('#189')
     expect(formatR11PreflightReport(report)).toContain('red')
+  })
+})
+
+describe('R.11 goal documentation', () => {
+  test('points operators at the executable report-only preflight runner', () => {
+    const goal = readFileSync(
+      join(
+        repoRoot,
+        'docs',
+        'superpowers',
+        'goals',
+        '2026-05-13-rox-one-rebrand-sweep-goal.md',
+      ),
+      'utf8',
+    )
+
+    expect(goal).toContain('bun run rebrand:r11-preflight')
+    expect(goal).toContain('report-only')
   })
 })
