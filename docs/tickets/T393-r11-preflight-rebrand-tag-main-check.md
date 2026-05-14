@@ -1,6 +1,6 @@
 # T393 - R.11 preflight rebrand tag main check
 
-Status: TODO
+Status: DONE
 
 ## Context
 
@@ -57,13 +57,13 @@ preflight fails when `rebrand-v1` exists but is not on `origin/main`.
 
 ## Acceptance Criteria
 
-- [ ] Regression test fails before implementation.
-- [ ] Regression test passes after implementation.
-- [ ] Preflight has a distinct `rebrand-tag-on-main` row.
-- [ ] Live preflight reports the current tag-on-main state.
-- [ ] Documentation/rebrand validation remains green.
-- [ ] Destructive R.11 actions are not executed.
-- [ ] Commit created.
+- [x] Regression test fails before implementation.
+- [x] Regression test passes after implementation.
+- [x] Preflight has a distinct `rebrand-tag-on-main` row.
+- [x] Live preflight reports the current tag-on-main state.
+- [x] Documentation/rebrand validation remains green.
+- [x] Destructive R.11 actions are not executed.
+- [x] Commit created.
 
 ## Worklog
 
