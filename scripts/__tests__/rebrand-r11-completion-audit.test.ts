@@ -61,6 +61,7 @@ describe('R.11 completion audit', () => {
       'mapping report closeout SHA',
       'history scan clean',
       'README post-rewrite coordination banner',
+      'pre/post commit count delta',
       '1. R.0-R.10 closeouts',
       '2. T223 Phase 1 closeout',
       '3. T229 RBAC closeout',
@@ -93,6 +94,19 @@ describe('R.11 completion audit', () => {
     expect(promptChecklist).toContain('After R.11 history rewrite')
     expect(promptChecklist).toContain('72-hour visible banner')
     expect(promptChecklist).toContain('Only required after force-push')
+    expect(promptChecklist).toContain('Blocked')
+  })
+
+  test('records the post-rewrite commit-count artifact as blocked evidence', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const promptChecklist =
+      audit.split('## Prompt-to-Artifact Checklist')[1]?.split('## R.11 Hard Prerequisite Evidence')[0] ?? ''
+
+    expect(promptChecklist).toContain('pre/post commit count delta')
+    expect(promptChecklist).toContain('git log --oneline | wc -l')
+    expect(promptChecklist).toContain('git rev-list --count main')
+    expect(promptChecklist).toContain('filter-repo delta')
+    expect(promptChecklist).toContain('Only available after rewritten ancestry exists')
     expect(promptChecklist).toContain('Blocked')
   })
 
