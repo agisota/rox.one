@@ -29,6 +29,7 @@ durable audit at `docs/release/r11-completion-audit-2026-05-14.md`:
 | Backup tag exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | Backup branch exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | Offline mirror exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
+| Backup artifact targets match current `main` | After the artifacts exist, explicit pre-rewrite emits `backup-tag-target`, `backup-branch-target`, and `offline-mirror-target`; all must pass before `git filter-repo` | Pre-rewrite blocked |
 | Remote branches reviewed | Explicit pre-rewrite helper requires origin to expose only `main` and `backup/pre-rebrand-history-rewrite-2026-05-13`; origin currently has 139 non-main/non-R.11-backup branches | Pre-rewrite blocked |
 | `git-filter-repo` available | Preflight reports pass after T371 PATH bridge | Green |
 | R.11 closeout ticket exists | Exact files `docs/tickets/T298-rebrand-git-history-rewrite.md` and `docs/worklog/T298-rebrand-git-history-rewrite.md` exist with `Status: BLOCKED`; this is distinct from the unrelated `T298-rc-preflight` ticket | Green |
@@ -179,6 +180,9 @@ history/legal-preserve gates were added and wired into the R.11 goal:
   backup procedure can create them.
 - The explicit pre-rewrite helper still requires backup artifacts before any
   `git filter-repo` invocation.
+- The explicit pre-rewrite target rows `backup-tag-target`,
+  `backup-branch-target`, and `offline-mirror-target` are not emitted while the corresponding artifact is missing; after the artifacts exist, all three must
+  pass against current `main` before any `git filter-repo` invocation.
 - A lightweight history check still finds old `rox-agent` / `Rox Agents`
   strings in git history, so the final `git log -p --all` gate cannot pass
   before the authorized rewrite.
@@ -277,6 +281,7 @@ path authorizes them. After backup creation, `bun run rebrand:r11-preflight
 | Backup tag exists on origin | Blocked | Not created while preflight is red |
 | Backup branch exists on origin | Blocked | Not created while preflight is red |
 | Offline mirror exists | Blocked | Not created while preflight is red |
+| Backup artifact targets match current `main` | Blocked | `backup-tag-target`, `backup-branch-target`, and `offline-mirror-target` are not emitted until the corresponding artifact exists, then must pass before rewrite |
 | Remote branches reviewed before rewrite | Blocked | Explicit pre-rewrite gate fails on 139 non-main/non-R.11-backup origin branches |
 | `git filter-repo` command history is recorded | Blocked | `git filter-repo` has not run |
 | Legal-preserve runner passes | Blocked | `bun run rebrand:r11-legal-preserve` exits red until the backup tag exists and the post-rewrite files match it |
