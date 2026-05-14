@@ -31,6 +31,7 @@ export interface R11PreflightSnapshot {
   backupTagPresent: boolean
   backupBranchPresent: boolean
   offlineMirrorPresent: boolean
+  staleRemoteBranches: string[]
   gitFilterRepoPresent: boolean
   r11CloseoutTicketPresent: boolean
   r11CloseoutWorklogPresent: boolean
@@ -38,6 +39,7 @@ export interface R11PreflightSnapshot {
   worktreeClean: boolean
   openPullRequestsError?: string
   forkReviewError?: string
+  staleRemoteBranchesError?: string
 }
 
 export interface R11PreflightResult {
@@ -103,6 +105,7 @@ const REBRAND_R0_R10_TICKET_PATHS = [
 ]
 const MASTER_PHASE_1_CLOSEOUT_TICKET = 'docs/tickets/T223-c4-followups-closeout.md'
 const MASTER_PHASE_2_CLOSEOUT_TICKET = 'docs/tickets/T229-rbac-integration-tests.md'
+const R11_BACKUP_BRANCH = 'backup/pre-rebrand-history-rewrite-2026-05-13'
 
 function pass(id: string, label: string, detail: string): R11PreflightResult {
   return { id, label, passed: true, detail }
@@ -114,6 +117,12 @@ function fail(id: string, label: string, detail: string): R11PreflightResult {
 
 function describeCommit(value: string | undefined): string {
   return value && value.length > 0 ? value : 'missing'
+}
+
+function summarizeList(values: string[], limit = 8): string {
+  const visible = values.slice(0, limit).join('; ')
+  const remaining = values.length - limit
+  return remaining > 0 ? `${visible}; ... +${remaining} more` : visible
 }
 
 export function evaluateR11Preflight(
@@ -296,6 +305,31 @@ export function evaluateR11Preflight(
             `${DEFAULT_OFFLINE_MIRROR} is missing.`,
           ),
     )
+    if (snapshot.staleRemoteBranchesError) {
+      results.push(
+        fail(
+          'remote-branch-review',
+          'Remote branches reviewed',
+          `Could not query origin branches: ${snapshot.staleRemoteBranchesError}`,
+        ),
+      )
+    } else if (snapshot.staleRemoteBranches.length === 0) {
+      results.push(
+        pass(
+          'remote-branch-review',
+          'Remote branches reviewed',
+          `origin only exposes main and ${R11_BACKUP_BRANCH}.`,
+        ),
+      )
+    } else {
+      results.push(
+        fail(
+          'remote-branch-review',
+          'Remote branches reviewed',
+          `origin has ${snapshot.staleRemoteBranches.length} non-main/non-R.11-backup branch(es): ${summarizeList(snapshot.staleRemoteBranches)}.`,
+        ),
+      )
+    }
   }
   results.push(
     snapshot.gitFilterRepoPresent
@@ -385,6 +419,16 @@ function parseExpectedForkCount(value: string | undefined): { count: number; err
     return { count: 0, error: `invalid ROX_R11_EXPECTED_FORKS=${value}` }
   }
   return { count }
+}
+
+function parseRemoteBranchNames(stdout: string): string[] {
+  return stdout
+    .split('\n')
+    .map((line) => line.trim().split(/\s+/)[1] ?? '')
+    .filter((ref) => ref.startsWith('refs/heads/'))
+    .map((ref) => ref.slice('refs/heads/'.length))
+    .filter((name) => name.length > 0)
+    .sort()
 }
 
 function isDoneTicket(repoRoot: string, ticketPath: string): boolean {
@@ -486,6 +530,15 @@ export function collectR11PreflightSnapshot(
     ],
     repoRoot,
   ).stdout
+  const remoteHeads = run(['git', 'ls-remote', '--heads', 'origin'], repoRoot)
+  const allowedRemoteBranches = new Set(['main', R11_BACKUP_BRANCH])
+  const staleRemoteBranches = remoteHeads.exitCode === 0
+    ? parseRemoteBranchNames(remoteHeads.stdout)
+      .filter((branchName) => !allowedRemoteBranches.has(branchName))
+    : []
+  const staleRemoteBranchesError = remoteHeads.exitCode === 0
+    ? undefined
+    : remoteHeads.stderr || remoteHeads.stdout || `exit ${remoteHeads.exitCode}`
   const rebrandTagRemoteCommit = run(
     [
       'bash',
@@ -536,9 +589,11 @@ export function collectR11PreflightSnapshot(
     rebrandTagOnMain: rebrandTagOnMain.exitCode === 0,
     backupTagPresent: remoteTags.includes('refs/tags/pre-rebrand-history-rewrite-backup'),
     backupBranchPresent: remoteBackupBranch.includes(
-      'refs/heads/backup/pre-rebrand-history-rewrite-2026-05-13',
+      `refs/heads/${R11_BACKUP_BRANCH}`,
     ),
     offlineMirrorPresent: existsSync(DEFAULT_OFFLINE_MIRROR),
+    staleRemoteBranches,
+    staleRemoteBranchesError,
     gitFilterRepoPresent: filterRepo.exitCode === 0 && filterRepo.stdout.length > 0,
     r11CloseoutTicketPresent: existsSync(
       join(repoRoot, 'docs', 'tickets', 'T298-rebrand-git-history-rewrite.md'),
