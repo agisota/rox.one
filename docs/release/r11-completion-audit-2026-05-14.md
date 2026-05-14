@@ -31,6 +31,8 @@ Concrete deliverables:
 7. `mapping report closeout SHA` records the real R.11 closeout commit.
 8. `history scan clean` is true for `git log -p --all` outside the
    legal-preserve allowlist.
+9. `README post-rewrite coordination banner` documents the 72-hour visible
+   recovery instructions in `README.md` after the R.11 force-push.
 
 ## Prompt-to-Artifact Checklist
 
@@ -44,6 +46,7 @@ Concrete deliverables:
 | backup tag, branch, and mirror | `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite` | Backup tag, backup branch, and offline mirror are missing | Blocked |
 | mapping report closeout SHA | `docs/release/rebrand-mapping-2026-05-13.md` | R.11 row says `BLOCKED - pending destructive rewrite closeout SHA` | Blocked |
 | history scan clean | `REBRAND_R11_HISTORY_MAX_FINDINGS=8 bun run rebrand:r11-history-scan` | Exits red with bounded historical findings | Blocked |
+| README post-rewrite coordination banner | `README.md` § "After R.11 history rewrite" | Only required after force-push; the 72-hour visible banner is blocked until R.11 actually rewrites and pushes history | Blocked |
 | Legal-preserve gate | `bun run rebrand:r11-legal-preserve` | Legal-file checks fail because backup tag is missing; Dockerfile attribution passes | Blocked |
 | Default R.11 preflight | `bun run rebrand:r11-preflight` | Exits red on active goal acknowledgement and tag blockers | Blocked |
 | Pre-rewrite R.11 preflight | `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite` | Exits red on tag blockers, missing backup artifacts, and remote branch review | Blocked |

@@ -60,6 +60,7 @@ describe('R.11 completion audit', () => {
       'backup tag, branch, and mirror',
       'mapping report closeout SHA',
       'history scan clean',
+      'README post-rewrite coordination banner',
       '1. R.0-R.10 closeouts',
       '2. T223 Phase 1 closeout',
       '3. T229 RBAC closeout',
@@ -80,6 +81,19 @@ describe('R.11 completion audit', () => {
     expect(audit).toContain('bun run rebrand:r11-preflight')
     expect(audit).toContain('bun run rebrand:r11-legal-preserve')
     expect(audit).toContain('bun run rebrand:r11-history-scan')
+  })
+
+  test('records the README post-rewrite coordination banner as a blocked artifact', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const promptChecklist =
+      audit.split('## Prompt-to-Artifact Checklist')[1]?.split('## R.11 Hard Prerequisite Evidence')[0] ?? ''
+
+    expect(promptChecklist).toContain('README post-rewrite coordination banner')
+    expect(promptChecklist).toContain('README.md')
+    expect(promptChecklist).toContain('After R.11 history rewrite')
+    expect(promptChecklist).toContain('72-hour visible banner')
+    expect(promptChecklist).toContain('Only required after force-push')
+    expect(promptChecklist).toContain('Blocked')
   })
 
   test('does not freeze current-blocker evidence to a stale commit SHA', () => {
