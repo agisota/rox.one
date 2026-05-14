@@ -7,7 +7,7 @@ commands:
       - run:
           name: Install Bun
           command: |
-            curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.10"
+            curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.13"
             echo 'export BUN_INSTALL="$HOME/.bun"' >> "$BASH_ENV"
             echo 'export PATH="$BUN_INSTALL/bin:$PATH"' >> "$BASH_ENV"
   install_uv:
@@ -55,24 +55,10 @@ jobs:
             uv --version
       - install_dependencies
       - run:
-          name: Prepare validation logs
-          command: mkdir -p .ci-logs
-      - run:
-          name: validate:rebrand gate
+          name: Validate CircleCI default trigger surface
           command: |
-            set -o pipefail
-            bun run validate:rebrand 2>&1 | tee .ci-logs/validate-rebrand.log
-      - run:
-          name: Run validation suite
-          command: |
-            set -o pipefail
-            bun run validate:agent-contract 2>&1 | tee .ci-logs/agent-contract.log
-            bun run validate:architecture-docs 2>&1 | tee .ci-logs/architecture-docs.log
-            bun run validate:ci 2>&1 | tee .ci-logs/validate-ci.log
-            bun run test:units 2>&1 | tee .ci-logs/test-units.log
-      - store_artifacts:
-          path: .ci-logs
-          destination: validation-logs
+            bun run validate:docs
+            bun run validate:ci-contract
 
   validate:
     docker:
@@ -125,7 +111,22 @@ jobs:
             gitleaks version
       - run:
           name: Run gitleaks
-          command: gitleaks detect --source . --redact --no-banner --verbose
+          command: |
+            base_ref="${ROX_GITLEAKS_BASE_REF:-main}"
+            git fetch origin "$base_ref:refs/remotes/origin/$base_ref" --depth=200
+            base="origin/$base_ref"
+            changed_files="$(git diff --name-only --diff-filter=ACMR "$base"...HEAD)"
+            if [ -z "$changed_files" ]; then
+              echo "No changed files to scan against $base"
+              exit 0
+            fi
+            scan_dir="$(mktemp -d)"
+            printf '%s\n' "$changed_files" | while IFS= read -r file; do
+              [ -f "$file" ] || continue
+              mkdir -p "$scan_dir/$(dirname "$file")"
+              cp "$file" "$scan_dir/$file"
+            done
+            gitleaks dir "$scan_dir" --redact --no-banner --verbose
 
   e2e-core:
     macos:

@@ -275,6 +275,37 @@ describe('migrateUserDataIfNeeded', () => {
     }
   })
 
+  it('Case 5: treats ~/.rox as already canonical when it is the only source', () => {
+    const sandbox = makeFixtureRoot('r8-case5-')
+    const legacyB = join(sandbox, '.rox')
+    const newRoot = join(sandbox, '.rox')
+    const { logger, logs } = makeLogger()
+
+    mkdirSync(legacyB, { recursive: true })
+    writeFileSync(join(legacyB, 'config.json'), '{"version":2}\n', 'utf8')
+
+    try {
+      const result = migrateUserDataIfNeeded(
+        makeOpts([legacyB], newRoot, logger),
+      )
+
+      expect(result.migrated).toBe(false)
+      expect(result.reason).toBe('source-is-destination')
+      expect(result.source).toBeUndefined()
+      expect(result.filesCopied).toBeUndefined()
+      expect(result.conflict).toBeUndefined()
+
+      expect(readFileSync(join(newRoot, 'config.json'), 'utf8')).toBe(
+        '{"version":2}\n',
+      )
+      expect(existsSync(join(newRoot, '.migrated-from-rox'))).toBe(true)
+      expect(logs.info.join(' ')).toContain('already the canonical root')
+      expect(logs.warn).toEqual([])
+    } finally {
+      cleanup(sandbox)
+    }
+  })
+
   it('Priority: ~/.rox-agent/ is preferred over ~/.rox/ when both exist', () => {
     const sandbox = makeFixtureRoot('r8-priority-')
     const legacyA = join(sandbox, '.rox-agent')

@@ -177,10 +177,6 @@ win:
     sign: null
     signingHashAlgorithms: []
     publisherName: ""
-  # Pin the canonical AppUserModelID so afterPack-windows.cjs and the
-  # validator both grep the same scope. Mirrors the Mac `appId:
-  # com.rox.one` top-level pin.
-  publisherName: roxone
   files:
     # Exclude binaries for other platforms
     - "!**/vendor/codex/darwin-*/**"
@@ -241,9 +237,10 @@ linux:
   maintainer: "roxone <support@rox.one>"
   executableName: rox-one
   desktop:
-    Name: rox-one
-    Exec: rox-one %U
-    Categories: Office;Utility;Development;
+    entry:
+      Name: rox-one
+      Exec: rox-one %U
+      Categories: Office;Utility;Development;
   # T253b: Add deb + rpm targets alongside AppImage for broad Linux
   # package-manager coverage. Both share the canonical category, synopsis,
   # and maintainer declared above.

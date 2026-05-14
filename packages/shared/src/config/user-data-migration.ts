@@ -32,6 +32,7 @@ export type MigrationReason =
   | 'no-legacy-path'
   | 'destination-exists'
   | 'already-migrated'
+  | 'source-is-destination'
 
 export interface MigrationResult {
   migrated: boolean
@@ -137,6 +138,15 @@ export function migrateUserDataIfNeeded(
   const source = legacyRoots.find((p) => existsSync(p))
   if (!source) {
     return { migrated: false, reason: 'no-legacy-path' }
+  }
+
+  if (source === newRoot) {
+    writeMarker(newRoot, markerName, source)
+    logger.info(
+      `[user-data-migration] ${source} is already the canonical root; ` +
+        `marker written at ${markerPath}`,
+    )
+    return { migrated: false, reason: 'source-is-destination' }
   }
 
   // Conflict: legacy + new root both present, no marker. Refuse to merge.
