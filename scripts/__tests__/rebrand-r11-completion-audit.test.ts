@@ -111,4 +111,14 @@ describe('R.11 completion audit', () => {
     expect(currentBlockers).toContain('history-scan')
     expect(currentBlockers).toContain('9 forbidden-token patch lines')
   })
+
+  test('records exact backup artifact identifiers', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const currentBlockers =
+      audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
+
+    expect(currentBlockers).toContain('pre-rebrand-history-rewrite-backup')
+    expect(currentBlockers).toContain('backup/pre-rebrand-history-rewrite-2026-05-13')
+    expect(currentBlockers).toContain('/tmp/rox-one-terminal-backup-2026-05-13.git')
+  })
 })
