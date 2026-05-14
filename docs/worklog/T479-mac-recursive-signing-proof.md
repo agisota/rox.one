@@ -119,8 +119,10 @@ package proof after push.
 ## 10. Remaining risks
 
 R.11 remains blocked and not complete. This ticket only improves the private mac
-signing proof; it does not authorize destructive R.11 work. Fresh remote CI
-evidence is still required after pushing the T479 commit.
+signing proof; it does not authorize destructive R.11 work. CircleCI is green on
+the T479 commit; GitHub Actions validate drift is tracked separately by T480 and
+the GitHub macOS ARM64 package job still fails before steps on the macOS runner
+surface.
 
 ## 11. Acceptance criteria matrix
 
@@ -130,5 +132,5 @@ evidence is still required after pushing the T479 commit.
 | `afterSign` signs nested code inner-first without top-level `--deep` | PASS | Hook now uses `collectSignablePaths`, `SIGNABLE_FILE_NAMES`, nested-first loop, and a final top-level `codesign` without `--deep` |
 | Live mac validator requires `codesign --verify --deep --strict` | PASS | Validator now runs `codesign --verify --deep --strict --verbose=4` and fails with `codesign recursive verification failed` on non-zero status |
 | Mac boundary tests and validators pass locally | PASS | Fixture test, mac ARM workflow validator, mac private release boundary validator, hook syntax check, CI contract, docs, typecheck, lint, and diff check passed |
-| T479 commit is ready to push again for fresh CI | PASS | Worktree changes are locally validated and ready for a normal branch push |
+| T479 commit is pushed again for fresh CI | PASS | `git push` updated the PR branch to `155e26e3`; CircleCI validate #130, e2e-core #131, mac-arm-build #132, and secret-scan #133 all passed on that SHA |
 | No destructive R.11 action is performed | PASS | No destructive R.11 command is recorded for T479 |
