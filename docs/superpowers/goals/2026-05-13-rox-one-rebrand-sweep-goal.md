@@ -642,7 +642,7 @@ git -C . switch main
 
 # 4. Locally clone a second copy of the repo as an offline backup.
 #    This survives even a catastrophic mistake on origin.
-cd /tmp && git clone --mirror file:///home/dev/rox/rox-one-terminal \
+cd /tmp && git clone --mirror file:///home/dev/craft/rox-one-terminal \
   /tmp/rox-one-terminal-backup-2026-05-13.git
 ```
 
@@ -772,7 +772,7 @@ git -C . push --force origin main
 # 2. Force-push the rebrand-v1 tag back to its pre-rewrite SHA (read from the backup mirror).
 cd /tmp/rox-one-terminal-backup-2026-05-13.git
 ORIG_REBRAND_SHA=$(git rev-parse rebrand-v1)
-cd /home/dev/rox/rox-one-terminal
+cd /home/dev/craft/rox-one-terminal
 git tag -f rebrand-v1 "$ORIG_REBRAND_SHA"
 git push --force origin refs/tags/rebrand-v1
 ```

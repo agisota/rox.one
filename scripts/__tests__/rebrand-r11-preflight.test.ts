@@ -123,4 +123,21 @@ describe('R.11 goal documentation', () => {
     expect(goal).toContain('bun run rebrand:r11-preflight --stage pre-rewrite')
     expect(goal).toContain('report-only')
   })
+
+  test('uses the current checkout path in R.11 mirror and rollback snippets', () => {
+    const goal = readFileSync(
+      join(
+        repoRoot,
+        'docs',
+        'superpowers',
+        'goals',
+        '2026-05-13-rox-one-rebrand-sweep-goal.md',
+      ),
+      'utf8',
+    )
+
+    expect(goal).toContain('file:///home/dev/craft/rox-one-terminal')
+    expect(goal).toContain('cd /home/dev/craft/rox-one-terminal')
+    expect(goal).not.toContain('/home/dev/rox/rox-one-terminal')
+  })
 })
