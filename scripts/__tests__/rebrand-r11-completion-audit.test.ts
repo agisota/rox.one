@@ -34,6 +34,12 @@ const backupArtifactInventoryPath = join(
   'release',
   'r11-backup-artifact-inventory-2026-05-14.md',
 )
+const forkReviewInventoryPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-fork-review-inventory-2026-05-14.md',
+)
 const currentMainValidationPath = join(
   repoRoot,
   'docs',
@@ -236,12 +242,19 @@ describe('R.11 completion audit', () => {
       audit.split('## R.11 Hard Prerequisite Evidence')[1]?.split('## Current Main Validation Matrix')[0] ?? ''
     const currentBlockers =
       audit.split('## Current Blockers')[1]?.split('## Operator-Owned Unblock Checklist')[0] ?? ''
+    const forkReviewInventory = readFileSync(forkReviewInventoryPath, 'utf8')
 
     expect(hardPrereqs).toContain('6. Fork review')
     expect(hardPrereqs).toContain('GitHub reports 1 fork(s); expected 0')
     expect(hardPrereqs).toContain('Blocked')
     expect(currentBlockers).toContain('fork-review')
     expect(currentBlockers).toContain('GitHub reports 1 fork(s); expected 0')
+    expect(currentBlockers).toContain('docs/release/r11-fork-review-inventory-2026-05-14.md')
+    expect(forkReviewInventory).toContain('Status: OPERATOR REVIEW REQUIRED')
+    expect(forkReviewInventory).toContain('Current fork count: 1')
+    expect(forkReviewInventory).toContain('Expected fork count: 0')
+    expect(forkReviewInventory).toContain('dofaromg/rox-one-terminal')
+    expect(forkReviewInventory).toContain('operator-review-required')
   })
 
   test('records the current remote branch review blocker count', () => {
