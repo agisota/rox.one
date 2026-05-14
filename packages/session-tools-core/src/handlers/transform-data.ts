@@ -41,6 +41,7 @@ const TRANSFORM_DATA_SPAWN_RETRY_DELAY_MS = 50;
 const TRANSIENT_SPAWN_ERROR_CODES = new Set(['EBADF', 'EMFILE', 'ENFILE']);
 
 type TransformProcessResult = { stdout: string; stderr: string; code: number | null };
+type CaptureText = { text: string; readError?: string };
 type StdioCapture = {
   dir: string;
   stdoutPath: string;
@@ -78,12 +79,23 @@ function createStdioCapture(dataDir: string): StdioCapture {
   };
 }
 
-function readTextIfExists(path: string): string {
+function formatErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function readTextIfExists(path: string, label: 'stdout' | 'stderr'): CaptureText {
   try {
-    return readFileSync(path, 'utf8');
-  } catch {
-    return '';
+    return { text: readFileSync(path, 'utf8') };
+  } catch (error) {
+    return {
+      text: '',
+      readError: `Failed to read ${label} capture ${path}: ${formatErrorMessage(error)}`,
+    };
   }
+}
+
+function appendCaptureReadErrors(stderr: string, errors: (string | undefined)[]): string {
+  return [stderr, ...errors.filter((error): error is string => Boolean(error))].filter(Boolean).join('\n');
 }
 
 function closeStdioCapture(capture: StdioCapture): void {
@@ -123,13 +135,24 @@ function runTransformProcessOnce(
 
     child.on('close', (code) => {
       clearTimeout(killTimer);
-      const stdout = readTextIfExists(capture.stdoutPath);
-      const stderr = readTextIfExists(capture.stderrPath);
+      const stdoutCapture = readTextIfExists(capture.stdoutPath, 'stdout');
+      const stderrCapture = readTextIfExists(capture.stderrPath, 'stderr');
       closeStdioCapture(capture);
+      const stderr = appendCaptureReadErrors(stderrCapture.text, [
+        stderrCapture.readError,
+        stdoutCapture.readError,
+      ]);
       if (timedOut) {
-        resolvePromise({ stdout, stderr: `Script timed out after ${TRANSFORM_DATA_TIMEOUT_MS / 1000}s and was killed`, code });
+        resolvePromise({
+          stdout: stdoutCapture.text,
+          stderr: appendCaptureReadErrors(
+            `Script timed out after ${TRANSFORM_DATA_TIMEOUT_MS / 1000}s and was killed`,
+            [stderr],
+          ),
+          code,
+        });
       } else {
-        resolvePromise({ stdout, stderr, code });
+        resolvePromise({ stdout: stdoutCapture.text, stderr, code });
       }
     });
 
@@ -263,7 +286,7 @@ export async function handleTransformData(
 
     return successResponse(lines.join(''));
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
+    const msg = formatErrorMessage(error);
     return errorResponse(`Error running script: ${msg}`);
   } finally {
     // Clean up temp script
