@@ -68,7 +68,7 @@ describe('R.11 completion audit', () => {
       audit.split('## Current Main Validation Matrix')[1]?.split('## Current Blockers')[0] ?? ''
 
     expect(currentMainValidation).toContain('7 warnings')
-    expect(currentMainValidation).toContain('6750 pass, 13 skip, 0 fail')
+    expect(currentMainValidation).toContain('6751 pass, 13 skip, 0 fail')
   })
 
   test('records exact current report-only blocker IDs', () => {

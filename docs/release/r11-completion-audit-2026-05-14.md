@@ -54,7 +54,7 @@ Pre-rewrite current main validation evidence from the latest clean checks:
 
 - `bun run typecheck` exits 0.
 - `bun run lint` exits 0 with 7 warnings.
-- `bun test` exits 0: 6750 pass, 13 skip, 0 fail.
+- `bun test` exits 0: 6751 pass, 13 skip, 0 fail.
 - `bun run build` exits 0.
 - `bun run validate:docs` exits 0.
 - `bun run validate:rebrand` exits 0.
