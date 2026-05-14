@@ -14,5 +14,9 @@ This directory holds architecture decision records for the audit-harness slice. 
 | 0009 | [RBAC policy](./0009-rbac-policy.md) | accepted |
 | 0010 | [Shiki highlighter adapter](./0010-shiki-highlighter.md) | accepted |
 | 0011 | [ROX.ONE rebrand canonical tokens](./0011-rox-one-rebrand-canonical-tokens.md) | accepted |
+| 0012 | [RBAC and RPC input validation at the boundary](./0012-rbac-input-validation.md) | accepted |
+| 0013 | [RBAC property-based tests and schema-layer reservation](./0013-rbac-property-tests.md) | accepted |
+| 0014 | [Two-layer abuse-hardening primitives](./0014-abuse-hardening-primitives.md) | accepted |
+| 0015 | [Audit-trail producer + durable NDJSON sink architecture](./0015-audit-trail-architecture.md) | accepted |
 
 Reserved slots are placeholders for in-flight or planned work — the number is claimed so cross-references in code and other ADRs stay stable while the document is drafted. When a reserved slot is filled, replace its row with a link to the landed ADR and flip its status to `accepted`. Superseding decisions add a new ADR rather than rewriting an existing one; the old record's `Status` line is updated to `superseded by ADR-NNNN` and a back-link is added at the top of the new ADR.
