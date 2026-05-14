@@ -52,6 +52,12 @@ const forkReviewInventoryPath = join(
   'release',
   'r11-fork-review-inventory-2026-05-14.md',
 )
+const forkReviewDecisionManifestPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-fork-review-decision-manifest-2026-05-14.md',
+)
 const activeGoalInventoryPath = join(
   repoRoot,
   'docs',
@@ -348,6 +354,7 @@ describe('R.11 completion audit', () => {
       'docs/release/r11-preflight-context-inventory-2026-05-14.md',
       'docs/release/r11-active-goal-inventory-2026-05-14.md',
       'docs/release/r11-fork-review-inventory-2026-05-14.md',
+      'docs/release/r11-fork-review-decision-manifest-2026-05-14.md',
       'docs/release/r11-tag-drift-inventory-2026-05-14.md',
       'docs/release/r11-tag-drift-reconciliation-manifest-2026-05-14.md',
       'docs/release/r11-backup-artifact-inventory-2026-05-14.md',
@@ -396,6 +403,24 @@ describe('R.11 completion audit', () => {
     expect(forkReviewInventory).toContain('Expected fork count: 0')
     expect(forkReviewInventory).toContain('dofaromg/rox-one-terminal')
     expect(forkReviewInventory).toContain('operator-review-required')
+  })
+
+  test('records an operator-ready fork review decision manifest', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const manifest = readFileSync(forkReviewDecisionManifestPath, 'utf8')
+
+    expect(audit).toContain('docs/release/r11-fork-review-decision-manifest-2026-05-14.md')
+    expect(manifest).toContain('Status: OPERATOR FORK REVIEW MANIFEST')
+    expect(manifest).toContain('Current fork count: 1')
+    expect(manifest).toContain('Expected fork count: 0')
+    expect(manifest).toContain('`dofaromg/rox-one-terminal`')
+    expect(manifest).toContain('Owner: `dofaromg`')
+    expect(manifest).toContain('Default branch: `main`')
+    expect(manifest).toContain('Last pushed: `2026-05-14T06:26:58Z`')
+    expect(manifest).toContain('No fork-owner contact, expected-count override, tag mutation, branch deletion, backup creation, `git filter-repo`, force-push, or goal completion is authorized by this manifest.')
+    expect(manifest).toContain('Dry-run verification commands')
+    expect(manifest).toContain('ROX_R11_EXPECTED_FORKS=1')
+    expect(manifest).toContain('Do not set ROX_R11_EXPECTED_FORKS until an operator-owned destructive window is explicit')
   })
 
   test('records the current remote branch review blocker count', () => {

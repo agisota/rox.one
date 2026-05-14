@@ -112,7 +112,9 @@ Fresh evidence from report-only post-push checks, without pinning this audit to 
   `docs/release/r11-active-goal-inventory-2026-05-14.md`;
   GitHub reports 1 fork(s); expected 0;
   the fork inventory is preserved in
-  `docs/release/r11-fork-review-inventory-2026-05-14.md`;
+  `docs/release/r11-fork-review-inventory-2026-05-14.md`, and the operator
+  fork decision manifest is preserved in
+  `docs/release/r11-fork-review-decision-manifest-2026-05-14.md`;
   local `rebrand-v1` targets `906896e145156d92cf98457c4dc1893c53323bac`,
   while origin `rebrand-v1` targets
   `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`. The tag drift inventory is
@@ -170,6 +172,9 @@ truthfully leave report-only mode.
   backup or rewrite step starts.
 - Re-review GitHub forks and update the expected fork count only after the
   operator confirms the fork inventory is acceptable for destructive rewrite.
+- Use `docs/release/r11-fork-review-decision-manifest-2026-05-14.md` as the
+  report-only fork decision surface; it does not authorize fork-owner contact
+  or expected-count override.
 - Review the `150 non-main/non-R.11-backup origin branches` and decide which
   still-relevant branches must be merged, preserved, or explicitly retired
   before destructive history rewrite work.

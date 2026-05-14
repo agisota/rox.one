@@ -21,7 +21,7 @@ Source evidence:
 | --- | --- | --- |
 | Active goal state | `no-active-goal` | `docs/release/r11-active-goal-inventory-2026-05-14.md` |
 | Preflight coordination/context | `no-open-prs`, `current-branch`, `main-sync`, `worktree-clean` | `docs/release/r11-preflight-context-inventory-2026-05-14.md` |
-| Fork review | `fork-review` | `docs/release/r11-fork-review-inventory-2026-05-14.md` |
+| Fork review | `fork-review` | `docs/release/r11-fork-review-inventory-2026-05-14.md`; `docs/release/r11-fork-review-decision-manifest-2026-05-14.md` |
 | Rebrand tag drift | `rebrand-tag-local-sync`, `rebrand-tag-on-main` | `docs/release/r11-tag-drift-inventory-2026-05-14.md`; `docs/release/r11-tag-drift-reconciliation-manifest-2026-05-14.md` |
 | Backup artifacts | `backup-tag`, `backup-branch`, `offline-mirror` | `docs/release/r11-backup-artifact-inventory-2026-05-14.md` |
 | Remote branch review | `remote-branch-review` | `docs/release/r11-remote-branch-review-2026-05-14.md`; `docs/release/r11-remote-branch-retirement-manifest-2026-05-14.md` |
