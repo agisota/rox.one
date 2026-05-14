@@ -109,6 +109,8 @@ Fresh evidence from the latest clean post-push checks:
   while origin `rebrand-v1` targets
   `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`. The tag drift inventory is
   preserved in `docs/release/r11-tag-drift-inventory-2026-05-14.md`.
+  The report also includes `current-branch` pass evidence:
+  `Current checkout is main`.
 - `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite`
   exits red with 7 blockers: `fork-review`, `rebrand-tag-local-sync`,
   `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`, and
@@ -120,7 +122,8 @@ Fresh evidence from the latest clean post-push checks:
   `backup/pre-rebrand-history-rewrite-2026-05-13`, and
   `/tmp/rox-one-terminal-backup-2026-05-13.git`. The backup artifact inventory
   is preserved in
-  `docs/release/r11-backup-artifact-inventory-2026-05-14.md`.
+  `docs/release/r11-backup-artifact-inventory-2026-05-14.md`. The
+  `current-branch` row passes here too: `Current checkout is main`.
 - `bun run rebrand:r11-legal-preserve` exits red on `legal-file-LICENSE`,
   `legal-file-NOTICE`, and `legal-file-TRADEMARK.md` because
   `pre-rebrand-history-rewrite-backup` is missing; the
