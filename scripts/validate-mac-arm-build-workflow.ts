@@ -91,6 +91,7 @@ if (macArmConfig.includes('- x64')) {
   fail('arm64 electron-builder config must not include x64 target arch');
 }
 requireText(builderConfig, 'beforeBuild: scripts/beforeBuild.cjs', 'external node_modules beforeBuild hook');
+requireText(builderConfig, 'identity: "-"', 'ad-hoc mac signing identity');
 requireText(beforeBuildHook, 'return false', 'beforeBuild external node_modules signal');
 requireText(macArmScript, "arch: ['arm64']", 'generated arm64-only builder target');
 requireText(macArmScript, 'downloadBun', 'Darwin arm64 Bun runtime download');

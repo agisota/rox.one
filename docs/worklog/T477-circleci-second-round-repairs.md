@@ -16,7 +16,11 @@ dependencies and hit `libsignal`'s exact `protobufjs@6.8.8` dependency; after
 that fix, the live mac trust-boundary validator reached codesign and exposed
 that metadata and entitlements should be requested separately, then exposed an
 ad-hoc `Identifier=ROX.ONE` fallback while Info.plist still carried the
-canonical `CFBundleIdentifier=com.rox.one`.
+canonical `CFBundleIdentifier=com.rox.one`, and then showed hardened runtime
+was not present because packaging had disabled identity discovery without an
+explicit ad-hoc identity. The stacked PR #218 validate rerun then exposed a
+runner-only transient `EBADF: bad file descriptor, epoll_ctl` from
+`transform_data` subprocess startup.
 
 ## 3. Files inspected
 
@@ -28,6 +32,7 @@ canonical `CFBundleIdentifier=com.rox.one`.
 - `apps/electron/src/renderer/components/shiki/__tests__/ShikiCodeEditor.singleton.test.ts`
 - `packages/shared/src/highlight/__tests__/highlight-corpus.test.ts`
 - `packages/ui/src/components/markdown/__tests__/code-block-singleton.test.ts`
+- `packages/ui/src/components/code-viewer/__tests__/shiki-code-viewer-singleton.test.ts`
 - `packages/audit/tests/route-crawler.test.ts`
 - `packages/audit/src/runners/dev-server-runner.ts`
 - `packages/audit/tests/runners/dev-server-runner.test.ts`
@@ -58,9 +63,16 @@ canonical `CFBundleIdentifier=com.rox.one`.
   `missing ROX.ONE code signing identifier: Identifier=com.rox.one`.
 - CircleCI `mac-arm-build` builds 84 and 89 still failed with the same
   identifier assertion after metadata/entitlements were split.
+- CircleCI `mac-arm-build` build 102 moved past the identifier assertion and
+  failed with `hardened runtime flag missing from Info.plist and signing output`.
 - CircleCI `validate` build 86 proved the root Vite process was starting, but
   the raw colored Vite banner prevented ready-pattern matching:
   `Recent output: VITE v6.4.2 ready in 175 ms ... Local: http://127.0.0.1:5174/`.
+- CircleCI `validate` build 104 failed one unit with
+  `EBADF: bad file descriptor, epoll_ctl` thrown by `child_process.spawn` before
+  the `transform_data` script process could start.
+- CircleCI `validate` build 99 also hit the default 5 second Bun timeout in
+  `ShikiCodeViewer singleton wiring > resetSingletonHighlighter rebuilds cleanly`.
 
 ## 6. Implementation changes
 
@@ -69,6 +81,8 @@ canonical `CFBundleIdentifier=com.rox.one`.
   exit-127 result so the snapshot can fail closed.
 - Shiki singleton tests use smaller language/theme fixtures and a 30 second Bun
   test timeout for highlighter rebuild paths.
+- ShikiCodeViewer now uses the same smaller language/theme fixture and 30 second
+  Bun timeout as the other singleton contract tests.
 - Highlight corpus tests use the same 30 second Bun timeout for cold Shiki
   startup paths.
 - Electron-builder gets a `beforeBuild` hook returning `false`, matching the
@@ -88,12 +102,18 @@ canonical `CFBundleIdentifier=com.rox.one`.
   ad-hoc executable fallback `Identifier=ROX.ONE`; live codesign output is used
   for hardened runtime and entitlement checks without requiring fixture-only
   per-binary sidecar entries.
+- mac packaging now sets `identity: "-"` so electron-builder applies ad-hoc
+  signing instead of disabling signing, which official electron-builder docs
+  call out as required to preserve hardened runtime.
+- `transform_data` subprocess startup now retries transient fd-exhaustion
+  spawn errors (`EBADF`, `EMFILE`, `ENFILE`) before returning an error response.
 
 ## 7. Validation commands run
 
 - `bun test scripts/__tests__/rebrand-r11-preflight.test.ts --timeout 20000`
 - `bun run validate:mac-arm-build-workflow`
 - `bun test packages/ui/src/components/markdown/__tests__/code-block-singleton.test.ts apps/electron/src/renderer/components/shiki/__tests__/ShikiCodeEditor.singleton.test.ts`
+- `bun test packages/ui/src/components/code-viewer/__tests__/shiki-code-viewer-singleton.test.ts`
 - `bun test packages/shared/src/highlight/__tests__/highlight-corpus.test.ts`
 - `bun run validate:docs`
 - `bun run validate:ci-contract`
@@ -107,8 +127,11 @@ canonical `CFBundleIdentifier=com.rox.one`.
 - `git diff --check`
 - `CI=true bun test`
 - `bun test packages/audit/tests/runners/dev-server-runner.test.ts packages/audit/tests/route-crawler.test.ts scripts/__tests__/validate-mac-boundary-fixtures.test.ts`
+- `bun test packages/ui/src/components/code-viewer/__tests__/shiki-code-viewer-singleton.test.ts packages/ui/src/components/markdown/__tests__/code-block-singleton.test.ts apps/electron/src/renderer/components/shiki/__tests__/ShikiCodeEditor.singleton.test.ts packages/shared/src/highlight/__tests__/highlight-corpus.test.ts`
 - `bun run validate:mac-private-release-boundary`
 - `bun run validate:mac-arm-build-workflow`
+- `bun test packages/session-tools-core/src/handlers/transform-data.test.ts --timeout 20000`
+- `bun test ./packages/session-tools-core/src/handlers/transform-data-spawn-retry.isolated.ts --timeout 20000`
 - `CI=true bun run test:units`
 - `NODE_OPTIONS=--max-old-space-size=2048 bun run validate:ci`
 
@@ -127,9 +150,14 @@ canonical `CFBundleIdentifier=com.rox.one`.
 - `CI=true bun test`: `6913 pass, 13 skip, 0 fail, 1 snapshots, 27543 expect() calls`.
 - Targeted route-crawler/dev-server/mac-boundary repair tests:
   `15 pass, 0 fail, 39 expect() calls`.
+- Targeted transform-data retry tests: `8 pass, 0 fail, 16 expect() calls` and
+  isolated retry test `1 pass, 0 fail, 3 expect() calls`.
 - Updated full unit gate after the ANSI/mac-identifier repair:
   `6915 pass, 13 skip, 0 fail, 1 snapshots, 27569 expect() calls`, followed
   by isolated tests passing.
+- Final full unit gate after transform-data/mac identity/ShikiCodeViewer repair:
+  `6916 pass, 13 skip, 0 fail, 1 snapshots`, followed by isolated tests
+  passing.
 - `validate:docs`, `validate:ci-contract`, `validate:rebrand`, `typecheck`, and
   YAML parsing passed.
 - `lint` passed with existing warnings only.
@@ -160,4 +188,5 @@ metadata/entitlement validation matches the current macOS runner behavior.
 | SPA route crawler avoids clean-runner fixture install timeout | Done | Root Vite binary launch + targeted route-crawler test |
 | Live mac validator keeps codesign metadata visible | Done | Static fixture test for split codesign calls |
 | Live mac validator accepts ad-hoc executable identifier fallback after canonical Info.plist check | Done | Static fixture test plus `bun run validate:mac-private-release-boundary` |
+| `transform_data` tolerates transient CircleCI spawn fd pressure | Done | Isolated mocked `EBADF` retry test |
 | Local validation passes | Done | `CI=true bun run test:units` and `NODE_OPTIONS=--max-old-space-size=2048 bun run validate:ci` |

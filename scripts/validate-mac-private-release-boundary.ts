@@ -262,6 +262,7 @@ requireText(
 requireText(builderConfig, 'CSC_LINK', 'production signing credential hint');
 requireText(builderConfig, 'APPLE_TEAM_ID', 'production notarization team hint');
 requireText(builderConfig, 'hardenedRuntime: true', 'hardenedRuntime electron-builder flag');
+requireText(builderConfig, 'identity: "-"', 'ad-hoc signing identity required to preserve hardened runtime');
 requireText(builderConfig, 'entitlements: build/entitlements.mac.plist', 'entitlements file reference');
 requireText(builderConfig, 'appId: com.rox.one', 'canonical bundle-id appId');
 
