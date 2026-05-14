@@ -24,6 +24,7 @@ export interface R11PreflightSnapshot {
   masterPhase1CloseoutDone: boolean
   masterPhase2CloseoutDone: boolean
   rebrandTagPresent: boolean
+  rebrandTagOnMain: boolean
   backupTagPresent: boolean
   backupBranchPresent: boolean
   offlineMirrorPresent: boolean
@@ -221,6 +222,19 @@ export function evaluateR11Preflight(
     snapshot.rebrandTagPresent
       ? pass('rebrand-tag', 'rebrand-v1 tag exists', 'rebrand-v1 is visible on origin.')
       : fail('rebrand-tag', 'rebrand-v1 tag exists', 'rebrand-v1 is missing.'),
+  )
+  results.push(
+    snapshot.rebrandTagOnMain
+      ? pass(
+          'rebrand-tag-on-main',
+          'rebrand-v1 tag is on main',
+          'rebrand-v1 target is on origin/main ancestry.',
+        )
+      : fail(
+          'rebrand-tag-on-main',
+          'rebrand-v1 tag is on main',
+          'rebrand-v1 target is missing from origin/main ancestry.',
+        ),
   )
   if (stage === 'pre-rewrite') {
     results.push(
@@ -452,6 +466,19 @@ export function collectR11PreflightSnapshot(
     ],
     repoRoot,
   ).stdout
+  const rebrandTagOnMain = run(
+    [
+      'bash',
+      '-lc',
+      [
+        "tag_commit=$(git ls-remote --tags origin 'refs/tags/rebrand-v1^{}' | awk '{print $1}')",
+        "if [ -z \"$tag_commit\" ]; then tag_commit=$(git ls-remote --tags origin 'refs/tags/rebrand-v1' | awk '{print $1}'); fi",
+        'test -n "$tag_commit"',
+        'git merge-base --is-ancestor "$tag_commit" origin/main',
+      ].join(' && '),
+    ],
+    repoRoot,
+  )
   const sync = run(
     ['git', 'rev-list', '--left-right', '--count', 'origin/main...main'],
     repoRoot,
@@ -470,6 +497,7 @@ export function collectR11PreflightSnapshot(
     masterPhase1CloseoutDone: isDoneTicket(repoRoot, MASTER_PHASE_1_CLOSEOUT_TICKET),
     masterPhase2CloseoutDone: isDoneTicket(repoRoot, MASTER_PHASE_2_CLOSEOUT_TICKET),
     rebrandTagPresent: remoteTags.includes('refs/tags/rebrand-v1'),
+    rebrandTagOnMain: rebrandTagOnMain.exitCode === 0,
     backupTagPresent: remoteTags.includes('refs/tags/pre-rebrand-history-rewrite-backup'),
     backupBranchPresent: remoteBackupBranch.includes(
       'refs/heads/backup/pre-rebrand-history-rewrite-2026-05-13',
