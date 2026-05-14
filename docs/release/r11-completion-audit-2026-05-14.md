@@ -100,6 +100,8 @@ actually produced cleaned ancestry.
 
 Fresh evidence from the latest clean post-push checks:
 
+- The current blocker inventory index is preserved in
+  `docs/release/r11-blocker-inventory-index-2026-05-14.md`.
 - `HEAD` and `origin/main` resolve to the same pushed commit.
 - `git status --short --branch` reports `## main...origin/main`.
 - `bun run rebrand:r11-preflight` exits red with 4 blockers:
