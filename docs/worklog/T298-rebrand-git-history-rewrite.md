@@ -12,12 +12,13 @@ stop state. The destructive history rewrite has not started.
 ## 2. Repo context discovered
 
 The rebrand-sweep goal requires R.11 to run only after all hard prerequisites
-are true. Current staged report-only preflight evidence after T387:
+are true. Current staged report-only preflight evidence after T389:
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
 | No active `/goal` runs | `get_goal` still reports the rebrand-sweep goal active | Blocked |
 | No open PRs | `gh pr list --state open --json number,title,headRefName,url --limit 200` returned `[]` | Green |
+| Fork count reviewed | Preflight reports expected fork count `0` | Green |
 | `rebrand-v1` tag exists | Preflight reports pass | Green |
 | Backup tag exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | Backup branch exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
@@ -111,11 +112,12 @@ exited 0 with no output.
 No build expected for this scaffold. The future destructive rewrite must run
 the full post-rewrite build matrix before this ticket can become `DONE`.
 
-### Current follow-up evidence, 2026-05-14T03:02:19Z
+### Current follow-up evidence, 2026-05-14T03:08:41Z
 
-T375 through T387 refreshed the blocker state after PR #205 merged, after
+T375 through T389 refreshed the blocker state after PR #205 merged, after
 the staged preflight split landed, after the R.11 local path runbook repair,
-and after the pre-rewrite backup branch check landed:
+after the pre-rewrite backup branch check landed, and after the fork-review
+preflight row landed:
 
 - GitHub reports no open PRs.
 - GitHub fork count is `0`.
@@ -139,6 +141,9 @@ and after the pre-rewrite backup branch check landed:
   `T298-rc-preflight` release-readiness ticket.
 - The explicit pre-rewrite helper now checks all three mandatory backup
   artifacts from the runbook: backup tag, backup branch, and offline mirror.
+- The report-only helper now checks fork count against
+  `ROX_R11_EXPECTED_FORKS` (default `0`), and the latest run reports the
+  expected count.
 
 The latest default pre-backup preflight remains red on one blocker:
 

@@ -1,6 +1,6 @@
 # T388 - R.11 preflight fork review check
 
-Status: TODO
+Status: DONE
 
 ## Context
 
@@ -61,13 +61,13 @@ preflight ignores fork-count mismatches.
 
 ## Acceptance Criteria
 
-- [ ] Regression test fails before implementation.
-- [ ] Regression test passes after implementation.
-- [ ] Preflight has a distinct fork-review row.
-- [ ] Live default preflight shows fork-review pass at expected count 0.
-- [ ] Documentation/rebrand validation remains green.
-- [ ] Destructive R.11 actions are not executed.
-- [ ] Commit created.
+- [x] Regression test fails before implementation.
+- [x] Regression test passes after implementation.
+- [x] Preflight has a distinct fork-review row.
+- [x] Live default preflight shows fork-review pass at expected count 0.
+- [x] Documentation/rebrand validation remains green.
+- [x] Destructive R.11 actions are not executed.
+- [x] Commit created.
 
 ## Worklog
 
