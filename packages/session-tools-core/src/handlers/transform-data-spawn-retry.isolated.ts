@@ -4,12 +4,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { SessionToolContext } from '../context.ts';
 
+const fs = await import('node:fs');
 const childProcess = await import('node:child_process');
+const realReadFileSync = fs.readFileSync;
 const realSpawn = childProcess.spawn;
 
 let nextSpawnError: (Error & { code?: string; syscall?: string }) | undefined;
 let remainingSpawnErrors = 0;
 let failPipeStdio = false;
+let failCaptureReads = false;
 let spawnCalls = 0;
 
 const mockedSpawn = ((...args: unknown[]) => {
@@ -34,6 +37,18 @@ mock.module('node:child_process', () => ({
   spawn: mockedSpawn,
 }));
 
+mock.module('node:fs', () => ({
+  ...fs,
+  readFileSync: ((path: Parameters<typeof fs.readFileSync>[0], ...args: unknown[]) => {
+    if (failCaptureReads && String(path).includes('.transform-stdio-')) {
+      const error = new Error(`forced capture read failure for ${String(path)}`) as Error & { code: string };
+      error.code = 'EIO';
+      throw error;
+    }
+    return (realReadFileSync as unknown as (...readArgs: unknown[]) => unknown)(path, ...args);
+  }) as typeof fs.readFileSync,
+}));
+
 const { handleTransformData } = await import('./transform-data.ts');
 
 function transientSpawnError(code: string): Error & { code: string; syscall: string } {
@@ -55,6 +70,7 @@ describe('transform_data transient spawn retry', () => {
     nextSpawnError = undefined;
     remainingSpawnErrors = 0;
     failPipeStdio = false;
+    failCaptureReads = false;
     spawnCalls = 0;
     if (rootDir) {
       rmSync(rootDir, { recursive: true, force: true });
@@ -155,5 +171,36 @@ describe('transform_data transient spawn retry', () => {
     expect(result.content[0]?.text).toContain('EACCES: transient spawn startup failure');
     expect(spawnCalls).toBe(1);
     expect(existsSync(join(dataDir, 'out.json'))).toBe(false);
+  });
+
+  test('preserves stderr from non-zero transform scripts', async () => {
+    const result = await handleTransformData(setupContext(), {
+      language: 'node',
+      script: "process.stderr.write('transform failed with details'); process.exit(7);",
+      inputFiles: ['in.txt'],
+      outputFile: 'out.json',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('Script failed (exit code 7)');
+    expect(result.content[0]?.text).toContain('transform failed with details');
+    expect(result.content[0]?.text).not.toContain('Script exited with non-zero code');
+  });
+
+  test('surfaces capture read failures instead of hiding script diagnostics', async () => {
+    failCaptureReads = true;
+
+    const result = await handleTransformData(setupContext(), {
+      language: 'node',
+      script: "process.stderr.write('transform failed with details'); process.exit(7);",
+      inputFiles: ['in.txt'],
+      outputFile: 'out.json',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('Script failed (exit code 7)');
+    expect(result.content[0]?.text).toContain('Failed to read stderr capture');
+    expect(result.content[0]?.text).toContain('forced capture read failure');
+    expect(result.content[0]?.text).not.toContain('Script exited with non-zero code');
   });
 });
