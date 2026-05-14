@@ -14,10 +14,10 @@ git ls-remote --heads origin
 
 Summary:
 
-- Total origin heads: 143
+- Total origin heads: 147
 - Excluded from blocker count: `main`
 - R.11 backup branch present: no
-- Non-main/non-R.11-backup origin branches: 142
+- Non-main/non-R.11-backup origin branches: 146
 - Default disposition in this report: `operator-review-required`
 
 ## Branch Inventory
@@ -35,6 +35,7 @@ Summary:
 | `chore/T297-rebrand-prepush-ci-gate` | `0c8362be4fda0d4ce0dc9e490c33ee11896bdbde` | operator-review-required |
 | `feat/M10-T238-voice-input-slot` | `0d5b8ed14dede550793fe6d89e2bec15674bef9b` | operator-review-required |
 | `feat/M14-T246c-bootstrap-host-audit` | `0d816a88290006416420638f2ce87b866ea94ead` | operator-review-required |
+| `feat/M18-T253b-linux-deb-rpm` | `0ed82ce11d14577ce3c88a460282d431872c5960` | operator-review-required |
 | `feat/M8-T243rpc-missions-handlers` | `1451edbf424dcb070a78b96d8107530b21dfbd43` | operator-review-required |
 | `feat/M8-T244sqlite-mission-store` | `14e5e7b751bc54e3829f82b80a71e878d914e8ce` | operator-review-required |
 | `feat/M13-T038-input-validation-hardening` | `16debd1d8c7ec3e1ce865a055359bbb85e9abb1c` | operator-review-required |
@@ -48,6 +49,7 @@ Summary:
 | `feat/M13-T244-schema-reservation` | `1de7c985f55f1e67453ab6808bbe26b386b0e3e5` | operator-review-required |
 | `feat/phase-1-1-c4-workspace-rpc-full-scope-migration` | `1e596c3551ca1ddd4a4d76b05c0f1b718219d42b` | operator-review-required |
 | `docs/T338-readme-acks-repair` | `209c9fba4080337333f1735202b0bdc2fd7bbc11` | operator-review-required |
+| `feat/M13-T086d-abuse-guard-remaining-handlers` | `237cc0aebcfd9a8bfb1cdcea47c50fa806886970` | operator-review-required |
 | `feat/phase-20-rc-scenarios` | `261f00b805ec51848edacf67fd4b620d64921c0e` | operator-review-required |
 | `docs/readme-rox-one` | `265b8957eed871cd9c95765b8c1418f0c26da53f` | operator-review-required |
 | `feat/M9-T272-experience-server-emit` | `28547e22471c50e5b2517bcd2092a05b35b39c8d` | operator-review-required |
@@ -71,6 +73,7 @@ Summary:
 | `feat/audit-a3-taste` | `4540016a5dd1a0fb4e387abfd96c58b120708cba` | operator-review-required |
 | `fix/lazy-load-react-pdf` | `46d352bdab57b2359922becba304a54cfb791560` | operator-review-required |
 | `feat/M14-T246b-fileauditsink-host-wiring` | `4d0af5140b7e9a99a9d997e962058740d2df14fa` | operator-review-required |
+| `feat/M10-T237c-drag-from-other-apps` | `4dc6570539db593491b48633a7875c0b98894286` | operator-review-required |
 | `feat/M14-T246-audit-wire-rbac-missions` | `4e3ac06dfaf168a6c7683cb4ec2e27933392d8b6` | operator-review-required |
 | `feat/M11-T173-shiki-callsite-v2` | `4ed18e63207efb2b7c2b0ba4decd03fa07dcc4b9` | operator-review-required |
 | `feat/rpc-med-risk-boundary-validators` | `50c49a41c6f42e08d5dc0da684b61b3988a1215b` | operator-review-required |
@@ -97,6 +100,7 @@ Summary:
 | `test/T255-stabilization-edge-cases` | `7f48f01d8aaf62d2658f4bb0ac73daa09c50acd2` | operator-review-required |
 | `feat/M7-T242b-renderer-orchestrator-hook` | `805b4f3eaa1e850e46a0072720b723ec70521f5b` | operator-review-required |
 | `feat/M13-T086c-remaining-handlers-abuse-guard` | `80e53142a0b56533d901d3c62e92468958139f80` | operator-review-required |
+| `feat/M10-T240c-cheatsheet-i18n` | `808f1510ab0a360e0c6883601782275e3684d2b0` | operator-review-required |
 | `feat/M12-visual-polish-v2-v2` | `81cec70a277928b6fb2baaeb695650daabe91c32` | operator-review-required |
 | `feat/M17-private-release-pipeline` | `8298e0983dba1de7739bffee380f1ff0d43fed94` | operator-review-required |
 | `feat/M17-private-release-pipeline-v2` | `85da6b90dd95a58589154af4ffca0294ed7cc32e` | operator-review-required |
