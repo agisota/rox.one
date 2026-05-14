@@ -5,7 +5,7 @@
  * history rewrite. It never creates refs, runs filter-repo, or pushes.
  */
 
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 export interface R11PullRequest {
@@ -20,6 +20,9 @@ export interface R11PreflightSnapshot {
   openPullRequests: R11PullRequest[]
   forkCount: number
   expectedForkCount: number
+  rebrandPhaseCloseoutIssues: string[]
+  masterPhase1CloseoutDone: boolean
+  masterPhase2CloseoutDone: boolean
   rebrandTagPresent: boolean
   backupTagPresent: boolean
   backupBranchPresent: boolean
@@ -54,6 +57,48 @@ export interface R11PreflightReport {
 
 const DEFAULT_REPO_ROOT = join(import.meta.dir, '..')
 const DEFAULT_OFFLINE_MIRROR = '/tmp/rox-one-terminal-backup-2026-05-13.git'
+const REBRAND_R0_R10_TICKET_PATHS = [
+  'docs/tickets/T260-rebrand-canonical-decision-adr.md',
+  'docs/tickets/T261-rebrand-mapping-report.md',
+  'docs/tickets/T262-rebrand-lint-script.md',
+  'docs/tickets/T263-rebrand-surface-text-completion.md',
+  'docs/tickets/T264-rebrand-component-renames.md',
+  'docs/tickets/T265-rebrand-class-renames.md',
+  'docs/tickets/T266-rebrand-test-file-renames.md',
+  'docs/tickets/T267-rebrand-logo-asset-renames.md',
+  'docs/tickets/T268-rebrand-binary-and-doc-renames.md',
+  'docs/tickets/T269-rebrand-readme-and-contributing.md',
+  'docs/tickets/T270-rebrand-security-and-coc.md',
+  'docs/tickets/T271-rebrand-plan-and-snapshot-rewrite.md',
+  'docs/tickets/T272-rebrand-electron-readme-and-paths.md',
+  'docs/tickets/T273-rebrand-pkg-scope-test-fixtures.md',
+  'docs/tickets/T274-rebrand-pkg-scope-ui.md',
+  'docs/tickets/T275-rebrand-pkg-scope-core.md',
+  'docs/tickets/T276-rebrand-pkg-scope-audit.md',
+  'docs/tickets/T277-rebrand-pkg-scope-session-tools-core.md',
+  'docs/tickets/T278-rebrand-pkg-scope-session-mcp-server.md',
+  'docs/tickets/T279-rebrand-pkg-scope-messaging.md',
+  'docs/tickets/T280-rebrand-pkg-scope-pi-agent-server.md',
+  'docs/tickets/T281-rebrand-pkg-scope-server.md',
+  'docs/tickets/T282-rebrand-pkg-scope-shared.md',
+  'docs/tickets/T283-rebrand-pkg-scope-apps.md',
+  'docs/tickets/T284-rebrand-pkg-scope-closeout.md',
+  'docs/tickets/T285-rebrand-env-var-shim-impl.md',
+  'docs/tickets/T286-rebrand-env-var-call-site-migration.md',
+  'docs/tickets/T287-rebrand-env-var-docs-update.md',
+  'docs/tickets/T288-rebrand-env-var-deprecation-warning-coverage.md',
+  'docs/tickets/T289-rebrand-dockerfile.md',
+  'docs/tickets/T290-rebrand-ci-workflows.md',
+  'docs/tickets/T291-rebrand-electron-builder-config.md',
+  'docs/tickets/T292-user-data-migration-design.md',
+  'docs/tickets/T293-user-data-migration-impl.md',
+  'docs/tickets/T294-user-data-migration-electron-startup-wire.md',
+  'docs/tickets/T295-community-link-audit-and-fix.md',
+  'docs/tickets/T296-rebrand-sweep-closeout.md',
+  'docs/tickets/T297-rebrand-prepush-hook-and-ci-gate.md',
+]
+const MASTER_PHASE_1_CLOSEOUT_TICKET = 'docs/tickets/T223-c4-followups-closeout.md'
+const MASTER_PHASE_2_CLOSEOUT_TICKET = 'docs/tickets/T229-rbac-integration-tests.md'
 
 function pass(id: string, label: string, detail: string): R11PreflightResult {
   return { id, label, passed: true, detail }
@@ -126,6 +171,51 @@ export function evaluateR11Preflight(
       ),
     )
   }
+
+  if (snapshot.rebrandPhaseCloseoutIssues.length === 0) {
+    results.push(
+      pass(
+        'rebrand-closeouts',
+        'R.0-R.10 closeouts done',
+        'R.0-R.10 tickets are Status: DONE and matching worklogs exist.',
+      ),
+    )
+  } else {
+    results.push(
+      fail(
+        'rebrand-closeouts',
+        'R.0-R.10 closeouts done',
+        snapshot.rebrandPhaseCloseoutIssues.join('; '),
+      ),
+    )
+  }
+
+  results.push(
+    snapshot.masterPhase1CloseoutDone
+      ? pass(
+          'phase1-closeout',
+          'C4 Phase 1 closeout done',
+          'docs/tickets/T223-c4-followups-closeout.md is Status: DONE.',
+        )
+      : fail(
+          'phase1-closeout',
+          'C4 Phase 1 closeout done',
+          'docs/tickets/T223-c4-followups-closeout.md is missing or not Status: DONE.',
+        ),
+  )
+  results.push(
+    snapshot.masterPhase2CloseoutDone
+      ? pass(
+          'phase2-rbac-closeout',
+          'RBAC Phase 2 closeout done',
+          'docs/tickets/T229-rbac-integration-tests.md is Status: DONE.',
+        )
+      : fail(
+          'phase2-rbac-closeout',
+          'RBAC Phase 2 closeout done',
+          'docs/tickets/T229-rbac-integration-tests.md is missing or not Status: DONE.',
+        ),
+  )
 
   results.push(
     snapshot.rebrandTagPresent
@@ -263,6 +353,37 @@ function parseExpectedForkCount(value: string | undefined): { count: number; err
   return { count }
 }
 
+function isDoneTicket(repoRoot: string, ticketPath: string): boolean {
+  const absolutePath = join(repoRoot, ticketPath)
+  if (!existsSync(absolutePath)) return false
+  const contents = readFileSync(absolutePath, 'utf8')
+  return /^Status:\s*DONE\b/im.test(contents)
+}
+
+function worklogPathFor(ticketPath: string): string {
+  return ticketPath.replace('docs/tickets/', 'docs/worklog/')
+}
+
+function collectRebrandPhaseCloseoutIssues(repoRoot: string): string[] {
+  const issues: string[] = []
+  for (const ticketPath of REBRAND_R0_R10_TICKET_PATHS) {
+    const ticketAbsolutePath = join(repoRoot, ticketPath)
+    const worklogPath = worklogPathFor(ticketPath)
+    const worklogAbsolutePath = join(repoRoot, worklogPath)
+    if (!existsSync(ticketAbsolutePath)) {
+      issues.push(`${ticketPath} is missing`)
+      continue
+    }
+    if (!isDoneTicket(repoRoot, ticketPath)) {
+      issues.push(`${ticketPath} is not Status: DONE`)
+    }
+    if (!existsSync(worklogAbsolutePath)) {
+      issues.push(`${worklogPath} is missing`)
+    }
+  }
+  return issues
+}
+
 export function collectR11PreflightSnapshot(
   repoRoot = DEFAULT_REPO_ROOT,
 ): R11PreflightSnapshot {
@@ -345,6 +466,9 @@ export function collectR11PreflightSnapshot(
     forkCount,
     expectedForkCount: expectedForkCount.count,
     forkReviewError,
+    rebrandPhaseCloseoutIssues: collectRebrandPhaseCloseoutIssues(repoRoot),
+    masterPhase1CloseoutDone: isDoneTicket(repoRoot, MASTER_PHASE_1_CLOSEOUT_TICKET),
+    masterPhase2CloseoutDone: isDoneTicket(repoRoot, MASTER_PHASE_2_CLOSEOUT_TICKET),
     rebrandTagPresent: remoteTags.includes('refs/tags/rebrand-v1'),
     backupTagPresent: remoteTags.includes('refs/tags/pre-rebrand-history-rewrite-backup'),
     backupBranchPresent: remoteBackupBranch.includes(
