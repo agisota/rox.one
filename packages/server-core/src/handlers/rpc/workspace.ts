@@ -68,6 +68,23 @@ export function registerWorkspaceCoreHandlers(server: RpcServer, deps: HandlerDe
 
   // Create a new workspace at a folder path (Obsidian-style: folder IS the workspace)
   server.handle(RPC_CHANNELS.workspaces.CREATE, async (ctx, folderPath: string, name: string, remoteServer?: { url: string; token: string; remoteWorkspaceId: string }) => {
+    // T086d: optional rate-limit. Sits BEFORE path validation and BEFORE
+    // the workspace creation so a burst of workspace creates from a single
+    // actor cannot bypass the cap. Absent => no-op.
+    if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+      return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+
+    // T086d: optional per-actor budget guard. Runs AFTER the bucket gate
+    // and BEFORE path validation / workspace creation. Absent => no-op.
+    if (deps.budgetGuard) {
+      const key = ctx.userId ?? '__anonymous__'
+      const result = deps.budgetGuard.consume(key, 1)
+      if (!result.ok) {
+        return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+      }
+    }
+
     const rootPath = folderPath.trim()
     const validation = isValidWorkspaceRootPath(rootPath)
     if (!validation.valid) {

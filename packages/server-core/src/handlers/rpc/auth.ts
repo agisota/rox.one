@@ -48,7 +48,24 @@ export function registerAuthHandlers(server: RpcServer, deps: HandlerDeps): void
   })
 
   // Logout - clear all credentials and config
-  server.handle(RPC_CHANNELS.auth.LOGOUT, async () => {
+  server.handle(RPC_CHANNELS.auth.LOGOUT, async (ctx) => {
+    // T086d: optional rate-limit. Sits BEFORE the credential store
+    // mutation so a burst of logout calls cannot hammer the keychain.
+    // Absent => no-op.
+    if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+      return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+
+    // T086d: optional per-actor budget guard. Runs AFTER the bucket gate
+    // and BEFORE the credential mutation. Absent => no-op.
+    if (deps.budgetGuard) {
+      const key = ctx.userId ?? '__anonymous__'
+      const result = deps.budgetGuard.consume(key, 1)
+      if (!result.ok) {
+        return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+      }
+    }
+
     try {
       const manager = getCredentialManager()
 

@@ -239,6 +239,23 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Create a new session
   server.handle(RPC_CHANNELS.sessions.CREATE, async (ctx, workspaceId: string, options?: import('@rox-one/shared/protocol').CreateSessionOptions) => {
+    // T086d: optional rate-limit. Sits BEFORE workspace access check and
+    // BEFORE the session creation so burst creation from a single actor
+    // cannot bypass the cap. Absent => no-op.
+    if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+      return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+
+    // T086d: optional per-actor budget guard. Runs AFTER the bucket gate
+    // and BEFORE workspace access / session creation. Absent => no-op.
+    if (deps.budgetGuard) {
+      const key = ctx.userId ?? '__anonymous__'
+      const result = deps.budgetGuard.consume(key, 1)
+      if (!result.ok) {
+        return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+      }
+    }
+
     parseId('workspaceId', workspaceId)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const end = perf.start('rpc.createSession', { workspaceId })
@@ -249,6 +266,21 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Delete a session
   server.handle(RPC_CHANNELS.sessions.DELETE, async (ctx, sessionId: string) => {
+    // T086d: optional rate-limit + per-actor budget guard. Shares the
+    // injected bucket and guard with sessions.create so a single actor
+    // cannot bypass either cap by alternating create / delete bursts.
+    // Absent => no-op.
+    if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+      return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+    if (deps.budgetGuard) {
+      const key = ctx.userId ?? '__anonymous__'
+      const result = deps.budgetGuard.consume(key, 1)
+      if (!result.ok) {
+        return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+      }
+    }
+
     parseId('sessionId', sessionId)
     await requireSessionAccess(deps, ctx, sessionId)
     return sessionManager.deleteSession(sessionId)
@@ -268,6 +300,24 @@ export function registerSessionsHandlers(server: RpcServer, deps: HandlerDeps): 
   //     event stream as today.
   // attachments: FileAttachment[] for Claude (has content), storedAttachments: StoredAttachment[] for persistence (has thumbnailBase64)
   server.handle(RPC_CHANNELS.sessions.SEND_MESSAGE, async (ctx, sessionId: string, message: string, attachments?: FileAttachment[], storedAttachments?: StoredAttachment[], options?: SendMessageOptions) => {
+    // T086d: optional rate-limit. This is the highest-throughput mutating
+    // channel — a burst of sends from a single actor could exhaust the
+    // model API quota. The gate runs BEFORE input validation and BEFORE
+    // session access so even malformed payloads consume tokens. Absent => no-op.
+    if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+      return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+
+    // T086d: optional per-actor budget guard. Runs AFTER the bucket gate
+    // and BEFORE validation/session access. Absent => no-op.
+    if (deps.budgetGuard) {
+      const key = ctx.userId ?? '__anonymous__'
+      const result = deps.budgetGuard.consume(key, 1)
+      if (!result.ok) {
+        return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+      }
+    }
+
     parseId('sessionId', sessionId)
     parseSafeString('message', message, 1_000_000)
     await requireSessionAccess(deps, ctx, sessionId)
