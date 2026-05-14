@@ -12,7 +12,7 @@ stop state. The destructive history rewrite has not started.
 ## 2. Repo context discovered
 
 The rebrand-sweep goal requires R.11 to run only after all hard prerequisites
-are true. Current staged report-only preflight evidence after T380:
+are true. Current staged report-only preflight evidence after T382:
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
@@ -110,10 +110,10 @@ exited 0 with no output.
 No build expected for this scaffold. The future destructive rewrite must run
 the full post-rewrite build matrix before this ticket can become `DONE`.
 
-### Current follow-up evidence, 2026-05-14T02:37:09Z
+### Current follow-up evidence, 2026-05-14T02:44:15Z
 
-T375 through T380 refreshed the blocker state after PR #205 merged and after
-the staged preflight split landed:
+T375 through T382 refreshed the blocker state after PR #205 merged, after
+the staged preflight split landed, and after the R.11 local path runbook repair:
 
 - GitHub reports no open PRs.
 - GitHub fork count is `0`.
@@ -129,6 +129,9 @@ the staged preflight split landed:
 - A lightweight history check still finds old `rox-agent` / `Rox Agents`
   strings in git history, so the final `git log -p --all` gate cannot pass
   before the authorized rewrite.
+- The R.11 offline mirror and rollback snippets now point at the current
+  checkout path, `/home/dev/craft/rox-one-terminal`, and the regression test
+  fails if `/home/dev/rox/rox-one-terminal` returns.
 
 The latest default pre-backup preflight remains red on one blocker:
 
