@@ -127,7 +127,9 @@ Fresh evidence from report-only post-push checks, without pinning this audit to 
   reports 1 fork(s); expected 0; the
   remote branch review currently reports
   `150 non-main/non-R.11-backup origin branches`. The full branch inventory is
-  preserved in `docs/release/r11-remote-branch-review-2026-05-14.md`. The
+  preserved in `docs/release/r11-remote-branch-review-2026-05-14.md`, and the
+  operator-ready retirement manifest is preserved in
+  `docs/release/r11-remote-branch-retirement-manifest-2026-05-14.md`. The
   missing backup artifacts are `pre-rebrand-history-rewrite-backup`,
   `backup/pre-rebrand-history-rewrite-2026-05-13`, and
   `/tmp/rox-one-terminal-backup-2026-05-13.git`. The backup artifact inventory
@@ -169,6 +171,8 @@ truthfully leave report-only mode.
   before destructive history rewrite work.
 - Treat the PR queue as currently clear: there are 0 open PR branches, but
   merged and closed PR heads still remain in the remote branch review queue.
+- Use `docs/release/r11-remote-branch-retirement-manifest-2026-05-14.md` as
+  the report-only retirement review surface; it does not authorize deletion.
 - Create the backup tag, backup branch, and offline mirror only after the
   default pre-backup preflight is green. Do not create backup refs while tag
   or active-goal blockers remain red.
