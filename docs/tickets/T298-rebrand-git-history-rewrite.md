@@ -55,8 +55,7 @@ non-zero.
 ## Validation Commands
 
 - `bun run rebrand:r11-preflight`
-- Legal-preserve byte diffs from the R.11 goal file
-- Dockerfile attribution URL grep from the R.11 goal file
+- `bun run rebrand:r11-legal-preserve`
 - `bun run validate:rebrand`
 - `bun run typecheck`
 - `bun test`
@@ -73,8 +72,7 @@ non-zero.
 - [ ] Offline mirror exists at `/tmp/rox-one-terminal-backup-2026-05-13.git`.
 - [ ] Explicit pre-rewrite remote branch review passes.
 - [ ] `git filter-repo` command history is recorded.
-- [ ] Legal-preserve byte diffs are empty.
-- [ ] Dockerfile upstream attribution URL remains intact.
+- [ ] `bun run rebrand:r11-legal-preserve` passes.
 - [ ] Force-push completes with lease.
 - [ ] Post-rewrite validation matrix is green.
 - [ ] README post-rewrite coordination banner is added if required by the goal.
