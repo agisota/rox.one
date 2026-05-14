@@ -24,6 +24,8 @@ export interface R11PreflightSnapshot {
   masterPhase1CloseoutDone: boolean
   masterPhase2CloseoutDone: boolean
   rebrandTagPresent: boolean
+  rebrandTagRemoteCommit?: string
+  rebrandTagLocalCommit?: string
   rebrandTagLocalMatchesRemote: boolean
   rebrandTagOnMain: boolean
   backupTagPresent: boolean
@@ -108,6 +110,10 @@ function pass(id: string, label: string, detail: string): R11PreflightResult {
 
 function fail(id: string, label: string, detail: string): R11PreflightResult {
   return { id, label, passed: false, detail }
+}
+
+function describeCommit(value: string | undefined): string {
+  return value && value.length > 0 ? value : 'missing'
 }
 
 export function evaluateR11Preflight(
@@ -229,12 +235,12 @@ export function evaluateR11Preflight(
       ? pass(
           'rebrand-tag-local-sync',
           'Local rebrand-v1 matches origin',
-          'Local rebrand-v1 and origin rebrand-v1 peel to the same commit.',
+          `Local rebrand-v1 and origin rebrand-v1 peel to ${describeCommit(snapshot.rebrandTagRemoteCommit)}.`,
         )
       : fail(
           'rebrand-tag-local-sync',
           'Local rebrand-v1 matches origin',
-          'Local rebrand-v1 target differs from origin or is missing.',
+          `Local rebrand-v1 target differs from origin: local ${describeCommit(snapshot.rebrandTagLocalCommit)}, origin ${describeCommit(snapshot.rebrandTagRemoteCommit)}.`,
         ),
   )
   results.push(
@@ -242,12 +248,12 @@ export function evaluateR11Preflight(
       ? pass(
           'rebrand-tag-on-main',
           'rebrand-v1 tag is on main',
-          'rebrand-v1 target is on origin/main ancestry.',
+          `origin rebrand-v1 target ${describeCommit(snapshot.rebrandTagRemoteCommit)} is on origin/main ancestry.`,
         )
       : fail(
           'rebrand-tag-on-main',
           'rebrand-v1 tag is on main',
-          'rebrand-v1 target is missing from origin/main ancestry.',
+          `origin rebrand-v1 target ${describeCommit(snapshot.rebrandTagRemoteCommit)} is missing from origin/main ancestry.`,
         ),
   )
   if (stage === 'pre-rewrite') {
@@ -480,33 +486,31 @@ export function collectR11PreflightSnapshot(
     ],
     repoRoot,
   ).stdout
-  const rebrandTagOnMain = run(
-    [
-      'bash',
-      '-lc',
-      [
-        "tag_commit=$(git ls-remote --tags origin 'refs/tags/rebrand-v1^{}' | awk '{print $1}')",
-        "if [ -z \"$tag_commit\" ]; then tag_commit=$(git ls-remote --tags origin 'refs/tags/rebrand-v1' | awk '{print $1}'); fi",
-        'test -n "$tag_commit"',
-        'git merge-base --is-ancestor "$tag_commit" origin/main',
-      ].join(' && '),
-    ],
-    repoRoot,
-  )
-  const rebrandTagLocalMatchesRemote = run(
+  const rebrandTagRemoteCommit = run(
     [
       'bash',
       '-lc',
       [
         "remote_tag_commit=$(git ls-remote --tags origin 'refs/tags/rebrand-v1^{}' | awk '{print $1}')",
         "if [ -z \"$remote_tag_commit\" ]; then remote_tag_commit=$(git ls-remote --tags origin 'refs/tags/rebrand-v1' | awk '{print $1}'); fi",
-        "local_tag_commit=$(git rev-parse --verify 'rebrand-v1^{commit}' 2>/dev/null)",
-        'test -n "$remote_tag_commit"',
-        'test -n "$local_tag_commit"',
-        'test "$remote_tag_commit" = "$local_tag_commit"',
+        'printf "%s" "$remote_tag_commit"',
       ].join(' && '),
     ],
     repoRoot,
+  )
+  const rebrandTagLocalCommit = run(
+    ['git', 'rev-parse', '--verify', 'rebrand-v1^{commit}'],
+    repoRoot,
+  )
+  const remoteCommit = rebrandTagRemoteCommit.stdout || undefined
+  const localCommit = rebrandTagLocalCommit.exitCode === 0
+    ? rebrandTagLocalCommit.stdout || undefined
+    : undefined
+  const rebrandTagOnMain = remoteCommit
+    ? run(['git', 'merge-base', '--is-ancestor', remoteCommit, 'origin/main'], repoRoot)
+    : { exitCode: 1 }
+  const rebrandTagLocalMatchesRemote = Boolean(
+    remoteCommit && localCommit && remoteCommit === localCommit,
   )
   const sync = run(
     ['git', 'rev-list', '--left-right', '--count', 'origin/main...main'],
@@ -526,7 +530,9 @@ export function collectR11PreflightSnapshot(
     masterPhase1CloseoutDone: isDoneTicket(repoRoot, MASTER_PHASE_1_CLOSEOUT_TICKET),
     masterPhase2CloseoutDone: isDoneTicket(repoRoot, MASTER_PHASE_2_CLOSEOUT_TICKET),
     rebrandTagPresent: remoteTags.includes('refs/tags/rebrand-v1'),
-    rebrandTagLocalMatchesRemote: rebrandTagLocalMatchesRemote.exitCode === 0,
+    rebrandTagRemoteCommit: remoteCommit,
+    rebrandTagLocalCommit: localCommit,
+    rebrandTagLocalMatchesRemote,
     rebrandTagOnMain: rebrandTagOnMain.exitCode === 0,
     backupTagPresent: remoteTags.includes('refs/tags/pre-rebrand-history-rewrite-backup'),
     backupBranchPresent: remoteBackupBranch.includes(
@@ -557,9 +563,10 @@ export function formatR11PreflightReport(report: R11PreflightReport): string {
     result.passed ? 'pass' : 'fail',
     result.detail,
   ])
+  const maxWidths = [36, 8, 160]
   const widths = headers.map((header, idx) => {
     const cells = [header, ...rows.map((row) => row[idx] ?? '')]
-    return Math.min(36, Math.max(...cells.map((cell) => cell.length)))
+    return Math.min(maxWidths[idx] ?? 36, Math.max(...cells.map((cell) => cell.length)))
   })
   const renderRow = (cells: readonly string[]): string =>
     cells
