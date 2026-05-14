@@ -91,6 +91,33 @@ Fresh evidence from the latest clean post-push checks:
   (`history-scan`) exits red with `9 forbidden-token patch lines` outside the
   legal-preserve allowlist.
 
+## Operator-Owned Unblock Checklist
+
+This checklist is not authorization for this active run. It names the
+operator-owned decisions that must be resolved before a future R.11 attempt can
+truthfully leave report-only mode.
+
+- Clear the active `/goal` run state only when R.11 is intentionally being
+  handed to an operator-controlled destructive window. Until then,
+  `no-active-goal` must remain a hard stop.
+- Reconcile the local and origin `rebrand-v1` tag targets, and decide how the
+  origin tag should relate to origin/main ancestry. Do not mutate tags from
+  this blocked report-only run.
+- Confirm the origin `rebrand-v1` target is on origin/main ancestry before any
+  backup or rewrite step starts.
+- Review the `139 non-main/non-R.11-backup origin branches` and decide which
+  still-relevant branches must be merged, preserved, or explicitly retired
+  before destructive history rewrite work.
+- Create the backup tag, backup branch, and offline mirror only after the
+  default pre-backup preflight is green. Do not create backup refs while tag
+  or active-goal blockers remain red.
+- Re-run the legal-preserve gate only after the backup tag exists, because the
+  legal-preserve checks compare `LICENSE`, `NOTICE`, and `TRADEMARK.md` against
+  that backup tag.
+- Treat the red history scan as proof that only the actual R.11 rewrite can
+  clear historical patch-line findings; do not claim history scan completion
+  until the post-rewrite scan is green.
+
 ## Stop Condition
 
 The objective is NOT ACHIEVED.

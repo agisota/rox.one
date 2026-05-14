@@ -130,4 +130,25 @@ describe('R.11 completion audit', () => {
     expect(currentBlockers).toContain('backup/pre-rebrand-history-rewrite-2026-05-13')
     expect(currentBlockers).toContain('/tmp/rox-one-terminal-backup-2026-05-13.git')
   })
+
+  test('separates operator-owned unblocks from destructive authorization', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const operatorChecklist =
+      audit.split('## Operator-Owned Unblock Checklist')[1]?.split('## Stop Condition')[0] ?? ''
+
+    expect(operatorChecklist).toContain('not authorization for this active run')
+    for (const required of [
+      'active `/goal` run',
+      '`rebrand-v1` tag targets',
+      'origin/main ancestry',
+      '139 non-main/non-R.11-backup origin branches',
+      'backup tag, backup branch, and offline mirror',
+      'legal-preserve',
+      'history scan',
+    ]) {
+      expect(operatorChecklist).toContain(required)
+    }
+    expect(operatorChecklist).toContain('Do not mutate tags')
+    expect(operatorChecklist).toContain('Do not create backup refs')
+  })
 })
