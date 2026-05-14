@@ -106,7 +106,7 @@ describe('TeamManagementSettingsPage a11y [P1-a11y-gap]', () => {
       >
         <TeamManagementPanel
           initialState={{
-            status: 'idle',
+            status: 'ready',
             roles: [],
             grants: [],
             error: null,
