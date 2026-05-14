@@ -98,7 +98,7 @@ actually produced cleaned ancestry.
 
 ## Current Blockers
 
-Fresh evidence from the latest clean post-push checks:
+Fresh evidence from report-only post-push checks, without pinning this audit to a moving latest commit:
 
 - The current blocker inventory index is preserved in
   `docs/release/r11-blocker-inventory-index-2026-05-14.md`.
