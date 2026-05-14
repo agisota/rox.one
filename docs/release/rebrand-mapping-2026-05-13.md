@@ -194,8 +194,9 @@ Phase R.10 closeout result:
 - Permanent gates: `.husky/pre-push` and `.github/workflows/validate.yml`
   both run `bun run validate:rebrand`.
 - Roadmap gate follow-up: `bun run validate:roadmap` exits 0 with
-  `validate:roadmap OK — 46 phases, 111 tickets across detail files`
-  after T321 aligned the validator with the shipped phase ledger.
+  `validate:roadmap OK — 46 phases, 110 tickets across detail files, 14 rebrand master-roadmap log rows`
+  after T321 aligned the validator with the shipped phase ledger and T439
+  added `.swarm/master-roadmap-log.md` rebrand-row artifact validation.
 - Preserved upstream-link list: unchanged from the R.9 PRESERVE set
   above (`LICENSE`, `NOTICE`, `TRADEMARK.md`, Dockerfile source label,
   README License/Acknowledgements, historical release notes, historical

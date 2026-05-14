@@ -81,4 +81,17 @@ describe("R.10 permanent validate:rebrand gate", () => {
     expect(mapping).not.toContain("this closeout commit");
     expect(t296Worklog).not.toContain("this closeout commit");
   });
+
+  test("closeout mapping records the current roadmap validator evidence", () => {
+    const mapping = read(join(repoRoot, "docs/release/rebrand-mapping-2026-05-13.md"));
+    const roadmapOutput = execFileSync("node", ["scripts/validate-roadmap-coherence.cjs"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    }).trim();
+
+    expect(mapping).toContain(roadmapOutput);
+    expect(mapping).toContain("T439");
+    expect(mapping).not.toContain("46 phases, 111 tickets across detail files");
+    expect(mapping).toContain("| R.11 | T298 | `BLOCKED - pending destructive rewrite closeout SHA` |");
+  });
 });
