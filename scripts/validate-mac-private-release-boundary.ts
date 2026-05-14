@@ -80,6 +80,20 @@ function run(command: string, args: string[]): { status: number | null; output: 
   return { status: result.status, output };
 }
 
+function assertCodesignIdentifier(codesignOutput: string): void {
+  const match = /^Identifier=(.+)$/m.exec(codesignOutput);
+  const identifier = match?.[1]?.trim();
+  // Ad-hoc app signing on CircleCI can report the CodeDirectory identifier as
+  // the executable name even while Info.plist keeps the canonical bundle id.
+  const acceptedIdentifiers = new Set(['com.rox.one', 'ROX.ONE']);
+  if (!identifier || !acceptedIdentifiers.has(identifier)) {
+    fail(
+      `missing ROX.ONE code signing identifier: Identifier=com.rox.one ` +
+        `(observed ${identifier ?? '<missing>'})`,
+    );
+  }
+}
+
 /** Minimal plist parser sufficient for this validator. Reads <key>/<value>
  *  pairs from an XML plist and returns a flat map. Handles `<string>`,
  *  `<true/>`, `<false/>`, and `<integer>`. */
@@ -130,9 +144,18 @@ interface BundleAssertions {
   bundlePath: string;
   /** Optional path to a sidecar `signing-output.txt` for fixture mode. */
   signingOutputPath?: string;
+  /** Optional live codesign output for runtime/entitlement checks. */
+  signingOutputText?: string;
+  /** Fixture sidecars list every binary; live top-level codesign output does not. */
+  requireNativeBinaryEntries?: boolean;
 }
 
-function assertBundleContract({ bundlePath, signingOutputPath }: BundleAssertions): void {
+function assertBundleContract({
+  bundlePath,
+  signingOutputPath,
+  signingOutputText,
+  requireNativeBinaryEntries,
+}: BundleAssertions): void {
   const infoPlistPath = path.join(bundlePath, 'Contents', 'Info.plist');
   if (!existsSync(infoPlistPath)) {
     fail(`bundle missing Info.plist: ${infoPlistPath}`);
@@ -154,9 +177,9 @@ function assertBundleContract({ bundlePath, signingOutputPath }: BundleAssertion
   const hardenedFromInfo =
     infoPlist['HardenedRuntime'] === true ||
     infoPlist['com.apple.security.cs.hardened-runtime'] === true;
-  const signingOutput = signingOutputPath && existsSync(signingOutputPath)
+  const signingOutput = signingOutputText ?? (signingOutputPath && existsSync(signingOutputPath)
     ? readFileSync(signingOutputPath, 'utf8')
-    : '';
+    : '');
   const hardenedFromSigning = /flags=0x[0-9a-fA-F]*10000\b/.test(signingOutput) ||
     signingOutput.includes('runtime');
   if (!hardenedFromInfo && !hardenedFromSigning) {
@@ -185,7 +208,8 @@ function assertBundleContract({ bundlePath, signingOutputPath }: BundleAssertion
   const nativeBinaries = allFiles.filter((file) =>
     /\.(dylib|node|framework)$/.test(file) || /\/MacOS\//.test(file),
   );
-  if (signingOutput) {
+  const mustCheckNativeBinaryEntries = requireNativeBinaryEntries ?? Boolean(signingOutputPath);
+  if (signingOutput && mustCheckNativeBinaryEntries) {
     for (const binary of nativeBinaries) {
       const baseName = path.basename(binary);
       if (!signingOutput.includes(baseName)) {
@@ -313,7 +337,12 @@ if (codesignEntitlements.status !== 0) {
   fail(`codesign entitlement inspection failed:\n${codesignEntitlements.output}`);
 }
 const liveSigningOutput = `${codesignMetadata.output}\n${codesignEntitlements.output}`;
-requireText(codesignMetadata.output, 'Identifier=com.rox.one', 'ROX.ONE code signing identifier');
+assertBundleContract({
+  bundlePath: appPath,
+  signingOutputText: liveSigningOutput,
+  requireNativeBinaryEntries: false,
+});
+assertCodesignIdentifier(codesignMetadata.output);
 requireText(codesignMetadata.output, 'Signature=adhoc', 'ad-hoc signature marker for private/local RC');
 requireText(codesignMetadata.output, 'TeamIdentifier=not set', 'missing TeamIdentifier marker for private/local RC');
 
@@ -327,15 +356,9 @@ requireText(
   'missing notarization ticket marker for private/local RC',
 );
 
-// 7. Live bundle structural assertions when running on darwin against the
-//    packaged app. Pipes the codesign --entitlements output as the sidecar so
-//    the entitlement and native-binary checks share one code path with fixture
-//    mode.
-assertBundleContract({
-  bundlePath: appPath,
-  signingOutputPath: undefined,
-});
-// Re-run entitlement gates against live codesign output.
+// 7. Re-run entitlement gates against live codesign output with the same
+//    failure wording older CI logs used before the bundle-contract helper
+//    accepted live metadata.
 for (const key of REQUIRED_CLIENT_ENTITLEMENTS) {
   requireText(liveSigningOutput, key, `required entitlement: ${key}`);
 }

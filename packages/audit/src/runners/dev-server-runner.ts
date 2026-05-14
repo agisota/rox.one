@@ -1,5 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 
+const ANSI_ESCAPE_PATTERN = /\x1B\[[0-9;]*m/g;
+
 export interface SpawnDevServerInput {
   command: string;
   args: string[];
@@ -65,7 +67,7 @@ export function spawnDevServer(input: SpawnDevServerInput): Promise<DevServerHan
       if (settled) return;
       const text = typeof chunk === "string" ? chunk : chunk.toString("utf8");
       rememberOutput(text);
-      const match = input.readyPattern.exec(text);
+      const match = input.readyPattern.exec(text.replace(ANSI_ESCAPE_PATTERN, ""));
       if (match) {
         settled = true;
         clearTimeout(timer);

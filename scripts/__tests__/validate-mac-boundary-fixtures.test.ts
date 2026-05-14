@@ -108,4 +108,12 @@ describe('validate-mac-boundary-fixtures contract (M.18 T251)', () => {
     expect(source).toContain("run('codesign', ['-d', '--entitlements', '-', appPath])");
     expect(source).not.toContain("['-dv', '--verbose=4', '--entitlements', '-', appPath]");
   });
+
+  test('live mac validator accepts the ad-hoc executable codesign identifier fallback', async () => {
+    const source = await Bun.file(validatorPath).text();
+    expect(source).toContain("new Set(['com.rox.one', 'ROX.ONE'])");
+    expect(source).toContain('assertCodesignIdentifier(codesignMetadata.output)');
+    expect(source).toContain('signingOutputText: liveSigningOutput');
+    expect(source).toContain('requireNativeBinaryEntries: false');
+  });
 });

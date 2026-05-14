@@ -14,7 +14,9 @@ Shiki cold-start timeout class in the highlight corpus test. mac-arm packaging
 failed after the schema step when electron-builder traversed production
 dependencies and hit `libsignal`'s exact `protobufjs@6.8.8` dependency; after
 that fix, the live mac trust-boundary validator reached codesign and exposed
-that metadata and entitlements should be requested separately.
+that metadata and entitlements should be requested separately, then exposed an
+ad-hoc `Identifier=ROX.ONE` fallback while Info.plist still carried the
+canonical `CFBundleIdentifier=com.rox.one`.
 
 ## 3. Files inspected
 
@@ -54,6 +56,11 @@ that metadata and entitlements should be requested separately.
   `crawlRoutes > discovers /, /about, /contact from SPA fixture`.
 - CircleCI `mac-arm-build` build 66 failed with
   `missing ROX.ONE code signing identifier: Identifier=com.rox.one`.
+- CircleCI `mac-arm-build` builds 84 and 89 still failed with the same
+  identifier assertion after metadata/entitlements were split.
+- CircleCI `validate` build 86 proved the root Vite process was starting, but
+  the raw colored Vite banner prevented ready-pattern matching:
+  `Recent output: VITE v6.4.2 ready in 175 ms ... Local: http://127.0.0.1:5174/`.
 
 ## 6. Implementation changes
 
@@ -71,9 +78,16 @@ that metadata and entitlements should be requested separately.
   clean CircleCI runners.
 - `spawnDevServer` now preserves recent child stdout/stderr in timeout and
   pre-ready exit errors.
+- `spawnDevServer` matches ready patterns against ANSI-stripped output so
+  colored Vite banners do not hide the `Local:` URL on CircleCI.
 - The live mac trust-boundary validator now runs one codesign call for metadata
   and one for entitlements before applying the identifier/signature/entitlement
   assertions.
+- The live mac trust-boundary validator now asserts the canonical Info.plist
+  bundle id first, then accepts either `Identifier=com.rox.one` or the
+  ad-hoc executable fallback `Identifier=ROX.ONE`; live codesign output is used
+  for hardened runtime and entitlement checks without requiring fixture-only
+  per-binary sidecar entries.
 
 ## 7. Validation commands run
 
@@ -93,6 +107,10 @@ that metadata and entitlements should be requested separately.
 - `git diff --check`
 - `CI=true bun test`
 - `bun test packages/audit/tests/runners/dev-server-runner.test.ts packages/audit/tests/route-crawler.test.ts scripts/__tests__/validate-mac-boundary-fixtures.test.ts`
+- `bun run validate:mac-private-release-boundary`
+- `bun run validate:mac-arm-build-workflow`
+- `CI=true bun run test:units`
+- `NODE_OPTIONS=--max-old-space-size=2048 bun run validate:ci`
 
 ## 8. Passing test output summary
 
@@ -108,7 +126,10 @@ that metadata and entitlements should be requested separately.
   by isolated tests passing.
 - `CI=true bun test`: `6913 pass, 13 skip, 0 fail, 1 snapshots, 27543 expect() calls`.
 - Targeted route-crawler/dev-server/mac-boundary repair tests:
-  `13 pass, 0 fail, 34 expect() calls`.
+  `15 pass, 0 fail, 39 expect() calls`.
+- Updated full unit gate after the ANSI/mac-identifier repair:
+  `6915 pass, 13 skip, 0 fail, 1 snapshots, 27569 expect() calls`, followed
+  by isolated tests passing.
 - `validate:docs`, `validate:ci-contract`, `validate:rebrand`, `typecheck`, and
   YAML parsing passed.
 - `lint` passed with existing warnings only.
@@ -138,4 +159,5 @@ metadata/entitlement validation matches the current macOS runner behavior.
 | mac ARM skips automatic production dependency collector | Done | `bun run validate:mac-arm-build-workflow` |
 | SPA route crawler avoids clean-runner fixture install timeout | Done | Root Vite binary launch + targeted route-crawler test |
 | Live mac validator keeps codesign metadata visible | Done | Static fixture test for split codesign calls |
+| Live mac validator accepts ad-hoc executable identifier fallback after canonical Info.plist check | Done | Static fixture test plus `bun run validate:mac-private-release-boundary` |
 | Local validation passes | Done | `CI=true bun run test:units` and `NODE_OPTIONS=--max-old-space-size=2048 bun run validate:ci` |
