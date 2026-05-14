@@ -12,7 +12,7 @@ stop state. The destructive history rewrite has not started.
 ## 2. Repo context discovered
 
 The rebrand-sweep goal requires R.11 to run only after all hard prerequisites
-are true. Current staged report-only preflight evidence after T382:
+are true. Current staged report-only preflight evidence after T383:
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ are true. Current staged report-only preflight evidence after T382:
 | Backup tag exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | Offline mirror exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | `git-filter-repo` available | Preflight reports pass after T371 PATH bridge | Green |
-| R.11 closeout ticket exists | This ticket/worklog establishes the path | In progress |
+| R.11 closeout ticket exists | Exact files `docs/tickets/T298-rebrand-git-history-rewrite.md` and `docs/worklog/T298-rebrand-git-history-rewrite.md` exist with `Status: BLOCKED`; this is distinct from the unrelated `T298-rc-preflight` ticket | Green |
 | `main` synced with `origin/main` | Preflight reports `0 0` | Green |
 | Worktree clean | Default preflight reports pass in the primary worktree | Green |
 
@@ -110,9 +110,9 @@ exited 0 with no output.
 No build expected for this scaffold. The future destructive rewrite must run
 the full post-rewrite build matrix before this ticket can become `DONE`.
 
-### Current follow-up evidence, 2026-05-14T02:44:15Z
+### Current follow-up evidence, 2026-05-14T02:49:26Z
 
-T375 through T382 refreshed the blocker state after PR #205 merged, after
+T375 through T383 refreshed the blocker state after PR #205 merged, after
 the staged preflight split landed, and after the R.11 local path runbook repair:
 
 - GitHub reports no open PRs.
@@ -132,6 +132,9 @@ the staged preflight split landed, and after the R.11 local path runbook repair:
 - The R.11 offline mirror and rollback snippets now point at the current
   checkout path, `/home/dev/craft/rox-one-terminal`, and the regression test
   fails if `/home/dev/rox/rox-one-terminal` returns.
+- The exact R.11 closeout ticket/worklog pair exists and remains
+  `Status: BLOCKED`; do not confuse it with the unrelated, already-complete
+  `T298-rc-preflight` release-readiness ticket.
 
 The latest default pre-backup preflight remains red on one blocker:
 
