@@ -11,7 +11,7 @@ the ROX-owned custom-flow surface. T347 requires the shared smoke command:
 bun run e2e:smoke -- --scenario s09-upstream-rox-flows
 ```
 
-On rebased code base `e10537ef`, the S09 smoke scenario is now registered in
+On rebased code base `303b0b05`, the S09 smoke scenario is registered in
 `scripts/e2e-smoke.ts` and passes. The full `bun test` gate is still red with
 181 failures and 2 errors across the community-link audit, file RPC scope
 handling, session persistence, audit sink/bootstrap, storage/config migration
@@ -20,9 +20,10 @@ i18n/labels, resource/session bundling, workspace skills, large-result guards,
 default workspace bundle, Electron storage scope, runtime resolver paths, and
 backend creation.
 
-`origin/main` advanced again to `303b0b05` after this evidence was captured.
 [T363](T363-rc-s09-full-suite-shared-fixture-repair.md) carries the remaining
-full-suite repair so the S09 harness registration can stay atomic.
+full-suite repair so the S09 harness registration can stay atomic. [T364](T364-rc-rebased-cheatsheet-shadow-lint-repair.md)
+repaired the only rebased lint error after upstream added the keyboard
+cheatsheet overlay.
 
 ## Goal
 

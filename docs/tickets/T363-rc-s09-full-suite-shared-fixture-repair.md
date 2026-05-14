@@ -4,12 +4,12 @@ Status: Todo
 
 ## Context
 
-T362 repaired the missing `s09-upstream-rox-flows` smoke harness registration on
-code base `e10537ef`. The targeted S09 smoke now passes 325 tests across 32
-files, including protected ROX paths, C4 storage isolation, RBAC, Composer, and
-Experience Layer coverage.
+T362 repaired the missing `s09-upstream-rox-flows` smoke harness registration.
+After rebase onto `origin/main` at `303b0b05` and the T364 lint repair, the
+targeted S09 smoke still passes 325 tests across 32 files, including protected
+ROX paths, C4 storage isolation, RBAC, Composer, and Experience Layer coverage.
 
-The full `bun test` gate remains red with 181 failures and 2 errors across 556
+The full `bun test` gate remains red with 181 failures and 2 errors across 558
 files. Many failing clusters also failed before the S09 harness registration and
 are not safe to fold into the harness commit.
 
