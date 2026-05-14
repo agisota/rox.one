@@ -9,6 +9,7 @@ import type { OfficeDocumentConverter } from '../services/office-document-adapte
 import type { RbacResolver, GrantStore } from '@rox-one/shared/auth/rbac-resolver'
 import type { RoleStore } from '@rox-one/shared/auth/role-store'
 import type { AuditProducer } from '@rox-one/shared/observability'
+import type { AuditEventStorageBackend } from '@rox-one/shared/audit'
 import type { BudgetGuard, TokenBucket } from '@rox-one/shared/security'
 import type { MissionScheduler } from '../missions'
 
@@ -101,5 +102,18 @@ export interface HandlerDeps<
    * pre-T086b baseline (no budget enforcement).
    */
   budgetGuard?: BudgetGuard<string>
+  /**
+   * Optional M.1.5 audit-event storage backend (T250-rpc). When provided,
+   * the `audit.list` admin RPC handler reads from this store to serve
+   * paginated, filtered audit records to global-owner callers. Hosts
+   * that have not adopted the M.1.5 persistent audit surface may omit
+   * this field; `audit.list` then responds with
+   * `{error: 'audit-not-configured', reason: 'no-audit-event-store'}`.
+   *
+   * The handler treats this backend as read-only; it never invokes
+   * `append()`. The append path lives behind `AuditProducer` (T246) and
+   * its host-side composition in `audit-bootstrap.ts` (T246c/d).
+   */
+  auditEventStore?: AuditEventStorageBackend
   officeDocumentConverter?: OfficeDocumentConverter
 }
