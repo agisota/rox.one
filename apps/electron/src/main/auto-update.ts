@@ -19,6 +19,7 @@ import { app } from 'electron'
 import { platform } from 'os'
 import * as path from 'path'
 import * as fs from 'fs'
+import * as semver from 'semver'
 import { mainLog } from './logger'
 import { getAppVersion } from '@rox-one/shared/version'
 import {
@@ -66,6 +67,20 @@ let eventSink: EventSink | null = null
 
 // Flag to indicate update is in progress — used to prevent force exit during quitAndInstall
 let __isUpdating = false
+
+// W-1/W-2: Tracks the last error emitted by the autoUpdater 'error' event so
+// checkForUpdates() can detect it and re-throw rather than swallowing silently.
+let __pendingUpdaterError: Error | null = null
+
+// W-4: Resolvers for event-based waiting in checkForUpdates(). Populated by
+// update-available / update-not-available / update-downloaded / error handlers
+// and consumed once by the current checkForUpdates() call.
+let __updateEventResolvers: Array<() => void> = []
+
+function __resolveUpdateEvent(): void {
+  const resolvers = __updateEventResolvers.splice(0)
+  for (const resolve of resolvers) resolve()
+}
 
 function isDevRuntimeUpdateDisabled(): boolean {
   return process.env.ROX_ELECTRON_DEV_RUNTIME === '1'
@@ -138,6 +153,26 @@ autoUpdater.on('checking-for-update', () => {
 autoUpdater.on('update-available', (info) => {
   mainLog.info(`[auto-update] Update available: ${updateInfo.currentVersion} → ${info.version}`)
 
+  // W-3: Independent downgrade guard — do not rely solely on electron-updater's
+  // semver comparison. If the incoming version is not strictly greater than the
+  // current version, refuse the update and log a warning so ops can detect
+  // a potential version-rollback / downgrade attack.
+  const current = getAppVersion()
+  if (!semver.valid(info.version) || !semver.gt(info.version, current)) {
+    mainLog.warn(
+      `[auto-update] DOWNGRADE BLOCKED: remote version ${info.version} is not newer than current ${current}. Refusing update.`,
+    )
+    updateInfo = {
+      ...updateInfo,
+      available: false,
+      latestVersion: info.version,
+      downloadState: 'idle',
+    }
+    broadcastUpdateInfo()
+    __resolveUpdateEvent()
+    return
+  }
+
   // First, check electron-updater's internal state (most reliable)
   const internalState = checkElectronUpdaterState()
   if (internalState.ready) {
@@ -150,6 +185,7 @@ autoUpdater.on('update-available', (info) => {
       downloadProgress: 100,
     }
     broadcastUpdateInfo()
+    __resolveUpdateEvent()
     return
   }
 
@@ -165,6 +201,7 @@ autoUpdater.on('update-available', (info) => {
       downloadProgress: 100,
     }
     broadcastUpdateInfo()
+    __resolveUpdateEvent()
     return
   }
 
@@ -176,6 +213,7 @@ autoUpdater.on('update-available', (info) => {
     downloadProgress: 0,
   }
   broadcastUpdateInfo()
+  // Do NOT resolve here — wait for update-downloaded or error to signal completion
 })
 
 autoUpdater.on('update-not-available', (info) => {
@@ -188,6 +226,8 @@ autoUpdater.on('update-not-available', (info) => {
     downloadState: 'idle',
   }
   broadcastUpdateInfo()
+  // W-4: signal checkForUpdates() that we have a definitive answer
+  __resolveUpdateEvent()
 })
 
 autoUpdater.on('download-progress', (progress) => {
@@ -207,6 +247,8 @@ autoUpdater.on('update-downloaded', async (info) => {
     downloadProgress: 100,
   }
   broadcastUpdateInfo()
+  // W-4: signal checkForUpdates() that we have a definitive answer
+  __resolveUpdateEvent()
 
   // Rebuild menu to show "Install Update..." option
   const { rebuildMenu } = await import('./menu')
@@ -214,6 +256,9 @@ autoUpdater.on('update-downloaded', async (info) => {
 })
 
 autoUpdater.on('error', (error) => {
+  // W-1: Always log to mainLog regardless of whether an EventSink is connected.
+  // This ensures cert-chain attacks and signature failures surface in ops logs
+  // even when no renderer window is listening.
   mainLog.error('[auto-update] Error:', error.message)
 
   updateInfo = {
@@ -221,7 +266,16 @@ autoUpdater.on('error', (error) => {
     downloadState: 'error',
     error: error.message,
   }
+
+  // Broadcast to renderer if a sink is connected; the log above is the fallback.
   broadcastUpdateInfo()
+
+  // W-2: Store the error so checkForUpdates() can detect and re-throw it,
+  // enabling callers to use try/catch rather than inspecting UpdateInfo.downloadState.
+  __pendingUpdaterError = error instanceof Error ? error : new Error(String(error))
+
+  // W-4: Unblock the event-based wait in checkForUpdates()
+  __resolveUpdateEvent()
 })
 
 // ─── Exported API ─────────────────────────────────────────────────────────────
@@ -316,6 +370,7 @@ function checkForExistingDownload(): { exists: boolean; version?: string } {
  * Returns the current UpdateInfo state after check completes.
  *
  * @param options.autoDownload - If false, only checks without downloading (for manual "Check Now")
+ * @throws when electron-updater emits an error or the network request fails (W-2)
  */
 export async function checkForUpdates(options: CheckOptions = {}): Promise<UpdateInfo> {
   const { autoDownload = true } = options
@@ -336,15 +391,29 @@ export async function checkForUpdates(options: CheckOptions = {}): Promise<Updat
   const previousAutoDownload = autoUpdater.autoDownload
   autoUpdater.autoDownload = autoDownload
 
+  // W-2: clear any stale error from a previous check
+  __pendingUpdaterError = null
+
   try {
+    // W-4: Set up event-based waiting before calling checkForUpdates() so we
+    // never miss an event that fires synchronously inside the call.
+    // The promise resolves when update-available (already-downloaded/blocked),
+    // update-not-available, update-downloaded, or error fires.
+    const EVENT_WAIT_TIMEOUT_MS = 30_000
+    const eventSettled = new Promise<void>((resolve) => {
+      __updateEventResolvers.push(resolve)
+    })
+
     // Check for updates - this returns a promise that resolves with the check result
     const result = await autoUpdater.checkForUpdates()
 
-    // If update is available and was already downloaded, the update-downloaded event
-    // should fire. Wait a moment for events to settle before returning.
     if (result?.updateInfo) {
-      // Give electron-updater time to fire update-downloaded if file exists
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // W-4: Wait for the definitive event (update-downloaded / error / not-available)
+      // instead of a fixed 500 ms wall-clock sleep.
+      await Promise.race([
+        eventSettled,
+        new Promise<void>((resolve) => setTimeout(resolve, EVENT_WAIT_TIMEOUT_MS)),
+      ])
 
       // Double-check: if we're still showing 'downloading' but file exists, update state
       if (updateInfo.downloadState === 'downloading') {
@@ -360,6 +429,14 @@ export async function checkForUpdates(options: CheckOptions = {}): Promise<Updat
         }
       }
     }
+
+    // W-2: If the autoUpdater emitted an error event during the check, re-throw
+    // so callers can use try/catch instead of inspecting UpdateInfo.downloadState.
+    if (__pendingUpdaterError) {
+      const err = __pendingUpdaterError
+      __pendingUpdaterError = null
+      throw err
+    }
   } catch (error) {
     mainLog.error('[auto-update] Check failed:', error)
     updateInfo = {
@@ -367,9 +444,13 @@ export async function checkForUpdates(options: CheckOptions = {}): Promise<Updat
       downloadState: 'error',
       error: error instanceof Error ? error.message : 'Check failed',
     }
+    // W-2: re-throw so callers can distinguish success from failure via try/catch
+    throw error
   } finally {
     // Restore previous autoDownload setting
     autoUpdater.autoDownload = previousAutoDownload
+    // Clean up any unused resolver (e.g., when result?.updateInfo was null)
+    __updateEventResolvers.length = 0
   }
 
   return getUpdateInfo()
@@ -430,7 +511,16 @@ export interface UpdateOnLaunchResult {
 export async function checkForUpdatesOnLaunch(): Promise<UpdateOnLaunchResult> {
   mainLog.info('[auto-update] Checking for updates on launch...')
 
-  const info = await checkForUpdates({ autoDownload: true })
+  let info: UpdateInfo
+  try {
+    info = await checkForUpdates({ autoDownload: true })
+  } catch {
+    // checkForUpdates() now re-throws on error (W-2). On launch, a transient
+    // network failure or signature error should not crash the app — log and
+    // treat as no update so the app continues starting normally.
+    mainLog.warn('[auto-update] checkForUpdatesOnLaunch: check failed, continuing without update')
+    return { action: 'none', reason: 'check-failed' }
+  }
 
   if (!info.available) {
     return { action: 'none' }

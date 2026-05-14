@@ -11,6 +11,7 @@ import type {
   MessagingPlatformAccessMode,
   MessagingPlatformOwnerInfo,
 } from '../messaging-registry-interface'
+import { parseId, parseSafeString, parseOptionalSafeString } from './_validators'
 
 export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps): void {
   const registry = deps.messagingRegistry
@@ -28,11 +29,13 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
   })
 
   server.handle(RPC_CHANNELS.messaging.TEST_TELEGRAM, async (_ctx, token: string) => {
+    parseSafeString('token', token, 1024)
     return registry.testTelegramToken(token)
   })
 
   server.handle(RPC_CHANNELS.messaging.SAVE_TELEGRAM, async (ctx, token: string) => {
     if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+    parseSafeString('token', token, 1024)
     await registry.saveTelegramToken(ctx.workspaceId, token)
     return { success: true }
   })
@@ -41,6 +44,7 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
     _ctx,
     creds: { appId: string; appSecret: string; domain: 'lark' | 'feishu' },
   ) => {
+    parseId('creds.appId', creds?.appId)
     return registry.testLarkCredentials(creds)
   })
 
@@ -49,18 +53,21 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
     creds: { appId: string; appSecret: string; domain: 'lark' | 'feishu' },
   ) => {
     if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+    parseId('creds.appId', creds?.appId)
     await registry.saveLarkCredentials(ctx.workspaceId, creds)
     return { success: true }
   })
 
   server.handle(RPC_CHANNELS.messaging.DISCONNECT, async (ctx, platform: string) => {
     if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+    parseId('platform', platform)
     await registry.disconnectPlatform(ctx.workspaceId, platform)
     return { success: true }
   })
 
   server.handle(RPC_CHANNELS.messaging.FORGET, async (ctx, platform: string) => {
     if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+    parseId('platform', platform)
     await registry.forgetPlatform(ctx.workspaceId, platform)
     return { success: true }
   })
@@ -72,23 +79,29 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
 
   server.handle(RPC_CHANNELS.messaging.GENERATE_CODE, async (ctx, sessionId: string, platform: string) => {
     if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+    parseId('sessionId', sessionId)
+    parseId('platform', platform)
     return registry.generatePairingCode(ctx.workspaceId, sessionId, platform)
   })
 
   server.handle(RPC_CHANNELS.messaging.UNBIND, async (ctx, sessionId: string, platform?: string) => {
     if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+    parseId('sessionId', sessionId)
+    parseOptionalSafeString('platform', platform, 256)
     registry.unbindSession(ctx.workspaceId, sessionId, platform)
     return { success: true }
   })
 
   server.handle(RPC_CHANNELS.messaging.UNBIND_BINDING, async (ctx, bindingId: string) => {
     if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+    parseId('bindingId', bindingId)
     return { success: registry.unbindBinding(ctx.workspaceId, bindingId) }
   })
 
   // Workspace-supergroup pairing (Telegram forum support — Phase A)
   server.handle(RPC_CHANNELS.messaging.GENERATE_SUPERGROUP_CODE, async (ctx, platform: string) => {
     if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+    parseId('platform', platform)
     return registry.generateSupergroupPairingCode(ctx.workspaceId, platform)
   })
 
@@ -111,6 +124,7 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
 
   server.handle(RPC_CHANNELS.messaging.WA_SUBMIT_PHONE, async (ctx, phoneNumber: string) => {
     if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+    parseSafeString('phoneNumber', phoneNumber, 32)
     await registry.submitWhatsAppPhone(ctx.workspaceId, phoneNumber)
     return { success: true }
   })
@@ -123,6 +137,7 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
     RPC_CHANNELS.messaging.GET_PLATFORM_OWNERS,
     async (ctx, platform: string) => {
       if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+      parseId('platform', platform)
       return registry.getPlatformOwners(ctx.workspaceId, platform)
     },
   )
@@ -131,6 +146,7 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
     RPC_CHANNELS.messaging.SET_PLATFORM_OWNERS,
     async (ctx, platform: string, owners: MessagingPlatformOwnerInfo[]) => {
       if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+      parseId('platform', platform)
       return registry.setPlatformOwners(ctx.workspaceId, platform, owners)
     },
   )
@@ -139,6 +155,7 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
     RPC_CHANNELS.messaging.GET_PLATFORM_ACCESS_MODE,
     async (ctx, platform: string) => {
       if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+      parseId('platform', platform)
       return registry.getPlatformAccessMode(ctx.workspaceId, platform)
     },
   )
@@ -147,6 +164,7 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
     RPC_CHANNELS.messaging.SET_PLATFORM_ACCESS_MODE,
     async (ctx, platform: string, mode: MessagingPlatformAccessMode) => {
       if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+      parseId('platform', platform)
       registry.setPlatformAccessMode(ctx.workspaceId, platform, mode)
       return { success: true }
     },
@@ -156,6 +174,7 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
     RPC_CHANNELS.messaging.GET_PENDING_SENDERS,
     async (ctx, platform?: string) => {
       if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+      parseOptionalSafeString('platform', platform, 256)
       return registry.getPendingSenders(ctx.workspaceId, platform)
     },
   )
@@ -164,6 +183,8 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
     RPC_CHANNELS.messaging.DISMISS_PENDING_SENDER,
     async (ctx, platform: string, userId: string) => {
       if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+      parseId('platform', platform)
+      parseId('userId', userId)
       return { success: registry.dismissPendingSender(ctx.workspaceId, platform, userId) }
     },
   )
@@ -177,6 +198,8 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
       entryKey?: { reason?: MessagingPendingRejectReason; bindingId?: string },
     ) => {
       if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+      parseId('platform', platform)
+      parseId('userId', userId)
       return registry.allowPendingSender(ctx.workspaceId, platform, userId, entryKey)
     },
   )
@@ -189,6 +212,7 @@ export function registerMessagingHandlers(server: RpcServer, deps: HandlerDeps):
       access: { mode: MessagingBindingAccessMode; allowedSenderIds?: string[] },
     ) => {
       if (!ctx.workspaceId) throw new Error('Missing workspaceId')
+      parseId('bindingId', bindingId)
       registry.setBindingAccess(ctx.workspaceId, bindingId, access)
       return { success: true }
     },

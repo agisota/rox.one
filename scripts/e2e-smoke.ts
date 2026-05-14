@@ -80,6 +80,13 @@ const S07_SYNC_CONFLICT_RESOLUTION_TESTS = [
   'packages/server-core/src/sync/__tests__/workspace-sync-multi-client-conflict.test.ts',
 ] as const
 
+const S08_SHARE_SESSION_SHORTLINK_TESTS = [
+  'packages/server-core/src/sessions/share-provider.test.ts',
+  'packages/server-core/src/sessions/share-errors.test.ts',
+  'packages/server-core/src/sessions/session-share-provider.test.ts',
+  'apps/electron/src/renderer/components/app-shell/__tests__/session-share-flow.test.ts',
+] as const
+
 export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
   {
     id: 's01-registration',
@@ -116,6 +123,11 @@ export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
     id: 's07-sync-conflict-resolution',
     title: 'RC S07 sync conflict resolution smoke',
     command: ['bun', 'test', ...S07_SYNC_CONFLICT_RESOLUTION_TESTS],
+  },
+  {
+    id: 's08-share-session-shortlink',
+    title: 'RC S08 share session shortlink smoke',
+    command: ['bun', 'test', ...S08_SHARE_SESSION_SHORTLINK_TESTS],
   },
 ]
 

@@ -9,6 +9,12 @@ import { WsRpcServer, type WsRpcTlsOptions } from '../transport/server'
 import type { EventSink, RpcServer, SessionCookieValidationResult } from '../transport/types'
 import { createHeadlessPlatform } from '../runtime/platform-headless'
 import type { PlatformServices } from '../runtime/platform'
+import {
+  type AttachAuditProducerOptions,
+  type AuditAttachableDeps,
+  type AuditBootstrapHandle,
+  attachAuditProducer,
+} from './audit-bootstrap.ts'
 
 interface ModelRefreshServiceLike {
   startAll(): void
@@ -47,6 +53,14 @@ export interface ServerBootstrapOptions<TSessionManager, THandlerDeps> {
    * When provided, the WsRpcServer serves HTTP (e.g. WebUI) on the same port.
    */
   httpHandler?: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => void
+  /**
+   * Optional override for `attachAuditProducer` (T246d). Hosts that need
+   * a custom log directory, clock, retention policy, extra sinks, or a
+   * stubbed chain factory pass them here. Default behaviour:
+   * `createHostAuditProducer` runs against `$HOME/.rox/audit.log` unless
+   * `ROX_AUDIT_DISABLE` installs the no-op producer.
+   */
+  auditProducerOptions?: AttachAuditProducerOptions
 }
 
 export interface ServerHandlerContext {
@@ -66,6 +80,12 @@ export interface ServerInstance<TSessionManager> {
   token: string
   /** Context for server-level RPC handlers (status, health, active sessions). */
   serverHandlerContext: ServerHandlerContext
+  /**
+   * T246d audit chain handle attached during bootstrap. `dispose()` runs
+   * automatically from `stop()`, but the handle is exposed so hosts can
+   * trigger a manual flush if needed.
+   */
+  auditHandle: AuditBootstrapHandle
   stop: () => Promise<void>
 }
 
@@ -318,6 +338,16 @@ export async function bootstrapServer<TSessionManager, THandlerDeps>(
     oauthFlowStore,
   })
 
+  // T246d: wire the host audit chain onto `deps.auditProducer` so RBAC +
+  // mission RPC handlers emit `RoleGranted` / `RoleRevoked` / mission-
+  // lifecycle events through `~/.rox/audit.log`. `attachAuditProducer`
+  // honours `ROX_AUDIT_DISABLE=1` and falls back to a no-op producer so
+  // tests / dev runs never touch disk.
+  const auditHandle = attachAuditProducer(
+    deps as AuditAttachableDeps,
+    options.auditProducerOptions ?? {},
+  )
+
   const startedAt = Date.now()
   const serverHandlerContext: ServerHandlerContext = {
     getConnectedClientCount: () => wsServer.getConnectedClientCount(),
@@ -379,6 +409,14 @@ export async function bootstrapServer<TSessionManager, THandlerDeps>(
       platform.logger.error('[bootstrap] Failed to dispose OAuth flow store:', error)
     }
 
+    // T246d: flush + retention sweep + close the audit file handle.
+    // Idempotent so a manual call followed by `stop()` is safe.
+    try {
+      await auditHandle.dispose()
+    } catch (error) {
+      platform.logger.error('[bootstrap] Failed to dispose audit producer:', error)
+    }
+
     releaseServerLock()
   }
 
@@ -392,6 +430,7 @@ export async function bootstrapServer<TSessionManager, THandlerDeps>(
     protocol: wsServer.protocol,
     token: serverToken,
     serverHandlerContext,
+    auditHandle,
     stop,
   }
 }

@@ -118,4 +118,21 @@ describe('RC E2E smoke harness', () => {
 
     expect(ticket).not.toContain('packages/server-core/src/**/__tests__/sync*.test.ts')
   })
+
+  it('recognizes S08 share session shortlink and documents current validation paths', async () => {
+    const harness = await import('../e2e-smoke')
+    const scenario = harness.resolveRequiredScenario('s08-share-session-shortlink')
+    const ticket = readFileSync(join(rootDir, 'docs/tickets/T346-rc-s08-share-session-shortlink.md'), 'utf8')
+
+    expect(scenario.command).toContain('packages/server-core/src/sessions/session-share-provider.test.ts')
+    expect(scenario.command).toContain('packages/server-core/src/sessions/share-provider.test.ts')
+    expect(scenario.command).toContain('packages/server-core/src/sessions/share-errors.test.ts')
+    expect(scenario.command).toContain(
+      'apps/electron/src/renderer/components/app-shell/__tests__/session-share-flow.test.ts',
+    )
+
+    expect(ticket).not.toContain('packages/server-core/src/**/__tests__/shortlink*.test.ts')
+    expect(ticket).not.toContain('packages/shared/src/**/__tests__/share*.test.ts')
+    expect(ticket).not.toContain('packages/shared/src/**/__tests__/share-payload-secret*.test.ts')
+  })
 })

@@ -12,18 +12,13 @@
  *   5. Cross-platform second-instance — Windows second-instance event routes URL to handler
  *   6. macOS open-url — open-url event routes correctly to handleDeepLink
  *
- * Weaknesses found (documented; NOT fixed in this PR per spec):
- *   W-1: parseDeepLink returns null for unknown hosts without a warning log at the
- *        handleDeepLink level — callers cannot distinguish "wrong scheme" from
- *        "correct scheme but unknown route".
- *   W-2: The scheme check in parseDeepLink does NOT validate that the host is
- *        non-empty; rox:/// (empty host) returns null without a log entry.
- *   W-3: 'second-instance' handler reads commandLine without sanitizing — any argument
- *        matching the rox:// prefix is treated as a deep link without further validation
- *        of the URL structure before passing to handleDeepLink.
- *   W-4: Window-mode links resolve workspace from getFocusedWindow / getAllWindows;
- *        if both return nothing the error path returns { success: false } but the
- *        error log is only at mainLog.error level with no separate metric/alert path.
+ * Fixes verified (PR #173 weaknesses closed):
+ *   W-1: Unknown-host URLs now emit mainLog.warn before returning null.
+ *   W-2: Empty-host rox:/// now emits mainLog.warn before returning null.
+ *   W-3: sanitizeDeepLinkUrl() enforces scheme allowlist, max length, no control chars
+ *        before argv URLs reach handleDeepLink.
+ *   W-4: Window-mode workspace-resolution failure now emits a structured warn log
+ *        with metric_name: "deep_link_window_resolve_failed".
  *
  * All tests: pure mocked — no real network, no real Electron launch.
  */
@@ -62,7 +57,7 @@ mock.module('../logger', () => {
 })
 
 // Import after mock is installed
-const { parseDeepLink, handleDeepLink } = await import('../deep-link.ts' + '?dl') as typeof import('../deep-link.ts')
+const { parseDeepLink, handleDeepLink, sanitizeDeepLinkUrl } = await import('../deep-link.ts' + '?dl') as typeof import('../deep-link.ts')
 import { RPC_CHANNELS } from '../../shared/types'
 import type { EventSink } from '@rox-one/server-core/transport'
 import type { WindowManager } from '../window-manager'
@@ -336,6 +331,31 @@ describe('New session spawn via deep link', () => {
     // No direct IPC navigation for window-mode links; window handles it on load
     expect(sent.length).toBe(0)
   })
+
+  it('W-4 fix: window-mode resolution failure emits metric warn log', async () => {
+    logCalls.length = 0
+    // Both getFocusedWindow and getAllWindows return nothing → no workspace resolves
+    const wm = createMockWindowManager(null, {
+      getFocusedWindow: mock(() => null),
+      getAllWindows: mock(() => []),
+    })
+    const { sink } = createSink()
+
+    const result = await handleDeepLink(
+      'rox://action/new-chat?input=test&window=focused',
+      wm,
+      sink,
+    )
+
+    expect(result.success).toBe(false)
+    const warns = logCalls.filter((c) => c.level === 'warn')
+    expect(warns.length).toBeGreaterThanOrEqual(1)
+    const hasMetric = warns.some((w) => {
+      const meta = w.args[1] as Record<string, unknown> | undefined
+      return meta?.metric_name === 'deep_link_window_resolve_failed'
+    })
+    expect(hasMetric).toBe(true)
+  })
 })
 
 // ─── 4. Malformed / invalid URLs ──────────────────────────────────────────────
@@ -375,7 +395,8 @@ describe('Malformed URL handling', () => {
     expect(sent.length).toBe(0)
   })
 
-  it('rox:// with unknown host returns success:false (W-1: no warn log at handleDeepLink level)', async () => {
+  it('rox:// with unknown host returns success:false and emits warn log (W-1 fix)', async () => {
+    logCalls.length = 0
     const wm = createMockWindowManager(createMockWindow(33))
     const { sent, sink } = createSink()
 
@@ -383,6 +404,10 @@ describe('Malformed URL handling', () => {
 
     expect(result.success).toBe(false)
     expect(sent.length).toBe(0)
+    const warns = logCalls.filter((c) => c.level === 'warn')
+    expect(warns.length).toBeGreaterThanOrEqual(1)
+    const warnText = warns.map((w) => String(w.args[0])).join(' ')
+    expect(warnText).toMatch(/Unknown host/i)
   })
 
   it('auth-callback URL returns success:true (delegated to OAuth handler)', async () => {
@@ -415,9 +440,14 @@ describe('Malformed URL handling', () => {
     expect(errors.length).toBeGreaterThanOrEqual(1)
   })
 
-  it('rox:// with empty host returns null (W-2: no log emitted)', () => {
+  it('rox:// with empty host returns null and emits warn log (W-2 fix)', () => {
+    logCalls.length = 0
     const result = parseDeepLink('rox:///')
     expect(result).toBeNull()
+    const warns = logCalls.filter((c) => c.level === 'warn')
+    expect(warns.length).toBeGreaterThanOrEqual(1)
+    const warnText = warns.map((w) => String(w.args[0])).join(' ')
+    expect(warnText).toMatch(/Empty host/i)
   })
 })
 
@@ -503,21 +533,50 @@ describe('Cross-platform second-instance (Windows deep link path)', () => {
     expect(payload.view).toBe('allSessions')
   })
 
-  it('W-3: oversized unknown-path URL is rejected gracefully without crash', async () => {
-    // Documents W-3: argv arg is passed directly without sanitizing URL length/content.
-    // handleDeepLink → parseDeepLink returns null for unknown hosts — limited blast radius.
-    const window = createMockWindow(43)
-    const wm = createMockWindowManager(window)
-    const { sent, sink } = createSink()
+  it('W-3 fix: sanitizeDeepLinkUrl rejects oversized argv URL and emits warn', () => {
+    logCalls.length = 0
+    const oversized = 'rox://action/new-chat/' + 'x'.repeat(10_000)
+    const result = sanitizeDeepLinkUrl(oversized)
+    expect(result).toBeNull()
+    const warns = logCalls.filter((c) => c.level === 'warn')
+    expect(warns.length).toBeGreaterThanOrEqual(1)
+    const warnText = warns.map((w) => String(w.args[0])).join(' ')
+    expect(warnText).toMatch(/maximum length/i)
+  })
 
-    const DEEPLINK_SCHEME = 'rox'
-    const commandLine = ['/app.exe', 'rox://very-long-unknown-route/' + 'x'.repeat(10_000)]
-    const url = commandLine.find((arg) => arg.startsWith(`${DEEPLINK_SCHEME}://`))!
+  it('W-3 fix: sanitizeDeepLinkUrl rejects URLs with control characters', () => {
+    logCalls.length = 0
+    const withControl = 'rox://action/new-chat?input=hello\x01world'
+    const result = sanitizeDeepLinkUrl(withControl)
+    expect(result).toBeNull()
+    const warns = logCalls.filter((c) => c.level === 'warn')
+    expect(warns.length).toBeGreaterThanOrEqual(1)
+    const warnText = warns.map((w) => String(w.args[0])).join(' ')
+    expect(warnText).toMatch(/control char/i)
+  })
 
-    const result = await handleDeepLink(url, wm, sink)
+  it('W-3 fix: sanitizeDeepLinkUrl rejects disallowed schemes and emits warn', () => {
+    logCalls.length = 0
+    const result = sanitizeDeepLinkUrl('javascript://action/new-chat')
+    expect(result).toBeNull()
+    const warns = logCalls.filter((c) => c.level === 'warn')
+    expect(warns.length).toBeGreaterThanOrEqual(1)
+  })
 
-    expect(result.success).toBe(false)
-    expect(sent.length).toBe(0)
+  it('W-3 fix: sanitizeDeepLinkUrl accepts valid rox:// URL unchanged', () => {
+    logCalls.length = 0
+    const valid = 'rox://action/new-chat?input=hello'
+    const result = sanitizeDeepLinkUrl(valid)
+    expect(result).toBe(valid)
+    expect(logCalls.filter((c) => c.level === 'warn').length).toBe(0)
+  })
+
+  it('W-3 fix: sanitizeDeepLinkUrl accepts valid roxagents:// URL unchanged', () => {
+    logCalls.length = 0
+    const valid = 'roxagents://allSessions'
+    const result = sanitizeDeepLinkUrl(valid)
+    expect(result).toBe(valid)
+    expect(logCalls.filter((c) => c.level === 'warn').length).toBe(0)
   })
 })
 
@@ -557,7 +616,7 @@ describe('macOS open-url event handler', () => {
     }
 
     simulatedOpenUrl('rox://allSessions', false)
-    expect(pendingDeepLink).toBe('rox://allSessions')
+    expect(pendingDeepLink as string | null).toBe('rox://allSessions')
   })
 
   it('pending deep link is dispatched after app.whenReady resolves', async () => {

@@ -35,7 +35,7 @@ must reach `Pass` status before the `v1.0.0-rc.1` tag is pushed.
 | S05 | Team invite → shared workspace → RBAC check | [T343](../tickets/T343-rc-s05-team-invite-rbac.md) | `Blocked` | `1abf54f2` | `2026-05-13T23:24:45Z` | [T356](../tickets/T356-rc-s05-smoke-harness-registration.md) resolves the unsupported S05 smoke scenario. Current `bun run e2e:smoke -- --scenario s05-team-invite-rbac` passes 161 tests; packaged screenshot/browser-console evidence is still pending. |
 | S06 | File upload → entity graph → source link | [T344](../tickets/T344-rc-s06-file-upload-entity-graph.md) | `Blocked` | `3070640a` | `2026-05-13T23:30:03Z` | [T357](../tickets/T357-rc-s06-smoke-harness-and-command-repair.md) resolves the unsupported S06 smoke scenario and stale file/entity graph validation paths. Current `bun run e2e:smoke -- --scenario s06-file-upload-entity-graph` passes 30 tests; packaged screenshot/browser-console evidence is still pending. |
 | S07 | Sync push/pull → conflict → explicit resolution | [T345](../tickets/T345-rc-s07-sync-conflict-resolution.md) | `Blocked` | `bbda8e2d` | `2026-05-13T23:37:38Z` | [T358](../tickets/T358-rc-s07-smoke-harness-and-command-repair.md) resolves the unsupported S07 smoke scenario and stale sync validation glob. Current `bun run e2e:smoke -- --scenario s07-sync-conflict-resolution` passes 23 tests with 4 todo markers; packaged screenshot/browser-console evidence is still pending. |
-| S08 | Share session → public shortlink opens | [T346](../tickets/T346-rc-s08-share-session-shortlink.md) | `Todo` | — | — | |
+| S08 | Share session → public shortlink opens | [T346](../tickets/T346-rc-s08-share-session-shortlink.md) | `Blocked` | `6de3ea36` | `2026-05-13T23:42:41Z` | [T359](../tickets/T359-rc-s08-smoke-harness-and-command-repair.md) resolves the unsupported S08 smoke scenario and stale shortlink/share validation globs. Current `bun run e2e:smoke -- --scenario s08-share-session-shortlink` passes 20 tests; packaged screenshot/browser-console evidence is still pending. |
 | S09 | Upstream base still passes ROX custom flows | [T347](../tickets/T347-rc-s09-upstream-base-rox-custom-flows.md) | `Todo` | — | — | |
 | S10 | Mac ARM build opens and smoke passes | [T348](../tickets/T348-rc-s10-mac-arm-build-smoke.md) | `Todo` | — | — | |
 
@@ -72,6 +72,7 @@ If any scenario produces a blocker, the new ticket is listed here:
 | S05 | [T356](../tickets/T356-rc-s05-smoke-harness-registration.md) | S05 was not registered in `e2e:smoke`; targeted RBAC, policy, scope-forgery, and adjacent account-team/settings tests now run through the harness. | DONE |
 | S06 | [T357](../tickets/T357-rc-s06-smoke-harness-and-command-repair.md) | S06 was not registered in `e2e:smoke`, and T344 pointed at stale file/entity graph test paths; both are repaired. | DONE |
 | S07 | [T358](../tickets/T358-rc-s07-smoke-harness-and-command-repair.md) | S07 was not registered in `e2e:smoke`, and T345 pointed at a stale sync test glob; both are repaired. | DONE |
+| S08 | [T359](../tickets/T359-rc-s08-smoke-harness-and-command-repair.md) | S08 was not registered in `e2e:smoke`, and T346 pointed at stale shortlink/share test globs; both are repaired. | DONE |
 
 ---
 

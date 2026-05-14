@@ -113,7 +113,7 @@
   --secondary: oklch(from var(--foreground) l c h / 0.05);
   --secondary-foreground: var(--foreground);
   --muted: oklch(from var(--foreground) l c h / 0.05);
-  --muted-foreground: var(--foreground-50);
+  --muted-foreground: var(--foreground-60);
   --card: var(--background);
   --card-foreground: var(--foreground);
   --popover: var(--background);
@@ -190,7 +190,7 @@
   --secondary: oklch(from var(--foreground) l c h / 0.05);
   --secondary-foreground: var(--foreground);
   --muted: oklch(from var(--foreground) l c h / 0.05);
-  --muted-foreground: var(--foreground-50);
+  --muted-foreground: var(--foreground-60);
   --card: var(--background);
   --card-foreground: var(--foreground);
   --popover: var(--background);

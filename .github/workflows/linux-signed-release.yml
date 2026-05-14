@@ -1,0 +1,213 @@
+name: Linux Signed Release
+
+# M.18 T254: signed-build workflow for the Linux AppImage. Mirrors the
+# Mac T251 shape — workflow_dispatch only, tag-pattern guard, secrets
+# pre-flight, electron-builder --linux --publish=never, gpg detached
+# signing, SHA-256 checksum manifest, and artifact upload of the signed
+# AppImage + sidecars. We never auto-run on push/pull_request because
+# real signing minutes and the gpg key should ship by intent, not by
+# accident.
+#
+# Secrets contract (gated; any missing entry fails fast before
+# electron-builder so a misconfigured environment cannot produce an
+# unsigned artifact masquerading as a signed release):
+#   ROX_LINUX_GPG_KEY              ASCII-armored private gpg key for
+#                                  Developer ID equivalent signing
+#   ROX_LINUX_GPG_KEY_ID           fingerprint of the signing key
+#   ROX_LINUX_GPG_PASSPHRASE       passphrase guarding the private key
+#
+# Untrusted-input safety: `inputs.tag` is only ever fed to a shell via
+# the INPUT_TAG env var (never via inline GitHub expression
+# interpolation), and only after a strict regex check. All other shell
+# consumers of secret/input values follow the same env-var pattern.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (required, must match v[0-9]+.[0-9]+.[0-9]+(-rc.[0-9]+)?)"
+        required: true
+        type: string
+
+concurrency:
+  group: linux-signed-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  linux-signed-release:
+    name: ROX ONE Linux signed AppImage
+    runs-on: ubuntu-22.04
+    timeout-minutes: 75
+    env:
+      ROX_HEADLESS: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Tag-protection guard. The dispatch input is untrusted, so it
+      # is fed via the INPUT_TAG env var (never inlined into a run:
+      # block) and pattern-validated before any later step uses it.
+      # This blocks `; rm -rf` style payloads in the tag and stops
+      # accidental runs on non-release refs.
+      - name: Validate release tag pattern
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          CANDIDATE="${INPUT_TAG#refs/tags/}"
+          echo "Candidate release tag: ${CANDIDATE}"
+          if [[ ! "${CANDIDATE}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::release tag '${CANDIDATE}' does not match v[0-9]+.[0-9]+.[0-9]+(-rc.[0-9]+)?"
+            exit 1
+          fi
+          echo "RELEASE_TAG=${CANDIDATE}" >> "$GITHUB_ENV"
+
+      # Secrets pre-flight. Required gpg credentials are surfaced as
+      # boolean env vars (never inlined into the run: block) so the
+      # script can fail fast before electron-builder, before gpg
+      # --sign, before any network call. A misconfigured environment
+      # cannot silently ship an unsigned AppImage.
+      - name: Verify signing secrets present
+        shell: bash
+        env:
+          HAVE_ROX_LINUX_GPG_KEY: ${{ secrets.ROX_LINUX_GPG_KEY != '' }}
+          HAVE_ROX_LINUX_GPG_KEY_ID: ${{ secrets.ROX_LINUX_GPG_KEY_ID != '' }}
+          HAVE_ROX_LINUX_GPG_PASSPHRASE: ${{ secrets.ROX_LINUX_GPG_PASSPHRASE != '' }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for var in HAVE_ROX_LINUX_GPG_KEY HAVE_ROX_LINUX_GPG_KEY_ID HAVE_ROX_LINUX_GPG_PASSPHRASE; do
+            value="${!var}"
+            if [ "${value}" != "true" ]; then
+              echo "::error::missing required secret: ${var#HAVE_}"
+              missing=1
+            fi
+          done
+          if [ "${missing}" -ne 0 ]; then
+            echo "::error::linux signed-release workflow requires all three gpg secrets. Aborting before electron-builder."
+            exit 1
+          fi
+          echo "All three gpg signing secrets are present."
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Prepare signed-release logs
+        run: mkdir -p .ci-logs/linux-signed-release
+
+      # Run the validator fixture suite ahead of electron-builder so
+      # any boundary regression (AppImage filename, desktop entry,
+      # categories, signing sidecar) is caught before we burn signing
+      # cycles.
+      - name: Validate linux-boundary fixtures
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:linux-boundary-fixtures 2>&1 | tee .ci-logs/linux-signed-release/validate-linux-boundary-fixtures.log
+
+      - name: Validate private linux release trust boundary
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:linux-private-release-boundary 2>&1 | tee .ci-logs/linux-signed-release/validate-linux-private-release-boundary.log
+
+      - name: Validate linux-signed-release pipeline shape
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:linux-signed-release-pipeline 2>&1 | tee .ci-logs/linux-signed-release/validate-linux-signed-release-pipeline.log
+
+      - name: Build Electron app
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run electron:build 2>&1 | tee .ci-logs/linux-signed-release/electron-build.log
+
+      # Run electron-builder for Linux. We pass --publish=never so the
+      # action never uploads to a release page; the workflow uploads
+      # the .AppImage as a workflow artifact instead.
+      - name: Package Linux AppImage
+        shell: bash
+        run: |
+          set -o pipefail
+          cd apps/electron
+          bunx electron-builder --linux --publish=never 2>&1 | tee ../../.ci-logs/linux-signed-release/electron-builder.log
+
+      # Import the gpg key from the secret, sign the AppImage with a
+      # detached `.sig` sidecar, and verify the signature so any
+      # downstream consumer can offline-verify with the public key.
+      # All three secrets reach the shell via env vars only — they
+      # are never inlined into the run: script body.
+      - name: GPG sign AppImage
+        shell: bash
+        env:
+          ROX_LINUX_GPG_KEY: ${{ secrets.ROX_LINUX_GPG_KEY }}
+          ROX_LINUX_GPG_KEY_ID: ${{ secrets.ROX_LINUX_GPG_KEY_ID }}
+          ROX_LINUX_GPG_PASSPHRASE: ${{ secrets.ROX_LINUX_GPG_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          APPIMAGE_PATH="$(find apps/electron/release -maxdepth 2 -name '*.AppImage' -print -quit)"
+          if [ -z "${APPIMAGE_PATH}" ] || [ ! -f "${APPIMAGE_PATH}" ]; then
+            echo "::error::expected an AppImage under apps/electron/release"
+            exit 1
+          fi
+          echo "Signing ${APPIMAGE_PATH}"
+          export GNUPGHOME="$(mktemp -d)"
+          chmod 700 "${GNUPGHOME}"
+          echo "${ROX_LINUX_GPG_KEY}" | gpg --batch --yes --import 2>&1 | tee .ci-logs/linux-signed-release/gpg-import.log
+          echo "${ROX_LINUX_GPG_PASSPHRASE}" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --local-user "${ROX_LINUX_GPG_KEY_ID}" \
+            --detach-sign --armor --output "${APPIMAGE_PATH}.sig" "${APPIMAGE_PATH}" 2>&1 | tee .ci-logs/linux-signed-release/gpg-sign.log
+          gpg --verify "${APPIMAGE_PATH}.sig" "${APPIMAGE_PATH}" 2>&1 | tee .ci-logs/linux-signed-release/gpg-verify.log
+          if ! grep -q "Good signature" .ci-logs/linux-signed-release/gpg-verify.log; then
+            echo "::error::gpg --verify did not report a Good signature"; exit 1
+          fi
+          echo "APPIMAGE_PATH=${APPIMAGE_PATH}" >> "$GITHUB_ENV"
+
+      - name: Compute signed artifact checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=".ci-logs/linux-signed-release/release-checksums.txt"
+          {
+            echo "# ROX.ONE signed linux release ${RELEASE_TAG} SHA-256 checksums"
+            echo "# generated at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > "${OUT}"
+          sha256sum "${APPIMAGE_PATH}" >> "${OUT}"
+          sha256sum "${APPIMAGE_PATH}.sig" >> "${OUT}"
+          cat "${OUT}"
+
+      - name: Upload signed AppImage artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-signed-linux-x64
+          path: |
+            apps/electron/release/*.AppImage
+            apps/electron/release/*.AppImage.sig
+            .ci-logs/linux-signed-release/release-checksums.txt
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload signed-release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-linux-signed-release-evidence
+          path: |
+            .ci-logs/linux-signed-release/**/*.log
+            .ci-logs/linux-signed-release/release-checksums.txt
+          retention-days: 14
+          if-no-files-found: warn

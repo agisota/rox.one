@@ -1375,14 +1375,42 @@ describe('BrowserPaneManager', () => {
   // ============================================================================
 
   describe('hung tab detection', () => {
-    it.todo(
-      'surfaces hung state when WebContents becomes unresponsive — ' +
-      'NOTE: BrowserPaneManager does not currently listen to the WebContents ' +
-      '"unresponsive" event and has no hung-tab detection or recovery logic. ' +
-      'This is a placeholder for when detection is implemented. ' +
-      'Follow-up: add "unresponsive"/"responsive" event listeners in setupWindowListeners ' +
-      'and surface a hungTab flag on BrowserInstanceInfo.'
-    )
+    it('sets hungTab=true and broadcasts state when WebContents becomes unresponsive', () => {
+      const states: any[] = []
+      manager.onStateChange((info) => states.push(info))
+
+      manager.createInstance('hung-tab-unresponsive')
+      const instance = (manager as any).instances.get('hung-tab-unresponsive')
+      states.length = 0 // discard create event
+
+      expect(instance.hungTab).toBe(false)
+
+      instance.pageView.webContents._emit('unresponsive')
+
+      expect(instance.hungTab).toBe(true)
+      const broadcast = states.find((s) => s.id === 'hung-tab-unresponsive')
+      expect(broadcast).toBeDefined()
+      expect(broadcast.hungTab).toBe(true)
+    })
+
+    it('sets hungTab=false and broadcasts state when WebContents recovers (responsive)', () => {
+      const states: any[] = []
+      manager.onStateChange((info) => states.push(info))
+
+      manager.createInstance('hung-tab-responsive')
+      const instance = (manager as any).instances.get('hung-tab-responsive')
+
+      // First make it hung
+      instance.pageView.webContents._emit('unresponsive')
+      states.length = 0 // discard prior events
+
+      instance.pageView.webContents._emit('responsive')
+
+      expect(instance.hungTab).toBe(false)
+      const broadcast = states.find((s) => s.id === 'hung-tab-responsive')
+      expect(broadcast).toBeDefined()
+      expect(broadcast.hungTab).toBe(false)
+    })
   })
 
   // ============================================================================

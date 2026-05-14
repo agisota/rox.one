@@ -153,6 +153,18 @@ export function registerMissionsCoreHandlers(server: RpcServer, deps: HandlerDep
         return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
       }
 
+      // T086b: optional per-actor budget guard. Runs AFTER the
+      // token-bucket gate and BEFORE validation/permission/scheduler
+      // dispatch. Keyed by `ctx.userId` so each actor has an isolated
+      // lifetime cap independent of the burst-shaped bucket. Absent => no-op.
+      if (deps.budgetGuard) {
+        const key = ctx.userId ?? '__anonymous__'
+        const result = deps.budgetGuard.consume(key, 1)
+        if (!result.ok) {
+          return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+        }
+      }
+
       // Validate the input envelope before the permission check so the
       // caller gets a useful invalid-argument response for malformed
       // payloads. Permission check still runs second to avoid leaking

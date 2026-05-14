@@ -10,19 +10,20 @@
  * All update server responses are mocked — no real network calls are made.
  *
  * Weaknesses found during implementation (see PR body for details):
- *   W-1: autoUpdater.error event handler sets downloadState='error' but does
- *        NOT re-throw or propagate — a silent swallow when no broadcastUpdateInfo
- *        recipient is connected.
- *   W-2: checkForUpdates() catches errors and sets error state but returns
- *        normally (no throw), so callers cannot distinguish success from failure
- *        without inspecting the returned UpdateInfo.downloadState.
- *   W-3: Downgrade protection is entirely delegated to electron-updater's
- *        semver comparison; there is no independent version guard in this
- *        module — if electron-updater's comparison is bypassed the module
- *        would accept a downgrade silently.
- *   W-4: The 500ms setTimeout in checkForUpdates() is an implicit timing
- *        assumption that could race under high load, leaving state as
- *        'downloading' when the file already exists.
+ *   W-1: autoUpdater.error event handler sets downloadState='error' but did
+ *        NOT log when no EventSink connected — ops blind to cert-chain attacks.
+ *        FIX: mainLog.error() is called unconditionally before broadcastUpdateInfo().
+ *   W-2: checkForUpdates() caught errors and returned normally (no throw),
+ *        so callers could not use try/catch.
+ *        FIX: checkForUpdates() now re-throws on failure.
+ *   W-3: Downgrade protection was entirely delegated to electron-updater's
+ *        semver comparison; no independent version guard existed.
+ *        FIX: update-available handler now independently compares via semver
+ *        and refuses any version not strictly greater than current.
+ *   W-4: The 500ms setTimeout in checkForUpdates() was a timing assumption
+ *        that could race under load.
+ *        FIX: replaced with event-based waiting that resolves on
+ *        update-downloaded / update-not-available / error events.
  */
 
 import { describe, it, expect, beforeEach, mock } from 'bun:test'
@@ -111,6 +112,10 @@ mock.module('os', () => ({
   platform: mock(() => 'linux'),
 }))
 
+// semver is NOT mocked — the real package is used so W-3 tests exercise
+// actual semver comparison logic. Only platform-native and unavailable
+// modules (electron, electron-updater, etc.) are mocked.
+
 // ─── electron-updater mock — the heart of these tests ─────────────────────────
 // electron-updater's autoUpdater is the security boundary. We assert:
 //   a) our module correctly configures it (logger, autoDownload, etc.)
@@ -175,17 +180,11 @@ function hasLogMatching(level: string, fragment: string): boolean {
   )
 }
 
-function resetAutoUpdaterListeners() {
-  for (const key of Object.keys(autoUpdaterListeners)) {
-    delete autoUpdaterListeners[key]
-  }
-}
-
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('auto-update module configuration', () => {
   it('configures autoDownload=true on module load', () => {
-    // The module sets autoDownload=true at import time (line 119 of source)
+    // The module sets autoDownload=true at import time
     expect(mockAutoUpdater.autoDownload).toBe(true)
   })
 
@@ -227,12 +226,11 @@ describe('Scenario 1: Signature mismatch is rejected', () => {
   /**
    * electron-updater fires the 'error' event when signature validation fails.
    * Our error handler MUST:
-   *   - log the error (so ops teams can detect cert-chain attacks)
+   *   - log the error unconditionally (W-1 fix: regardless of EventSink)
    *   - set downloadState to 'error' (NOT 'ready' or 'downloading')
    *   - NOT set available=true
    *
-   * WEAKNESS W-1: The error is logged but not re-thrown — callers that don't
-   * inspect UpdateInfo.downloadState will miss the failure.
+   * W-2 fix: checkForUpdates() now re-throws so callers can use try/catch.
    */
   beforeEach(() => {
     clearLogCalls()
@@ -250,36 +248,44 @@ describe('Scenario 1: Signature mismatch is rejected', () => {
     })
   })
 
+  it('throws when signature verification fails (W-2)', async () => {
+    // W-2: callers can now use try/catch instead of inspecting downloadState
+    await expect(checkForUpdates()).rejects.toThrow()
+  })
+
   it('sets downloadState to error when signature verification fails', async () => {
-    const result = await checkForUpdates()
-    expect(result.downloadState).toBe('error')
+    try { await checkForUpdates() } catch { /* expected */ }
+    expect(getUpdateInfo().downloadState).toBe('error')
   })
 
   it('does not mark update as available when signature fails', async () => {
-    const result = await checkForUpdates()
-    expect(result.available).toBe(false)
+    try { await checkForUpdates() } catch { /* expected */ }
+    expect(getUpdateInfo().available).toBe(false)
   })
 
-  it('logs the signature error at error level', async () => {
-    await checkForUpdates()
+  it('logs the signature error at error level regardless of EventSink (W-1)', async () => {
+    // W-1: ensure no EventSink is connected — error must still be logged
+    setAutoUpdateEventSink(null as never)
+    try { await checkForUpdates() } catch { /* expected */ }
     const hasError = hasLogMatching('error', 'Error')
     expect(hasError).toBe(true)
   })
 
   it('stores the error message in UpdateInfo', async () => {
-    const result = await checkForUpdates()
-    expect(result.error).toBeDefined()
-    expect(typeof result.error).toBe('string')
+    try { await checkForUpdates() } catch { /* expected */ }
+    const info = getUpdateInfo()
+    expect(info.error).toBeDefined()
+    expect(typeof info.error).toBe('string')
   })
 
   it('does not call quitAndInstall after a signature error', async () => {
     mockQuitAndInstall.mockClear()
-    await checkForUpdates()
+    try { await checkForUpdates() } catch { /* expected */ }
     expect(mockQuitAndInstall).not.toHaveBeenCalled()
   })
 })
 
-describe('Scenario 2: Stale-version downgrade is blocked', () => {
+describe('Scenario 2: Stale-version downgrade is blocked (electron-updater path)', () => {
   /**
    * electron-updater fires 'update-not-available' when the remote version
    * is <= the current version (semver comparison). Our handler MUST set
@@ -287,15 +293,11 @@ describe('Scenario 2: Stale-version downgrade is blocked', () => {
    *
    * Current version: 0.9.2 (set in @rox-one/shared/version mock above)
    * Remote manifest: version 0.1.0 (older)
-   *
-   * WEAKNESS W-3: This module has no independent version guard; it trusts
-   * electron-updater entirely. If the library's comparison is bypassed
-   * (e.g., via a forged update-available event), the module would accept it.
    */
   beforeEach(() => {
     clearLogCalls()
     mockCheckForUpdates.mockImplementation(async () => {
-      // electron-updater emits update-not-available when remote version ≤ current
+      // electron-updater emits update-not-available when remote version <= current
       await mockAutoUpdater._emit('update-not-available', { version: '0.1.0' })
       return { updateInfo: { version: '0.1.0' } }
     })
@@ -331,18 +333,90 @@ describe('Scenario 2: Stale-version downgrade is blocked', () => {
   })
 })
 
+describe('Scenario 2b: Independent downgrade guard (W-3)', () => {
+  /**
+   * W-3: Even if electron-updater incorrectly fires 'update-available' for an
+   * older version (e.g., via a forged manifest or library bypass), our
+   * independent semver guard in the update-available handler must block the
+   * downgrade and set available=false.
+   *
+   * Current version: 0.9.2
+   * Forged manifest: version 0.1.0 (older — should be blocked independently)
+   */
+  beforeEach(() => {
+    clearLogCalls()
+    mockFsExistsSync.mockImplementation(() => false)
+    mockFsReaddirSync.mockImplementation(() => [])
+    mockAutoUpdater.downloadedUpdateHelper = null
+  })
+
+  it('blocks a forged update-available event with an older version (W-3)', async () => {
+    mockCheckForUpdates.mockImplementation(async () => {
+      // Forged: electron-updater emits update-available for an older version
+      await mockAutoUpdater._emit('update-available', { version: '0.1.0' })
+      return { updateInfo: { version: '0.1.0' } }
+    })
+
+    const result = await checkForUpdates()
+    expect(result.available).toBe(false)
+    expect(result.downloadState).toBe('idle')
+  })
+
+  it('blocks a forged update-available event with the same version (W-3)', async () => {
+    mockCheckForUpdates.mockImplementation(async () => {
+      // Same version — not an upgrade
+      await mockAutoUpdater._emit('update-available', { version: '0.9.2' })
+      return { updateInfo: { version: '0.9.2' } }
+    })
+
+    const result = await checkForUpdates()
+    expect(result.available).toBe(false)
+    expect(result.downloadState).toBe('idle')
+  })
+
+  it('logs DOWNGRADE BLOCKED at warn level when guard fires (W-3)', async () => {
+    mockCheckForUpdates.mockImplementation(async () => {
+      await mockAutoUpdater._emit('update-available', { version: '0.1.0' })
+      return { updateInfo: { version: '0.1.0' } }
+    })
+
+    await checkForUpdates()
+    const hasWarn = hasLogMatching('warn', 'DOWNGRADE BLOCKED')
+    expect(hasWarn).toBe(true)
+  })
+
+  it('does not block a legitimate newer version (W-3 guard passes)', async () => {
+    mockCheckForUpdates.mockImplementation(async () => {
+      await mockAutoUpdater._emit('update-available', { version: '1.0.0' })
+      // Resolve the event wait immediately
+      await mockAutoUpdater._emit('update-downloaded', { version: '1.0.0' })
+      return { updateInfo: { version: '1.0.0' } }
+    })
+
+    const result = await checkForUpdates()
+    expect(result.available).toBe(true)
+  })
+
+  it('does not call quitAndInstall when downgrade guard fires', async () => {
+    mockCheckForUpdates.mockImplementation(async () => {
+      await mockAutoUpdater._emit('update-available', { version: '0.1.0' })
+      return { updateInfo: { version: '0.1.0' } }
+    })
+
+    mockQuitAndInstall.mockClear()
+    await checkForUpdates()
+    expect(mockQuitAndInstall).not.toHaveBeenCalled()
+  })
+})
+
 describe('Scenario 3: Network failure handling', () => {
   /**
    * When the update server is unreachable or returns a non-200, electron-updater
-   * rejects the checkForUpdates() promise. Our module MUST:
-   *   - catch the rejection (no unhandled promise rejection / crash)
-   *   - set downloadState to 'error'
-   *   - set a human-readable error message
-   *   - log the failure
+   * rejects the checkForUpdates() promise.
    *
-   * WEAKNESS W-2: checkForUpdates() does NOT re-throw after catching the
-   * network error, so callers cannot use try/catch — they must inspect the
-   * returned UpdateInfo.downloadState instead.
+   * W-2 fix: checkForUpdates() now re-throws after catching the network error,
+   * so callers CAN use try/catch. The caller decides whether to surface or swallow.
+   * checkForUpdatesOnLaunch() demonstrates the swallow pattern for launch resilience.
    */
   beforeEach(() => {
     clearLogCalls()
@@ -351,36 +425,35 @@ describe('Scenario 3: Network failure handling', () => {
     })
   })
 
-  it('does not crash when the update server is unreachable', async () => {
-    // Must resolve (not reject) — no crash
-    const result = await checkForUpdates()
-    expect(result).toBeDefined()
+  it('re-throws when the update server is unreachable (W-2)', async () => {
+    // W-2 fix: callers can now try/catch network failures
+    await expect(checkForUpdates()).rejects.toThrow('ECONNREFUSED')
   })
 
   it('sets downloadState to error on network failure', async () => {
-    const result = await checkForUpdates()
-    expect(result.downloadState).toBe('error')
+    try { await checkForUpdates() } catch { /* expected */ }
+    expect(getUpdateInfo().downloadState).toBe('error')
   })
 
   it('populates UpdateInfo.error with the failure reason', async () => {
-    const result = await checkForUpdates()
-    expect(result.error).toContain('ECONNREFUSED')
+    try { await checkForUpdates() } catch { /* expected */ }
+    expect(getUpdateInfo().error).toContain('ECONNREFUSED')
   })
 
   it('logs the network failure at error level', async () => {
-    await checkForUpdates()
+    try { await checkForUpdates() } catch { /* expected */ }
     const hasError = hasLogMatching('error', 'Check failed')
     expect(hasError).toBe(true)
   })
 
   it('does not mark an update as available after a network failure', async () => {
-    const result = await checkForUpdates()
-    expect(result.available).toBe(false)
+    try { await checkForUpdates() } catch { /* expected */ }
+    expect(getUpdateInfo().available).toBe(false)
   })
 
   it('does not call quitAndInstall after a network failure', async () => {
     mockQuitAndInstall.mockClear()
-    await checkForUpdates()
+    try { await checkForUpdates() } catch { /* expected */ }
     expect(mockQuitAndInstall).not.toHaveBeenCalled()
   })
 })
@@ -395,6 +468,10 @@ describe('Scenario 4: Successful path — valid signed manifest with newer versi
    *   - set downloadState to 'downloading' (autoDownload=true)
    * After download completes, electron-updater fires 'update-downloaded' and
    * our handler MUST set downloadState to 'ready'.
+   *
+   * W-4 fix: checkForUpdates() now waits for the update-downloaded event
+   * instead of a fixed 500 ms wall-clock sleep. The mock emits events
+   * synchronously, so no real wall-clock time elapses in these tests.
    */
   beforeEach(() => {
     clearLogCalls()
@@ -408,6 +485,7 @@ describe('Scenario 4: Successful path — valid signed manifest with newer versi
   it('sets available=true when a newer signed update is found', async () => {
     mockCheckForUpdates.mockImplementation(async () => {
       await mockAutoUpdater._emit('update-available', { version: '1.0.0' })
+      await mockAutoUpdater._emit('update-downloaded', { version: '1.0.0' })
       return { updateInfo: { version: '1.0.0' } }
     })
 
@@ -418,6 +496,7 @@ describe('Scenario 4: Successful path — valid signed manifest with newer versi
   it('records the new version in latestVersion', async () => {
     mockCheckForUpdates.mockImplementation(async () => {
       await mockAutoUpdater._emit('update-available', { version: '1.0.0' })
+      await mockAutoUpdater._emit('update-downloaded', { version: '1.0.0' })
       return { updateInfo: { version: '1.0.0' } }
     })
 
@@ -425,18 +504,24 @@ describe('Scenario 4: Successful path — valid signed manifest with newer versi
     expect(result.latestVersion).toBe('1.0.0')
   })
 
-  it('sets downloadState to downloading while update downloads', async () => {
+  it('sets downloadState to downloading before update-downloaded fires (intermediate state)', async () => {
+    // Verify intermediate state captured after update-available but before update-downloaded
+    let intermediateState: string | undefined
+
     mockCheckForUpdates.mockImplementation(async () => {
       await mockAutoUpdater._emit('update-available', { version: '1.0.0' })
+      intermediateState = getUpdateInfo().downloadState
+      await mockAutoUpdater._emit('update-downloaded', { version: '1.0.0' })
       return { updateInfo: { version: '1.0.0' } }
     })
 
-    const result = await checkForUpdates()
-    // autoDownload=true → state should be 'downloading' (no file in cache yet)
-    expect(result.downloadState).toBe('downloading')
+    await checkForUpdates()
+    expect(intermediateState).toBe('downloading')
   })
 
-  it('sets downloadState to ready after update-downloaded fires', async () => {
+  it('sets downloadState to ready after update-downloaded fires (W-4)', async () => {
+    // W-4: the event-based wait resolves when update-downloaded fires —
+    // no 500ms sleep needed. Test runs without any wall-clock delay.
     mockCheckForUpdates.mockImplementation(async () => {
       await mockAutoUpdater._emit('update-available', { version: '1.0.0' })
       await mockAutoUpdater._emit('update-downloaded', { version: '1.0.0' })
@@ -463,6 +548,7 @@ describe('Scenario 4: Successful path — valid signed manifest with newer versi
       await mockAutoUpdater._emit('update-available', { version: '1.0.0' })
       await mockAutoUpdater._emit('download-progress', { percent: 42.7 })
       await mockAutoUpdater._emit('download-progress', { percent: 99.1 })
+      await mockAutoUpdater._emit('update-downloaded', { version: '1.0.0' })
       return { updateInfo: { version: '1.0.0' } }
     })
 
@@ -532,6 +618,11 @@ describe('installUpdate() — safety guards', () => {
 })
 
 describe('checkForUpdatesOnLaunch() — dismissed version handling', () => {
+  /**
+   * checkForUpdatesOnLaunch() wraps checkForUpdates() and must handle the
+   * W-2 re-throw gracefully on launch: transient errors return action='none'
+   * so the app continues starting normally.
+   */
   it('returns action=none when no update is available', async () => {
     mockCheckForUpdates.mockImplementation(async () => {
       await mockAutoUpdater._emit('update-not-available', { version: '0.9.2' })
@@ -552,6 +643,7 @@ describe('checkForUpdatesOnLaunch() — dismissed version handling', () => {
     mockAutoUpdater.downloadedUpdateHelper = null
     mockCheckForUpdates.mockImplementation(async () => {
       await mockAutoUpdater._emit('update-available', { version: '1.5.0' })
+      await mockAutoUpdater._emit('update-downloaded', { version: '1.5.0' })
       return { updateInfo: { version: '1.5.0' } }
     })
 
@@ -583,6 +675,18 @@ describe('checkForUpdatesOnLaunch() — dismissed version handling', () => {
     const result = await checkForUpdatesOnLaunch()
     expect(result.action).toBe('ready')
     expect(result.version).toBe('1.5.0')
+  })
+
+  it('returns action=none when checkForUpdates throws on launch (W-2 graceful handling)', async () => {
+    // W-2: checkForUpdates() now re-throws on error; checkForUpdatesOnLaunch()
+    // must catch and return action='none' so the app continues starting.
+    mockCheckForUpdates.mockImplementation(async () => {
+      throw new Error('ECONNREFUSED: connect ECONNREFUSED 127.0.0.1:443')
+    })
+
+    const result = await checkForUpdatesOnLaunch()
+    expect(result.action).toBe('none')
+    expect(result.reason).toBe('check-failed')
   })
 })
 
