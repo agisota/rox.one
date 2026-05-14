@@ -70,7 +70,7 @@ Electron storage scope, runtime resolver paths, and backend creation.
 ## 6. Implementation Changes
 
 - Marked `T347` as `Status: Blocked`.
-- Filed blocker ticket `T360-rc-s09-full-gate-and-smoke-harness-repair.md`.
+- Filed blocker ticket `T362-rc-s09-full-gate-and-smoke-harness-repair.md`.
 - Updated the RC evidence table row for S09 to `Blocked`.
 - Added the S09 blocker to the RC evidence blocker table.
 
@@ -120,7 +120,7 @@ required full test gate is red.
 - S09 smoke is not registered in the shared harness.
 - Full `bun test` is red on rebased code base `23a91c7e`.
 - `origin/main` advanced again to `e10537ef` after the final local validation,
-  so T360 should rebase before repair.
+  so T362 should rebase before repair.
 - The full-suite failure set is broad and likely needs investigation before it
   can be repaired safely in one atomic change.
 - No packaged Electron screenshot/browser-console evidence was captured for
@@ -139,4 +139,4 @@ required full test gate is red.
 | Experience Layer tests pass | Pass | `experience-rpc.test.ts` observed passing in full `bun test` output |
 | Screenshot / terminal output evidence captured and referenced | Blocked | Terminal evidence captured; packaged screenshots pending |
 | RC evidence row S09 updated | Pass | `docs/release/2026-05-14-rc-evidence.md` row S09 is `Blocked` |
-| Initial blocking ticket filed | Pass | `T360-rc-s09-full-gate-and-smoke-harness-repair.md` |
+| Initial blocking ticket filed | Pass | `T362-rc-s09-full-gate-and-smoke-harness-repair.md` |

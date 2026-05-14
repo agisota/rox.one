@@ -1,10 +1,10 @@
-# T361 - RC S09 Full Suite Shared Fixture Repair
+# T363 - RC S09 Full Suite Shared Fixture Repair
 
 Status: Todo
 
 ## Context
 
-T360 repaired the missing `s09-upstream-rox-flows` smoke harness registration on
+T362 repaired the missing `s09-upstream-rox-flows` smoke harness registration on
 code base `e10537ef`. The targeted S09 smoke now passes 325 tests across 32
 files, including protected ROX paths, C4 storage isolation, RBAC, Composer, and
 Experience Layer coverage.
@@ -72,4 +72,4 @@ git diff --check
 
 ## Worklog
 
-Update `docs/worklog/T361-rc-s09-full-suite-shared-fixture-repair.md`.
+Update `docs/worklog/T363-rc-s09-full-suite-shared-fixture-repair.md`.
