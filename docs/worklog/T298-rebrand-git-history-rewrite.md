@@ -118,14 +118,20 @@ exited 0 with no output.
 No build expected for this scaffold. The future destructive rewrite must run
 the full post-rewrite build matrix before this ticket can become `DONE`.
 
-### Current follow-up evidence, 2026-05-14T04:41:16Z
+### Current follow-up evidence pointers
 
-T375 through T408 refreshed the blocker state after PR #205 merged, after
-the staged preflight split landed, after the R.11 local path runbook repair,
-after the pre-rewrite backup branch check landed, and after the fork-review
-closeout-prerequisite, tag-on-main, local-tag-sync, and remote-branch-review
-preflight rows landed, and after the report-only history/legal-preserve gates
-were added and wired into the R.11 goal:
+T409-T411 now keep the durable R.11 completion audit and current-main
+validation evidence in
+`docs/release/r11-completion-audit-2026-05-14.md`. This T298 worklog remains
+the destructive closeout surface; use the completion audit for the latest
+report-only blocker matrix until R.11 is unblocked.
+
+Earlier report-only tickets refreshed the blocker state after PR #205 merged,
+after the staged preflight split landed, after the R.11 local path runbook
+repair, after the pre-rewrite backup branch check landed, and after the
+fork-review closeout-prerequisite, tag-on-main, local-tag-sync, and
+remote-branch-review preflight rows landed, and after the report-only
+history/legal-preserve gates were added and wired into the R.11 goal:
 
 - GitHub reports no open PRs.
 - GitHub fork count is `0`.

@@ -354,3 +354,16 @@ describe('R.11 goal documentation', () => {
     )
   })
 })
+
+describe('R.11 closeout worklog documentation', () => {
+  test('points current evidence at the durable completion audit instead of a stale ticket range', () => {
+    const worklog = readFileSync(
+      join(repoRoot, 'docs', 'worklog', 'T298-rebrand-git-history-rewrite.md'),
+      'utf8',
+    )
+
+    expect(worklog).toContain('docs/release/r11-completion-audit-2026-05-14.md')
+    expect(worklog).toContain('T409-T411')
+    expect(worklog).not.toContain('T375 through T408')
+  })
+})
