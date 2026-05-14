@@ -86,7 +86,26 @@ export function registerSkillsHandlers(server: RpcServer, deps: HandlerDeps): vo
   })
 
   // Delete a skill from a workspace
-  server.handle(RPC_CHANNELS.skills.DELETE, async (_ctx, workspaceId: unknown, skillSlug: unknown) => {
+  server.handle(RPC_CHANNELS.skills.DELETE, async (ctx, workspaceId: unknown, skillSlug: unknown) => {
+    // T086c: optional rate-limit. Sits BEFORE validation and BEFORE the
+    // filesystem delete so a hot burst of delete calls from a single
+    // actor cannot bypass the cap — even malformed payloads consume
+    // tokens. Absent => no-op.
+    if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+      return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+
+    // T086c: optional per-actor budget guard. Runs AFTER the bucket gate
+    // and BEFORE validation/filesystem-delete. Keyed by `ctx.userId` so
+    // each actor has an isolated lifetime cap. Absent => no-op.
+    if (deps.budgetGuard) {
+      const key = ctx.userId ?? '__anonymous__'
+      const result = deps.budgetGuard.consume(key, 1)
+      if (!result.ok) {
+        return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+      }
+    }
+
     const wsId = parseId('workspaceId', workspaceId)
     const slug = parseSlug('skillSlug', skillSlug)
     const workspace = getWorkspaceByNameOrId(wsId)

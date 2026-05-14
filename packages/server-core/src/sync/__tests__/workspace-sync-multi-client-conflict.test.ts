@@ -22,7 +22,10 @@ import { describe, expect, it } from 'bun:test'
 import { EMPTY_SYNC_SNAPSHOT } from '../local-cloud-sync'
 import {
   InMemoryWorkspaceSyncService,
+  InMemoryWorkspaceQuotaService,
   WorkspaceSyncConflictError,
+  WorkspaceSyncValidationError,
+  WorkspaceQuotaExceededError,
 } from '../workspace-sync-service'
 import type { ManagedCloudWorkspace } from '../../webui/account-cloud-workspaces'
 
@@ -668,41 +671,127 @@ describe('workspace sync — spec contract (conflict resolution)', () => {
   // Known ambiguities / gaps vs spec — promoted to it.todo() with bug notes
   // -------------------------------------------------------------------------
 
-  it.todo(
-    // BUG: The spec states operations without an operationId should still be
-    // retryable if the server assigns a stable id and returns it.  Currently
-    // InMemoryWorkspaceSyncService assigns a random UUID when operationId is
-    // null/undefined but does NOT cache the result, so callers cannot replay.
-    // Expected: push with no operationId returns a server-assigned id; retrying
-    // with that id yields idempotentReplay=true.
-    'assigns a stable server-generated operationId when the client omits one (BUG: not cached today)',
-  )
+  it('assigns a stable server-generated operationId when the client omits one', async () => {
+    // Fix A: push without operationId, capture the returned server-assigned id,
+    // retry with it → idempotentReplay=true and original content preserved.
+    const service = new InMemoryWorkspaceSyncService()
+    const ws = workspace('ws-server-assigned-op-id')
 
-  it.todo(
-    // BUG: Spec §Conflict Detection — "Path appears unsafe or outside tenant prefix:
-    // hard validation failure, not a conflict."  Currently path validation throws
-    // LocalCloudSyncPathError at store.setInitialFile() time, which is not
-    // surfaced as WorkspaceSyncValidationError in all code paths through the
-    // service layer.  Needs explicit validation before the engine runs.
-    'surfaces a WorkspaceSyncValidationError (not a raw engine error) for paths with traversal sequences (BUG: error type leaks)',
-  )
+    // Push without supplying an operationId — server must assign one and cache the result.
+    const firstResult = await service.push({
+      actorUserId: 'user-a',
+      workspace: ws,
+      baseSnapshot: EMPTY_SYNC_SNAPSHOT,
+      files: [file('notes.md', 'original content')],
+    })
+    expect(firstResult.operationId).toBeTruthy()
+    expect(firstResult.idempotentReplay).toBe(false)
 
-  it.todo(
-    // BUG: Spec §Failure And Retry — "Network failures, quota failures, and
-    // compare-and-swap failures must leave the previous base snapshot intact."
-    // No quota checking is wired in InMemoryWorkspaceSyncService, so quota-
-    // exceeded scenarios cannot be tested yet.  When quota support lands,
-    // add a test that a rejected push (quota exceeded) does not advance the
-    // base snapshot stored server-side.
-    'does not advance the base snapshot when a push is rejected due to quota exhaustion (BUG: quota not wired)',
-  )
+    const serverAssignedId = firstResult.operationId!
 
-  it.todo(
-    // BUG: Spec §API Boundaries — GET /sync/status should return
-    // "pending conflict metadata" for in-progress operations.  Currently
-    // WorkspaceSyncStatus has no conflict field; the status endpoint has no
-    // way to report that the workspace has unresolved conflicts requiring
-    // user review.
-    'getStatus returns pending conflict metadata when the workspace has an unresolved conflict (BUG: field missing from WorkspaceSyncStatus)',
-  )
+    // Retry with the server-assigned id — must get the cached result back.
+    const retryResult = await service.push({
+      actorUserId: 'user-a',
+      workspace: ws,
+      operationId: serverAssignedId,
+      baseSnapshot: EMPTY_SYNC_SNAPSHOT,
+      files: [file('notes.md', 'mutated — should be ignored')],
+    })
+    expect(retryResult.idempotentReplay).toBe(true)
+    const notesFile = retryResult.files.find(f => f.path === 'notes.md')
+    expect(notesFile).toBeDefined()
+    expect(decode(notesFile!.contentBase64)).toBe('original content')
+  })
+
+  it('surfaces a WorkspaceSyncValidationError (not a raw engine error) for paths with traversal sequences', async () => {
+    // Fix B: path traversal sequences must be wrapped at the service boundary.
+    const service = new InMemoryWorkspaceSyncService()
+    const ws = workspace('ws-path-traversal')
+
+    await expect(
+      service.push({
+        actorUserId: 'user-a',
+        workspace: ws,
+        baseSnapshot: EMPTY_SYNC_SNAPSHOT,
+        files: [file('../escape.md', 'bad content')],
+      }),
+    ).rejects.toBeInstanceOf(WorkspaceSyncValidationError)
+  })
+
+  it('does not advance the base snapshot when a push is rejected due to quota exhaustion', async () => {
+    // Fix C: quota check must fire before any cloud state mutation.
+    const quotaService = new InMemoryWorkspaceQuotaService()
+    const service = new InMemoryWorkspaceSyncService({ quotaService })
+    const ws = workspace('ws-quota-exceeded')
+
+    // Establish initial cloud state.
+    const baseResult = await service.push({
+      actorUserId: 'user-a',
+      workspace: ws,
+      baseSnapshot: EMPTY_SYNC_SNAPSHOT,
+      files: [file('data.md', 'initial')],
+    })
+    const committedBase = baseResult.nextBaseSnapshot
+
+    // Set a zero-byte quota so the next push is rejected immediately.
+    quotaService.setLimit(ws.id, 0)
+
+    await expect(
+      service.push({
+        actorUserId: 'user-a',
+        workspace: ws,
+        baseSnapshot: committedBase,
+        files: [file('data.md', 'updated')],
+      }),
+    ).rejects.toBeInstanceOf(WorkspaceQuotaExceededError)
+
+    // The base snapshot must remain unchanged after the rejected push.
+    const status = await service.getStatus({ actorUserId: 'user-a', workspace: ws })
+    expect(status.baseSnapshot).toEqual(committedBase)
+  })
+
+  it('getStatus returns pending conflict metadata when the workspace has an unresolved conflict', async () => {
+    // Fix D: WorkspaceSyncStatus.pendingConflictMetadata must be populated after
+    // a conflict and must contain the conflicting path.
+    const service = new InMemoryWorkspaceSyncService()
+    const ws = workspace('ws-pending-conflict-meta')
+
+    const baseResult = await service.push({
+      actorUserId: 'user-a',
+      workspace: ws,
+      operationId: 'base',
+      baseSnapshot: EMPTY_SYNC_SNAPSHOT,
+      files: [file('shared.md', 'base-content')],
+    })
+    const baseSnap = baseResult.nextBaseSnapshot
+
+    // Cloud client advances.
+    await service.push({
+      actorUserId: 'user-a',
+      workspace: ws,
+      operationId: 'cloud-advance',
+      baseSnapshot: baseSnap,
+      files: [file('shared.md', 'cloud-edit')],
+    })
+
+    // Stale client pushes — triggers a conflict.
+    try {
+      await service.push({
+        actorUserId: 'user-b',
+        workspace: ws,
+        operationId: 'stale-push',
+        baseSnapshot: baseSnap,
+        files: [file('shared.md', 'local-edit')],
+      })
+    } catch {
+      // Expected WorkspaceSyncConflictError.
+    }
+
+    // getStatus must now expose the pending conflict metadata.
+    const status = await service.getStatus({ actorUserId: 'user-b', workspace: ws })
+    expect(status.pendingConflictMetadata).toBeDefined()
+    expect(status.pendingConflictMetadata!.length).toBeGreaterThan(0)
+    const conflictPaths = status.pendingConflictMetadata!.map(m => m.path)
+    expect(conflictPaths).toContain('shared.md')
+  })
 })

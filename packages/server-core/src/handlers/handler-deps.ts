@@ -9,7 +9,7 @@ import type { OfficeDocumentConverter } from '../services/office-document-adapte
 import type { RbacResolver, GrantStore } from '@rox-one/shared/auth/rbac-resolver'
 import type { RoleStore } from '@rox-one/shared/auth/role-store'
 import type { AuditProducer } from '@rox-one/shared/observability'
-import type { TokenBucket } from '@rox-one/shared/security'
+import type { BudgetGuard, TokenBucket } from '@rox-one/shared/security'
 import type { MissionScheduler } from '../missions'
 
 /**
@@ -86,5 +86,20 @@ export interface HandlerDeps<
    * buckets are achievable by wrapping the deps construction.
    */
   rateLimiter?: TokenBucket
+  /**
+   * Optional per-actor budget guard (T086b). When provided, the RBAC
+   * admin RPC handlers (`roles.grant`, `roles.revoke`) and
+   * `missions.dispatchEvent` consume 1 budget unit keyed by the request
+   * context's `userId` AFTER the `rateLimiter.tryAcquire` gate. On
+   * `consume` rejection the handlers respond with
+   * `{error: 'budget-exceeded', reason: 'per-actor-cap-exhausted'}`.
+   * This is a SECOND defense layer alongside the burst-shaped
+   * `TokenBucket`: the bucket polices short-window rate while the
+   * guard polices lifetime caps per actor (`actorId` from `ctx.userId`),
+   * so an attacker who paces requests cannot exhaust the bucket-free
+   * baseline. Hosts that omit this field behave identically to the
+   * pre-T086b baseline (no budget enforcement).
+   */
+  budgetGuard?: BudgetGuard<string>
   officeDocumentConverter?: OfficeDocumentConverter
 }

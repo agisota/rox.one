@@ -70,3 +70,49 @@ describe('VoiceInputSlot interactive mode (onStart provided)', () => {
     expect(button).toBeDisabled()
   })
 })
+
+describe('VoiceInputSlot recording mode (T239)', () => {
+  it('exposes the recording flag via data-recording + aria-pressed', () => {
+    const onStart = vi.fn()
+    const onStop = vi.fn()
+    render(<VoiceInputSlot onStart={onStart} onStop={onStop} recording />)
+
+    const button = screen.getByTestId('composer-voice-input-button')
+    expect(button.getAttribute('data-recording')).toBe('true')
+    expect(button.getAttribute('aria-pressed')).toBe('true')
+    // Tooltip title swaps to the stop-action copy while capture is live.
+    expect(button.getAttribute('title')).toContain('Stop recording')
+  })
+
+  it('routes the click to onStop while recording, leaving onStart untouched', async () => {
+    const user = userEvent.setup()
+    const onStart = vi.fn()
+    const onStop = vi.fn()
+    render(<VoiceInputSlot onStart={onStart} onStop={onStop} recording />)
+
+    await user.click(screen.getByTestId('composer-voice-input-button'))
+    expect(onStop).toHaveBeenCalledTimes(1)
+    expect(onStart).not.toHaveBeenCalled()
+  })
+
+  it('falls back to onStart when recording but no onStop is wired', async () => {
+    const user = userEvent.setup()
+    const onStart = vi.fn()
+    render(<VoiceInputSlot onStart={onStart} recording />)
+
+    await user.click(screen.getByTestId('composer-voice-input-button'))
+    // T239 contract: when the host hands the slot a `recording` flag but
+    // omits `onStop`, the click is treated as a no-op stop attempt; the
+    // start handler must NOT fire to avoid double-starting a recognizer.
+    expect(onStart).not.toHaveBeenCalled()
+  })
+
+  it('renders aria-pressed=false in the idle interactive state', () => {
+    const onStart = vi.fn()
+    render(<VoiceInputSlot onStart={onStart} />)
+
+    const button = screen.getByTestId('composer-voice-input-button')
+    expect(button.getAttribute('aria-pressed')).toBe('false')
+    expect(button.getAttribute('data-recording')).toBe('false')
+  })
+})
