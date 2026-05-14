@@ -35,7 +35,14 @@ export interface R11PreflightResult {
   detail: string
 }
 
+export type R11PreflightStage = 'pre-backup' | 'pre-rewrite'
+
+export interface R11PreflightOptions {
+  stage?: R11PreflightStage
+}
+
 export interface R11PreflightReport {
+  stage: R11PreflightStage
   results: R11PreflightResult[]
   allPassed: boolean
 }
@@ -53,7 +60,9 @@ function fail(id: string, label: string, detail: string): R11PreflightResult {
 
 export function evaluateR11Preflight(
   snapshot: R11PreflightSnapshot,
+  options: R11PreflightOptions = {},
 ): R11PreflightReport {
+  const stage = options.stage ?? 'pre-backup'
   const results: R11PreflightResult[] = []
 
   results.push(
@@ -92,32 +101,34 @@ export function evaluateR11Preflight(
       ? pass('rebrand-tag', 'rebrand-v1 tag exists', 'rebrand-v1 is visible on origin.')
       : fail('rebrand-tag', 'rebrand-v1 tag exists', 'rebrand-v1 is missing.'),
   )
-  results.push(
-    snapshot.backupTagPresent
-      ? pass(
-          'backup-tag',
-          'Backup tag exists',
-          'pre-rebrand-history-rewrite-backup is visible on origin.',
-        )
-      : fail(
-          'backup-tag',
-          'Backup tag exists',
-          'pre-rebrand-history-rewrite-backup is missing on origin.',
-        ),
-  )
-  results.push(
-    snapshot.offlineMirrorPresent
-      ? pass(
-          'offline-mirror',
-          'Offline mirror exists',
-          `${DEFAULT_OFFLINE_MIRROR} exists.`,
-        )
-      : fail(
-          'offline-mirror',
-          'Offline mirror exists',
-          `${DEFAULT_OFFLINE_MIRROR} is missing.`,
-        ),
-  )
+  if (stage === 'pre-rewrite') {
+    results.push(
+      snapshot.backupTagPresent
+        ? pass(
+            'backup-tag',
+            'Backup tag exists',
+            'pre-rebrand-history-rewrite-backup is visible on origin.',
+          )
+        : fail(
+            'backup-tag',
+            'Backup tag exists',
+            'pre-rebrand-history-rewrite-backup is missing on origin.',
+          ),
+    )
+    results.push(
+      snapshot.offlineMirrorPresent
+        ? pass(
+            'offline-mirror',
+            'Offline mirror exists',
+            `${DEFAULT_OFFLINE_MIRROR} exists.`,
+          )
+        : fail(
+            'offline-mirror',
+            'Offline mirror exists',
+            `${DEFAULT_OFFLINE_MIRROR} is missing.`,
+          ),
+    )
+  }
   results.push(
     snapshot.gitFilterRepoPresent
       ? pass('git-filter-repo', 'git-filter-repo available', 'git-filter-repo is on PATH.')
@@ -148,6 +159,7 @@ export function evaluateR11Preflight(
   )
 
   return {
+    stage,
     results,
     allPassed: results.every((result) => result.passed),
   }
@@ -253,6 +265,7 @@ function padRight(value: string, width: number): string {
 }
 
 export function formatR11PreflightReport(report: R11PreflightReport): string {
+  const stageLabel = report.stage === 'pre-rewrite' ? 'pre-rewrite' : 'pre-backup'
   const headers = ['id', 'status', 'detail'] as const
   const rows = report.results.map((result) => [
     result.id,
@@ -278,15 +291,26 @@ export function formatR11PreflightReport(report: R11PreflightReport): string {
     ...rows.map(renderRow),
     '',
     report.allPassed
-      ? 'green — every R.11 prerequisite is satisfied'
-      : `red — ${report.results.filter((result) => !result.passed).length} R.11 prerequisite(s) failing`,
+      ? `green — every R.11 ${stageLabel} prerequisite is satisfied`
+      : `red — ${report.results.filter((result) => !result.passed).length} R.11 ${stageLabel} prerequisite(s) failing`,
   ]
   return lines.join('\n')
 }
 
+function parseStageArg(args: string[]): R11PreflightStage {
+  const stageFlagIndex = args.indexOf('--stage')
+  const rawStage = stageFlagIndex >= 0
+    ? args[stageFlagIndex + 1]
+    : args.find((arg) => arg.startsWith('--stage='))?.slice('--stage='.length)
+  if (rawStage === undefined || rawStage === '') return 'pre-backup'
+  if (rawStage === 'pre-backup' || rawStage === 'pre-rewrite') return rawStage
+  throw new Error(`invalid --stage value: ${rawStage}`)
+}
+
 async function main(): Promise<number> {
+  const stage = parseStageArg(Bun.argv.slice(2))
   const snapshot = collectR11PreflightSnapshot()
-  const report = evaluateR11Preflight(snapshot)
+  const report = evaluateR11Preflight(snapshot, { stage })
   // eslint-disable-next-line no-console
   console.log(formatR11PreflightReport(report))
   return report.allPassed ? 0 : 1

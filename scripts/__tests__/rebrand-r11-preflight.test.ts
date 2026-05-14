@@ -10,7 +10,45 @@ import {
 const repoRoot = join(import.meta.dir, '..', '..')
 
 describe('evaluateR11Preflight', () => {
-  test('passes only when every destructive R.11 prerequisite is true', () => {
+  test('pre-backup stage does not require backup artifacts before they can be created', () => {
+    const report = evaluateR11Preflight({
+      noActiveGoalAcknowledged: true,
+      openPullRequests: [],
+      rebrandTagPresent: true,
+      backupTagPresent: false,
+      offlineMirrorPresent: false,
+      gitFilterRepoPresent: true,
+      r11CloseoutTicketPresent: true,
+      mainSyncedWithOrigin: true,
+      worktreeClean: true,
+    })
+
+    expect(report.allPassed).toBe(true)
+    expect(report.results.some((result) => result.id === 'backup-tag')).toBe(false)
+    expect(report.results.some((result) => result.id === 'offline-mirror')).toBe(false)
+  })
+
+  test('pre-rewrite stage requires backup artifacts before filter-repo', () => {
+    const report = evaluateR11Preflight({
+      noActiveGoalAcknowledged: true,
+      openPullRequests: [],
+      rebrandTagPresent: true,
+      backupTagPresent: false,
+      offlineMirrorPresent: false,
+      gitFilterRepoPresent: true,
+      r11CloseoutTicketPresent: true,
+      mainSyncedWithOrigin: true,
+      worktreeClean: true,
+    }, { stage: 'pre-rewrite' })
+
+    expect(report.allPassed).toBe(false)
+    expect(report.results.find((result) => result.id === 'backup-tag'))
+      .toMatchObject({ passed: false })
+    expect(report.results.find((result) => result.id === 'offline-mirror'))
+      .toMatchObject({ passed: false })
+  })
+
+  test('pre-rewrite stage passes only when every destructive R.11 prerequisite is true', () => {
     const report = evaluateR11Preflight({
       noActiveGoalAcknowledged: true,
       openPullRequests: [],
@@ -21,7 +59,7 @@ describe('evaluateR11Preflight', () => {
       r11CloseoutTicketPresent: true,
       mainSyncedWithOrigin: true,
       worktreeClean: true,
-    })
+    }, { stage: 'pre-rewrite' })
 
     expect(report.allPassed).toBe(true)
     expect(report.results.every((result) => result.passed)).toBe(true)
@@ -62,7 +100,7 @@ describe('evaluateR11Preflight', () => {
     })
 
     expect(report.allPassed).toBe(false)
-    expect(report.results.filter((result) => !result.passed)).toHaveLength(9)
+    expect(report.results.filter((result) => !result.passed)).toHaveLength(7)
     expect(formatR11PreflightReport(report)).toContain('#189')
     expect(formatR11PreflightReport(report)).toContain('red')
   })
