@@ -359,6 +359,9 @@ export const REMOTE_ELIGIBLE_CHANNELS = new Set<string>([
   RPC_CHANNELS.missions.GET,
   RPC_CHANNELS.missions.LIST,
 
+  // audit — admin RPC over the M.1.5 audit-event store (M.14 T250-rpc)
+  RPC_CHANNELS.audit.LIST,
+
   // workspace — workspace config + images (sharp on headless)
   RPC_CHANNELS.workspace.GET_PERMISSIONS,
   RPC_CHANNELS.workspace.READ_IMAGE,

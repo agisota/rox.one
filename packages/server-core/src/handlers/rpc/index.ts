@@ -1,6 +1,7 @@
 import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 
+import { registerAuditAdminHandlers } from './admin/audit-list'
 import { registerAuthHandlers } from './auth'
 import { registerAutomationsHandlers } from './automations'
 import { registerFilesHandlers } from './files'
@@ -35,6 +36,7 @@ export function registerCoreRpcHandlers(
   deps: HandlerDeps,
   serverCtx?: ServerHandlerContext,
 ): void {
+  registerAuditAdminHandlers(server, deps)
   registerAuthHandlers(server, deps)
   registerAutomationsHandlers(server, deps)
   registerFilesHandlers(server, deps)

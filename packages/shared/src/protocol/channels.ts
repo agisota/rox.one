@@ -264,6 +264,9 @@ export const RPC_CHANNELS = {
     GET: 'missions.get',
     LIST: 'missions.list',
   },
+  audit: {
+    LIST: 'audit.list',
+  },
   permissions: {
     GET_DEFAULTS: 'permissions:getDefaults',
     DEFAULTS_CHANGED: 'permissions:defaultsChanged',
