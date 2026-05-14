@@ -4,6 +4,12 @@ import { describe, expect, test } from 'bun:test'
 
 const repoRoot = join(import.meta.dir, '..', '..')
 const auditPath = join(repoRoot, 'docs', 'release', 'r11-completion-audit-2026-05-14.md')
+const remoteBranchReviewPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-remote-branch-review-2026-05-14.md',
+)
 
 describe('R.11 completion audit', () => {
   test('maps every global stopping condition to concrete evidence', () => {
@@ -110,9 +116,16 @@ describe('R.11 completion audit', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const currentBlockers =
       audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
+    const remoteBranchReview = readFileSync(remoteBranchReviewPath, 'utf8')
 
     expect(currentBlockers).toContain('remote-branch-review')
     expect(currentBlockers).toContain('139 non-main/non-R.11-backup origin branches')
+    expect(currentBlockers).toContain('docs/release/r11-remote-branch-review-2026-05-14.md')
+    expect(remoteBranchReview).toContain('Total origin heads: 140')
+    expect(remoteBranchReview).toContain('Non-main/non-R.11-backup origin branches: 139')
+    expect(remoteBranchReview).toContain('operator-review-required')
+    expect(remoteBranchReview).toContain('chore/T297-rebrand-prepush-ci-gate')
+    expect(remoteBranchReview).toContain('backup/agent-workbench-t000-t012-2026-04-30')
   })
 
   test('records the current rebrand-v1 tag targets', () => {
