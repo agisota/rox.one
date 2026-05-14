@@ -196,7 +196,9 @@ history/legal-preserve gates were added and wired into the R.11 goal:
   strings in git history, so the final `git log -p --all` gate cannot pass
   before the authorized rewrite.
 - The report-only `bun run rebrand:r11-history-scan` helper now wraps that
-  history gate and currently exits red with bounded finding output.
+  history gate and currently exits red with 81 forbidden-token patch lines;
+  the sanitized inventory is preserved in
+  `docs/release/r11-history-scan-inventory-2026-05-14.md`.
 - The report-only `bun run rebrand:r11-legal-preserve` helper now wraps the
   post-rewrite legal-preserve byte checks and Dockerfile source-label check. It
   currently exits red because the backup tag does not exist yet; Dockerfile

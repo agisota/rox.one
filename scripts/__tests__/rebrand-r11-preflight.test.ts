@@ -585,6 +585,17 @@ describe('R.11 closeout worklog documentation', () => {
     expect(worklogHeader).not.toContain('Status: DONE')
   })
 
+  test('keeps T298 history-scan wording aligned with the current unbounded evidence', () => {
+    const worklog = readFileSync(
+      join(repoRoot, 'docs', 'worklog', 'T298-rebrand-git-history-rewrite.md'),
+      'utf8',
+    )
+
+    expect(worklog).toContain('docs/release/r11-history-scan-inventory-2026-05-14.md')
+    expect(worklog).toContain('81 forbidden-token patch lines')
+    expect(worklog).not.toContain('bounded finding output')
+  })
+
   test('keeps T298 backup artifact instructions aligned with target guard rows', () => {
     const ticket = readFileSync(
       join(repoRoot, 'docs', 'tickets', 'T298-rebrand-git-history-rewrite.md'),
