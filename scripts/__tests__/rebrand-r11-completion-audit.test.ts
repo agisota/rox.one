@@ -33,4 +33,13 @@ describe('R.11 completion audit', () => {
     expect(audit).toContain('bun run rebrand:r11-legal-preserve')
     expect(audit).toContain('bun run rebrand:r11-history-scan')
   })
+
+  test('does not freeze current-blocker evidence to a stale commit SHA', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const currentBlockers = audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
+
+    expect(currentBlockers).toContain('latest clean post-push checks')
+    expect(currentBlockers).not.toMatch(/after commit `[0-9a-f]{8}`/)
+    expect(currentBlockers).not.toMatch(/both resolve to `[0-9a-f]{8}`/)
+  })
 })
