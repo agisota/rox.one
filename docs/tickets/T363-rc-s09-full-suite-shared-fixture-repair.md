@@ -1,6 +1,6 @@
 # T363 - RC S09 Full Suite Shared Fixture Repair
 
-Status: Todo
+Status: Done
 
 ## Context
 
@@ -9,9 +9,10 @@ After rebase onto `origin/main` at `303b0b05` and the T364 lint repair, the
 targeted S09 smoke still passes 325 tests across 32 files, including protected
 ROX paths, C4 storage isolation, RBAC, Composer, and Experience Layer coverage.
 
-The full `bun test` gate remains red with 181 failures and 2 errors across 558
-files. Many failing clusters also failed before the S09 harness registration and
-are not safe to fold into the harness commit.
+The full `bun test` gate originally remained red with 181 failures and 2 errors
+across 558 files. The repair was split into focused tickets for the R.9 audit
+gate and the shared Bun module-mock pollution clusters. After T365, T366, and
+T367, the full test gate is green.
 
 ## Goal
 
@@ -61,14 +62,14 @@ git diff --check
 
 ## Acceptance Criteria
 
-- [ ] Full `bun test` passes with zero failures and zero errors.
-- [ ] `bun run e2e:smoke -- --scenario s09-upstream-rox-flows` still passes.
-- [ ] C4 tenant isolation tests pass in the full gate.
-- [ ] RBAC policy/RPC tests pass in the full gate.
-- [ ] Experience Layer tests pass in the full gate.
-- [ ] R.9 community-link audit remains strict and passes.
-- [ ] `bun run typecheck` and `bun run lint` pass.
-- [ ] Worklog captures red/green evidence for each repaired cluster.
+- [x] Full `bun test` passes with zero failures and zero errors.
+- [x] `bun run e2e:smoke -- --scenario s09-upstream-rox-flows` still passes.
+- [x] C4 tenant isolation tests pass in the full gate.
+- [x] RBAC policy/RPC tests pass in the full gate.
+- [x] Experience Layer tests pass in the full gate.
+- [x] R.9 community-link audit remains strict and passes.
+- [x] `bun run typecheck` and `bun run lint` pass.
+- [x] Worklog captures red/green evidence for each repaired cluster.
 
 ## Worklog
 
