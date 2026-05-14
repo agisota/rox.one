@@ -219,6 +219,17 @@ describe('R.11 completion audit', () => {
     }
   })
 
+  test('records the current branch guard as passing evidence', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const currentBlockers =
+      audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
+
+    expect(currentBlockers).toContain('current-branch')
+    expect(currentBlockers).toContain('Current checkout is main')
+    expect(currentBlockers).toContain('pass')
+    expect(audit).toContain('This does not satisfy the final post-rewrite validation requirement')
+  })
+
   test('records the current fork-review blocker count', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const hardPrereqs =
