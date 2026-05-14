@@ -153,6 +153,8 @@ describe('R.11 completion audit', () => {
     expect(currentMainValidationReport).toContain('26839 expect() calls')
     expect(currentMainValidationReport).toContain('6766 tests in 562 files')
     expect(currentMainValidationReport).toContain('agent-contract reported 394 tickets at capture time')
+    expect(currentMainValidationReport).toContain('useful captured snapshot evidence')
+    expect(currentMainValidationReport).not.toContain('freshness evidence')
   })
 
   test('records exact current report-only blocker IDs', () => {
