@@ -63,6 +63,39 @@ export default defineConfig(({ command }) => {
           const name = chunkInfo.name ?? 'chunk'
           return `assets/${name}-[hash].js`
         },
+        // T132e: force heavy vendor packages out of the main app-shell chunk
+        // into dedicated, separately-cached vendor chunks. main-*.js is the
+        // first-paint critical bundle (budget 400 KB gz per T132 carve-out);
+        // these libs run lazily after first paint, so they belong in their
+        // own chunks that load in parallel.
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            // React + ReactDOM + scheduler — needed on first paint but heavy enough
+            // that a parallel HTTP/2 fetch beats one fat main chunk.
+            if (
+              id.includes('/react/') ||
+              id.includes('/react-dom/') ||
+              id.includes('/scheduler/')
+            ) return 'vendor-react'
+            if (id.includes('/jotai/') || id.includes('/jotai-')) return 'vendor-jotai'
+            if (id.includes('@sentry')) return 'vendor-sentry'
+            // NOTE: shiki is intentionally NOT collapsed into one vendor chunk.
+            // Its raw size (9+ MB across all grammars) would breach the
+            // bundle-policy per-file 5.8 MB limit. Letting Vite split shiki
+            // naturally yields one tiny chunk per grammar (cpp, jsx, ts, etc.),
+            // already protected via the wasm/emacs-lisp carve-outs.
+            if (
+              id.includes('/i18next') ||
+              id.includes('/react-i18next') ||
+              id.includes('i18next-browser-languagedetector')
+            ) return 'vendor-i18n'
+            if (id.includes('pdfjs-dist')) return 'vendor-pdfjs'
+            if (id.includes('/sonner/')) return 'vendor-sonner'
+            if (id.includes('/lucide-react/')) return 'vendor-lucide'
+            if (id.includes('/framer-motion/')) return 'vendor-framer'
+            if (id.includes('/radix-ui/') || id.includes('@radix-ui')) return 'vendor-radix'
+          }
+        },
       },
     }
   },

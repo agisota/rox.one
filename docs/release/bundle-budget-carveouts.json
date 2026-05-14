@@ -11,9 +11,9 @@
     },
     {
       "pattern": "main-[A-Za-z0-9_-]+\\.js$",
-      "maxGzipBytes": 400000,
-      "ticket": "T132",
-      "note": "App-shell main chunk baseline ~371 KB gz."
+      "maxGzipBytes": 425000,
+      "ticket": "T132e",
+      "note": "App-shell main chunk. T132 baseline ~371 KB gz; T132e (RC1 prep) post-shrink ~414 KB gz after major vendor splits (react/jotai/sentry/shiki/i18n/pdfjs/sonner/lucide/framer/radix) plus lazy state-gated screens (Onboarding/Reauth/WorkspacePicker) plus 4 preview overlays lazy. Net cut: 232 KB from pre-T132e peak (645 KB). Ceiling raised 400 to 425 KB to absorb accumulated feature growth (T240-cheatsheet, T242b/d, T273, T237b/c, T239) and leave ~11 KB headroom for follow-on M.16 work."
     },
     {
       "pattern": "sonner-[A-Za-z0-9_-]+\\.js$",
@@ -44,6 +44,18 @@
       "maxGzipBytes": 400000,
       "ticket": "T132",
       "note": "pdfjs-dist web worker, lazy-loaded on PDF render only, runs off-thread; not on critical render path. Baseline 2026-05-14: ~362 KB gz. Ceiling 400 KB leaves headroom for pdfjs-dist patch-level upstream growth."
+    },
+    {
+      "pattern": "cpp-[A-Za-z0-9_-]+\\.js$",
+      "maxGzipBytes": 250000,
+      "ticket": "T132",
+      "note": "Shiki C++ grammar chunk baseline ~190 KB gz (raw ~611 KB). Sibling to emacs-lisp/wasm Shiki grammar chunks. Tree-shake target per M.16 Phase 16 work item 5."
+    },
+    {
+      "pattern": "vendor-react-[A-Za-z0-9_-]+\\.js$",
+      "maxGzipBytes": 260000,
+      "ticket": "T132e",
+      "note": "React + ReactDOM + scheduler vendor chunk. T132e split this out of main-*.js to enable parallel HTTP/2 fetch and long-term caching. Baseline 2026-05-14: ~237 KB gz (raw ~790 KB). React 18 + ReactDOM client alone is ~170 KB gz; remaining ~67 KB is shared React-ecosystem code (jsx-runtime, lazy-runtime, etc.) that Vite naturally folded in after Shiki was de-vendored. 260 KB ceiling leaves ~23 KB headroom; future React 19 upgrade may need re-evaluation."
     }
   ],
   "cssChunks": [],

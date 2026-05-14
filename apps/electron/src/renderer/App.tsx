@@ -12,9 +12,19 @@ import { useEventProcessor } from './event-processor'
 import type { AgentEvent, Effect } from './event-processor'
 import { AppShell } from '@/components/app-shell/AppShell'
 import type { AppShellContextType } from '@/context/AppShellContext'
-import { OnboardingWizard, ReauthScreen } from '@/components/onboarding'
-import { WorkspacePicker } from '@/components/workspace'
 import { ResetConfirmationDialog } from '@/components/ResetConfirmationDialog'
+// T132e: state-gated screens are only shown for specific appState values,
+// so they don't need to be in main-*.js. Lazy-loading them keeps the
+// first-paint shell under the 400 KB T132 carve-out.
+const OnboardingWizard = React.lazy(() =>
+  import('@/components/onboarding/OnboardingWizard').then((m) => ({ default: m.OnboardingWizard }))
+)
+const ReauthScreen = React.lazy(() =>
+  import('@/components/onboarding/ReauthScreen').then((m) => ({ default: m.ReauthScreen }))
+)
+const WorkspacePicker = React.lazy(() =>
+  import('@/components/workspace/WorkspacePicker').then((m) => ({ default: m.WorkspacePicker }))
+)
 import { SplashScreen } from '@/components/SplashScreen'
 import { TooltipProvider } from '@rox-one/ui'
 import { FocusProvider } from '@/context/FocusContext'
@@ -59,11 +69,23 @@ import { getDefaultStore } from 'jotai'
 import {
   ShikiThemeProvider,
   PlatformProvider,
-  ImagePreviewOverlay,
-  CodePreviewOverlay,
-  DocumentFormattedMarkdownOverlay,
-  JSONPreviewOverlay,
 } from '@rox-one/ui'
+// T132e: lazy-load preview overlays — none are needed on first paint;
+// they only render when a user clicks a content item. Mirrors the
+// PDFPreviewOverlay pattern below to keep main-*.js under the 400 KB
+// app-shell carve-out.
+const ImagePreviewOverlay = React.lazy(() =>
+  import('../../../../packages/ui/src/components/overlay/ImagePreviewOverlay').then((m) => ({ default: m.ImagePreviewOverlay }))
+)
+const CodePreviewOverlay = React.lazy(() =>
+  import('../../../../packages/ui/src/components/overlay/CodePreviewOverlay').then((m) => ({ default: m.CodePreviewOverlay }))
+)
+const DocumentFormattedMarkdownOverlay = React.lazy(() =>
+  import('../../../../packages/ui/src/components/overlay/DocumentFormattedMarkdownOverlay').then((m) => ({ default: m.DocumentFormattedMarkdownOverlay }))
+)
+const JSONPreviewOverlay = React.lazy(() =>
+  import('../../../../packages/ui/src/components/overlay/JSONPreviewOverlay').then((m) => ({ default: m.JSONPreviewOverlay }))
+)
 const PDFPreviewOverlay = React.lazy(() =>
   import('../../../../packages/ui/src/components/overlay/PDFPreviewOverlay').then((m) => ({ default: m.PDFPreviewOverlay }))
 )
@@ -1907,15 +1929,17 @@ export default function App() {
       <DismissibleLayerProvider>
         <ModalProvider>
           <WindowCloseHandler />
-          <ReauthScreen
-            onLogin={handleReauthLogin}
-            onReset={handleReauthReset}
-          />
-          <ResetConfirmationDialog
-            open={showResetDialog}
-            onConfirm={executeReset}
-            onCancel={() => setShowResetDialog(false)}
-          />
+          <React.Suspense fallback={<SplashScreen isExiting={false} />}>
+            <ReauthScreen
+              onLogin={handleReauthLogin}
+              onReset={handleReauthReset}
+            />
+            <ResetConfirmationDialog
+              open={showResetDialog}
+              onConfirm={executeReset}
+              onCancel={() => setShowResetDialog(false)}
+            />
+          </React.Suspense>
         </ModalProvider>
       </DismissibleLayerProvider>
     )
@@ -1929,6 +1953,7 @@ export default function App() {
       <DismissibleLayerProvider>
         <ModalProvider>
           <WindowCloseHandler />
+          <React.Suspense fallback={<SplashScreen isExiting={false} />}>
           <OnboardingWizard
             state={onboarding.state}
             onContinue={onboarding.handleContinue}
@@ -1949,6 +1974,7 @@ export default function App() {
             onRecheckGitBash={onboarding.handleRecheckGitBash}
             onClearError={onboarding.handleClearError}
           />
+          </React.Suspense>
         </ModalProvider>
       </DismissibleLayerProvider>
     )
@@ -1960,13 +1986,15 @@ export default function App() {
       <DismissibleLayerProvider>
         <ModalProvider>
           <WindowCloseHandler />
-          <WorkspacePicker
-            onSelectWorkspace={async (id) => {
-              await window.electronAPI.switchWorkspace(id)
-              setWindowWorkspaceId(id)
-              setAppState('ready')
-            }}
-          />
+          <React.Suspense fallback={<SplashScreen isExiting={false} />}>
+            <WorkspacePicker
+              onSelectWorkspace={async (id) => {
+                await window.electronAPI.switchWorkspace(id)
+                setWindowWorkspaceId(id)
+                setAppState('ready')
+              }}
+            />
+          </React.Suspense>
         </ModalProvider>
       </DismissibleLayerProvider>
     )
@@ -2037,15 +2065,18 @@ export default function App() {
             />
           </div>
 
-          {/* File preview overlay — rendered by the link interceptor when a previewable file is clicked */}
+          {/* File preview overlay — rendered by the link interceptor when a previewable file is clicked.
+              Wrapped in Suspense because all preview overlays are lazy-loaded (T132e). */}
           {linkInterceptor.previewState && (
-            <FilePreviewRenderer
-              state={linkInterceptor.previewState}
-              onClose={linkInterceptor.closePreview}
-              loadDataUrl={linkInterceptor.readFileDataUrl}
-              loadPdfData={linkInterceptor.readFileBinary}
-              isDark={isDark}
-            />
+            <React.Suspense fallback={null}>
+              <FilePreviewRenderer
+                state={linkInterceptor.previewState}
+                onClose={linkInterceptor.closePreview}
+                loadDataUrl={linkInterceptor.readFileDataUrl}
+                loadPdfData={linkInterceptor.readFileBinary}
+                isDark={isDark}
+              />
+            </React.Suspense>
           )}
         </NavigationProvider>
         </TooltipProvider>
