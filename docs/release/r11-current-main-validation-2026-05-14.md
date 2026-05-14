@@ -43,5 +43,5 @@ Validated state:
 
 The R.11 goal requires typecheck, lint, full test, build, docs validation, and
 rebrand validation after the destructive history rewrite has produced rewritten
-ancestry. This report is useful freshness evidence for current `main`, but it
-is not completion evidence for R.11.
+ancestry. This report is useful captured snapshot evidence for current `main`,
+but it is not completion evidence for R.11.
