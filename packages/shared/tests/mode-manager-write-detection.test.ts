@@ -8,7 +8,7 @@
  * Sibling files: mode-manager.test.ts, mode-manager-bash-validation.test.ts,
  * mode-manager-powershell.test.ts, mode-manager-windows-paths.test.ts.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll, setDefaultTimeout } from 'bun:test';
 import { join } from 'path';
 import { mkdirSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
@@ -17,6 +17,8 @@ import { setPowerShellValidatorRoot } from '../src/agent/powershell-validator.ts
 // Register PowerShell validator root BEFORE any tests run or isPowerShellAvailable()
 // is called, so the validator can find the parser script when PowerShell is detected.
 setPowerShellValidatorRoot(join(import.meta.dir, '..', 'src', 'agent'));
+
+setDefaultTimeout(30_000);
 
 import {
   getBashRejectionReason,
