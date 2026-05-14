@@ -127,10 +127,11 @@ current-main validation evidence, and exact report-only blocker IDs in
 the destructive closeout surface; use the completion audit for the latest
 report-only blocker matrix until R.11 is unblocked.
 
-The latest pre-rewrite current-main validation report is preserved in
+The T429 full-matrix snapshot is preserved in
 `docs/release/r11-current-main-validation-2026-05-14.md`. It records
-`bun test` as `6753 pass, 13 skip, 0 fail`; this is freshness evidence for
-current `main`, not post-rewrite completion evidence.
+`bun test` as `6753 pass, 13 skip, 0 fail`; this is captured pre-rewrite
+evidence for current `main`, not post-rewrite completion evidence or a live
+ticket-count source; later audit-hygiene tickets carry their own fresh targeted validation evidence in their worklogs.
 
 Earlier report-only tickets refreshed the blocker state after PR #205 merged,
 after the staged preflight split landed, after the R.11 local path runbook
