@@ -20,6 +20,7 @@ export interface R11PreflightSnapshot {
   openPullRequests: R11PullRequest[]
   rebrandTagPresent: boolean
   backupTagPresent: boolean
+  backupBranchPresent: boolean
   offlineMirrorPresent: boolean
   gitFilterRepoPresent: boolean
   r11CloseoutTicketPresent: boolean
@@ -114,6 +115,19 @@ export function evaluateR11Preflight(
             'backup-tag',
             'Backup tag exists',
             'pre-rebrand-history-rewrite-backup is missing on origin.',
+          ),
+    )
+    results.push(
+      snapshot.backupBranchPresent
+        ? pass(
+            'backup-branch',
+            'Backup branch exists',
+            'backup/pre-rebrand-history-rewrite-2026-05-13 is visible on origin.',
+          )
+        : fail(
+            'backup-branch',
+            'Backup branch exists',
+            'backup/pre-rebrand-history-rewrite-2026-05-13 is missing on origin.',
           ),
     )
     results.push(
@@ -251,6 +265,16 @@ export function collectR11PreflightSnapshot(
     ],
     repoRoot,
   ).stdout
+  const remoteBackupBranch = run(
+    [
+      'git',
+      'ls-remote',
+      '--heads',
+      'origin',
+      'backup/pre-rebrand-history-rewrite-2026-05-13',
+    ],
+    repoRoot,
+  ).stdout
   const sync = run(
     ['git', 'rev-list', '--left-right', '--count', 'origin/main...main'],
     repoRoot,
@@ -264,6 +288,9 @@ export function collectR11PreflightSnapshot(
     openPullRequestsError,
     rebrandTagPresent: remoteTags.includes('refs/tags/rebrand-v1'),
     backupTagPresent: remoteTags.includes('refs/tags/pre-rebrand-history-rewrite-backup'),
+    backupBranchPresent: remoteBackupBranch.includes(
+      'refs/heads/backup/pre-rebrand-history-rewrite-2026-05-13',
+    ),
     offlineMirrorPresent: existsSync(DEFAULT_OFFLINE_MIRROR),
     gitFilterRepoPresent: filterRepo.exitCode === 0 && filterRepo.stdout.length > 0,
     r11CloseoutTicketPresent: existsSync(

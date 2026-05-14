@@ -16,6 +16,7 @@ describe('evaluateR11Preflight', () => {
       openPullRequests: [],
       rebrandTagPresent: true,
       backupTagPresent: false,
+      backupBranchPresent: false,
       offlineMirrorPresent: false,
       gitFilterRepoPresent: true,
       r11CloseoutTicketPresent: true,
@@ -26,6 +27,7 @@ describe('evaluateR11Preflight', () => {
 
     expect(report.allPassed).toBe(true)
     expect(report.results.some((result) => result.id === 'backup-tag')).toBe(false)
+    expect(report.results.some((result) => result.id === 'backup-branch')).toBe(false)
     expect(report.results.some((result) => result.id === 'offline-mirror')).toBe(false)
   })
 
@@ -35,6 +37,7 @@ describe('evaluateR11Preflight', () => {
       openPullRequests: [],
       rebrandTagPresent: true,
       backupTagPresent: false,
+      backupBranchPresent: false,
       offlineMirrorPresent: false,
       gitFilterRepoPresent: true,
       r11CloseoutTicketPresent: true,
@@ -46,7 +49,29 @@ describe('evaluateR11Preflight', () => {
     expect(report.allPassed).toBe(false)
     expect(report.results.find((result) => result.id === 'backup-tag'))
       .toMatchObject({ passed: false })
+    expect(report.results.find((result) => result.id === 'backup-branch'))
+      .toMatchObject({ passed: false })
     expect(report.results.find((result) => result.id === 'offline-mirror'))
+      .toMatchObject({ passed: false })
+  })
+
+  test('pre-rewrite stage requires the backup branch before filter-repo', () => {
+    const report = evaluateR11Preflight({
+      noActiveGoalAcknowledged: true,
+      openPullRequests: [],
+      rebrandTagPresent: true,
+      backupTagPresent: true,
+      backupBranchPresent: false,
+      offlineMirrorPresent: true,
+      gitFilterRepoPresent: true,
+      r11CloseoutTicketPresent: true,
+      r11CloseoutWorklogPresent: true,
+      mainSyncedWithOrigin: true,
+      worktreeClean: true,
+    }, { stage: 'pre-rewrite' })
+
+    expect(report.allPassed).toBe(false)
+    expect(report.results.find((result) => result.id === 'backup-branch'))
       .toMatchObject({ passed: false })
   })
 
@@ -56,6 +81,7 @@ describe('evaluateR11Preflight', () => {
       openPullRequests: [],
       rebrandTagPresent: true,
       backupTagPresent: true,
+      backupBranchPresent: true,
       offlineMirrorPresent: true,
       gitFilterRepoPresent: true,
       r11CloseoutTicketPresent: true,
@@ -74,6 +100,7 @@ describe('evaluateR11Preflight', () => {
       openPullRequests: [],
       rebrandTagPresent: true,
       backupTagPresent: true,
+      backupBranchPresent: true,
       offlineMirrorPresent: true,
       gitFilterRepoPresent: true,
       r11CloseoutTicketPresent: true,
@@ -93,6 +120,7 @@ describe('evaluateR11Preflight', () => {
       openPullRequests: [],
       rebrandTagPresent: true,
       backupTagPresent: true,
+      backupBranchPresent: true,
       offlineMirrorPresent: true,
       gitFilterRepoPresent: true,
       r11CloseoutTicketPresent: true,
@@ -115,6 +143,7 @@ describe('evaluateR11Preflight', () => {
       ],
       rebrandTagPresent: false,
       backupTagPresent: false,
+      backupBranchPresent: false,
       offlineMirrorPresent: false,
       gitFilterRepoPresent: false,
       r11CloseoutTicketPresent: false,
