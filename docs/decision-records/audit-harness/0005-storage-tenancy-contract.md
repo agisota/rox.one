@@ -50,18 +50,22 @@ Three commits in this slice cover the contract roll-out:
   `storage-internal.ts`, and structured audit events for factory downgrade,
   forgery rejection, runtime workspace downgrade, and unbranded scope breaches.
   ADR 0007 keeps multi-tenant runtime opt-in via `ROX_MULTI_TENANT=1` and keeps
-  single-user storage on the existing flat layout. Deferred work remains:
-  tenant-scoped credential key derivation, RBAC population of permitted
-  workspaces, data migration tooling, queryable audit storage, Pi IPC scope
-  propagation, and remaining handler migrations.
+  single-user storage on the existing flat layout. ADR 0007 also records the
+  follow-up status for handler migration, Pi IPC scope propagation,
+  tenant-scoped credential key derivation, queryable audit storage, and data
+  migration tooling. RBAC population of permitted workspaces is covered by the
+  later RBAC decision record.
 - **Removing the default parameter.** Once a non-default scope ships and 100% of call sites are migrated, the `= DEFAULT_LOCAL_SCOPE` default should be deleted so the type checker forces every new call site to think about scope. Until then, the default is the contract.
 
-## Security implications (when the union widens)
+## Security implications
 
-The `kind: 'workspace'` branch is reserved, not implemented. When it lands the implementer MUST treat the following as load-bearing:
+ADR 0007 implements the previously reserved `kind: 'workspace'` branch. The
+following constraints remain load-bearing for future modifiers:
 
 - **Workspace-id forgery.** The scope must be derived from authenticated session state on the trusted side of the IPC boundary, never accepted from a renderer-supplied or webui-supplied request body. Treat scope like an authorization context, not a content key.
 - **Scope leakage across requests.** The default `DEFAULT_LOCAL_SCOPE` is a frozen singleton — safe to share. A real per-request scope must be constructed fresh per request and must not be cached on shared state (e.g., module-level singletons, long-lived agent instances). The session lifecycle in `SessionManager` is the natural carrier.
 - **Storage-root mixing.** Today every storage path derives from `getConfigDir()`. A tenant-scoped implementation must route the storage root through `storage-internal.ts` so a single typo in one submodule cannot cross-write into another tenant's data.
 
-These are not concerns today. They are documented now so the implementer of the `kind: 'workspace'` arm sees them before the first commit.
+These constraints moved from reserved design guidance to enforced contract once
+ADR 0007 landed. Future storage changes must preserve the trusted minting
+boundary, per-request scope lifetime, and single resolver for tenant roots.

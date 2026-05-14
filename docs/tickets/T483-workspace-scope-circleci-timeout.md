@@ -1,6 +1,6 @@
 # T483 - Workspace scope CircleCI timeout stabilization
 
-Status: READY FOR HOSTED CI
+Status: DONE
 
 ## Context
 
@@ -67,6 +67,6 @@ runner processes.
   than an assertion failure.
 - [x] Workspace-scope test timeout budget is explicit and test-only.
 - [x] The complete workspace-scope file passes locally without skipped cases.
-- [ ] Fresh PR #218 hosted repo-controlled checks pass, excluding the known
+- [x] Fresh PR #218 hosted repo-controlled checks pass, excluding the known
   GitHub macOS ARM64 billing/spending-limit failure.
 - [x] No destructive R.11 action is performed.
