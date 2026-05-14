@@ -61,4 +61,27 @@ describe('R.11 completion audit', () => {
       'This does not satisfy the final post-rewrite validation requirement',
     )
   })
+
+  test('records exact current report-only blocker IDs', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const currentBlockers =
+      audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
+
+    for (const blockerId of [
+      'no-active-goal',
+      'rebrand-tag-local-sync',
+      'rebrand-tag-on-main',
+      'backup-tag',
+      'backup-branch',
+      'offline-mirror',
+      'remote-branch-review',
+      'legal-file-LICENSE',
+      'legal-file-NOTICE',
+      'legal-file-TRADEMARK.md',
+      'dockerfile-source-attribution',
+      'history-scan',
+    ]) {
+      expect(currentBlockers).toContain(blockerId)
+    }
+  })
 })
