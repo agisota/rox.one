@@ -29,6 +29,14 @@ export interface DevServerHandle {
  */
 export function spawnDevServer(input: SpawnDevServerInput): Promise<DevServerHandle> {
   return new Promise<DevServerHandle>((resolve, reject) => {
+    let outputTail = "";
+    const rememberOutput = (text: string): void => {
+      outputTail = `${outputTail}${text}`;
+      if (outputTail.length > 8000) {
+        outputTail = outputTail.slice(-8000);
+      }
+    };
+
     const child: ChildProcess = spawn(input.command, input.args, {
       cwd: input.cwd,
       stdio: ["ignore", "pipe", "pipe"],
@@ -44,12 +52,19 @@ export function spawnDevServer(input: SpawnDevServerInput): Promise<DevServerHan
       } catch {
         // ignore — child may already have exited
       }
-      reject(new Error(`spawnDevServer timeout: ready pattern not seen within ${input.timeoutMs}ms`));
+      const tail = outputTail.trim();
+      reject(
+        new Error(
+          `spawnDevServer timeout: ready pattern not seen within ${input.timeoutMs}ms` +
+            (tail ? `\nRecent output:\n${tail}` : ""),
+        ),
+      );
     }, input.timeoutMs);
 
     const onData = (chunk: Buffer | string): void => {
       if (settled) return;
       const text = typeof chunk === "string" ? chunk : chunk.toString("utf8");
+      rememberOutput(text);
       const match = input.readyPattern.exec(text);
       if (match) {
         settled = true;
@@ -82,7 +97,13 @@ export function spawnDevServer(input: SpawnDevServerInput): Promise<DevServerHan
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      reject(new Error(`spawnDevServer: process exited before ready (code=${code}, signal=${signal})`));
+      const tail = outputTail.trim();
+      reject(
+        new Error(
+          `spawnDevServer: process exited before ready (code=${code}, signal=${signal})` +
+            (tail ? `\nRecent output:\n${tail}` : ""),
+        ),
+      );
     });
   });
 }

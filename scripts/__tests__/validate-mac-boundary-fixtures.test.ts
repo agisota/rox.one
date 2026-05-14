@@ -101,4 +101,11 @@ describe('validate-mac-boundary-fixtures contract (M.18 T251)', () => {
   test('orchestrator runner script exists on disk', () => {
     expect(existsSync(runnerScript)).toBe(true);
   });
+
+  test('live mac validator requests codesign metadata separately from entitlements', async () => {
+    const source = await Bun.file(validatorPath).text();
+    expect(source).toContain("run('codesign', ['-dv', '--verbose=4', appPath])");
+    expect(source).toContain("run('codesign', ['-d', '--entitlements', '-', appPath])");
+    expect(source).not.toContain("['-dv', '--verbose=4', '--entitlements', '-', appPath]");
+  });
 });

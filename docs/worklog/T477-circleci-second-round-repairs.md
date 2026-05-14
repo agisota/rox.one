@@ -8,11 +8,13 @@ Repair the second set of CircleCI failures on PR #217 and keep the stacked PR
 ## 2. Repo context discovered
 
 CircleCI job logs showed validate failures in Playwright-backed probes, the
-R.11 preflight snapshot, and Shiki singleton tests. The local full unit gate
-also exposed the same Shiki cold-start timeout class in the highlight corpus
-test. mac-arm packaging failed after the schema step when electron-builder
-traversed production dependencies and hit `libsignal`'s exact
-`protobufjs@6.8.8` dependency.
+R.11 preflight snapshot, Shiki singleton tests, and then a clean-runner SPA
+route-crawler startup timeout. The local full unit gate also exposed the same
+Shiki cold-start timeout class in the highlight corpus test. mac-arm packaging
+failed after the schema step when electron-builder traversed production
+dependencies and hit `libsignal`'s exact `protobufjs@6.8.8` dependency; after
+that fix, the live mac trust-boundary validator reached codesign and exposed
+that metadata and entitlements should be requested separately.
 
 ## 3. Files inspected
 
@@ -24,6 +26,11 @@ traversed production dependencies and hit `libsignal`'s exact
 - `apps/electron/src/renderer/components/shiki/__tests__/ShikiCodeEditor.singleton.test.ts`
 - `packages/shared/src/highlight/__tests__/highlight-corpus.test.ts`
 - `packages/ui/src/components/markdown/__tests__/code-block-singleton.test.ts`
+- `packages/audit/tests/route-crawler.test.ts`
+- `packages/audit/src/runners/dev-server-runner.ts`
+- `packages/audit/tests/runners/dev-server-runner.test.ts`
+- `scripts/validate-mac-private-release-boundary.ts`
+- `scripts/__tests__/validate-mac-boundary-fixtures.test.ts`
 
 ## 4. Tests added first
 
@@ -31,6 +38,10 @@ traversed production dependencies and hit `libsignal`'s exact
   snapshot collection to complete without throwing.
 - Extended the mac-arm workflow validator to require the electron-builder
   `beforeBuild` hook and its `return false` external node_modules signal.
+- Extended the dev-server runner timeout test to require captured child output
+  in timeout errors.
+- Added a static mac-boundary fixture assertion that live validation keeps
+  codesign metadata separate from entitlements output.
 
 ## 5. Expected failing test output
 
@@ -38,6 +49,11 @@ traversed production dependencies and hit `libsignal`'s exact
   failed with `Executable not found in $PATH: "gh"`.
 - `bun run validate:mac-arm-build-workflow` failed with
   `missing apps/electron/scripts/beforeBuild.cjs`.
+- CircleCI `validate` build 63 failed with
+  `spawnDevServer timeout: ready pattern not seen within 30000ms` before
+  `crawlRoutes > discovers /, /about, /contact from SPA fixture`.
+- CircleCI `mac-arm-build` build 66 failed with
+  `missing ROX.ONE code signing identifier: Identifier=com.rox.one`.
 
 ## 6. Implementation changes
 
@@ -50,6 +66,14 @@ traversed production dependencies and hit `libsignal`'s exact
   startup paths.
 - Electron-builder gets a `beforeBuild` hook returning `false`, matching the
   upstream contract for externally handled `node_modules`.
+- The audit route-crawler fixture starts root-installed Vite directly and uses
+  a 90 second CI startup budget, avoiding fixture-local dependency installs on
+  clean CircleCI runners.
+- `spawnDevServer` now preserves recent child stdout/stderr in timeout and
+  pre-ready exit errors.
+- The live mac trust-boundary validator now runs one codesign call for metadata
+  and one for entitlements before applying the identifier/signature/entitlement
+  assertions.
 
 ## 7. Validation commands run
 
@@ -67,6 +91,8 @@ traversed production dependencies and hit `libsignal`'s exact
 - `bun run test:units`
 - `NODE_OPTIONS=--max-old-space-size=2048 bun run validate:ci`
 - `git diff --check`
+- `CI=true bun test`
+- `bun test packages/audit/tests/runners/dev-server-runner.test.ts packages/audit/tests/route-crawler.test.ts scripts/__tests__/validate-mac-boundary-fixtures.test.ts`
 
 ## 8. Passing test output summary
 
@@ -77,11 +103,18 @@ traversed production dependencies and hit `libsignal`'s exact
 - Highlight corpus targeted test: `24 pass, 0 fail, 94 expect() calls`.
 - Full unit gate: `6913 pass, 13 skip, 0 fail, 1 snapshots, 27563 expect() calls`,
   followed by isolated tests passing.
+- Updated full unit gate after the CircleCI-only route-crawler repair:
+  `6914 pass, 13 skip, 0 fail, 1 snapshots, 27568 expect() calls`, followed
+  by isolated tests passing.
+- `CI=true bun test`: `6913 pass, 13 skip, 0 fail, 1 snapshots, 27543 expect() calls`.
+- Targeted route-crawler/dev-server/mac-boundary repair tests:
+  `13 pass, 0 fail, 34 expect() calls`.
 - `validate:docs`, `validate:ci-contract`, `validate:rebrand`, `typecheck`, and
   YAML parsing passed.
 - `lint` passed with existing warnings only.
-- `validate:ci` passed through agent/architecture/CI/private-release contracts,
-  typecheck, shared/doc tests, audit smoke, and i18n parity/sort/coverage.
+- Updated `validate:ci` passed through agent/architecture/CI/private-release
+  contracts, typecheck, shared/doc tests, audit smoke, and i18n
+  parity/sort/coverage.
 
 ## 9. Build output summary
 
@@ -92,8 +125,8 @@ traversed production dependencies and hit `libsignal`'s exact
 
 ## 10. Remaining risks
 
-CircleCI macOS packaging is the only full proof that the hook avoids the remote
-production dependency collector failure.
+CircleCI macOS packaging is the only full proof that the separated codesign
+metadata/entitlement validation matches the current macOS runner behavior.
 
 ## 11. Acceptance criteria matrix
 
@@ -103,4 +136,6 @@ production dependency collector failure.
 | Preflight tolerates missing external CLIs | Done | `bun test scripts/__tests__/rebrand-r11-preflight.test.ts --timeout 20000` |
 | Shiki highlighter tests avoid cold-start timeout | Done | Singleton targeted tests and `highlight-corpus` pass locally |
 | mac ARM skips automatic production dependency collector | Done | `bun run validate:mac-arm-build-workflow` |
-| Local validation passes | Done | `bun run test:units` and `NODE_OPTIONS=--max-old-space-size=2048 bun run validate:ci` |
+| SPA route crawler avoids clean-runner fixture install timeout | Done | Root Vite binary launch + targeted route-crawler test |
+| Live mac validator keeps codesign metadata visible | Done | Static fixture test for split codesign calls |
+| Local validation passes | Done | `CI=true bun run test:units` and `NODE_OPTIONS=--max-old-space-size=2048 bun run validate:ci` |
