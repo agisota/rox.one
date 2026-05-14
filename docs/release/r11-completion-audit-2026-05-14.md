@@ -48,6 +48,22 @@ Concrete deliverables:
 | Default R.11 preflight | `bun run rebrand:r11-preflight` | Exits red on active goal acknowledgement and tag blockers | Blocked |
 | Pre-rewrite R.11 preflight | `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite` | Exits red on tag blockers, missing backup artifacts, and remote branch review | Blocked |
 
+## Current Main Validation Matrix
+
+Pre-rewrite current main validation evidence from the latest clean checks:
+
+- `bun run typecheck` exits 0.
+- `bun run lint` exits 0 with warnings only.
+- `bun test` exits 0: 6743 pass, 13 skip, 0 fail.
+- `bun run build` exits 0.
+- `bun run validate:docs` exits 0.
+- `bun run validate:rebrand` exits 0.
+- `git diff --check` exits 0.
+
+This does not satisfy the final post-rewrite validation requirement. The goal
+requires the global validation matrix to pass after the R.11 rewrite has
+actually produced cleaned ancestry.
+
 ## Current Blockers
 
 Fresh evidence from the latest clean post-push checks:
