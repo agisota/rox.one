@@ -151,6 +151,10 @@ preflight rows landed:
   before the authorized rewrite.
 - The report-only `bun run rebrand:r11-history-scan` helper now wraps that
   history gate and currently exits red with bounded finding output.
+- The report-only `bun run rebrand:r11-legal-preserve` helper now wraps the
+  post-rewrite legal-preserve byte checks and Dockerfile source-label check. It
+  currently exits red because the backup tag does not exist yet; Dockerfile
+  attribution itself passes.
 - The R.11 offline mirror and rollback snippets now point at the current
   checkout path, `/home/dev/craft/rox-one-terminal`, and the regression test
   fails if `/home/dev/rox/rox-one-terminal` returns.
@@ -224,8 +228,7 @@ path authorizes them. After backup creation, `bun run rebrand:r11-preflight
 | Offline mirror exists | Blocked | Not created while preflight is red |
 | Remote branches reviewed before rewrite | Blocked | Explicit pre-rewrite gate fails on 139 non-main/non-R.11-backup origin branches |
 | `git filter-repo` command history is recorded | Blocked | `git filter-repo` has not run |
-| Legal-preserve byte diffs are empty | Blocked | Cannot run before rewrite |
-| Dockerfile upstream attribution URL remains intact | Blocked | Must verify after rewrite |
+| Legal-preserve runner passes | Blocked | `bun run rebrand:r11-legal-preserve` exits red until the backup tag exists and the post-rewrite files match it |
 | Force-push completes with lease | Blocked | Not allowed while preflight is red |
 | Post-rewrite validation matrix is green | Blocked | Not allowed while preflight is red |
 | README coordination banner is handled if required | Blocked | Only required after force-push |
