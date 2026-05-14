@@ -9,14 +9,14 @@ legal-preserve allowlist.
 Source command:
 
 ```bash
-REBRAND_R11_HISTORY_MAX_FINDINGS=8 bun run rebrand:r11-history-scan
+bun run rebrand:r11-history-scan
 ```
 
 Summary:
 
 - Result: red
-- Matches observed at cutoff: 9
-- Listed sanitized findings: 8
+- Matches observed in unbounded scan: 81
+- Representative sanitized findings: 8
 - Output truncated after listed findings: yes
 - Raw token and line text: omitted
 - Sanitization reason: new docs must not introduce additional historical

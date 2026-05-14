@@ -135,8 +135,8 @@ Fresh evidence from the latest clean post-push checks:
   `pre-rebrand-history-rewrite-backup` is missing; the
   `dockerfile-source-attribution` row passes. The gate inventory is preserved in
   `docs/release/r11-legal-preserve-inventory-2026-05-14.md`.
-- `REBRAND_R11_HISTORY_MAX_FINDINGS=8 bun run rebrand:r11-history-scan`
-  (`history-scan`) exits red with `9 forbidden-token patch lines` outside the
+- `bun run rebrand:r11-history-scan`
+  (`history-scan`) exits red with `81 forbidden-token patch lines` outside the
   legal-preserve allowlist. The sanitized finding inventory is preserved in
   `docs/release/r11-history-scan-inventory-2026-05-14.md`.
 
