@@ -1,10 +1,14 @@
 import { describe, expect, test } from 'bun:test'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 import {
   evaluateLegalPreserveSnapshot,
   formatLegalPreserveReport,
   type LegalPreserveSnapshot,
 } from '../rebrand-r11-legal-preserve'
+
+const repoRoot = join(import.meta.dir, '..', '..')
 
 function passingSnapshot(
   overrides: Partial<LegalPreserveSnapshot> = {},
@@ -77,5 +81,25 @@ describe('formatLegalPreserveReport', () => {
 
     expect(formatted).toContain('red')
     expect(formatted).toContain('dockerfile-source-attribution')
+  })
+})
+
+describe('R.11 legal-preserve goal documentation', () => {
+  test('points operators at the executable legal-preserve runner', () => {
+    const goal = readFileSync(
+      join(
+        repoRoot,
+        'docs',
+        'superpowers',
+        'goals',
+        '2026-05-13-rox-one-rebrand-sweep-goal.md',
+      ),
+      'utf8',
+    )
+
+    expect(goal).toContain('bun run rebrand:r11-legal-preserve')
+    expect(goal).not.toContain('/tmp/license.before')
+    expect(goal).not.toContain('/tmp/notice.before')
+    expect(goal).not.toContain('/tmp/trademark.before')
   })
 })
