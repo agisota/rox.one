@@ -23,6 +23,7 @@ export interface R11PreflightSnapshot {
   offlineMirrorPresent: boolean
   gitFilterRepoPresent: boolean
   r11CloseoutTicketPresent: boolean
+  r11CloseoutWorklogPresent: boolean
   mainSyncedWithOrigin: boolean
   worktreeClean: boolean
   openPullRequestsError?: string
@@ -148,6 +149,19 @@ export function evaluateR11Preflight(
         ),
   )
   results.push(
+    snapshot.r11CloseoutWorklogPresent
+      ? pass(
+          'r11-closeout-worklog',
+          'R.11 closeout worklog exists',
+          'docs/worklog/T298-rebrand-git-history-rewrite.md exists.',
+        )
+      : fail(
+          'r11-closeout-worklog',
+          'R.11 closeout worklog exists',
+          'docs/worklog/T298-rebrand-git-history-rewrite.md is missing.',
+        ),
+  )
+  results.push(
     snapshot.mainSyncedWithOrigin
       ? pass('main-sync', 'main synced with origin/main', 'origin/main...main is 0 0.')
       : fail('main-sync', 'main synced with origin/main', 'origin/main...main is not 0 0.'),
@@ -254,6 +268,9 @@ export function collectR11PreflightSnapshot(
     gitFilterRepoPresent: filterRepo.exitCode === 0 && filterRepo.stdout.length > 0,
     r11CloseoutTicketPresent: existsSync(
       join(repoRoot, 'docs', 'tickets', 'T298-rebrand-git-history-rewrite.md'),
+    ),
+    r11CloseoutWorklogPresent: existsSync(
+      join(repoRoot, 'docs', 'worklog', 'T298-rebrand-git-history-rewrite.md'),
     ),
     mainSyncedWithOrigin: /^0\s+0$/.test(sync),
     worktreeClean: status.length === 0,

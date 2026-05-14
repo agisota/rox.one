@@ -19,6 +19,7 @@ describe('evaluateR11Preflight', () => {
       offlineMirrorPresent: false,
       gitFilterRepoPresent: true,
       r11CloseoutTicketPresent: true,
+      r11CloseoutWorklogPresent: true,
       mainSyncedWithOrigin: true,
       worktreeClean: true,
     })
@@ -37,6 +38,7 @@ describe('evaluateR11Preflight', () => {
       offlineMirrorPresent: false,
       gitFilterRepoPresent: true,
       r11CloseoutTicketPresent: true,
+      r11CloseoutWorklogPresent: true,
       mainSyncedWithOrigin: true,
       worktreeClean: true,
     }, { stage: 'pre-rewrite' })
@@ -57,6 +59,7 @@ describe('evaluateR11Preflight', () => {
       offlineMirrorPresent: true,
       gitFilterRepoPresent: true,
       r11CloseoutTicketPresent: true,
+      r11CloseoutWorklogPresent: true,
       mainSyncedWithOrigin: true,
       worktreeClean: true,
     }, { stage: 'pre-rewrite' })
@@ -74,12 +77,32 @@ describe('evaluateR11Preflight', () => {
       offlineMirrorPresent: true,
       gitFilterRepoPresent: true,
       r11CloseoutTicketPresent: true,
+      r11CloseoutWorklogPresent: true,
       mainSyncedWithOrigin: true,
       worktreeClean: true,
     })
 
     expect(report.allPassed).toBe(false)
     expect(report.results.find((result) => result.id === 'no-active-goal'))
+      .toMatchObject({ passed: false })
+  })
+
+  test('fails closed when the exact R.11 closeout worklog is missing', () => {
+    const report = evaluateR11Preflight({
+      noActiveGoalAcknowledged: true,
+      openPullRequests: [],
+      rebrandTagPresent: true,
+      backupTagPresent: true,
+      offlineMirrorPresent: true,
+      gitFilterRepoPresent: true,
+      r11CloseoutTicketPresent: true,
+      r11CloseoutWorklogPresent: false,
+      mainSyncedWithOrigin: true,
+      worktreeClean: true,
+    })
+
+    expect(report.allPassed).toBe(false)
+    expect(report.results.find((result) => result.id === 'r11-closeout-worklog'))
       .toMatchObject({ passed: false })
   })
 
@@ -95,13 +118,15 @@ describe('evaluateR11Preflight', () => {
       offlineMirrorPresent: false,
       gitFilterRepoPresent: false,
       r11CloseoutTicketPresent: false,
+      r11CloseoutWorklogPresent: false,
       mainSyncedWithOrigin: false,
       worktreeClean: false,
     })
 
     expect(report.allPassed).toBe(false)
-    expect(report.results.filter((result) => !result.passed)).toHaveLength(7)
+    expect(report.results.filter((result) => !result.passed)).toHaveLength(8)
     expect(formatR11PreflightReport(report)).toContain('#189')
+    expect(formatR11PreflightReport(report)).toContain('r11-closeout-worklog')
     expect(formatR11PreflightReport(report)).toContain('red')
   })
 })
