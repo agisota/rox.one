@@ -1,6 +1,6 @@
 # T384 - R.11 preflight worklog pair check
 
-Status: TODO
+Status: DONE
 
 ## Context
 
@@ -56,14 +56,14 @@ preflight ignores the worklog presence signal.
 
 ## Acceptance Criteria
 
-- [ ] Regression test fails before implementation.
-- [ ] Regression test passes after implementation.
-- [ ] Preflight has a distinct R.11 closeout worklog row.
-- [ ] Live default preflight still fails only on the active goal.
-- [ ] Live pre-rewrite preflight still fails on missing backup artifacts.
-- [ ] Documentation/rebrand validation remains green.
-- [ ] Destructive R.11 actions are not executed.
-- [ ] Commit created.
+- [x] Regression test fails before implementation.
+- [x] Regression test passes after implementation.
+- [x] Preflight has a distinct R.11 closeout worklog row.
+- [x] Live default preflight still fails only on the active goal.
+- [x] Live pre-rewrite preflight still fails on missing backup artifacts.
+- [x] Documentation/rebrand validation remains green.
+- [x] Destructive R.11 actions are not executed.
+- [x] Commit created.
 
 ## Worklog
 
