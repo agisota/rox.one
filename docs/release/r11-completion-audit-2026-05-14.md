@@ -104,7 +104,9 @@ Fresh evidence from the latest clean post-push checks:
 - `git status --short --branch` reports `## main...origin/main`.
 - `bun run rebrand:r11-preflight` exits red with 4 blockers:
   `no-active-goal`, `fork-review`, `rebrand-tag-local-sync`, and
-  `rebrand-tag-on-main`; GitHub reports 1 fork(s); expected 0;
+  `rebrand-tag-on-main`; the active-goal inventory is preserved in
+  `docs/release/r11-active-goal-inventory-2026-05-14.md`;
+  GitHub reports 1 fork(s); expected 0;
   the fork inventory is preserved in
   `docs/release/r11-fork-review-inventory-2026-05-14.md`;
   local `rebrand-v1` targets `906896e145156d92cf98457c4dc1893c53323bac`,
