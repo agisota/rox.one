@@ -69,7 +69,7 @@ R.11 backup or history-rewrite step starts. Current evidence:
 | 3. T229 RBAC closeout | `bun run rebrand:r11-preflight` reports `phase2-rbac-closeout` pass. | Green |
 | 4. Open PR list | `bun run rebrand:r11-preflight` reports `no-open-prs` pass. | Green |
 | 5. No active `/goal` run | Default preflight reports `no-active-goal` fail because the active goal is still running. | Blocked |
-| 6. Fork review | `bun run rebrand:r11-preflight` reports `fork-review` pass with expected fork count 0. | Green |
+| 6. Fork review | `bun run rebrand:r11-preflight` reports `fork-review` fail: GitHub reports 1 fork(s); expected 0. | Blocked |
 | 7. `rebrand-v1` exists | `bun run rebrand:r11-preflight` reports `rebrand-tag` pass. | Green |
 | 8. origin `rebrand-v1` is on origin/main | `bun run rebrand:r11-preflight` reports `rebrand-tag-on-main` fail for origin target `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`. | Blocked |
 | 9. local `rebrand-v1` matches origin | `bun run rebrand:r11-preflight` reports `rebrand-tag-local-sync` fail: local `906896e145156d92cf98457c4dc1893c53323bac`, origin `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`. | Blocked |
@@ -91,16 +91,18 @@ Fresh evidence from the latest clean post-push checks:
 
 - `HEAD` and `origin/main` resolve to the same pushed commit.
 - `git status --short --branch` reports `## main...origin/main`.
-- `bun run rebrand:r11-preflight` exits red with 3 blockers:
-  `no-active-goal`, `rebrand-tag-local-sync`, and `rebrand-tag-on-main`;
+- `bun run rebrand:r11-preflight` exits red with 4 blockers:
+  `no-active-goal`, `fork-review`, `rebrand-tag-local-sync`, and
+  `rebrand-tag-on-main`; GitHub reports 1 fork(s); expected 0;
   local `rebrand-v1` targets `906896e145156d92cf98457c4dc1893c53323bac`,
   while origin `rebrand-v1` targets
   `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`. The tag drift inventory is
   preserved in `docs/release/r11-tag-drift-inventory-2026-05-14.md`.
 - `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite`
-  exits red with 6 blockers: `rebrand-tag-local-sync`,
+  exits red with 7 blockers: `fork-review`, `rebrand-tag-local-sync`,
   `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`, and
-  `remote-branch-review`; the remote branch review currently reports
+  `remote-branch-review`; GitHub reports 1 fork(s); expected 0; the remote
+  branch review currently reports
   `139 non-main/non-R.11-backup origin branches`. The full branch inventory is
   preserved in `docs/release/r11-remote-branch-review-2026-05-14.md`. The
   missing backup artifacts are `pre-rebrand-history-rewrite-backup`,
@@ -132,6 +134,8 @@ truthfully leave report-only mode.
   this blocked report-only run.
 - Confirm the origin `rebrand-v1` target is on origin/main ancestry before any
   backup or rewrite step starts.
+- Re-review GitHub forks and update the expected fork count only after the
+  operator confirms the fork inventory is acceptable for destructive rewrite.
 - Review the `139 non-main/non-R.11-backup origin branches` and decide which
   still-relevant branches must be merged, preserved, or explicitly retired
   before destructive history rewrite work.
