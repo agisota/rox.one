@@ -93,7 +93,8 @@ Fresh evidence from the latest clean post-push checks:
   `no-active-goal`, `rebrand-tag-local-sync`, and `rebrand-tag-on-main`;
   local `rebrand-v1` targets `906896e145156d92cf98457c4dc1893c53323bac`,
   while origin `rebrand-v1` targets
-  `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`.
+  `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`. The tag drift inventory is
+  preserved in `docs/release/r11-tag-drift-inventory-2026-05-14.md`.
 - `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite`
   exits red with 6 blockers: `rebrand-tag-local-sync`,
   `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`, and

@@ -22,6 +22,12 @@ const legalPreserveInventoryPath = join(
   'release',
   'r11-legal-preserve-inventory-2026-05-14.md',
 )
+const tagDriftInventoryPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-tag-drift-inventory-2026-05-14.md',
+)
 
 describe('R.11 completion audit', () => {
   test('maps every global stopping condition to concrete evidence', () => {
@@ -144,9 +150,19 @@ describe('R.11 completion audit', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const currentBlockers =
       audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
+    const tagDriftInventory = readFileSync(tagDriftInventoryPath, 'utf8')
 
     expect(currentBlockers).toContain('906896e145156d92cf98457c4dc1893c53323bac')
     expect(currentBlockers).toContain('b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99')
+    expect(currentBlockers).toContain('docs/release/r11-tag-drift-inventory-2026-05-14.md')
+    expect(tagDriftInventory).toContain('Status: BLOCKED ON TAG DRIFT')
+    expect(tagDriftInventory).toContain('8e30f545169e52daa2763659d6c562a699a2575b')
+    expect(tagDriftInventory).toContain('906896e145156d92cf98457c4dc1893c53323bac')
+    expect(tagDriftInventory).toContain('e32deed37b33fe3296edde6228adb1f76255027d')
+    expect(tagDriftInventory).toContain('b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99')
+    expect(tagDriftInventory).toContain('merge-base --is-ancestor')
+    expect(tagDriftInventory).toContain('exit 1')
+    expect(tagDriftInventory).toContain('origin/chore/rebrand-R10-final-sweep-and-gate')
   })
 
   test('records the current history-scan finding count', () => {
