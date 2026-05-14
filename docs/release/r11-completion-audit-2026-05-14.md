@@ -85,7 +85,8 @@ Fresh evidence from the latest clean post-push checks:
   `pre-rebrand-history-rewrite-backup` is missing; the
   `dockerfile-source-attribution` row passes.
 - `REBRAND_R11_HISTORY_MAX_FINDINGS=8 bun run rebrand:r11-history-scan`
-  (`history-scan`) exits red with bounded historical findings.
+  (`history-scan`) exits red with `9 forbidden-token patch lines` outside the
+  legal-preserve allowlist.
 
 ## Stop Condition
 
