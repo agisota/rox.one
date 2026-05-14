@@ -64,5 +64,5 @@ required unless validation exposes a new uncertain area.
 - [x] `afterSign` signs nested code inner-first without top-level `--deep`.
 - [x] Live mac validator requires `codesign --verify --deep --strict`.
 - [x] Mac boundary tests and validators pass locally.
-- [x] T479 commit is ready to push again for fresh CI.
+- [x] T479 commit `155e26e3` was pushed and CircleCI mac-arm-build passed on it.
 - [x] No destructive R.11 action is performed.
