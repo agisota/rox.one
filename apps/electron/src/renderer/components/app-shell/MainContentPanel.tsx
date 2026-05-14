@@ -41,6 +41,7 @@ import { SourceInfoPage, ChatPage } from '@/pages'
 import SkillInfoPage from '@/pages/SkillInfoPage'
 import { getSettingsPageComponent } from '@/pages/settings/settings-pages'
 import { AutomationInfoPage } from '../automations/AutomationInfoPage'
+import { RouteErrorBoundary } from '../RouteErrorBoundary'
 import { ExperienceGlobalHud } from '../workbench/ExperienceGlobalHud'
 import { createInitialExperienceRuntimeState, type ExperienceLayer } from '@rox-one/shared/workbench'
 import type { ExecutionEntry } from '../automations/types'
@@ -260,9 +261,11 @@ export function MainContentPanel({
     const SettingsPageComponent = getSettingsPageComponent(navState.subpage)
     return wrapWithStoplight(
       <Panel variant="grow" className={className}>
-        <React.Suspense fallback={<div className="flex h-full w-full bg-background" />}>
-          <SettingsPageComponent />
-        </React.Suspense>
+        <RouteErrorBoundary name={navState.subpage}>
+          <React.Suspense fallback={<div className="flex h-full w-full bg-background" />}>
+            <SettingsPageComponent />
+          </React.Suspense>
+        </RouteErrorBoundary>
       </Panel>
     )
   }
@@ -284,10 +287,12 @@ export function MainContentPanel({
     if (navState.details) {
       return wrapWithStoplight(
         <Panel variant="grow" className={className}>
-          <SourceInfoPage
-            sourceSlug={navState.details.sourceSlug}
-            workspaceId={activeWorkspaceId || ''}
-          />
+          <RouteErrorBoundary name="source-info">
+            <SourceInfoPage
+              sourceSlug={navState.details.sourceSlug}
+              workspaceId={activeWorkspaceId || ''}
+            />
+          </RouteErrorBoundary>
         </Panel>
       )
     }
@@ -318,11 +323,13 @@ export function MainContentPanel({
     if (navState.details?.type === 'skill') {
       return wrapWithStoplight(
         <Panel variant="grow" className={className}>
-          <SkillInfoPage
-            skillSlug={navState.details.skillSlug}
-            workspaceId={activeWorkspaceId || ''}
-            workingDirectory={activeSessionWorkingDirectory}
-          />
+          <RouteErrorBoundary name="skill-info">
+            <SkillInfoPage
+              skillSlug={navState.details.skillSlug}
+              workspaceId={activeWorkspaceId || ''}
+              workingDirectory={activeSessionWorkingDirectory}
+            />
+          </RouteErrorBoundary>
         </Panel>
       )
     }
