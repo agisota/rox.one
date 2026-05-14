@@ -12,19 +12,19 @@ stop state. The destructive history rewrite has not started.
 ## 2. Repo context discovered
 
 The rebrand-sweep goal requires R.11 to run only after all hard prerequisites
-are true. Current report-only preflight evidence after T371:
+are true. Current report-only preflight evidence after T376:
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
 | No active `/goal` runs | `get_goal` still reports the rebrand-sweep goal active | Blocked |
-| No open PRs | Preflight reports PR #189 and PR #171 open | Blocked |
+| No open PRs | `gh pr list --state open --json number,title,headRefName,url --limit 200` returned `[]` | Green |
 | `rebrand-v1` tag exists | Preflight reports pass | Green |
 | Backup tag exists | Preflight reports `pre-rebrand-history-rewrite-backup` missing | Blocked |
 | Offline mirror exists | Preflight reports `/tmp/rox-one-terminal-backup-2026-05-13.git` missing | Blocked |
 | `git-filter-repo` available | Preflight reports pass after T371 PATH bridge | Green |
 | R.11 closeout ticket exists | This ticket/worklog establishes the path | In progress |
 | `main` synced with `origin/main` | Preflight reports `0 0` | Green |
-| Worktree clean | Expected to return to pass after this scaffold commit | Pending |
+| Worktree clean | Preflight reports pass in the clean `/home/dev/rox-m11-repair` worktree; the primary worktree still has pre-existing untracked temp dirs | Mixed |
 
 ## 3. Files inspected
 
@@ -110,18 +110,42 @@ exited 0 with no output.
 No build expected for this scaffold. The future destructive rewrite must run
 the full post-rewrite build matrix before this ticket can become `DONE`.
 
+### Current follow-up evidence, 2026-05-14T02:23:04Z
+
+T375 and T376 refreshed the blocker state after PR #205 merged:
+
+- GitHub reports no open PRs.
+- GitHub fork count is `0`.
+- `origin/main...HEAD` is `0 0`.
+- `rebrand-v1` exists on `origin`.
+- `pre-rebrand-history-rewrite-backup` does not exist on `origin`.
+- `/tmp/rox-one-terminal-backup-2026-05-13.git` does not exist.
+- The active Codex goal is still this rebrand sweep.
+- A lightweight history check still finds old `rox-agent` / `Rox Agents`
+  strings in git history, so the final `git log -p --all` gate cannot pass
+  before the authorized rewrite.
+
+The latest report-only preflight remains red on three blockers:
+
+```text
+no-active-goal       fail    Missing ROX_R11_NO_ACTIVE_GOAL=1 ac...
+backup-tag           fail    pre-rebrand-history-rewrite-backup ...
+offline-mirror       fail    /tmp/rox-one-terminal-backup-2026-0...
+red - 3 R.11 prerequisite(s) failing
+```
+
 ## 10. Remaining risks
 
-R.11 remains blocked by active goal state, open PRs, missing backup tag, and
-missing offline mirror. The destructive phase must not start until the
-report-only preflight is green and the operator has explicitly moved out of
-active goal mode.
+R.11 remains blocked by active goal state, missing backup tag, and missing
+offline mirror. The destructive phase must not start until the report-only
+preflight is green and the operator has explicitly moved out of active goal
+mode.
 
 ## 11. Acceptance criteria matrix
 
 | Acceptance criterion | Status | Evidence |
 | --- | --- | --- |
-| R.11 preflight is green before backup creation | Blocked | Active goal, open PRs, backup tag, and offline mirror still fail |
+| R.11 preflight is green before backup creation | Blocked | Active goal, backup tag, and offline mirror still fail |
 | Backup tag exists on origin | Blocked | Not created while preflight is red |
 | Backup branch exists on origin | Blocked | Not created while preflight is red |
 | Offline mirror exists | Blocked | Not created while preflight is red |
