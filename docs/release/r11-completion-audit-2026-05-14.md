@@ -46,7 +46,7 @@ Concrete deliverables:
 | global validation matrix | Recent targeted checks plus required matrix in the goal | Not fully satisfied after a rewrite; full suite and build have not run on rewritten history | Blocked |
 | RBAC on rewritten ancestry | Goal requires R.11 after RBAC closeout | RBAC closeout ticket passes preflight, but no rewritten ancestry exists | Blocked |
 | rebrand-v1 tag on main | `bun run rebrand:r11-preflight` | Origin tag exists, but local tag differs from origin and origin target is not on `origin/main` ancestry | Blocked |
-| backup tag, branch, and mirror | `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite` | Backup tag, backup branch, and offline mirror are missing | Blocked |
+| backup tag, branch, and mirror | `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite` | Backup tag, backup branch, and offline mirror are missing; after they exist, the same preflight also enforces `backup-tag-target`, `backup-branch-target`, and `offline-mirror-target` | Blocked |
 | mapping report closeout SHA | `docs/release/rebrand-mapping-2026-05-13.md` | R.11 row says `BLOCKED - pending destructive rewrite closeout SHA` | Blocked |
 | history scan clean | `REBRAND_R11_HISTORY_MAX_FINDINGS=8 bun run rebrand:r11-history-scan` | Exits red with bounded historical findings | Blocked |
 | README post-rewrite coordination banner | `README.md` § "After R.11 history rewrite" | Only required after force-push; the 72-hour visible banner is blocked until R.11 actually rewrites and pushes history | Blocked |
@@ -123,7 +123,11 @@ Fresh evidence from the latest clean post-push checks:
   `/tmp/rox-one-terminal-backup-2026-05-13.git`. The backup artifact inventory
   is preserved in
   `docs/release/r11-backup-artifact-inventory-2026-05-14.md`. The
-  `current-branch` row passes here too: `Current checkout is main`.
+  post-T446/T448 target rows `backup-tag-target`, `backup-branch-target`, and
+  `offline-mirror-target` are not emitted while the corresponding artifact is missing;
+  once those artifacts exist, they must match current `main` before
+  any `git filter-repo` invocation. The `current-branch` row passes here too:
+  `Current checkout is main`.
 - `bun run rebrand:r11-legal-preserve` exits red on `legal-file-LICENSE`,
   `legal-file-NOTICE`, and `legal-file-TRADEMARK.md` because
   `pre-rebrand-history-rewrite-backup` is missing; the
@@ -156,6 +160,9 @@ truthfully leave report-only mode.
 - Create the backup tag, backup branch, and offline mirror only after the
   default pre-backup preflight is green. Do not create backup refs while tag
   or active-goal blockers remain red.
+- after backup artifacts exist, re-run the explicit pre-rewrite helper and
+  require `backup-tag-target`, `backup-branch-target`, and
+  `offline-mirror-target` to pass before any `git filter-repo` invocation.
 - Re-run the legal-preserve gate only after the backup tag exists, because the
   legal-preserve checks compare `LICENSE`, `NOTICE`, and `TRADEMARK.md` against
   that backup tag.
