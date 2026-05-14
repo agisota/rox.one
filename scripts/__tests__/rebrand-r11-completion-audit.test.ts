@@ -28,6 +28,12 @@ const tagDriftInventoryPath = join(
   'release',
   'r11-tag-drift-inventory-2026-05-14.md',
 )
+const backupArtifactInventoryPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-backup-artifact-inventory-2026-05-14.md',
+)
 
 describe('R.11 completion audit', () => {
   test('maps every global stopping condition to concrete evidence', () => {
@@ -186,10 +192,16 @@ describe('R.11 completion audit', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const currentBlockers =
       audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
+    const backupArtifactInventory = readFileSync(backupArtifactInventoryPath, 'utf8')
 
     expect(currentBlockers).toContain('pre-rebrand-history-rewrite-backup')
     expect(currentBlockers).toContain('backup/pre-rebrand-history-rewrite-2026-05-13')
     expect(currentBlockers).toContain('/tmp/rox-one-terminal-backup-2026-05-13.git')
+    expect(currentBlockers).toContain('docs/release/r11-backup-artifact-inventory-2026-05-14.md')
+    expect(backupArtifactInventory).toContain('Status: BLOCKED ON MISSING BACKUP ARTIFACTS')
+    expect(backupArtifactInventory).toContain('remote tag query returned no refs')
+    expect(backupArtifactInventory).toContain('remote branch query returned no refs')
+    expect(backupArtifactInventory).toContain('offline-mirror: missing')
   })
 
   test('records exact legal-preserve gate state', () => {
