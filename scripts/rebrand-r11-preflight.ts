@@ -453,17 +453,25 @@ function run(
   cmd: string[],
   cwd: string,
 ): { exitCode: number; stdout: string; stderr: string } {
-  const proc = Bun.spawnSync({
-    cmd,
-    cwd,
-    stdout: 'pipe',
-    stderr: 'pipe',
-    env: { ...process.env },
-  })
-  return {
-    exitCode: proc.exitCode,
-    stdout: new TextDecoder().decode(proc.stdout).trim(),
-    stderr: new TextDecoder().decode(proc.stderr).trim(),
+  try {
+    const proc = Bun.spawnSync({
+      cmd,
+      cwd,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: { ...process.env },
+    })
+    return {
+      exitCode: proc.exitCode,
+      stdout: new TextDecoder().decode(proc.stdout).trim(),
+      stderr: new TextDecoder().decode(proc.stderr).trim(),
+    }
+  } catch (error) {
+    return {
+      exitCode: 127,
+      stdout: '',
+      stderr: error instanceof Error ? error.message : String(error),
+    }
   }
 }
 

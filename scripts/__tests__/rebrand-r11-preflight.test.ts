@@ -357,6 +357,20 @@ describe('collectR11PreflightSnapshot', () => {
       || typeof snapshot.backupBranchCommit === 'string',
     ).toBe(true)
   }, 15_000)
+
+  test('collects a fail-closed snapshot when external CLIs are missing', () => {
+    const originalPath = process.env.PATH
+    process.env.PATH = '/nonexistent'
+    try {
+      const snapshot = collectR11PreflightSnapshot(repoRoot)
+
+      expect(Array.isArray(snapshot.openPullRequests)).toBe(true)
+      expect(typeof snapshot.backupBranchPresent).toBe('boolean')
+      expect(typeof snapshot.gitFilterRepoPresent).toBe('boolean')
+    } finally {
+      process.env.PATH = originalPath
+    }
+  }, 15_000)
 })
 
 describe('R.11 goal documentation', () => {
