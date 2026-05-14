@@ -11,6 +11,7 @@ describe('R.11 completion audit', () => {
 
     expect(audit).toContain('## Objective Deliverables')
     expect(audit).toContain('## Prompt-to-Artifact Checklist')
+    expect(audit).toContain('## R.11 Hard Prerequisite Evidence')
     expect(audit).toContain('## Current Blockers')
     expect(audit).toContain('## Stop Condition')
 
@@ -23,6 +24,17 @@ describe('R.11 completion audit', () => {
       'backup tag, branch, and mirror',
       'mapping report closeout SHA',
       'history scan clean',
+      '1. R.0-R.10 closeouts',
+      '2. T223 Phase 1 closeout',
+      '3. T229 RBAC closeout',
+      '4. Open PR list',
+      '5. No active `/goal` run',
+      '6. Fork review',
+      '7. `rebrand-v1` exists',
+      '8. origin `rebrand-v1` is on origin/main',
+      '9. local `rebrand-v1` matches origin',
+      '10. Working tree clean',
+      '11. main sync',
     ]) {
       expect(audit).toContain(required)
     }
