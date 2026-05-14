@@ -115,6 +115,115 @@ The 17 closed/no-visible-PR/backup review branches are:
 10. Run post-rewrite validation and history scan, then close mapping SHA,
     README banner, and commit-count delta artifacts.
 
+## Full Remaining Worklist
+
+This is the ordered continuation list for R.11. It is intentionally split into
+report-only work, operator decisions, backup gates, destructive rewrite work,
+and post-rewrite closeout so future turns do not mix safe evidence refreshes
+with irreversible ref or history operations.
+
+Current gate snapshot:
+
+- Open PRs: 0
+- Remote branches requiring review: 150
+- Default preflight blockers: `no-active-goal`, `fork-review`, `rebrand-tag-local-sync`, `rebrand-tag-on-main`
+- Pre-rewrite blockers: `fork-review`, `rebrand-tag-local-sync`, `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`, `remote-branch-review`
+- Legal-preserve blockers: `legal-file-LICENSE`, `legal-file-NOTICE`,
+  `legal-file-TRADEMARK.md`
+- History scan findings: 81 forbidden-token patch lines
+
+Do not delete remote branches or mutate tags until an operator-owned destructive window is explicit.
+Do not create backup refs, create mirrors, run `git filter-repo`, force-push,
+clear `/goal`, or call `update_goal` while the report-only gates remain red.
+
+### Phase 0 - Keep report-only evidence fresh
+
+- Re-run `bun run rebrand:r11-preflight` after each report-only commit and
+  record the 4 expected default blockers while the active goal remains in
+  progress.
+- Re-run
+  `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite`
+  when any fork, tag, branch, backup, or worktree evidence changes.
+- Keep `docs/release/r11-completion-audit-2026-05-14.md`,
+  `docs/release/r11-blocker-inventory-index-2026-05-14.md`, and this backlog
+  aligned with fresh evidence.
+- Keep ticket and 11-section worklog evidence green for every report-only
+  change.
+
+### Phase 1 - Operator decisions before unblock
+
+- Decide when the active `/goal` state is intentionally handed into a
+  destructive R.11 window. Until that point, keep `no-active-goal` red.
+- Re-fetch GitHub fork state and choose a fork policy. Current evidence is 1
+  visible fork, `dofaromg/rox-one-terminal`, against expected count 0.
+- Reconcile `rebrand-v1` tag drift. Current local target is
+  `906896e145156d92cf98457c4dc1893c53323bac`; origin target is
+  `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`; the origin target is not on
+  `origin/main` ancestry.
+- Do not set `ROX_R11_EXPECTED_FORKS`, mutate `rebrand-v1`, or clear `/goal`
+  until the destructive window and operator policy are explicit.
+
+### Phase 2 - Remote branch retirement
+
+- Treat the PR merge queue as clear: there are 0 open PRs and 0 open PR
+  branches.
+- Review all 150 non-main/non-R.11-backup origin branches before pre-rewrite
+  can pass.
+- Retire or preserve the 133 merged-PR branch cleanup candidates in an
+  operator-approved branch cleanup window.
+- Decide the 9 closed/unmerged PR branch review candidates, including
+  `fix/t132-main-bundle-regression`.
+- Decide the 7 no-visible-PR branch review candidates.
+- Account for `backup/agent-workbench-t000-t012-2026-04-30` separately from the
+  missing R.11 backup branch.
+
+### Phase 3 - Backup artifact creation
+
+- Create `pre-rebrand-history-rewrite-backup` only after the default
+  pre-backup gate is green.
+- Create `backup/pre-rebrand-history-rewrite-2026-05-13` only after the default
+  pre-backup gate is green.
+- Create `/tmp/rox-one-terminal-backup-2026-05-13.git` only after the default
+  pre-backup gate is green.
+- After those artifacts exist, re-run explicit pre-rewrite mode and require
+  `backup-tag-target`, `backup-branch-target`, and `offline-mirror-target` to
+  match current `main`.
+
+### Phase 4 - Legal preserve and rewrite readiness
+
+- Re-run `bun run rebrand:r11-legal-preserve` only after the backup tag exists.
+- Require `legal-file-LICENSE`, `legal-file-NOTICE`, and
+  `legal-file-TRADEMARK.md` to compare cleanly against the backup tag.
+- Re-run `bun run rebrand:r11-history-scan` and keep the 81 historical
+  findings visible until rewritten ancestry exists.
+- Require the pre-rewrite gate to be fully green before any history rewrite
+  command is run.
+
+### Phase 5 - Destructive rewrite window
+
+- Run the history rewrite only from real `main`, with clean worktree and
+  `origin/main...main` equal to `0 0`.
+- Run the approved `git filter-repo` command only after fork, tag, branch,
+  backup, legal-preserve, and pre-rewrite rows are green.
+- Force-push only with the agreed lease procedure and record the exact command
+  transcript.
+- Preserve the backup tag, backup branch, and offline mirror until post-rewrite
+  validation and rollback review are complete.
+
+### Phase 6 - Post-rewrite closeout
+
+- Re-run `bun run validate:release`, `bun run validate:rebrand`,
+  `bun run validate:docs`, `bun run validate:roadmap`, `bun run typecheck`,
+  `bun run lint`, full `bun test`, `bun run build`, and `git diff --check`.
+- Re-run `bun run rebrand:r11-history-scan` against rewritten ancestry and
+  require it to pass.
+- Record the rewritten mapping SHA and update
+  `docs/release/rebrand-mapping-2026-05-13.md`.
+- Add the README 72-hour coordination banner only after rewritten history is
+  live.
+- Record the post-rewrite commit-count delta and close
+  `docs/tickets/T298-rebrand-git-history-rewrite.md` plus its worklog.
+
 ## Validation Debt
 
 Required before release/R.11 closeout:
