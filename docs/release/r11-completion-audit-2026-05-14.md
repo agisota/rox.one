@@ -116,7 +116,9 @@ Fresh evidence from report-only post-push checks, without pinning this audit to 
   local `rebrand-v1` targets `906896e145156d92cf98457c4dc1893c53323bac`,
   while origin `rebrand-v1` targets
   `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`. The tag drift inventory is
-  preserved in `docs/release/r11-tag-drift-inventory-2026-05-14.md`;
+  preserved in `docs/release/r11-tag-drift-inventory-2026-05-14.md`, and the
+  operator tag reconciliation manifest is preserved in
+  `docs/release/r11-tag-drift-reconciliation-manifest-2026-05-14.md`;
   `current-branch` passes because Current checkout is main;
   `main-sync` passes because origin/main...main is 0 0; `worktree-clean`
   passes with `git status --porcelain is empty`.
@@ -162,6 +164,8 @@ truthfully leave report-only mode.
 - Reconcile the local and origin `rebrand-v1` tag targets, and decide how the
   origin tag should relate to origin/main ancestry. Do not mutate tags from
   this blocked report-only run.
+- Use `docs/release/r11-tag-drift-reconciliation-manifest-2026-05-14.md` as
+  the report-only tag decision surface; it does not authorize tag mutation.
 - Confirm the origin `rebrand-v1` target is on origin/main ancestry before any
   backup or rewrite step starts.
 - Re-review GitHub forks and update the expected fork count only after the
