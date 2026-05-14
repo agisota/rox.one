@@ -122,7 +122,7 @@ Fresh evidence from report-only post-push checks, without pinning this audit to 
   `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`, and
   `remote-branch-review`; GitHub reports 1 fork(s); expected 0; the remote
   branch review currently reports
-  `139 non-main/non-R.11-backup origin branches`. The full branch inventory is
+  `140 non-main/non-R.11-backup origin branches`. The full branch inventory is
   preserved in `docs/release/r11-remote-branch-review-2026-05-14.md`. The
   missing backup artifacts are `pre-rebrand-history-rewrite-backup`,
   `backup/pre-rebrand-history-rewrite-2026-05-13`, and
@@ -160,7 +160,7 @@ truthfully leave report-only mode.
   backup or rewrite step starts.
 - Re-review GitHub forks and update the expected fork count only after the
   operator confirms the fork inventory is acceptable for destructive rewrite.
-- Review the `139 non-main/non-R.11-backup origin branches` and decide which
+- Review the `140 non-main/non-R.11-backup origin branches` and decide which
   still-relevant branches must be merged, preserved, or explicitly retired
   before destructive history rewrite work.
 - Create the backup tag, backup branch, and offline mirror only after the

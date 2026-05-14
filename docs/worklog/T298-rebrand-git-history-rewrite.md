@@ -30,7 +30,7 @@ durable audit at `docs/release/r11-completion-audit-2026-05-14.md`:
 | Backup branch exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | Offline mirror exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | Backup artifact targets match current `main` | After the artifacts exist, explicit pre-rewrite emits `backup-tag-target`, `backup-branch-target`, and `offline-mirror-target`; all must pass before `git filter-repo` | Pre-rewrite blocked |
-| Remote branches reviewed | Explicit pre-rewrite helper requires origin to expose only `main` and `backup/pre-rebrand-history-rewrite-2026-05-13`; origin currently has 139 non-main/non-R.11-backup branches | Pre-rewrite blocked |
+| Remote branches reviewed | Explicit pre-rewrite helper requires origin to expose only `main` and `backup/pre-rebrand-history-rewrite-2026-05-13`; origin currently has 140 non-main/non-R.11-backup branches | Pre-rewrite blocked |
 | `git-filter-repo` available | Preflight reports pass after T371 PATH bridge | Green |
 | R.11 closeout ticket exists | Exact files `docs/tickets/T298-rebrand-git-history-rewrite.md` and `docs/worklog/T298-rebrand-git-history-rewrite.md` exist with `Status: BLOCKED`; this is distinct from the unrelated `T298-rc-preflight` ticket | Green |
 | `main` synced with `origin/main` | Preflight reports `0 0` | Green |
@@ -179,7 +179,7 @@ history/legal-preserve gates were added and wired into the R.11 goal:
 - `pre-rebrand-history-rewrite-backup` does not exist on `origin`.
 - `backup/pre-rebrand-history-rewrite-2026-05-13` does not exist on `origin`.
 - `/tmp/rox-one-terminal-backup-2026-05-13.git` does not exist.
-- Origin currently has 139 non-main/non-R.11-backup branches, so the explicit
+- Origin currently has 140 non-main/non-R.11-backup branches, so the explicit
   pre-rewrite helper reports `remote-branch-review` as a blocker.
 - `docs/release/rebrand-mapping-2026-05-13.md` has an R.11 pending closeout
   slot, but it cannot record a real R.11 closeout commit SHA until the
@@ -253,7 +253,7 @@ rebrand-tag-on-main  fail    rebrand-v1 target is missing from o...
 backup-tag           fail    pre-rebrand-history-rewrite-backup ...
 backup-branch        fail    backup/pre-rebrand-history-rewrite-...
 offline-mirror       fail    /tmp/rox-one-terminal-backup-2026-0...
-remote-branch-review fail    origin has 139 non-main/non-R.11-ba...
+remote-branch-review fail    origin has 140 non-main/non-R.11-ba...
 fork-review          fail    GitHub reports 1 fork(s); expected 0.
 main-sync            pass    origin/main...main is 0 0.
 worktree-clean       pass    git status --porcelain is empty.
@@ -293,7 +293,7 @@ path authorizes them. After backup creation, `bun run rebrand:r11-preflight
 | Backup branch exists on origin | Blocked | Not created while preflight is red |
 | Offline mirror exists | Blocked | Not created while preflight is red |
 | Backup artifact targets match current `main` | Blocked | `backup-tag-target`, `backup-branch-target`, and `offline-mirror-target` are not emitted until the corresponding artifact exists, then must pass before rewrite |
-| Remote branches reviewed before rewrite | Blocked | Explicit pre-rewrite gate fails on 139 non-main/non-R.11-backup origin branches |
+| Remote branches reviewed before rewrite | Blocked | Explicit pre-rewrite gate fails on 140 non-main/non-R.11-backup origin branches |
 | `git filter-repo` command history is recorded | Blocked | `git filter-repo` has not run |
 | Legal-preserve runner passes | Blocked | `bun run rebrand:r11-legal-preserve` exits red until the backup tag exists and the post-rewrite files match it |
 | Force-push completes with lease | Blocked | Not allowed while preflight is red |

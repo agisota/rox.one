@@ -14,10 +14,10 @@ git ls-remote --heads origin
 
 Summary:
 
-- Total origin heads: 140
+- Total origin heads: 141
 - Excluded from blocker count: `main`
 - R.11 backup branch present: no
-- Non-main/non-R.11-backup origin branches: 139
+- Non-main/non-R.11-backup origin branches: 140
 - Default disposition in this report: `operator-review-required`
 
 ## Branch Inventory
@@ -102,6 +102,7 @@ Summary:
 | `feat/T249-csp-zod-boundary-hardening-v2` | `85f55545321d113ec6ba2bd3b3f3b320ede7701a` | operator-review-required |
 | `feat/M11-T174-delete-legacy-highlighter` | `86a9a6de1609c9beca798511222b542c4859bb37` | operator-review-required |
 | `feat/M10-T237b-image-resize` | `8b709cf6b0c1bcfc8cd305da3440f842058da1b0` | operator-review-required |
+| `docs/M20-T299-phase-20-closeout` | `8ce67b4d1448d2af5a655fe8d54f76b0cc53d7fd` | operator-review-required |
 | `fix/a11y-muted-foreground-wcag-1-4-3` | `8d6198a2d1221f0178a53508bd125e5a282b6ddd` | operator-review-required |
 | `feat/T132-code-split-index-chunk` | `9038a9b4358b8e9f42ddcad7580ba155873ebf51` | operator-review-required |
 | `feat/M6-sqlite-persistence-adapter` | `9061116cc3dcf91c2b138c138f08f62038e60488` | operator-review-required |
