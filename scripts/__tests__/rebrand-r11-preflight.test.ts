@@ -126,11 +126,48 @@ describe('evaluateR11Preflight', () => {
   test('fails closed when the local rebrand-v1 tag target differs from origin', () => {
     const report = evaluateR11Preflight(passingSnapshot({
       rebrandTagLocalMatchesRemote: false,
+      rebrandTagRemoteCommit: 'b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99',
+      rebrandTagLocalCommit: '906896e145156d92cf98457c4dc1893c53323bac',
+    }))
+    const localSync = report.results.find((result) => result.id === 'rebrand-tag-local-sync')
+    const localSyncDetail = String(localSync?.detail ?? '')
+
+    expect(report.allPassed).toBe(false)
+    expect(localSync)
+      .toMatchObject({
+        passed: false,
+        detail: expect.stringContaining('local 906896e145156d92cf98457c4dc1893c53323bac'),
+      })
+    expect(localSyncDetail.includes(
+      'origin b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99',
+    )).toBe(true)
+  })
+
+  test('reports the origin rebrand-v1 target when it is missing from origin main ancestry', () => {
+    const report = evaluateR11Preflight(passingSnapshot({
+      rebrandTagOnMain: false,
+      rebrandTagRemoteCommit: 'b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99',
     }))
 
     expect(report.allPassed).toBe(false)
-    expect(report.results.find((result) => result.id === 'rebrand-tag-local-sync'))
-      .toMatchObject({ passed: false })
+    expect(report.results.find((result) => result.id === 'rebrand-tag-on-main'))
+      .toMatchObject({
+        passed: false,
+        detail: expect.stringContaining('b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99'),
+      })
+  })
+
+  test('keeps tag target evidence visible in the formatted preflight report', () => {
+    const report = evaluateR11Preflight(passingSnapshot({
+      rebrandTagLocalMatchesRemote: false,
+      rebrandTagOnMain: false,
+      rebrandTagRemoteCommit: 'b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99',
+      rebrandTagLocalCommit: '906896e145156d92cf98457c4dc1893c53323bac',
+    }))
+    const formatted = formatR11PreflightReport(report)
+
+    expect(formatted).toContain('906896e145156d92cf98457c4dc1893c53323bac')
+    expect(formatted).toContain('b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99')
   })
 
   test('fails closed when rebrand and roadmap closeout prerequisites are incomplete', () => {
