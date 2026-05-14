@@ -19,6 +19,7 @@ const fixturesRoot = join(repoRoot, 'scripts/__fixtures__/mac-bundle');
 const goodFixture = join(fixturesRoot, 'good-bundle');
 const badFixture = join(fixturesRoot, 'bad-bundle');
 const runnerScript = join(repoRoot, 'scripts/validate-mac-boundary-fixtures.ts');
+const afterSignScript = join(repoRoot, 'apps/electron/scripts/afterSign.cjs');
 
 function runValidator(fixturePath: string) {
   return spawnSync(
@@ -100,6 +101,19 @@ describe('validate-mac-boundary-fixtures contract (M.18 T251)', () => {
 
   test('orchestrator runner script exists on disk', () => {
     expect(existsSync(runnerScript)).toBe(true);
+  });
+
+  test('mac afterSign hook enforces ad-hoc signing with hardened runtime', async () => {
+    expect(existsSync(afterSignScript)).toBe(true);
+    const source = await Bun.file(afterSignScript).text();
+    expect(source).toContain('codesign');
+    expect(source).toContain('--sign');
+    expect(source).toContain('-');
+    expect(source).toContain('--options');
+    expect(source).toContain('runtime');
+    expect(source).toContain('--entitlements');
+    expect(source).toContain('build/entitlements.mac.plist');
+    expect(source).toContain('ROX.ONE.app');
   });
 
   test('live mac validator requests codesign metadata separately from entitlements', async () => {

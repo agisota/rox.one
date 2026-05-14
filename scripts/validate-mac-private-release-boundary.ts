@@ -263,8 +263,17 @@ requireText(builderConfig, 'CSC_LINK', 'production signing credential hint');
 requireText(builderConfig, 'APPLE_TEAM_ID', 'production notarization team hint');
 requireText(builderConfig, 'hardenedRuntime: true', 'hardenedRuntime electron-builder flag');
 requireText(builderConfig, 'identity: "-"', 'ad-hoc signing identity required to preserve hardened runtime');
+requireText(builderConfig, 'afterSign: scripts/afterSign.cjs', 'private mac hardened-runtime afterSign hook');
 requireText(builderConfig, 'entitlements: build/entitlements.mac.plist', 'entitlements file reference');
 requireText(builderConfig, 'appId: com.rox.one', 'canonical bundle-id appId');
+
+const afterSignHook = read('apps/electron/scripts/afterSign.cjs');
+requireText(afterSignHook, 'ROX_DEV_RUNTIME', 'afterSign private-build guard');
+requireText(afterSignHook, 'codesign', 'afterSign codesign invocation');
+requireText(afterSignHook, "'--options'", 'afterSign codesign options flag');
+requireText(afterSignHook, "'runtime'", 'afterSign hardened runtime option');
+requireText(afterSignHook, "'--entitlements'", 'afterSign entitlements flag');
+requireText(afterSignHook, 'build/entitlements.mac.plist', 'afterSign entitlements path');
 
 // 3. Entitlements plist: hardened minimum surface.
 const entitlements = read('apps/electron/build/entitlements.mac.plist');

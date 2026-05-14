@@ -275,31 +275,50 @@ describe('migrateUserDataIfNeeded', () => {
     }
   })
 
-  it('Case 5: treats ~/.rox as already canonical when it is the only source', () => {
+  it('Case 5: source === newRoot writes marker and short-circuits (no self-copy)', () => {
+    // Regression guard for the bug observed in E2E:
+    //   [user-data-migration] starting copy from /Users/runner/.rox -> /Users/runner/.rox
+    //   ERROR [main] Unhandled rejection: { code: 'ERR_FS_CP_EINVAL' }
+    //
+    // Scenario: fresh post-rebrand environment where the legacy `.rox-agent/`
+    // tree does NOT exist, but `.rox/` does (Electron created it on first
+    // launch, or it pre-existed as the canonical user-data location). The
+    // resolved `source` equals `newRoot`, and `fs.cpSync(p, p)` is illegal.
     const sandbox = makeFixtureRoot('r8-case5-')
+    const legacyA = join(sandbox, '.rox-agent') // intentionally absent
     const legacyB = join(sandbox, '.rox')
-    const newRoot = join(sandbox, '.rox')
+    const newRoot = join(sandbox, '.rox') // === legacyB
     const { logger, logs } = makeLogger()
 
-    mkdirSync(legacyB, { recursive: true })
-    writeFileSync(join(legacyB, 'config.json'), '{"version":2}\n', 'utf8')
+    // Only the canonical newRoot exists, with user content; no legacy tree.
+    seedLegacyTree(legacyB)
+    expect(existsSync(legacyA)).toBe(false)
 
     try {
       const result = migrateUserDataIfNeeded(
-        makeOpts([legacyB], newRoot, logger),
+        makeOpts([legacyA, legacyB], newRoot, logger),
       )
 
+      // Reports as already-migrated (data IS at canonical) with source set.
       expect(result.migrated).toBe(false)
-      expect(result.reason).toBe('source-is-destination')
-      expect(result.source).toBeUndefined()
-      expect(result.filesCopied).toBeUndefined()
+      expect(result.reason).toBe('already-migrated')
+      expect(result.source).toBe(newRoot)
       expect(result.conflict).toBeUndefined()
 
-      expect(readFileSync(join(newRoot, 'config.json'), 'utf8')).toBe(
-        '{"version":2}\n',
+      // Marker written so subsequent launches fast-path.
+      const markerPath = join(newRoot, '.migrated-from-rox')
+      expect(existsSync(markerPath)).toBe(true)
+      expect(readFileSync(markerPath, 'utf8')).toContain(
+        `migrated-from: ${newRoot}`,
       )
-      expect(existsSync(join(newRoot, '.migrated-from-rox'))).toBe(true)
-      expect(logs.info.join(' ')).toContain('already the canonical root')
+
+      // User content preserved verbatim — no destructive cpSync attempted.
+      expect(readFileSync(join(newRoot, 'config.json'), 'utf8')).toBe(
+        '{"version":1}\n',
+      )
+
+      // Quiet path — no info, no warn.
+      expect(logs.info).toEqual([])
       expect(logs.warn).toEqual([])
     } finally {
       cleanup(sandbox)

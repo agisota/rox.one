@@ -32,7 +32,6 @@ export type MigrationReason =
   | 'no-legacy-path'
   | 'destination-exists'
   | 'already-migrated'
-  | 'source-is-destination'
 
 export interface MigrationResult {
   migrated: boolean
@@ -140,13 +139,15 @@ export function migrateUserDataIfNeeded(
     return { migrated: false, reason: 'no-legacy-path' }
   }
 
+  // Self-copy guard: if the resolved legacy source IS the canonical newRoot
+  // (e.g. fresh post-rebrand install with no `.rox-agent/` legacy tree, only
+  // `.rox/` which is both a legacy entry and the new canonical path), the
+  // data is already at its destination. `fs.cpSync(p, p)` throws
+  // `ERR_FS_CP_EINVAL`, so short-circuit here. Write the marker so subsequent
+  // launches take the already-migrated fast path.
   if (source === newRoot) {
     writeMarker(newRoot, markerName, source)
-    logger.info(
-      `[user-data-migration] ${source} is already the canonical root; ` +
-        `marker written at ${markerPath}`,
-    )
-    return { migrated: false, reason: 'source-is-destination' }
+    return { migrated: false, reason: 'already-migrated', source }
   }
 
   // Conflict: legacy + new root both present, no marker. Refuse to merge.
