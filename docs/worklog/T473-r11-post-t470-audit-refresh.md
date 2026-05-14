@@ -57,6 +57,8 @@ the new assertion guards.
   `docs/release/r11-preflight-context-inventory-2026-05-14.md`.
 - Linked the current-main validation artifact from
   `docs/release/r11-blocker-inventory-index-2026-05-14.md`.
+- Tightened the post-T470 regression to assert against only the
+  `## Post-T470 current-main validation evidence` audit section.
 - Added this T473 ticket and worklog.
 
 ## 7. Validation commands run
@@ -70,14 +72,18 @@ the new assertion guards.
 - `bun run typecheck`
 - `bun run lint`
 - `bun test`
-- `bun test packages/server-core/src/webui/__tests__/http-server.test.ts`
+- `bun test packages/ui/src/components/markdown/__tests__/code-block-singleton.test.ts`
+- `bun test --timeout=120000 packages/ui/src/components/markdown/__tests__/code-block-singleton.test.ts`
+- `bun test --timeout=120000`
+- `docker run --rm -v /tmp/t473-gitleaks-scan:/repo zricethezav/gitleaks:latest dir /repo --redact --no-banner`
 - `bun run rebrand:r11-preflight`
 - `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite`
 
 ## 8. Passing test output summary
 
 `bun test scripts/__tests__/rebrand-r11-completion-audit.test.ts` passed: 30
-tests, 0 failures, 334 assertions.
+tests, 0 failures, 333 assertions after the PR review follow-up tightened the
+post-T470 section guard.
 
 `bun run validate:docs` passed: 11 skills, 440 tickets, 7 required docs; 4
 architecture docs with 10 subsystem headings; sync-v2 design validated.
@@ -93,9 +99,15 @@ allowlist.
 `bun run lint` passed with existing warnings about unused disable directives
 and React hook dependency arrays.
 
-`bun test` completed with 6910 pass, 13 skip, and 1 timeout in
-`packages/server-core/src/webui/__tests__/http-server.test.ts`. The timed-out
-case passed on an isolated rerun: 7 pass, 0 fail, 21 assertions.
+Default `bun test` completed with 6909 pass, 13 skip, and 2 timeout failures in
+`packages/ui/src/components/markdown/__tests__/code-block-singleton.test.ts`;
+the timed-out assertions later completed, and the same file passed with an
+explicit higher timeout: 7 pass, 0 fail, 22 assertions.
+
+`bun test --timeout=120000` passed across the full suite: 6911 pass, 13 skip,
+0 fail, 1 snapshot, and 27529 assertions across 566 files.
+
+Docker Gitleaks changed-file scan passed: scanned 76.29 KB and found no leaks.
 
 ## 9. Build output summary
 
@@ -115,6 +127,11 @@ expected branch-local blocker, which is not an R.11 artifact drift.
 
 This ticket does not authorize tag mutation, branch cleanup, backup creation,
 mirrors, history rewrite, force-push, `/goal` clearing, or goal completion.
+
+Default `bun test` still exposes a Shiki startup budget issue in the CodeBlock
+singleton contract under Bun's 5s per-test timeout. The behavior is covered by
+the timeout-adjusted full run, but the default-timeout harness remains a merge
+consideration outside this report-only ticket.
 
 ## 11. Acceptance criteria matrix
 
