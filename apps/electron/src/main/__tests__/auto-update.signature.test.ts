@@ -26,7 +26,17 @@
  *        update-downloaded / update-not-available / error events.
  */
 
-import { describe, it, expect, beforeEach, mock } from 'bun:test'
+import { describe, it, expect, beforeEach, afterAll, mock } from 'bun:test'
+import * as realSharedFiles from '@rox-one/shared/utils/files'
+import * as realFs from 'node:fs'
+import * as realOs from 'node:os'
+import * as realPath from 'node:path'
+
+const actualReadJsonFileSync = realSharedFiles.readJsonFileSync
+const actualFsExistsSync = realFs.existsSync
+const actualFsReaddirSync = realFs.readdirSync
+const actualPathJoin = realPath.join
+const actualOsPlatform = realOs.platform
 
 // ─── Mock logger first (before any module under test is imported) ─────────────
 
@@ -80,8 +90,12 @@ mock.module('@rox-one/shared/config', () => ({
   clearDismissedUpdateVersion: mock(() => {}),
 }))
 
+const mockReadJsonFileSync = mock(actualReadJsonFileSync)
+mockReadJsonFileSync.mockImplementation(() => null)
+
 mock.module('@rox-one/shared/utils/files', () => ({
-  readJsonFileSync: mock(() => null),
+  ...realSharedFiles,
+  readJsonFileSync: mockReadJsonFileSync,
 }))
 
 // ─── Mock menu (async import inside update-downloaded handler) ────────────────
@@ -92,25 +106,53 @@ mock.module('../menu', () => ({
 
 // ─── Mock fs (used by checkForExistingDownload) ────────────────────────────────
 
-const mockFsExistsSync = mock((_path: string) => false)
-const mockFsReaddirSync = mock((_path: string) => [] as string[])
+const mockFsExistsSync = mock(actualFsExistsSync)
+const mockFsReaddirSync = mock(actualFsReaddirSync)
+mockFsExistsSync.mockImplementation(() => false)
+mockFsReaddirSync.mockImplementation(() => [])
 
-mock.module('fs', () => ({
+const mockFsModule = () => ({
+  ...realFs,
   existsSync: mockFsExistsSync,
   readdirSync: mockFsReaddirSync,
-}))
+})
+
+mock.module('fs', mockFsModule)
+mock.module('node:fs', mockFsModule)
 
 // ─── Mock path (used by getUpdateCacheDir) ─────────────────────────────────────
 
-mock.module('path', () => ({
-  join: (...parts: string[]) => parts.join('/'),
-}))
+const mockPathJoin = mock(actualPathJoin)
+mockPathJoin.mockImplementation((...parts: string[]) => parts.join('/'))
+
+const mockPathModule = () => ({
+  ...realPath,
+  join: mockPathJoin,
+})
+
+mock.module('path', mockPathModule)
+mock.module('node:path', mockPathModule)
 
 // ─── Mock os ──────────────────────────────────────────────────────────────────
 
-mock.module('os', () => ({
-  platform: mock(() => 'linux'),
-}))
+const mockOsPlatform = mock(actualOsPlatform)
+mockOsPlatform.mockImplementation(() => 'linux')
+
+const mockOsModule = () => ({
+  ...realOs,
+  platform: mockOsPlatform,
+})
+
+mock.module('os', mockOsModule)
+mock.module('node:os', mockOsModule)
+
+afterAll(() => {
+  mockReadJsonFileSync.mockImplementation(actualReadJsonFileSync)
+  mockFsExistsSync.mockImplementation(actualFsExistsSync)
+  mockFsReaddirSync.mockImplementation(actualFsReaddirSync)
+  mockPathJoin.mockImplementation(actualPathJoin)
+  mockOsPlatform.mockImplementation(actualOsPlatform)
+})
 
 // semver is NOT mocked — the real package is used so W-3 tests exercise
 // actual semver comparison logic. Only platform-native and unavailable
@@ -123,10 +165,11 @@ mock.module('os', () => ({
 //   c) checkForUpdates() propagates errors rather than swallowing them silently
 
 type EventHandler = (...args: unknown[]) => void | Promise<void>
+type MockUpdateResult = { updateInfo: null | { version: string } }
 const autoUpdaterListeners: Record<string, EventHandler[]> = {}
 
 // Tracks calls made to the mocked autoUpdater
-const mockCheckForUpdates = mock(async () => ({ updateInfo: null }))
+const mockCheckForUpdates = mock(async (): Promise<MockUpdateResult> => ({ updateInfo: null }))
 const mockQuitAndInstall = mock((_isSilent: boolean, _isForceRunAfter: boolean) => {})
 
 const mockAutoUpdater = {
