@@ -21,6 +21,12 @@ function requireText(source: string, expected: string, description: string) {
   }
 }
 
+function refuseText(source: string, forbidden: string, description: string) {
+  if (source.includes(forbidden)) {
+    fail(`workflow contains forbidden ${description}: ${forbidden}`);
+  }
+}
+
 const packageJson = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
 const scripts = packageJson.scripts ?? {};
 
@@ -106,6 +112,8 @@ requireText(afterSignHook, "'--options'", 'private mac afterSign codesign option
 requireText(afterSignHook, "'runtime'", 'private mac afterSign hardened runtime option');
 requireText(afterSignHook, "'--entitlements'", 'private mac afterSign entitlements flag');
 requireText(afterSignHook, 'build/entitlements.mac.plist', 'private mac afterSign entitlements path');
+requireText(afterSignHook, 'collectSignablePaths', 'private mac afterSign explicit nested signing plan');
+refuseText(afterSignHook, "'--deep'", 'private mac afterSign blanket nested signing flag');
 requireText(macArmScript, "arch: ['arm64']", 'generated arm64-only builder target');
 requireText(macArmScript, 'downloadBun', 'Darwin arm64 Bun runtime download');
 requireText(macArmScript, "platform: 'darwin'", 'Darwin runtime platform');

@@ -114,6 +114,12 @@ describe('validate-mac-boundary-fixtures contract (M.18 T251)', () => {
     expect(source).toContain('--entitlements');
     expect(source).toContain('build/entitlements.mac.plist');
     expect(source).toContain('ROX.ONE.app');
+    expect(source).toContain('collectSignablePaths');
+    expect(source).toContain('SIGNABLE_FILE_NAMES');
+    expect(source).toContain("'claude'");
+    expect(source).toContain("'bun'");
+    expect(source).toContain("'rg'");
+    expect(source).not.toContain("'--deep'");
   });
 
   test('live mac validator requests codesign metadata separately from entitlements', async () => {
@@ -128,6 +134,12 @@ describe('validate-mac-boundary-fixtures contract (M.18 T251)', () => {
     expect(source).toContain("new Set(['com.rox.one', 'ROX.ONE'])");
     expect(source).toContain('assertCodesignIdentifier(codesignMetadata.output)');
     expect(source).toContain('signingOutputText: liveSigningOutput');
-    expect(source).toContain('requireNativeBinaryEntries: false');
+    expect(source).not.toContain('requireNativeBinaryEntries: false');
+  });
+
+  test('live mac validator recursively verifies the signed app bundle', async () => {
+    const source = await Bun.file(validatorPath).text();
+    expect(source).toContain("run('codesign', ['--verify', '--deep', '--strict', '--verbose=4', appPath])");
+    expect(source).toContain('codesign recursive verification failed');
   });
 });

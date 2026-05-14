@@ -66,5 +66,5 @@ None required.
 - [x] Mac packaging config wires a post-sign runtime enforcement hook.
 - [x] Mac boundary tests and validators pass locally.
 - [x] User-data migration conflict resolution passes its targeted tests.
-- [x] PR #217 is ready to push for fresh CI from the T478 commit.
+- [x] PR #217 was pushed for fresh CI from T478 commit `4b9fd262`.
 - [x] No destructive R.11 action is performed.
