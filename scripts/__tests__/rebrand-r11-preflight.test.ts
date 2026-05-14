@@ -120,6 +120,7 @@ describe('R.11 goal documentation', () => {
     )
 
     expect(goal).toContain('bun run rebrand:r11-preflight')
+    expect(goal).toContain('bun run rebrand:r11-preflight --stage pre-rewrite')
     expect(goal).toContain('report-only')
   })
 })
