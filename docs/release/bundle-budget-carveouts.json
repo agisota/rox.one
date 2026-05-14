@@ -38,6 +38,12 @@
       "maxGzipBytes": 250000,
       "ticket": "T132",
       "note": "Shiki WASM loader chunk baseline ~231 KB gz."
+    },
+    {
+      "pattern": "pdf\\.worker\\.min-[A-Za-z0-9_-]+\\.mjs$",
+      "maxGzipBytes": 400000,
+      "ticket": "T132",
+      "note": "pdfjs-dist web worker, lazy-loaded on PDF render only, runs off-thread; not on critical render path. Baseline 2026-05-14: ~362 KB gz. Ceiling 400 KB leaves headroom for pdfjs-dist patch-level upstream growth."
     }
   ],
   "cssChunks": [],
