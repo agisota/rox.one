@@ -1,6 +1,6 @@
 # T360 - RC S09 Full Gate And Smoke Harness Repair
 
-Status: Todo
+Status: Blocked
 
 ## Context
 
@@ -11,22 +11,24 @@ the ROX-owned custom-flow surface. T347 requires the shared smoke command:
 bun run e2e:smoke -- --scenario s09-upstream-rox-flows
 ```
 
-On rebased code base `23a91c7e`, the S09 smoke scenario is not registered in
-`scripts/e2e-smoke.ts`. The full `bun test` gate is also red with 181 failures
-and 2 errors across the community-link audit, file RPC scope handling, session
-persistence, audit sink/bootstrap, storage/config migration and scope behavior,
-user-data and theme persistence, tenant credential fallback, i18n/labels,
-resource/session bundling, workspace skills, large-result guards, default
-workspace bundle, Electron storage scope, runtime resolver paths, and backend
-creation.
-`origin/main` advanced again to `e10537ef` after this evidence was captured, so
-repair work should rebase before implementation and refresh the full gate.
+On rebased code base `e10537ef`, the S09 smoke scenario is now registered in
+`scripts/e2e-smoke.ts` and passes. The full `bun test` gate is still red with
+181 failures and 2 errors across the community-link audit, file RPC scope
+handling, session persistence, audit sink/bootstrap, storage/config migration
+and scope behavior, user-data and theme persistence, tenant credential fallback,
+i18n/labels, resource/session bundling, workspace skills, large-result guards,
+default workspace bundle, Electron storage scope, runtime resolver paths, and
+backend creation.
+
+`origin/main` advanced again to `303b0b05` after this evidence was captured.
+[T361](T361-rc-s09-full-suite-shared-fixture-repair.md) carries the remaining
+full-suite repair so the S09 harness registration can stay atomic.
 
 ## Goal
 
-Register `s09-upstream-rox-flows` in the RC smoke harness and repair the S09 full
-gate so the upstream base can be validated against the ROX custom-flow surface
-without broad suite regressions.
+Register `s09-upstream-rox-flows` in the RC smoke harness and identify the
+remaining full-gate blocker so the upstream base can be validated against the
+ROX custom-flow surface without hiding broad suite regressions.
 
 ## TDD Requirements
 
@@ -46,8 +48,8 @@ without broad suite regressions.
 - Preserve the `plan.md §6.2` protected ROX path list.
 - Split follow-up repair tickets if investigation shows unrelated root causes
   that should not be fixed atomically with the S09 harness registration.
-- Mark this ticket `DONE` only after the S09 smoke command and full test suite
-  pass locally.
+- Keep this ticket `Blocked` while [T361](T361-rc-s09-full-suite-shared-fixture-repair.md)
+  owns the remaining full-suite failures.
 
 ## Validation Commands
 
@@ -66,16 +68,17 @@ git diff --check
 
 ## Acceptance Criteria
 
-- [ ] `s09-upstream-rox-flows` is listed in supported smoke scenarios.
-- [ ] S09 smoke runs the current ROX custom-flow coverage rather than stale
+- [x] `s09-upstream-rox-flows` is listed in supported smoke scenarios.
+- [x] S09 smoke runs the current ROX custom-flow coverage rather than stale
       globs.
 - [ ] `bun test` passes with zero failures.
 - [ ] C4 tenant isolation tests pass in the full gate.
 - [ ] RBAC policy and RPC tests pass in the full gate.
 - [ ] Experience Layer tests pass in the full gate.
 - [ ] The R.9 community-link audit remains strict and passes.
-- [ ] `bun run typecheck` and `bun run lint` pass.
-- [ ] Worklog captures red/green evidence for every repaired cluster.
+- [x] `bun run typecheck` and `bun run lint` pass.
+- [x] Worklog captures red/green evidence for the harness registration and
+      points the remaining full-suite clusters at T361.
 
 ## Worklog
 
