@@ -12,19 +12,19 @@ stop state. The destructive history rewrite has not started.
 ## 2. Repo context discovered
 
 The rebrand-sweep goal requires R.11 to run only after all hard prerequisites
-are true. Current report-only preflight evidence after T376:
+are true. Current staged report-only preflight evidence after T380:
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
 | No active `/goal` runs | `get_goal` still reports the rebrand-sweep goal active | Blocked |
 | No open PRs | `gh pr list --state open --json number,title,headRefName,url --limit 200` returned `[]` | Green |
 | `rebrand-v1` tag exists | Preflight reports pass | Green |
-| Backup tag exists | Preflight reports `pre-rebrand-history-rewrite-backup` missing | Blocked |
-| Offline mirror exists | Preflight reports `/tmp/rox-one-terminal-backup-2026-05-13.git` missing | Blocked |
+| Backup tag exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
+| Offline mirror exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | `git-filter-repo` available | Preflight reports pass after T371 PATH bridge | Green |
 | R.11 closeout ticket exists | This ticket/worklog establishes the path | In progress |
 | `main` synced with `origin/main` | Preflight reports `0 0` | Green |
-| Worktree clean | Preflight reports pass in the clean `/home/dev/rox-m11-repair` worktree; the primary worktree still has pre-existing untracked temp dirs | Mixed |
+| Worktree clean | Default preflight reports pass in the primary worktree | Green |
 
 ## 3. Files inspected
 
@@ -110,9 +110,10 @@ exited 0 with no output.
 No build expected for this scaffold. The future destructive rewrite must run
 the full post-rewrite build matrix before this ticket can become `DONE`.
 
-### Current follow-up evidence, 2026-05-14T02:23:04Z
+### Current follow-up evidence, 2026-05-14T02:37:09Z
 
-T375 and T376 refreshed the blocker state after PR #205 merged:
+T375 through T380 refreshed the blocker state after PR #205 merged and after
+the staged preflight split landed:
 
 - GitHub reports no open PRs.
 - GitHub fork count is `0`.
@@ -121,34 +122,44 @@ T375 and T376 refreshed the blocker state after PR #205 merged:
 - `pre-rebrand-history-rewrite-backup` does not exist on `origin`.
 - `/tmp/rox-one-terminal-backup-2026-05-13.git` does not exist.
 - The active Codex goal is still this rebrand sweep.
+- The default pre-backup helper no longer requires backup artifacts before the
+  backup procedure can create them.
+- The explicit pre-rewrite helper still requires backup artifacts before any
+  `git filter-repo` invocation.
 - A lightweight history check still finds old `rox-agent` / `Rox Agents`
   strings in git history, so the final `git log -p --all` gate cannot pass
   before the authorized rewrite.
 
-The latest report-only preflight remains red on three blockers:
+The latest default pre-backup preflight remains red on one blocker:
 
 ```text
 no-active-goal       fail    Missing ROX_R11_NO_ACTIVE_GOAL=1 ac...
+red - 1 R.11 pre-backup prerequisite(s) failing
+```
+
+The latest explicit pre-rewrite preflight remains red on backup artifacts:
+
+```text
 backup-tag           fail    pre-rebrand-history-rewrite-backup ...
 offline-mirror       fail    /tmp/rox-one-terminal-backup-2026-0...
-red - 3 R.11 prerequisite(s) failing
+red - 2 R.11 pre-rewrite prerequisite(s) failing
 ```
 
 ## 10. Remaining risks
 
-R.11 remains blocked by active goal state, missing backup tag, and missing
-offline mirror. The destructive phase must not start until the report-only
-preflight is green and the operator has explicitly moved out of active goal
-mode.
+R.11 pre-backup remains blocked by active goal state. Backup tag and offline
+mirror creation must wait until that hard stop is truthfully cleared. After
+backup creation, `bun run rebrand:r11-preflight --stage pre-rewrite` must pass
+before any `git filter-repo` invocation.
 
 ## 11. Acceptance criteria matrix
 
 | Acceptance criterion | Status | Evidence |
 | --- | --- | --- |
-| R.11 preflight is green before backup creation | Blocked | Active goal, backup tag, and offline mirror still fail |
+| R.11 preflight is green before backup creation | Blocked | Default pre-backup gate fails only on active goal |
 | Backup tag exists on origin | Blocked | Not created while preflight is red |
 | Backup branch exists on origin | Blocked | Not created while preflight is red |
-| Offline mirror exists | Blocked | Not created while preflight is red |
+| Offline mirror exists | Blocked | Not created while pre-backup gate is red |
 | `git filter-repo` command history is recorded | Blocked | `git filter-repo` has not run |
 | Legal-preserve byte diffs are empty | Blocked | Cannot run before rewrite |
 | Dockerfile upstream attribution URL remains intact | Blocked | Must verify after rewrite |
