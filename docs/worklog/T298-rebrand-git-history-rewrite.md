@@ -12,7 +12,8 @@ stop state. The destructive history rewrite has not started.
 ## 2. Repo context discovered
 
 The rebrand-sweep goal requires R.11 to run only after all hard prerequisites
-are true. Current staged report-only preflight evidence after T402:
+are true. Current staged report-only preflight evidence is summarized in the
+durable audit at `docs/release/r11-completion-audit-2026-05-14.md`:
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
@@ -120,7 +121,7 @@ the full post-rewrite build matrix before this ticket can become `DONE`.
 
 ### Current follow-up evidence pointers
 
-T409-T411 now keep the durable R.11 completion audit and current-main
+T409-T412 now keep the durable R.11 completion audit and current-main
 validation evidence in
 `docs/release/r11-completion-audit-2026-05-14.md`. This T298 worklog remains
 the destructive closeout surface; use the completion audit for the latest
