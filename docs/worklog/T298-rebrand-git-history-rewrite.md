@@ -128,7 +128,7 @@ current-main validation evidence, and exact report-only blocker IDs in
 the destructive closeout surface; use the completion audit for the latest
 report-only blocker matrix until R.11 is unblocked.
 
-The latest report-only evidence chain is:
+Representative report-only evidence anchors include:
 
 - T439 extended the roadmap validator so `bun run validate:roadmap` validates
   committed rebrand rows in `.swarm/master-roadmap-log.md` and currently
@@ -140,6 +140,15 @@ The latest report-only evidence chain is:
 - T442 refreshed `docs/release/r11-completion-audit-2026-05-14.md` so the
   durable completion audit points at the T441 mapping evidence without
   claiming post-rewrite completion.
+- T449 refreshed the durable completion audit so it records the latent
+  `backup-tag-target`, `backup-branch-target`, and `offline-mirror-target`
+  rows enforced after backup artifacts exist.
+- T450 refreshed this T298 closeout surface so the future destructive path
+  requires those target rows to pass before any `git filter-repo` invocation.
+
+This list is a set of stable anchors, not a live chronology. Later report-only
+audit-hygiene tickets carry their own fresh targeted validation evidence in
+their worklogs.
 
 Status: BLOCKED remains the only truthful T298 state until the R.11 rewrite,
 post-rewrite validation matrix, legal-preserve checks, and history scan all
