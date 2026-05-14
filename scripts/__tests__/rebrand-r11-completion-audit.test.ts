@@ -295,6 +295,18 @@ describe('R.11 completion audit', () => {
     expect(backlog).toContain('Do not delete remote branches or mutate tags until an operator-owned destructive window is explicit')
   })
 
+  test('records post-T468 worklist evidence in the completion audit', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+
+    expect(audit).toContain('Post-T468 worklist evidence')
+    expect(audit).toContain('`604e0f5e`')
+    expect(audit).toContain('`docs/release/r11-consolidation-backlog-2026-05-14.md`')
+    expect(audit).toContain('`## Full Remaining Worklist`')
+    expect(audit).toContain('open PRs remain 0')
+    expect(audit).toContain('default preflight remains red with 4 blockers')
+    expect(audit).toContain('pre-rewrite preflight remains red with 7 blockers')
+  })
+
   test('records exact current report-only blocker IDs', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const currentBlockers =
