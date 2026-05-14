@@ -63,7 +63,7 @@ non-zero.
 - `bun run lint`
 - `bun run build`
 - `git log --oneline | wc -l`
-- `git log -p --all` forbidden-token history scan
+- `bun run rebrand:r11-history-scan`
 
 ## Acceptance Criteria
 
