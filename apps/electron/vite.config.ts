@@ -63,6 +63,52 @@ export default defineConfig(({ command }) => {
           const name = chunkInfo.name ?? 'chunk'
           return `assets/${name}-[hash].js`
         },
+        // T132e (RC1 blocker): force heavy vendor libs out of the `main` entry chunk
+        // so the app-shell entry stays under the 400 KB gz carve-out ceiling. Each
+        // bucket gets its own named chunk. The chunk names below intentionally
+        // start with `index-` so they match the existing `index-*.js` carve-out
+        // pattern in docs/release/bundle-budget-carveouts.json (ceiling 1.5 MB gz),
+        // mirroring the previous behavior where these modules all lived in the
+        // single index-*.js chunk before T132e redistribution.
+        //   - sonner-*           (toast lib; <Toaster /> mounts from main.tsx)
+        //   - sentry-*           (@sentry/react + @sentry/electron + integrations)
+        //   - i18n-*             (i18next + react-i18next + LanguageDetector)
+        //   - index-react-*      (react + react-dom + scheduler — the React runtime)
+        //   - index-radix-*      (@radix-ui/* primitive headless components)
+        //   - index-jotai-*      (jotai state management)
+        //   - index-ui-*         (@rox-one/ui — internal design-system package)
+        // Without these explicit buckets, the auto-chunker keeps these modules in
+        // whichever entry first imports them, inflating main-*.js past budget.
+        // Rollup may emit "circular chunk" warnings for the index-* buckets —
+        // the chunks still execute correctly because the cycles resolve at
+        // runtime through ESM live bindings (same semantics as Webpack
+        // splitChunks). The pre-T132e build collapsed all of this into a single
+        // index-*.js chunk and shipped fine.
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('/sonner/')) return 'sonner'
+            if (id.includes('/@sentry/')) return 'sentry'
+            if (
+              id.includes('/i18next/') ||
+              id.includes('/react-i18next/') ||
+              id.includes('/i18next-browser-languagedetector/')
+            ) {
+              return 'i18n'
+            }
+            if (
+              id.includes('/react/') ||
+              id.includes('/react-dom/') ||
+              id.includes('/scheduler/')
+            ) {
+              return 'index-react'
+            }
+            if (id.includes('/@radix-ui/')) return 'index-radix'
+            if (id.includes('/jotai/')) return 'index-jotai'
+          }
+          if (id.includes('/packages/ui/')) return 'index-ui'
+          if (id.includes('/packages/shared/')) return 'index-shared'
+          return undefined
+        },
       },
     }
   },
