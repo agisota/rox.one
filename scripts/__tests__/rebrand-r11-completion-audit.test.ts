@@ -64,6 +64,12 @@ const currentMainValidationPath = join(
   'release',
   'r11-current-main-validation-2026-05-14.md',
 )
+const consolidationBacklogPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-consolidation-backlog-2026-05-14.md',
+)
 const rebrandMappingPath = join(
   repoRoot,
   'docs',
@@ -235,6 +241,21 @@ describe('R.11 completion audit', () => {
     expect(currentMainValidationReport).not.toContain('freshness evidence')
   })
 
+  test('records the current consolidation backlog as the execution surface', () => {
+    const backlog = readFileSync(consolidationBacklogPath, 'utf8')
+
+    expect(backlog).toContain('Status: ACTIVE CONSOLIDATION BACKLOG')
+    expect(backlog).toContain('origin/main: `2fa129f3`')
+    expect(backlog).toContain('Open PRs: `#214`')
+    expect(backlog).toContain('CI blocked by GitHub account billing lock')
+    expect(backlog).toContain('149')
+    expect(backlog).toContain('148 non-main/non-R.11-backup')
+    expect(backlog).toContain('132 merged PR branch cleanup candidates')
+    expect(backlog).toContain('14 operator-review branches')
+    expect(backlog).toContain('destructive R.11 gates')
+    expect(backlog).toContain('No branch deletion, tag mutation, backup ref creation, mirror creation, filter-repo, force-push, or PR merge was authorized by this artifact')
+  })
+
   test('records exact current report-only blocker IDs', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const currentBlockers =
@@ -256,7 +277,6 @@ describe('R.11 completion audit', () => {
       'dockerfile-source-attribution',
       'history-scan',
       'current-branch',
-      'main-sync',
     ]) {
       expect(currentBlockers).toContain(blockerId)
     }
@@ -269,31 +289,22 @@ describe('R.11 completion audit', () => {
     const preflightContextInventory = readFileSync(preflightContextInventoryPath, 'utf8')
 
     expect(currentBlockers).toContain('no-open-prs')
-    expect(currentBlockers).toContain('#207')
-    expect(currentBlockers).toContain('#208')
-    expect(currentBlockers).toContain('#209')
-    expect(currentBlockers).toContain('#210')
-    expect(currentBlockers).toContain('#211')
-    expect(currentBlockers).toContain('#212')
+    expect(currentBlockers).toContain('#214')
     expect(currentBlockers).toContain('docs/release/r11-preflight-context-inventory-2026-05-14.md')
     expect(currentBlockers).toContain('current-branch')
-    expect(currentBlockers).toContain('Current checkout is report/r11-t461-local-checkout-context')
+    expect(currentBlockers).toContain('Current checkout is report/r11-t463-consolidation-backlog')
     expect(currentBlockers).toContain('main-sync')
-    expect(currentBlockers).toContain('origin/main...main is not 0 0')
+    expect(currentBlockers).toContain('origin/main...main is 0 0')
     expect(currentBlockers).toContain('worktree-clean')
     expect(currentBlockers).toContain('git status --porcelain is empty')
     expect(preflightContextInventory).toContain('Status: PREFLIGHT CONTEXT BLOCKERS')
-    expect(preflightContextInventory).toContain('Open PRs: 6')
-    expect(preflightContextInventory).toContain('#207')
-    expect(preflightContextInventory).toContain('#208')
-    expect(preflightContextInventory).toContain('#209')
-    expect(preflightContextInventory).toContain('#210')
-    expect(preflightContextInventory).toContain('#211')
-    expect(preflightContextInventory).toContain('#212')
-    expect(preflightContextInventory).toContain('Current checkout: `report/r11-t461-local-checkout-context`')
-    expect(preflightContextInventory).toContain('Local `main`: `8ce67b4d`')
-    expect(preflightContextInventory).toContain('Origin `main`: `56de1480`')
-    expect(preflightContextInventory).toContain('origin/main...main: `3 1`')
+    expect(preflightContextInventory).toContain('Open PRs: 1')
+    expect(preflightContextInventory).toContain('#214')
+    expect(preflightContextInventory).toContain('Current checkout: `report/r11-t463-consolidation-backlog`')
+    expect(preflightContextInventory).toContain('Report-only worktree `HEAD`: `2fa129f3`')
+    expect(preflightContextInventory).toContain('Local `main`: `2fa129f3`')
+    expect(preflightContextInventory).toContain('Origin `main`: `2fa129f3`')
+    expect(preflightContextInventory).toContain('origin/main...main: `0 0`')
     expect(preflightContextInventory).toContain('does not authorize destructive R.11 work')
     expect(audit).toContain('This does not satisfy the final post-rewrite validation requirement')
   })
@@ -382,11 +393,13 @@ describe('R.11 completion audit', () => {
     const remoteBranchReview = readFileSync(remoteBranchReviewPath, 'utf8')
 
     expect(currentBlockers).toContain('remote-branch-review')
-    expect(currentBlockers).toContain('146 non-main/non-R.11-backup origin branches')
+    expect(currentBlockers).toContain('148 non-main/non-R.11-backup origin branches')
     expect(currentBlockers).toContain('docs/release/r11-remote-branch-review-2026-05-14.md')
-    expect(remoteBranchReview).toContain('Total origin heads: 147')
-    expect(remoteBranchReview).toContain('Non-main/non-R.11-backup origin branches: 146')
+    expect(remoteBranchReview).toContain('Total origin heads: 149')
+    expect(remoteBranchReview).toContain('Non-main/non-R.11-backup origin branches: 148')
     expect(remoteBranchReview).toContain('operator-review-required')
+    expect(remoteBranchReview).toContain('feat/M14-T250-rpc-admin-audit-list')
+    expect(remoteBranchReview).toContain('fix/t132-main-bundle-regression')
     expect(remoteBranchReview).toContain('docs/M20-T299-phase-20-closeout')
     expect(remoteBranchReview).toContain('chore/bundle-budget-pdf-worker-carveout')
     expect(remoteBranchReview).toContain('fix/renderer-prod-sourcemap-leak')
@@ -515,7 +528,7 @@ describe('R.11 completion audit', () => {
       'active `/goal` run',
       '`rebrand-v1` tag targets',
       'origin/main ancestry',
-      '146 non-main/non-R.11-backup origin branches',
+      '148 non-main/non-R.11-backup origin branches',
       'backup tag, backup branch, and offline mirror',
       'legal-preserve',
       'history scan',
