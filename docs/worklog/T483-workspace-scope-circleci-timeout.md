@@ -1,6 +1,6 @@
 # T483 - Workspace scope CircleCI timeout stabilization
 
-Status: READY FOR HOSTED CI
+Status: DONE
 Phase: CI validation repair
 Ticket: docs/tickets/T483-workspace-scope-circleci-timeout.md
 
@@ -90,10 +90,11 @@ verified the 236.3 MB SDK native binary copy.
 
 ## 10. Remaining risks
 
-Hosted PR #218 repo-controlled checks still need a fresh rerun after this
-commit. GitHub macOS ARM64 package is still expected to fail before job steps
-because of the account billing/spending-limit condition. R.11 remains blocked
-and not complete.
+PR #218 merged into `main` at `660daad5` after hosted repo-controlled checks
+passed. The only remaining hosted failure was the GitHub macOS ARM64 package
+job, which failed before job steps because of the known account
+billing/spending-limit condition; CircleCI `mac-arm-build` passed for the same
+head SHA. R.11 remains blocked and not complete.
 
 ## 11. Acceptance criteria matrix
 
@@ -102,5 +103,5 @@ and not complete.
 | Hosted RED evidence identifies a C4 workspace-scope timeout rather than an assertion failure | PASS | CircleCI build 156 artifact shows only the timeout for the target C4 case |
 | Workspace-scope timeout budget is explicit and test-only | PASS | `workspace-scope.test.ts` now calls `setDefaultTimeout(30_000)` |
 | The complete workspace-scope file passes locally without skipped cases | PASS | 54 pass, 0 fail, 54 expect calls |
-| Fresh PR #218 hosted repo-controlled checks pass, excluding known GitHub macOS ARM64 billing/spending-limit failure | PENDING | Pending hosted CI rerun after branch push |
+| Fresh PR #218 hosted repo-controlled checks pass, excluding known GitHub macOS ARM64 billing/spending-limit failure | PASS | PR #218 merged at `660daad5`; repo-controlled hosted checks passed, with only the known GitHub macOS ARM64 package billing/spending-limit failure excluded |
 | No destructive R.11 action is performed | PASS | No destructive R.11 command is recorded for T483 |

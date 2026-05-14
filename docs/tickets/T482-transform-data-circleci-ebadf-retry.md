@@ -1,6 +1,6 @@
 # T482 - Transform data CircleCI EBADF retry
 
-Status: READY FOR HOSTED CI
+Status: DONE
 
 ## Context
 
@@ -79,6 +79,6 @@ transform-data retry seam.
   capture.
 - [x] Direct transform-data path containment tests pass.
 - [x] CircleCI-equivalent local `bun run test:units` passes.
-- [ ] Fresh PR #218 hosted repo-controlled checks pass, excluding the known
+- [x] Fresh PR #218 hosted repo-controlled checks pass, excluding the known
   GitHub macOS ARM64 billing/spending-limit failure.
 - [x] No destructive R.11 action is performed.
