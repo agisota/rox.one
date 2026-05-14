@@ -50,9 +50,9 @@ Concrete deliverables:
 
 ## Current Blockers
 
-Fresh clean-tree evidence after commit `13d05e58`:
+Fresh evidence from the latest clean post-push checks:
 
-- `HEAD` and `origin/main` both resolve to `13d05e58`.
+- `HEAD` and `origin/main` resolve to the same pushed commit.
 - `git status --short --branch` reports `## main...origin/main`.
 - `bun run rebrand:r11-preflight` exits red with 3 blockers:
   `no-active-goal`, `rebrand-tag-local-sync`, and `rebrand-tag-on-main`.
