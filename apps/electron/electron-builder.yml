@@ -234,14 +234,27 @@ linux:
   # hook (apps/electron/scripts/afterPack-linux.cjs) emits the
   # canonical (T253 linux boundary ok) marker.
   category: Office
+  synopsis: "ROX.ONE Agent Workbench Suite"
+  description: |
+    ROX.ONE Agent Workbench Suite — local AI-agent desktop application
+    for managing multi-agent workflows, prompt modes, and team workspaces.
   maintainer: "roxone <support@rox.one>"
   executableName: rox-one
   desktop:
     Name: rox-one
     Exec: rox-one %U
     Categories: Office;Utility;Development;
+  # T253b: Add deb + rpm targets alongside AppImage for broad Linux
+  # package-manager coverage. Both share the canonical category, synopsis,
+  # and maintainer declared above.
   target:
     - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+    - target: rpm
       arch:
         - x64
   artifactName: "ROX-ONE-${arch}.${ext}"
@@ -263,3 +276,24 @@ linux:
     - "!**/vendor/copilot/win32-*/**"
     - "!**/resources/bin/darwin-*/**"
     - "!**/resources/bin/win32-*/**"
+
+# T253b: .deb package settings — system library dependencies and section.
+deb:
+  packageCategory: utils
+  depends:
+    - gconf2
+    - gconf-service
+    - libnotify4
+    - libappindicator1
+    - libxtst6
+    - libnss3
+    - libsecret-1-0
+
+# T253b: .rpm package settings — fpm overrides for Fedora/RHEL/openSUSE.
+rpm:
+  packageCategory: Applications/Office
+  depends:
+    - libnotify
+    - libxtst
+    - nss
+    - libsecret

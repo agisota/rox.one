@@ -138,6 +138,7 @@
     "validate:linux-private-release-boundary": "bun run scripts/validate-linux-private-release-boundary.ts",
     "validate:linux-boundary-fixtures": "bun run scripts/validate-linux-boundary-fixtures.ts",
     "validate:linux-signed-release-pipeline": "bun run scripts/validate-linux-signed-release-pipeline.ts",
+    "validate:linux-deb-rpm": "bun run scripts/validate-linux-deb-rpm.ts",
     "validate:e2e-core-scenarios": "bun run scripts/validate-e2e-core-scenarios.ts",
     "validate:packaged-artifacts": "bun run scripts/validate-packaged-artifacts.ts",
     "validate:bundle-policy": "bun run scripts/validate-bundle-policy.ts",
