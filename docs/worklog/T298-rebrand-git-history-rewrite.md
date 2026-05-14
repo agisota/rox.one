@@ -12,7 +12,7 @@ stop state. The destructive history rewrite has not started.
 ## 2. Repo context discovered
 
 The rebrand-sweep goal requires R.11 to run only after all hard prerequisites
-are true. Current staged report-only preflight evidence after T395:
+are true. Current staged report-only preflight evidence after T402:
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
@@ -28,6 +28,7 @@ are true. Current staged report-only preflight evidence after T395:
 | Backup tag exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | Backup branch exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | Offline mirror exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
+| Remote branches reviewed | Explicit pre-rewrite helper requires origin to expose only `main` and `backup/pre-rebrand-history-rewrite-2026-05-13`; origin currently has 139 non-main/non-R.11-backup branches | Pre-rewrite blocked |
 | `git-filter-repo` available | Preflight reports pass after T371 PATH bridge | Green |
 | R.11 closeout ticket exists | Exact files `docs/tickets/T298-rebrand-git-history-rewrite.md` and `docs/worklog/T298-rebrand-git-history-rewrite.md` exist with `Status: BLOCKED`; this is distinct from the unrelated `T298-rc-preflight` ticket | Green |
 | `main` synced with `origin/main` | Preflight reports `0 0` | Green |
@@ -117,12 +118,13 @@ exited 0 with no output.
 No build expected for this scaffold. The future destructive rewrite must run
 the full post-rewrite build matrix before this ticket can become `DONE`.
 
-### Current follow-up evidence, 2026-05-14T03:44:04Z
+### Current follow-up evidence, 2026-05-14T04:14:43Z
 
-T375 through T395 refreshed the blocker state after PR #205 merged, after
+T375 through T402 refreshed the blocker state after PR #205 merged, after
 the staged preflight split landed, after the R.11 local path runbook repair,
 after the pre-rewrite backup branch check landed, and after the fork-review
-closeout-prerequisite, tag-on-main, and local-tag-sync preflight rows landed:
+closeout-prerequisite, tag-on-main, local-tag-sync, and remote-branch-review
+preflight rows landed:
 
 - GitHub reports no open PRs.
 - GitHub fork count is `0`.
@@ -132,7 +134,10 @@ closeout-prerequisite, tag-on-main, and local-tag-sync preflight rows landed:
   differ.
 - The `rebrand-v1` target is not currently on `origin/main` ancestry.
 - `pre-rebrand-history-rewrite-backup` does not exist on `origin`.
+- `backup/pre-rebrand-history-rewrite-2026-05-13` does not exist on `origin`.
 - `/tmp/rox-one-terminal-backup-2026-05-13.git` does not exist.
+- Origin currently has 139 non-main/non-R.11-backup branches, so the explicit
+  pre-rewrite helper reports `remote-branch-review` as a blocker.
 - The active Codex goal is still this rebrand sweep.
 - The default pre-backup helper no longer requires backup artifacts before the
   backup procedure can create them.
@@ -159,6 +164,9 @@ closeout-prerequisite, tag-on-main, and local-tag-sync preflight rows landed:
   `origin/main` ancestry; the latest run reports it is not.
 - The helper now checks whether local `rebrand-v1` and origin `rebrand-v1`
   peel to the same commit; the latest run reports they do not.
+- The helper now checks stale remote branch state in explicit pre-rewrite mode;
+  the latest run reports 139 branches outside `main` and the R.11 backup
+  branch.
 
 The latest post-push default pre-backup preflight reports three blockers:
 
@@ -175,7 +183,7 @@ red - 3 R.11 pre-backup prerequisite(s) failing
 ```
 
 The latest explicit pre-rewrite preflight remains red on tag drift,
-tag-on-main, and backup artifacts:
+tag-on-main, backup artifacts, and stale remote branches:
 
 ```text
 rebrand-tag-local-sync fail  Local rebrand-v1 target differs fro...
@@ -183,20 +191,22 @@ rebrand-tag-on-main  fail    rebrand-v1 target is missing from o...
 backup-tag           fail    pre-rebrand-history-rewrite-backup ...
 backup-branch        fail    backup/pre-rebrand-history-rewrite-...
 offline-mirror       fail    /tmp/rox-one-terminal-backup-2026-0...
+remote-branch-review fail    origin has 139 non-main/non-R.11-ba...
 main-sync            pass    origin/main...main is 0 0.
 worktree-clean       pass    git status --porcelain is empty.
 rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
 phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
 phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
-red - 5 R.11 pre-rewrite prerequisite(s) failing
+red - 6 R.11 pre-rewrite prerequisite(s) failing
 ```
 
 ## 10. Remaining risks
 
 R.11 pre-backup remains blocked by active goal state, local/remote
 `rebrand-v1` tag drift, and the off-main `rebrand-v1` target. Backup tag,
-backup branch, and offline mirror creation must wait until those hard stops are
-truthfully cleared. After backup creation, `bun run rebrand:r11-preflight
+backup branch, offline mirror creation, and remote branch cleanup/review must
+wait until those hard stops are truthfully cleared and a separate R.11 unblock
+path authorizes them. After backup creation, `bun run rebrand:r11-preflight
 --stage pre-rewrite` must pass before any `git filter-repo` invocation.
 
 ## 11. Acceptance criteria matrix
@@ -207,6 +217,7 @@ truthfully cleared. After backup creation, `bun run rebrand:r11-preflight
 | Backup tag exists on origin | Blocked | Not created while preflight is red |
 | Backup branch exists on origin | Blocked | Not created while preflight is red |
 | Offline mirror exists | Blocked | Not created while preflight is red |
+| Remote branches reviewed before rewrite | Blocked | Explicit pre-rewrite gate fails on 139 non-main/non-R.11-backup origin branches |
 | `git filter-repo` command history is recorded | Blocked | `git filter-repo` has not run |
 | Legal-preserve byte diffs are empty | Blocked | Cannot run before rewrite |
 | Dockerfile upstream attribution URL remains intact | Blocked | Must verify after rewrite |
