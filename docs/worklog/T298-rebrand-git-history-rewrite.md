@@ -149,6 +149,8 @@ preflight rows landed:
 - A lightweight history check still finds old `rox-agent` / `Rox Agents`
   strings in git history, so the final `git log -p --all` gate cannot pass
   before the authorized rewrite.
+- The report-only `bun run rebrand:r11-history-scan` helper now wraps that
+  history gate and currently exits red with bounded finding output.
 - The R.11 offline mirror and rollback snippets now point at the current
   checkout path, `/home/dev/craft/rox-one-terminal`, and the regression test
   fails if `/home/dev/rox/rox-one-terminal` returns.
@@ -228,6 +230,6 @@ path authorizes them. After backup creation, `bun run rebrand:r11-preflight
 | Post-rewrite validation matrix is green | Blocked | Not allowed while preflight is red |
 | README coordination banner is handled if required | Blocked | Only required after force-push |
 | Mapping report records R.11 closeout SHA | Blocked | `docs/release/rebrand-mapping-2026-05-13.md` carries only an R.11 pending slot until the rewrite completes |
-| `git log -p --all` history scan is clean | Blocked | Historical forbidden-token matches remain until the authorized rewrite runs |
+| `git log -p --all` history scan is clean | Blocked | `bun run rebrand:r11-history-scan` exits red until the authorized rewrite runs |
 | Worklog is complete with command evidence | Blocked | This scaffold records current blockers only |
 | Commit or force-push result is recorded | Blocked | No destructive result exists yet |

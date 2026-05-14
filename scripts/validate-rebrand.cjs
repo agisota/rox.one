@@ -149,6 +149,10 @@ function isWholeFileAllowlisted(path) {
   if (path === 'scripts/__tests__/r7-docker-ci-build.test.ts') return true
   if (path === 'scripts/__tests__/electron-packaged-smoke-contract.test.ts') return true
   if (path === 'scripts/__tests__/electron-smoke.test.ts') return true
+  // Allowlist reason: R.11 history-scan runner and tests necessarily contain
+  // the literal legacy tokens they detect in historical patches.
+  if (path === 'scripts/rebrand-r11-history-scan.ts') return true
+  if (path === 'scripts/__tests__/rebrand-r11-history-scan.test.ts') return true
 
   // Allowlist reason: scripts/install-app.* / install-server.sh /
   // docker-smoke-test.sh / generate-dev-cert.sh / build-server.ts and the

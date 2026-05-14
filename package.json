@@ -125,6 +125,7 @@
     "validate:docs": "bun run validate:agent-contract && bun run validate:architecture-docs && bun run validate:sync-v2-design",
     "validate:rebrand": "bun run scripts/validate-rebrand.cjs",
     "validate:roadmap": "node scripts/validate-roadmap-coherence.cjs",
+    "rebrand:r11-history-scan": "bun run scripts/rebrand-r11-history-scan.ts",
     "validate:architecture-docs": "bun run scripts/validate-architecture-docs.ts",
     "validate:sync-v2-design": "bun run scripts/validate-sync-v2-design.ts",
     "validate:ci-contract": "bun run scripts/validate-ci-contract.ts",
