@@ -142,6 +142,18 @@ describe('R.11 completion audit', () => {
     )
   })
 
+  test('records post-T439 roadmap ledger validation evidence', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const currentMainValidation =
+      audit.split('## Current Main Validation Matrix')[1]?.split('## Current Blockers')[0] ?? ''
+
+    expect(currentMainValidation).toContain('T439')
+    expect(currentMainValidation).toContain('bun run validate:roadmap')
+    expect(currentMainValidation).toContain('14 rebrand master-roadmap log rows')
+    expect(currentMainValidation).toContain('.swarm/master-roadmap-log.md')
+    expect(currentMainValidation).toContain('This does not satisfy the final post-rewrite validation requirement')
+  })
+
   test('records current-main validation counts as a captured snapshot', () => {
     const currentMainValidationReport = readFileSync(currentMainValidationPath, 'utf8')
 
