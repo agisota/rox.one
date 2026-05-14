@@ -422,4 +422,24 @@ describe('R.11 closeout worklog documentation', () => {
     expect(worklog).not.toContain('T409-T412')
     expect(worklog).not.toContain('GitHub fork count is `0`')
   })
+
+  test('points current evidence at the latest report-only audit chain', () => {
+    const worklog = readFileSync(
+      join(repoRoot, 'docs', 'worklog', 'T298-rebrand-git-history-rewrite.md'),
+      'utf8',
+    )
+    const worklogHeader = worklog.split('## 1. Task summary')[0] ?? ''
+
+    expect(worklog).toContain('T439')
+    expect(worklog).toContain('T441')
+    expect(worklog).toContain('T442')
+    expect(worklog).toContain('docs/release/r11-completion-audit-2026-05-14.md')
+    expect(worklog).toContain('docs/release/rebrand-mapping-2026-05-13.md')
+    expect(worklog).toContain(
+      'validate:roadmap OK — 46 phases, 110 tickets across detail files, 14 rebrand master-roadmap log rows',
+    )
+    expect(worklog).toContain('BLOCKED - pending destructive rewrite closeout SHA')
+    expect(worklogHeader).toContain('Status: BLOCKED')
+    expect(worklogHeader).not.toContain('Status: DONE')
+  })
 })

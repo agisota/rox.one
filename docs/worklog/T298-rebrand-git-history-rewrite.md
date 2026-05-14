@@ -127,6 +127,23 @@ current-main validation evidence, and exact report-only blocker IDs in
 the destructive closeout surface; use the completion audit for the latest
 report-only blocker matrix until R.11 is unblocked.
 
+The latest report-only evidence chain is:
+
+- T439 extended the roadmap validator so `bun run validate:roadmap` validates
+  committed rebrand rows in `.swarm/master-roadmap-log.md` and currently
+  reports
+  `validate:roadmap OK — 46 phases, 110 tickets across detail files, 14 rebrand master-roadmap log rows`.
+- T441 refreshed `docs/release/rebrand-mapping-2026-05-13.md` with that exact
+  roadmap output while keeping the R.11 mapping row at
+  `BLOCKED - pending destructive rewrite closeout SHA`.
+- T442 refreshed `docs/release/r11-completion-audit-2026-05-14.md` so the
+  durable completion audit points at the T441 mapping evidence without
+  claiming post-rewrite completion.
+
+Status: BLOCKED remains the only truthful T298 state until the R.11 rewrite,
+post-rewrite validation matrix, legal-preserve checks, and history scan all
+complete.
+
 The T429 full-matrix snapshot is preserved in
 `docs/release/r11-current-main-validation-2026-05-14.md`. It records
 `bun test` as `6753 pass, 13 skip, 0 fail`; this is captured pre-rewrite
