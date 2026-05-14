@@ -10,6 +10,12 @@ const remoteBranchReviewPath = join(
   'release',
   'r11-remote-branch-review-2026-05-14.md',
 )
+const historyScanInventoryPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-history-scan-inventory-2026-05-14.md',
+)
 
 describe('R.11 completion audit', () => {
   test('maps every global stopping condition to concrete evidence', () => {
@@ -141,9 +147,17 @@ describe('R.11 completion audit', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const currentBlockers =
       audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
+    const historyScanInventory = readFileSync(historyScanInventoryPath, 'utf8')
 
     expect(currentBlockers).toContain('history-scan')
     expect(currentBlockers).toContain('9 forbidden-token patch lines')
+    expect(currentBlockers).toContain('docs/release/r11-history-scan-inventory-2026-05-14.md')
+    expect(historyScanInventory).toContain('Matches observed at cutoff: 9')
+    expect(historyScanInventory).toContain('Listed sanitized findings: 8')
+    expect(historyScanInventory).toContain('Raw token and line text: omitted')
+    expect(historyScanInventory).toContain('64afb56746e9ad6b1a7b21d684f903c7f407fb4d')
+    expect(historyScanInventory).toContain('docs/release/m3-merge-runbook.md')
+    expect(historyScanInventory).toContain('docs/release/m3-upstream-merge-audit.md')
   })
 
   test('records exact backup artifact identifiers', () => {

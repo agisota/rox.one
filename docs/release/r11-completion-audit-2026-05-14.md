@@ -109,7 +109,8 @@ Fresh evidence from the latest clean post-push checks:
   `dockerfile-source-attribution` row passes.
 - `REBRAND_R11_HISTORY_MAX_FINDINGS=8 bun run rebrand:r11-history-scan`
   (`history-scan`) exits red with `9 forbidden-token patch lines` outside the
-  legal-preserve allowlist.
+  legal-preserve allowlist. The sanitized finding inventory is preserved in
+  `docs/release/r11-history-scan-inventory-2026-05-14.md`.
 
 ## Operator-Owned Unblock Checklist
 
