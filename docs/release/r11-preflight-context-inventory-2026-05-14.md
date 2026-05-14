@@ -17,17 +17,17 @@ git status --short --branch
 git rev-parse --short HEAD
 git rev-parse --short main
 git rev-parse --short origin/main
-git rev-list --left-right --count main...origin/main
+git rev-list --left-right --count origin/main...main
 ```
 
 ## Summary
 
-- Open PRs: 2
-- Current checkout: `fix/renderer-prod-sourcemap-leak`
-- Primary worktree `HEAD`: `dfb730f7`
+- Open PRs: 6
+- Current checkout: `report/r11-t461-local-checkout-context`
+- Report-only worktree `HEAD`: `56de1480`
 - Local `main`: `8ce67b4d`
-- Origin `main`: `16c8321b`
-- main...origin/main: `1 2`
+- Origin `main`: `56de1480`
+- origin/main...main: `3 1`
 - Worktree clean: yes, `git status --porcelain is empty`
 - Default pre-backup preflight blockers: 7
 - Explicit pre-rewrite preflight blockers: 10
@@ -38,14 +38,18 @@ git rev-list --left-right --count main...origin/main
 | --- | --- | --- | --- | --- |
 | #207 | `fix/renderer-prod-sourcemap-leak` | `main` | fix(renderer): disable sourcemaps in production build (T132/RC1 blocker) | https://github.com/agisota/rox-one-terminal/pull/207 |
 | #208 | `chore/bundle-budget-pdf-worker-carveout` | `main` | chore(bundle-budget): carve out pdf.worker (lazy worker, T132 budget exception) | https://github.com/agisota/rox-one-terminal/pull/208 |
+| #209 | `feat/M13-T086d-abuse-guard-remaining-handlers` | `main` | feat(M.13): T086d abuse-guard remaining mutating RPC handlers | https://github.com/agisota/rox-one-terminal/pull/209 |
+| #210 | `feat/M10-T237c-drag-from-other-apps` | `main` | feat(M.10): T237c drag-from-other-apps paste-image | https://github.com/agisota/rox-one-terminal/pull/210 |
+| #211 | `feat/M10-T240c-cheatsheet-i18n` | `main` | feat(M.10): T240c cheatsheet i18n (3 keys x 8 locales) | https://github.com/agisota/rox-one-terminal/pull/211 |
+| #212 | `feat/M18-T253b-linux-deb-rpm` | `main` | feat(M.18): T253b Linux .deb + .rpm package mirror | https://github.com/agisota/rox-one-terminal/pull/212 |
 
 ## Preflight Rows
 
 | Row | Status | Evidence |
 | --- | --- | --- |
-| `no-open-prs` | fail | PR #207 and PR #208 are open against `main` |
-| `current-branch` | fail | Current checkout is `fix/renderer-prod-sourcemap-leak`; switch to `main` before R.11 |
-| `main-sync` | fail | `origin/main...main` is not `0 0`; observed `main...origin/main` is `1 2` |
+| `no-open-prs` | fail | PR #207, PR #208, PR #209, PR #210, PR #211, and PR #212 are open against `main` |
+| `current-branch` | fail | Current checkout is `report/r11-t461-local-checkout-context`; switch to `main` before R.11 |
+| `main-sync` | fail | `origin/main...main` is not `0 0`; observed `origin/main...main` is `3 1` |
 | `worktree-clean` | pass | `git status --porcelain` is empty |
 
 ## Operator Notes
