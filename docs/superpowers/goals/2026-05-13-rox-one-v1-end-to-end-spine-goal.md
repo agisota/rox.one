@@ -18,7 +18,7 @@ These are non-negotiable for the entire spine run. They were locked by the opera
 | 1 | **Canonical brand token** | `ROX.ONE` (wordmark, with dot) + `ROX ONE` (spoken form) | Wordmark goes everywhere written: README, code, `package.json`, ADRs, brand assets. Spoken form is for voice-over / marketing audio only and does not appear in code. |
 | 2 | **Package scope** | `@rox-one/*` (kebab-case) | Matches the existing `@rox-one/marketing` package already in the workspace. |
 | 3 | **Coordination — Lane R waits for Lane M Phase 1** | `T223-c4-followups-closeout` must be `Status: DONE` before any R-phase runs | **Now satisfied** at `f9ea575`. Rebrand is unblocked. |
-| 4 | **Git history rewrite** | Authorized via `git filter-repo` in Phase R.11, **as the last step before the v1.0.0 tag** | The operator explicitly waived the CLAUDE.md "never force-push to main" rule for this one-time pre-release cleanup. R.11 has nine hard prerequisites and a two-pass backup procedure documented in the rebrand-sweep detail file. |
+| 4 | **Git history rewrite** | Authorized via `git filter-repo` in Phase R.11, **as the last step before the v1.0.0 tag** | The operator explicitly waived the CLAUDE.md "never force-push to main" rule for this one-time pre-release cleanup. R.11 has hard prerequisites and a two-pass backup procedure documented in the rebrand-sweep detail file. |
 
 ## Read first (once, before any phase)
 
@@ -158,7 +158,7 @@ If any check fails, **stop and report**.
 
 1. **R-phases and M-phases never run concurrently.** The rebrand's import-graph mutations would collide with master-roadmap work in shared packages. Codex's `/goal` must fully complete the active phase (closeout ticket → DONE → log entry appended) before moving to a phase in the other lane.
 2. **R.5 sub-phases are strictly sequential.** Two open `@rox-agent/*` rename PRs invalidate each other's import paths the moment one merges. R.5.1 → R.5.2 → ... → R.5.11 in order, one PR open at a time.
-3. **R.11 has nine hard prerequisites** documented in the rebrand-sweep detail file. R.11 cannot start until R.0–R.10 are all DONE *and* M.2–M.20 are all DONE *and* every open PR is merged or closed *and* no active codex `/goal` run is on the repo.
+3. **R.11 has hard prerequisites** documented in the rebrand-sweep detail file. R.11 cannot start until R.0–R.10 are all DONE *and* M.2–M.20 are all DONE *and* every open PR is merged or closed *and* no active codex `/goal` run is on the repo.
 4. **M.3 (upstream merge) runs ONLY AFTER R.5–R.7.** Otherwise the upstream merge re-introduces `@rox-agent/*` and `ROX_*` from the upstream codebase.
 5. **M.14 (observability) consumes M.1.5 substrate** (the queryable audit storage backend landed in M.1.5a–d). M.1.5 is already DONE, so M.14 is unblocked the moment its predecessors (M.2-M.13) land.
 6. **P.4 (public announcement) runs only after v1.0.0 has been live for 72h without rollback signal.**
