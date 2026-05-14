@@ -83,10 +83,14 @@ Pre-rewrite full-matrix snapshot evidence from T429 is preserved in
 agent-contract ticket count in that report is a captured value from that run,
 not a live ticket-count source for later audit-hygiene tickets.
 
-Subsequent report-only audit tickets carry their own targeted validation evidence in their worklogs.
-The latest one is T439, which extended `bun run validate:roadmap` to validate
-committed rebrand rows in `.swarm/master-roadmap-log.md`; the fresh post-push
-command reports `14 rebrand master-roadmap log rows`.
+Subsequent report-only audit tickets carry their own targeted validation evidence in their worklogs. T439 extended `bun run validate:roadmap` to
+validate committed rebrand rows in `.swarm/master-roadmap-log.md`; the fresh
+post-push command reports
+`validate:roadmap OK — 46 phases, 110 tickets across detail files, 14 rebrand master-roadmap log rows`.
+The latest report-only mapping evidence is T441, which refreshed
+`docs/release/rebrand-mapping-2026-05-13.md` with that exact roadmap validator
+output and kept the R.11 mapping row at
+`BLOCKED - pending destructive rewrite closeout SHA`.
 
 This does not satisfy the final post-rewrite validation requirement. The goal
 requires the global validation matrix to pass after the R.11 rewrite has
