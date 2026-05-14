@@ -4,6 +4,8 @@ import path from 'node:path';
 
 const root = process.cwd();
 const workflowPath = path.join(root, '.github/workflows/mac-arm-build.yml');
+const builderConfigPath = path.join(root, 'apps/electron/electron-builder.yml');
+const beforeBuildHookPath = path.join(root, 'apps/electron/scripts/beforeBuild.cjs');
 const macArmConfigPath = path.join(root, 'apps/electron/electron-builder.mac-arm64.yml');
 const macArmScriptPath = path.join(root, 'scripts/electron-dist-dev-mac-arm64.ts');
 
@@ -42,11 +44,21 @@ if (!existsSync(macArmConfigPath)) {
   fail('missing apps/electron/electron-builder.mac-arm64.yml');
 }
 
+if (!existsSync(builderConfigPath)) {
+  fail('missing apps/electron/electron-builder.yml');
+}
+
+if (!existsSync(beforeBuildHookPath)) {
+  fail('missing apps/electron/scripts/beforeBuild.cjs');
+}
+
 if (!existsSync(macArmScriptPath)) {
   fail('missing scripts/electron-dist-dev-mac-arm64.ts');
 }
 
 const workflow = readFileSync(workflowPath, 'utf8');
+const builderConfig = readFileSync(builderConfigPath, 'utf8');
+const beforeBuildHook = readFileSync(beforeBuildHookPath, 'utf8');
 const macArmConfig = readFileSync(macArmConfigPath, 'utf8');
 const macArmScript = readFileSync(macArmScriptPath, 'utf8');
 
@@ -78,6 +90,8 @@ requireText(macArmConfig, '- arm64', 'arm64 target arch');
 if (macArmConfig.includes('- x64')) {
   fail('arm64 electron-builder config must not include x64 target arch');
 }
+requireText(builderConfig, 'beforeBuild: scripts/beforeBuild.cjs', 'external node_modules beforeBuild hook');
+requireText(beforeBuildHook, 'return false', 'beforeBuild external node_modules signal');
 requireText(macArmScript, "arch: ['arm64']", 'generated arm64-only builder target');
 requireText(macArmScript, 'downloadBun', 'Darwin arm64 Bun runtime download');
 requireText(macArmScript, "platform: 'darwin'", 'Darwin runtime platform');

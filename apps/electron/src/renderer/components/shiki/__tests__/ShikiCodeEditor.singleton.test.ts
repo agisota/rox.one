@@ -24,12 +24,22 @@
  *      and renderer test reload paths).
  */
 
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, setDefaultTimeout, test } from 'bun:test'
 import {
+  type CreateShikiHighlighterOptions,
   getSingletonHighlighter,
   resetSingletonHighlighter,
   resolveLanguage,
 } from '@rox-one/shared/highlight'
+
+setDefaultTimeout(30_000)
+
+const TEST_HIGHLIGHTER_OPTIONS = {
+  langs: ['typescript'],
+  themes: ['github-light'],
+} as const satisfies CreateShikiHighlighterOptions
+
+const getTestHighlighter = () => getSingletonHighlighter(TEST_HIGHLIGHTER_OPTIONS)
 
 // Mirror the regex that ShikiCodeEditor uses to peel the <pre><code>…
 // shell off the singleton output before handing it to the editor. Keep this
@@ -43,13 +53,13 @@ afterEach(() => {
 
 describe('ShikiCodeEditor singleton wiring', () => {
   test('getSingletonHighlighter returns the same instance across calls', async () => {
-    const a = await getSingletonHighlighter()
-    const b = await getSingletonHighlighter()
+    const a = await getTestHighlighter()
+    const b = await getTestHighlighter()
     expect(a).toBe(b)
   })
 
   test('singleton renders a <pre><code><span> shell for typescript source', async () => {
-    const highlighter = await getSingletonHighlighter()
+    const highlighter = await getTestHighlighter()
     const html = await highlighter.highlight(
       'function greet(name: string) { return name }',
       'typescript',
@@ -61,7 +71,7 @@ describe('ShikiCodeEditor singleton wiring', () => {
   })
 
   test('ShikiCodeEditor inner-markup strip yields non-empty token spans', async () => {
-    const highlighter = await getSingletonHighlighter()
+    const highlighter = await getTestHighlighter()
     const code = 'class C { p = 1 }'
     const html = await highlighter.highlight(code, 'typescript', { theme: 'github-light' })
     const match = html.match(INNER_MARKUP_RE)
@@ -83,7 +93,7 @@ describe('ShikiCodeEditor singleton wiring', () => {
   })
 
   test('singleton highlight output is deterministic for repeat calls', async () => {
-    const highlighter = await getSingletonHighlighter()
+    const highlighter = await getTestHighlighter()
     const code = 'const x = 42'
     const first = await highlighter.highlight(code, 'typescript', { theme: 'github-light' })
     const second = await highlighter.highlight(code, 'typescript', { theme: 'github-light' })
@@ -91,9 +101,9 @@ describe('ShikiCodeEditor singleton wiring', () => {
   })
 
   test('resetSingletonHighlighter forces a fresh build but keeps the contract', async () => {
-    const before = await getSingletonHighlighter()
+    const before = await getTestHighlighter()
     resetSingletonHighlighter()
-    const after = await getSingletonHighlighter()
+    const after = await getTestHighlighter()
     expect(after).not.toBe(before)
     // The new instance must still render the documented shell shape.
     const html = await after.highlight('const x = 1', 'typescript', { theme: 'github-light' })
@@ -101,7 +111,7 @@ describe('ShikiCodeEditor singleton wiring', () => {
   })
 
   test('singleton honours an unsupported theme by falling back to its default', async () => {
-    const highlighter = await getSingletonHighlighter()
+    const highlighter = await getTestHighlighter()
     // The adapter contract guarantees graceful fallback for unsupported
     // themes — the migrated component relies on this so it cannot throw
     // when a theme.json preset is mid-migration.

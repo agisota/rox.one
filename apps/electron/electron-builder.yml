@@ -9,6 +9,7 @@ buildVersion: "92"
 electronVersion: "39.8.9"
 
 # Hook to compile macOS 26+ Liquid Glass icon after packaging
+beforeBuild: scripts/beforeBuild.cjs
 afterPack: scripts/afterPack.cjs
 
 directories:
