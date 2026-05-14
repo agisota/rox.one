@@ -10,7 +10,7 @@ export const HANDLED_CHANNELS = [
   RPC_CHANNELS.labels.DELETE,
 ] as const
 
-export function registerLabelsHandlers(server: RpcServer, _deps: HandlerDeps): void {
+export function registerLabelsHandlers(server: RpcServer, deps: HandlerDeps): void {
   // List all labels for a workspace
   server.handle(RPC_CHANNELS.labels.LIST, async (_ctx, workspaceId: unknown) => {
     const wsId = parseId('workspaceId', workspaceId)
@@ -22,7 +22,27 @@ export function registerLabelsHandlers(server: RpcServer, _deps: HandlerDeps): v
   })
 
   // Create a new label in a workspace
-  server.handle(RPC_CHANNELS.labels.CREATE, async (_ctx, workspaceId: unknown, input: unknown) => {
+  server.handle(RPC_CHANNELS.labels.CREATE, async (ctx, workspaceId: unknown, input: unknown) => {
+    // T086c: optional rate-limit. Mirrors the T071b/T071c pattern.
+    // Sits BEFORE validation and BEFORE the storage write so a hot burst
+    // of label creates from a single actor cannot bypass the cap even
+    // with malformed payloads. Absent => no-op.
+    if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+      return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+
+    // T086c: optional per-actor budget guard. Runs AFTER the bucket gate
+    // and BEFORE validation/storage-write. Keyed by `ctx.userId` (or the
+    // anonymous sentinel) so each actor has an isolated lifetime cap.
+    // Absent => no-op.
+    if (deps.budgetGuard) {
+      const key = ctx.userId ?? '__anonymous__'
+      const result = deps.budgetGuard.consume(key, 1)
+      if (!result.ok) {
+        return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+      }
+    }
+
     const wsId = parseId('workspaceId', workspaceId)
     const parsed = parseCreateLabelInput(input)
     const workspace = getWorkspaceByNameOrId(wsId)
@@ -40,7 +60,22 @@ export function registerLabelsHandlers(server: RpcServer, _deps: HandlerDeps): v
   })
 
   // Delete a label (and descendants) from a workspace
-  server.handle(RPC_CHANNELS.labels.DELETE, async (_ctx, workspaceId: unknown, labelId: unknown) => {
+  server.handle(RPC_CHANNELS.labels.DELETE, async (ctx, workspaceId: unknown, labelId: unknown) => {
+    // T086c: optional rate-limit + per-actor budget guard. Same pattern as
+    // `labels.create` above — both mutating label channels share the
+    // injected bucket and guard so a single actor cannot bypass either
+    // cap by alternating create / delete bursts.
+    if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+      return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+    if (deps.budgetGuard) {
+      const key = ctx.userId ?? '__anonymous__'
+      const result = deps.budgetGuard.consume(key, 1)
+      if (!result.ok) {
+        return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+      }
+    }
+
     const wsId = parseId('workspaceId', workspaceId)
     const lblId = parseId('labelId', labelId)
     const workspace = getWorkspaceByNameOrId(wsId)
