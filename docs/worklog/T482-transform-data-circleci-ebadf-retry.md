@@ -1,6 +1,6 @@
 # T482 - Transform data CircleCI EBADF retry
 
-Status: READY FOR HOSTED CI
+Status: DONE
 Phase: CI validation repair
 Ticket: docs/tickets/T482-transform-data-circleci-ebadf-retry.md
 
@@ -147,10 +147,11 @@ stages, verified the 236.3 MB SDK native binary copy, and copied Electron assets
 
 ## 10. Remaining risks
 
-Hosted GitHub macOS ARM64 package is still expected to fail before steps due to
-the repository billing/spending-limit condition. Hosted repo-controlled PR #218
-checks still need a fresh run after this commit is pushed. R.11 remains blocked
-and is not complete.
+PR #218 merged into `main` at `660daad5` after hosted repo-controlled checks
+passed. The only remaining hosted failure was the GitHub macOS ARM64 package
+job, which failed before job steps because of the known account
+billing/spending-limit condition; CircleCI `mac-arm-build` passed for the same
+head SHA. R.11 remains blocked and is not complete.
 
 ## 11. Acceptance criteria matrix
 
@@ -162,5 +163,5 @@ and is not complete.
 | Transform-data no longer uses child-process pipe stdio for stdout/stderr capture | PASS | Isolated retry test passed with pipe-stdio guard `spawnCalls === 1` |
 | Direct transform-data path containment tests pass | PASS | 8 pass, 0 fail, 16 expect calls |
 | CircleCI-equivalent local `bun run test:units` passes | PASS | 6918 pass, 13 skip, 0 fail; isolated suites green |
-| Fresh PR #218 hosted repo-controlled checks pass, excluding known GitHub macOS ARM64 billing/spending-limit failure | PENDING | Pending hosted CI rerun after branch push |
+| Fresh PR #218 hosted repo-controlled checks pass, excluding known GitHub macOS ARM64 billing/spending-limit failure | PASS | PR #218 merged at `660daad5`; repo-controlled hosted checks passed, with only the known GitHub macOS ARM64 package billing/spending-limit failure excluded |
 | No destructive R.11 action is performed | PASS | No destructive R.11 command has been run in this T482 slice |

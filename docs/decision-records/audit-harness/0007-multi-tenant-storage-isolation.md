@@ -40,11 +40,12 @@ reaches storage without the private brand throws `BrandedScopeBreachError` and
 emits `scope.brand.cast_breach`. This catches unsafe `as BrandedWorkspaceScope`
 casts at runtime.
 
-One demo caller, `packages/server-core/src/handlers/rpc/workspace.ts`'s
-`workspaces.GET` handler, derives a scope from the trusted request context and
-`ctx.workspaceId` before reading workspaces. Sibling handlers remain on
-`DEFAULT_LOCAL_SCOPE` and carry `// TODO(C4): use deriveScopeFromAuth when ready`
-markers for follow-up slices.
+The initial C4 slice used `packages/server-core/src/handlers/rpc/workspace.ts`
+`workspaces.GET` as the demo caller. Follow-up migration T213 then moved the
+remaining workspace RPC handlers through the same trusted request-context
+derivation path. Current `workspace.ts` centralizes this as
+`deriveWorkspaceScope(ctx)`, which calls `deriveScopeFromAuth(ctx.session,
+ctx.workspaceId)`, and no C4 TODO markers remain in that file.
 
 ## Why
 
@@ -130,4 +131,5 @@ Still out of scope for ADR 0007:
   default path resolution, tenant-prefixed resolution, inactive downgrade,
   cast-breach audit, and branded storage call-site typing.
 - `packages/server-core/src/handlers/rpc/__tests__/workspace-scope.test.ts`
-  covers the demo RPC caller in single-user and multi-tenant modes.
+  covers the migrated workspace RPC surface in single-user, permitted
+  multi-tenant, and forgery-rejection modes.
