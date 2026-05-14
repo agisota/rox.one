@@ -8,6 +8,7 @@ import type { HandlerDeps } from '../handler-deps'
 import { requestClientOpenFileDialog } from '@rox-one/server-core/transport'
 import { isValidWorkingDirectory } from '../../utils/path-validation'
 import { requireWorkspaceAccess } from './account-ownership'
+import { parseId, parseOptionalSafeString } from './_validators'
 import { SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE, deriveRpcWorkspaceScope } from './storage-scope'
 
 const VALID_THINKING_LEVELS_LIST = THINKING_LEVEL_IDS.map(id => `'${id}'`).join(', ')
@@ -70,12 +71,17 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Get session-specific model
   server.handle(RPC_CHANNELS.sessions.GET_MODEL, async (_ctx, sessionId: string, _workspaceId: string): Promise<string | null> => {
+    parseId('sessionId', sessionId)
     const session = await deps.sessionManager.getSession(sessionId)
     return session?.model ?? null
   })
 
   // Set session-specific model (and optionally connection)
   server.handle(RPC_CHANNELS.sessions.SET_MODEL, async (_ctx, sessionId: string, workspaceId: string, model: string | null, connection?: string) => {
+    parseId('sessionId', sessionId)
+    parseId('workspaceId', workspaceId)
+    if (model !== null) parseId('model', model)
+    parseOptionalSafeString('connection', connection, 256)
     await deps.sessionManager.updateSessionModel(sessionId, workspaceId, model, connection)
     deps.platform.logger.info(`Session ${sessionId} model updated to: ${model}${connection ? ` (connection: ${connection})` : ''}`)
   })
@@ -95,6 +101,7 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Get workspace settings (model, permission mode, working directory, credential strategy)
   server.handle(RPC_CHANNELS.workspace.SETTINGS_GET, async (ctx, workspaceId: string) => {
+    parseId('workspaceId', workspaceId)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const scope = await deriveRpcWorkspaceScope(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId, scope)
@@ -122,6 +129,8 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Update a workspace setting
   server.handle(RPC_CHANNELS.workspace.SETTINGS_UPDATE, async (ctx, workspaceId: string, key: string, value: unknown) => {
+    parseId('workspaceId', workspaceId)
+    parseId('key', key)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const scope = await deriveRpcWorkspaceScope(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId, scope)
@@ -209,16 +218,19 @@ export function registerSettingsHandlers(server: RpcServer, deps: HandlerDeps): 
 
   // Get draft for a session (text + attachment refs)
   server.handle(RPC_CHANNELS.drafts.GET, async (_ctx, sessionId: string) => {
+    parseId('sessionId', sessionId)
     return getSessionDraft(sessionId, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
   // Set draft for a session (empty drafts are cleared)
   server.handle(RPC_CHANNELS.drafts.SET, async (_ctx, sessionId: string, draft: import('@rox-one/shared/config').SessionDraft) => {
+    parseId('sessionId', sessionId)
     setSessionDraft(sessionId, draft, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 
   // Delete draft for a session
   server.handle(RPC_CHANNELS.drafts.DELETE, async (_ctx, sessionId: string) => {
+    parseId('sessionId', sessionId)
     deleteSessionDraft(sessionId, SERVER_CORE_RPC_GLOBAL_STORAGE_SCOPE)
   })
 

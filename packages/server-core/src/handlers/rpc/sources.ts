@@ -6,6 +6,7 @@ import { getCredentialManager } from '@rox-one/shared/credentials'
 import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
 import { requireWorkspaceAccess } from './account-ownership'
+import { parseId, parseSlug } from './_validators'
 
 export const HANDLED_CHANNELS = [
   RPC_CHANNELS.sources.GET,
@@ -24,6 +25,7 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
 
   // Get all sources for a workspace
   server.handle(RPC_CHANNELS.sources.GET, async (ctx, workspaceId: string) => {
+    parseId('workspaceId', workspaceId)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) {
@@ -35,6 +37,7 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
 
   // Create a new source
   server.handle(RPC_CHANNELS.sources.CREATE, async (ctx, workspaceId: string, config: Partial<import('@rox-one/shared/sources').CreateSourceInput>) => {
+    parseId('workspaceId', workspaceId)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
@@ -52,6 +55,8 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
 
   // Delete a source
   server.handle(RPC_CHANNELS.sources.DELETE, async (ctx, workspaceId: string, sourceSlug: string) => {
+    parseId('workspaceId', workspaceId)
+    parseSlug('sourceSlug', sourceSlug)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
@@ -78,6 +83,8 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
 
   // Save credentials for a source (bearer token or API key)
   server.handle(RPC_CHANNELS.sources.SAVE_CREDENTIALS, async (ctx, workspaceId: string, sourceSlug: string, credential: string) => {
+    parseId('workspaceId', workspaceId)
+    parseSlug('sourceSlug', sourceSlug)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) throw new Error(`Workspace not found: ${workspaceId}`)
@@ -97,6 +104,8 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
 
   // Get permissions config for a source (raw format for UI display)
   server.handle(RPC_CHANNELS.sources.GET_PERMISSIONS, async (ctx, workspaceId: string, sourceSlug: string) => {
+    parseId('workspaceId', workspaceId)
+    parseSlug('sourceSlug', sourceSlug)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) return null
@@ -118,6 +127,7 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
 
   // Get permissions config for a workspace (raw format for UI display)
   server.handle(RPC_CHANNELS.workspace.GET_PERMISSIONS, async (ctx, workspaceId: string) => {
+    parseId('workspaceId', workspaceId)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) return null
@@ -157,6 +167,8 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
 
   // Get MCP tools for a source with permission status
   server.handle(RPC_CHANNELS.sources.GET_MCP_TOOLS, async (ctx, workspaceId: string, sourceSlug: string) => {
+    parseId('workspaceId', workspaceId)
+    parseSlug('sourceSlug', sourceSlug)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) return { success: false, error: 'Workspace not found' }

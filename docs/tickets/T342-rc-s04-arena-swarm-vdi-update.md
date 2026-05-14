@@ -1,6 +1,6 @@
 # T342 - RC Scenario S04: Arena Swarm → Dedupe Signals → Review Board → VDI Update
 
-Status: Todo
+Status: Blocked
 
 ## Context
 
@@ -74,10 +74,10 @@ close.
 bun run e2e:smoke -- --scenario s04-arena-swarm-vdi
 
 # Swarm signal processor tests
-bun test packages/shared/src/agent/swarm/__tests__/**
+bun test packages/shared/src/workbench/__tests__/swarm-signal-processor.test.ts packages/shared/src/workbench/__tests__/review-board.test.ts packages/shared/src/workbench/__tests__/experience-layer-e2e-scenario.test.ts packages/shared/src/workbench/__tests__/experience-runtime-store.test.ts packages/shared/src/workbench/__tests__/experience-state-binding.test.ts
 
 # Experience/VDI runtime store tests
-bun test apps/electron/src/renderer/components/workbench/**/__tests__/vdi*.test.*
+bun test apps/electron/src/renderer/components/workbench/__tests__/arena-builder-screen.test.tsx apps/electron/src/renderer/components/workbench/__tests__/progression-observatory.test.tsx apps/electron/src/renderer/components/workbench/__tests__/experience-global-hud.test.tsx apps/electron/src/renderer/components/workbench/__tests__/experience-real-state-binding.test.tsx
 
 # Agent contract gate
 bun run validate:agent-contract

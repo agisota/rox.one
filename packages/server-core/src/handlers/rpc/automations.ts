@@ -6,6 +6,7 @@ import { appendAutomationHistoryEntry } from '@rox-one/shared/automations/histor
 import { AUTOMATION_HISTORY_MAX_RUNS_PER_MATCHER } from '@rox-one/shared/automations/constants'
 import type { RpcServer } from '@rox-one/server-core/transport'
 import type { HandlerDeps } from '../handler-deps'
+import { parseId, parseSafeString } from './_validators'
 
 // History file name — matches AUTOMATIONS_HISTORY_FILE from @rox-one/shared/automations/constants
 const HISTORY_FILE = 'automations-history.jsonl'
@@ -70,6 +71,7 @@ export function registerAutomationsHandlers(server: RpcServer, deps: HandlerDeps
 
   // Get automations config for a workspace (read-only, resolves path server-side)
   server.handle(RPC_CHANNELS.automations.GET, async (_ctx, workspaceId: string) => {
+    parseId('workspaceId', workspaceId)
     log.info(`AUTOMATIONS_GET: Loading automations for workspace: ${workspaceId}`)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) {
@@ -96,6 +98,7 @@ export function registerAutomationsHandlers(server: RpcServer, deps: HandlerDeps
   })
 
   server.handle(RPC_CHANNELS.automations.TEST, async (_ctx, payload: import('@rox-one/shared/protocol').TestAutomationPayload) => {
+    parseId('payload.workspaceId', payload?.workspaceId)
     const workspace = getWorkspaceByNameOrId(payload.workspaceId)
     if (!workspace) throw new Error('Workspace not found')
 
@@ -196,6 +199,8 @@ export function registerAutomationsHandlers(server: RpcServer, deps: HandlerDeps
 
   // Automation enabled state management (toggle enabled/disabled in automations.json)
   server.handle(RPC_CHANNELS.automations.SET_ENABLED, async (_ctx, workspaceId: string, eventName: string, matcherIndex: number, enabled: boolean) => {
+    parseId('workspaceId', workspaceId)
+    parseSafeString('eventName', eventName, 256)
     await withAutomationMatcher(workspaceId, eventName, matcherIndex, (matchers, idx) => {
       if (enabled) {
         delete matchers[idx].enabled
@@ -207,6 +212,8 @@ export function registerAutomationsHandlers(server: RpcServer, deps: HandlerDeps
 
   // Duplicate an automation matcher
   server.handle(RPC_CHANNELS.automations.DUPLICATE, async (_ctx, workspaceId: string, eventName: string, matcherIndex: number) => {
+    parseId('workspaceId', workspaceId)
+    parseSafeString('eventName', eventName, 256)
     await withAutomationMatcher(workspaceId, eventName, matcherIndex, (matchers, idx, _config, genId) => {
       const clone = JSON.parse(JSON.stringify(matchers[idx]))
       clone.id = genId()
@@ -217,6 +224,8 @@ export function registerAutomationsHandlers(server: RpcServer, deps: HandlerDeps
 
   // Delete an automation matcher
   server.handle(RPC_CHANNELS.automations.DELETE, async (_ctx, workspaceId: string, eventName: string, matcherIndex: number) => {
+    parseId('workspaceId', workspaceId)
+    parseSafeString('eventName', eventName, 256)
     await withAutomationMatcher(workspaceId, eventName, matcherIndex, (matchers, idx, config) => {
       matchers.splice(idx, 1)
       if (matchers.length === 0) {
@@ -228,6 +237,8 @@ export function registerAutomationsHandlers(server: RpcServer, deps: HandlerDeps
 
   // Read execution history for a specific automation
   server.handle(RPC_CHANNELS.automations.GET_HISTORY, async (_ctx, workspaceId: string, automationId: string, limit = AUTOMATION_HISTORY_MAX_RUNS_PER_MATCHER) => {
+    parseId('workspaceId', workspaceId)
+    parseId('automationId', automationId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) throw new Error('Workspace not found')
 
@@ -249,6 +260,9 @@ export function registerAutomationsHandlers(server: RpcServer, deps: HandlerDeps
 
   // Replay webhook actions for a specific automation matcher
   server.handle(RPC_CHANNELS.automations.REPLAY, async (_ctx, workspaceId: string, automationId: string, eventName: string) => {
+    parseId('workspaceId', workspaceId)
+    parseId('automationId', automationId)
+    parseSafeString('eventName', eventName, 256)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) throw new Error('Workspace not found')
 
@@ -294,6 +308,7 @@ export function registerAutomationsHandlers(server: RpcServer, deps: HandlerDeps
 
   // Return last execution timestamp for all automations
   server.handle(RPC_CHANNELS.automations.GET_LAST_EXECUTED, async (_ctx, workspaceId: string) => {
+    parseId('workspaceId', workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
     if (!workspace) throw new Error('Workspace not found')
 

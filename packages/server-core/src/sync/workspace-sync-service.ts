@@ -6,6 +6,7 @@ import {
   InMemorySyncFileStore,
   LocalCloudSyncConflictError,
   LocalCloudSyncEngine,
+  LocalCloudSyncPathError,
   type SyncConflict,
   type SyncOperation,
   type SyncSnapshot,
@@ -27,12 +28,20 @@ export interface WorkspaceSyncRunInput extends WorkspaceSyncContext {
   files?: WorkspaceSyncFilePayload[]
 }
 
+// Fix D: ConflictMetadata and updated WorkspaceSyncStatus
+export interface ConflictMetadata {
+  path: string
+  baseSnapshot: string
+  reason: string
+}
+
 export interface WorkspaceSyncStatus {
   workspaceId: string
   baseSnapshot: SyncSnapshot
   cloudSnapshot: SyncSnapshot
   operationCount: number
   lastOperationId: string | null
+  pendingConflictMetadata?: ConflictMetadata[]
 }
 
 export type WorkspaceSyncDirection = 'push' | 'pull'
@@ -86,11 +95,46 @@ export class WorkspaceSyncValidationError extends Error {
   }
 }
 
+// Fix C: Quota service types
+export class WorkspaceQuotaExceededError extends Error {
+  constructor(workspaceId: string, bytes: number, limit: number) {
+    super(`Quota exceeded for workspace ${workspaceId}: ${bytes} bytes exceeds limit of ${limit} bytes`)
+    this.name = 'WorkspaceQuotaExceededError'
+  }
+}
+
+export interface WorkspaceQuotaService {
+  check(workspaceId: string, bytes: number): Promise<void>
+  setLimit(workspaceId: string, bytes: number): void
+}
+
+export class InMemoryWorkspaceQuotaService implements WorkspaceQuotaService {
+  private readonly limits = new Map<string, number>()
+
+  setLimit(workspaceId: string, bytes: number): void {
+    this.limits.set(workspaceId, bytes)
+  }
+
+  async check(workspaceId: string, bytes: number): Promise<void> {
+    const limit = this.limits.get(workspaceId) ?? Infinity
+    if (bytes > limit) {
+      throw new WorkspaceQuotaExceededError(workspaceId, bytes, limit)
+    }
+  }
+}
+
 export class InMemoryWorkspaceSyncService implements WorkspaceSyncService {
   private readonly cloudStoresByWorkspaceId = new Map<string, InMemorySyncFileStore>()
   private readonly baseSnapshotsByWorkspaceId = new Map<string, SyncSnapshot>()
   private readonly operationsByWorkspaceId = new Map<string, WorkspaceSyncOperationRecord[]>()
   private readonly resultsByWorkspaceOperationId = new Map<string, WorkspaceSyncRunResult>()
+  // Fix D: track pending conflict metadata per workspace
+  private readonly pendingConflictsByWorkspaceId = new Map<string, ConflictMetadata[]>()
+  private readonly quotaService: WorkspaceQuotaService | null
+
+  constructor(options: { quotaService?: WorkspaceQuotaService } = {}) {
+    this.quotaService = options.quotaService ?? null
+  }
 
   async getStatus(input: WorkspaceSyncContext): Promise<WorkspaceSyncStatus> {
     const cloudStore = this.getCloudStore(input.workspace.id)
@@ -99,6 +143,8 @@ export class InMemoryWorkspaceSyncService implements WorkspaceSyncService {
       cloud: cloudStore,
     }).captureSnapshot(cloudStore)
     const operations = this.operationsByWorkspaceId.get(input.workspace.id) ?? []
+    // Fix D: include pending conflict metadata
+    const pendingConflictMetadata = this.pendingConflictsByWorkspaceId.get(input.workspace.id)
 
     return {
       workspaceId: input.workspace.id,
@@ -106,6 +152,7 @@ export class InMemoryWorkspaceSyncService implements WorkspaceSyncService {
       cloudSnapshot,
       operationCount: operations.length,
       lastOperationId: operations.at(-1)?.operationId ?? null,
+      ...(pendingConflictMetadata !== undefined ? { pendingConflictMetadata } : {}),
     }
   }
 
@@ -124,16 +171,38 @@ export class InMemoryWorkspaceSyncService implements WorkspaceSyncService {
   }
 
   private async run(direction: WorkspaceSyncDirection, input: WorkspaceSyncRunInput): Promise<WorkspaceSyncRunResult> {
-    const operationId = normalizeOperationId(input.operationId)
-    if (operationId) {
-      const replay = this.resultsByWorkspaceOperationId.get(this.operationKey(input.workspace.id, operationId))
+    // Fix A: assign server-side operationId unconditionally
+    const callerOperationId = normalizeOperationId(input.operationId)
+    const operationId = callerOperationId ?? randomUUID()
+
+    if (callerOperationId) {
+      const replay = this.resultsByWorkspaceOperationId.get(this.operationKey(input.workspace.id, callerOperationId))
       if (replay) return { ...copyRunResult(replay), idempotentReplay: true }
     }
 
-    const localStore = createFileStoreFromPayloads(input.files ?? [])
+    // Fix B: wrap path validation to surface WorkspaceSyncValidationError
+    let localStore: InMemorySyncFileStore
+    try {
+      localStore = createFileStoreFromPayloads(input.files ?? [])
+    } catch (e) {
+      if (e instanceof LocalCloudSyncPathError) {
+        throw new WorkspaceSyncValidationError(e.message)
+      }
+      throw e
+    }
+
     const cloudStore = this.getCloudStore(input.workspace.id)
     const baseSnapshot = copySnapshot(input.baseSnapshot ?? this.getBaseSnapshot(input.workspace.id))
     const engine = new LocalCloudSyncEngine({ local: localStore, cloud: cloudStore })
+
+    // Fix C: check quota before touching cloud state on push
+    if (direction === 'push' && this.quotaService) {
+      const payloadBytes = (input.files ?? []).reduce((sum, f) => {
+        const raw = Buffer.from(f.contentBase64, 'base64')
+        return sum + raw.byteLength
+      }, 0)
+      await this.quotaService.check(input.workspace.id, payloadBytes)
+    }
 
     try {
       const syncResult = direction === 'push'
@@ -154,8 +223,10 @@ export class InMemoryWorkspaceSyncService implements WorkspaceSyncService {
       }
 
       this.baseSnapshotsByWorkspaceId.set(input.workspace.id, copySnapshot(syncResult.nextBaseSnapshot))
+      // Fix D: clear pending conflicts on successful commit
+      this.pendingConflictsByWorkspaceId.delete(input.workspace.id)
       this.recordOperation({
-        operationId: operationId ?? randomUUID(),
+        operationId,
         workspaceId: input.workspace.id,
         actorUserId: input.actorUserId,
         direction,
@@ -163,12 +234,19 @@ export class InMemoryWorkspaceSyncService implements WorkspaceSyncService {
         conflicts: [],
         createdAt: new Date().toISOString(),
       })
-      if (operationId) {
-        this.resultsByWorkspaceOperationId.set(this.operationKey(input.workspace.id, operationId), copyRunResult(result))
-      }
+      // Fix A: cache result unconditionally (server-assigned or caller-provided)
+      this.resultsByWorkspaceOperationId.set(this.operationKey(input.workspace.id, operationId), copyRunResult(result))
       return result
     } catch (error) {
       if (error instanceof LocalCloudSyncConflictError) {
+        // Fix D: record pending conflict metadata when conflict is detected
+        const baseSnapshotStr = JSON.stringify(baseSnapshot)
+        const conflictMetadata: ConflictMetadata[] = error.conflicts.map(c => ({
+          path: c.path,
+          baseSnapshot: baseSnapshotStr,
+          reason: c.reason,
+        }))
+        this.pendingConflictsByWorkspaceId.set(input.workspace.id, conflictMetadata)
         throw new WorkspaceSyncConflictError(error.conflicts)
       }
       throw error

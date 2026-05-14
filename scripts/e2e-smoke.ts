@@ -38,6 +38,55 @@ const S03_MISSION_CHECKPOINT_TESTS = [
   'apps/electron/src/renderer/components/workbench/__tests__/experience-real-state-binding.test.tsx',
 ] as const
 
+const S04_ARENA_SWARM_VDI_TESTS = [
+  'packages/shared/src/workbench/__tests__/swarm-signal-processor.test.ts',
+  'packages/shared/src/workbench/__tests__/review-board.test.ts',
+  'packages/shared/src/workbench/__tests__/experience-layer-e2e-scenario.test.ts',
+  'packages/shared/src/workbench/__tests__/experience-runtime-store.test.ts',
+  'packages/shared/src/workbench/__tests__/experience-state-binding.test.ts',
+  'apps/electron/src/renderer/components/workbench/__tests__/arena-builder-screen.test.tsx',
+  'apps/electron/src/renderer/components/workbench/__tests__/progression-observatory.test.tsx',
+  'apps/electron/src/renderer/components/workbench/__tests__/experience-global-hud.test.tsx',
+  'apps/electron/src/renderer/components/workbench/__tests__/experience-real-state-binding.test.tsx',
+] as const
+
+const S05_TEAM_INVITE_RBAC_TESTS = [
+  'packages/server-core/src/handlers/rpc/__tests__/roles.test.ts',
+  'packages/server-core/src/handlers/rpc/__tests__/roles-audit.test.ts',
+  'packages/server-core/src/handlers/rpc/__tests__/roles-rate-limit.test.ts',
+  'packages/shared/src/auth/__tests__/policy-engine.test.ts',
+  'packages/shared/src/auth/__tests__/policy-engine.edge-cases.test.ts',
+  'packages/shared/src/auth/__tests__/scope-forgery.property.test.ts',
+  'packages/server-core/src/webui/__tests__/account-teams.test.ts',
+  'packages/server-core/src/webui/__tests__/account-http.test.ts',
+  'packages/server-core/src/webui/__tests__/team-chat-http.test.ts',
+  'apps/electron/src/renderer/components/settings/rbac/__tests__/team-management-state.test.ts',
+  'apps/electron/src/renderer/components/settings/rbac/__tests__/roles-panel-state.test.ts',
+  'apps/electron/src/renderer/components/settings/rbac/__tests__/roles-panel.test.tsx',
+] as const
+
+const S06_FILE_UPLOAD_ENTITY_GRAPH_TESTS = [
+  'packages/shared/src/workbench/__tests__/markdown-entity-graph.test.ts',
+  'packages/server-core/src/handlers/rpc/files.test.ts',
+  'packages/server-core/src/handlers/__tests__/file-manager-scopes.test.ts',
+  'packages/server-core/src/handlers/__tests__/validate-file-path.test.ts',
+  'apps/electron/src/renderer/lib/__tests__/file-changes.test.ts',
+  'apps/electron/src/renderer/components/right-sidebar/__tests__/session-files-watch.test.ts',
+] as const
+
+const S07_SYNC_CONFLICT_RESOLUTION_TESTS = [
+  'packages/server-core/src/sync/__tests__/local-cloud-sync.test.ts',
+  'packages/server-core/src/sync/__tests__/workspace-sync-service.test.ts',
+  'packages/server-core/src/sync/__tests__/workspace-sync-multi-client-conflict.test.ts',
+] as const
+
+const S08_SHARE_SESSION_SHORTLINK_TESTS = [
+  'packages/server-core/src/sessions/share-provider.test.ts',
+  'packages/server-core/src/sessions/share-errors.test.ts',
+  'packages/server-core/src/sessions/session-share-provider.test.ts',
+  'apps/electron/src/renderer/components/app-shell/__tests__/session-share-flow.test.ts',
+] as const
+
 export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
   {
     id: 's01-registration',
@@ -54,6 +103,31 @@ export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
     id: 's03-mission-checkpoint',
     title: 'RC S03 mission checkpoint and final verification smoke',
     command: ['bun', 'test', ...S03_MISSION_CHECKPOINT_TESTS],
+  },
+  {
+    id: 's04-arena-swarm-vdi',
+    title: 'RC S04 arena swarm signal dedupe and VDI smoke',
+    command: ['bun', 'test', ...S04_ARENA_SWARM_VDI_TESTS],
+  },
+  {
+    id: 's05-team-invite-rbac',
+    title: 'RC S05 team invite and RBAC smoke',
+    command: ['bun', 'test', ...S05_TEAM_INVITE_RBAC_TESTS],
+  },
+  {
+    id: 's06-file-upload-entity-graph',
+    title: 'RC S06 file upload entity graph smoke',
+    command: ['bun', 'test', ...S06_FILE_UPLOAD_ENTITY_GRAPH_TESTS],
+  },
+  {
+    id: 's07-sync-conflict-resolution',
+    title: 'RC S07 sync conflict resolution smoke',
+    command: ['bun', 'test', ...S07_SYNC_CONFLICT_RESOLUTION_TESTS],
+  },
+  {
+    id: 's08-share-session-shortlink',
+    title: 'RC S08 share session shortlink smoke',
+    command: ['bun', 'test', ...S08_SHARE_SESSION_SHORTLINK_TESTS],
   },
 ]
 
