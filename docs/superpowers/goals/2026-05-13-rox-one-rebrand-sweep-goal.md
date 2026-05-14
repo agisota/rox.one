@@ -692,23 +692,13 @@ git -C . filter-repo --force \
 ### Legal-preserve checks (run AFTER filter-repo, BEFORE push)
 
 ```bash
-# 1. LICENSE, NOTICE, TRADEMARK.md must be byte-identical to pre-rewrite versions.
-git show pre-rebrand-history-rewrite-backup:LICENSE > /tmp/license.before
-git show HEAD:LICENSE > /tmp/license.after
-diff -q /tmp/license.before /tmp/license.after  # MUST output nothing
-
-git show pre-rebrand-history-rewrite-backup:NOTICE > /tmp/notice.before
-git show HEAD:NOTICE > /tmp/notice.after
-diff -q /tmp/notice.before /tmp/notice.after  # MUST output nothing
-
-git show pre-rebrand-history-rewrite-backup:TRADEMARK.md > /tmp/trademark.before
-git show HEAD:TRADEMARK.md > /tmp/trademark.after
-diff -q /tmp/trademark.before /tmp/trademark.after  # MUST output nothing
-
-# 2. The upstream source URL in Dockerfile.server must still point at lukilabs/rox-agents-oss.
-grep -F 'org.opencontainers.image.source' Dockerfile.server | grep -F 'lukilabs/rox-agents-oss' \
-  || { echo "FAIL: upstream attribution URL was rewritten"; exit 1; }
+bun run rebrand:r11-legal-preserve
 ```
+
+This executable gate verifies that `LICENSE`, `NOTICE`, and `TRADEMARK.md`
+remain byte-identical to `pre-rebrand-history-rewrite-backup`, and that
+`Dockerfile.server` still points its `org.opencontainers.image.source` label at
+`lukilabs/rox-agents-oss`.
 
 If any check fails, **stop, restore from backup, investigate**. Never push a rewritten history that has scrubbed Apache 2.0 attribution.
 
@@ -750,8 +740,7 @@ Document this in `README.md` § "After R.11 history rewrite" with a 72-hour visi
 
 ### Validation
 
-- All three legal-preserve byte-diffs are empty.
-- The Dockerfile attribution URL grep passes.
+- `bun run rebrand:r11-legal-preserve` passes.
 - `bun run validate:rebrand` is green on the rewritten history.
 - `bun run typecheck`, full `bun test`, `bun run build` are all green on the rewritten history.
 - `git log --oneline | wc -l` shows the expected post-rewrite commit count (filter-repo may compact some commits; document the delta).
@@ -760,7 +749,7 @@ Document this in `README.md` § "After R.11 history rewrite" with a 72-hour visi
 
 - Backup tag, backup branch, and backup mirror all exist.
 - Force-push completed without rejection.
-- Legal-preserve diffs are empty.
+- `bun run rebrand:r11-legal-preserve` passes.
 - T298 `Status: DONE`.
 
 ### Rollback (if R.11 goes wrong)
