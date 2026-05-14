@@ -1,6 +1,6 @@
 # T393 - R.11 preflight rebrand tag main check
 
-Status: IN PROGRESS
+Status: DONE
 Phase: R.11 preflight hardening
 Ticket: docs/tickets/T393-r11-preflight-rebrand-tag-main-check.md
 
@@ -76,6 +76,8 @@ The failure proved the evaluator ignored the tag-on-main condition.
 - `bun run validate:docs`
 - `bun run validate:rebrand`
 - `git diff --check`
+- `bun run rebrand:r11-preflight`
+- `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite`
 
 ## 8. Passing test output summary
 
@@ -117,6 +119,28 @@ git diff --check
 
 exited 0 with no output.
 
+Post-push default pre-backup preflight:
+
+```text
+no-active-goal        fail    Missing ROX_R11_NO_ACTIVE_GOAL=1 ac...
+rebrand-tag           pass    rebrand-v1 is visible on origin.
+rebrand-tag-on-main   fail    rebrand-v1 target is missing from o...
+main-sync             pass    origin/main...main is 0 0.
+worktree-clean        pass    git status --porcelain is empty.
+red - 2 R.11 pre-backup prerequisite(s) failing
+```
+
+Post-push explicit pre-rewrite preflight:
+
+```text
+rebrand-tag           pass    rebrand-v1 is visible on origin.
+rebrand-tag-on-main   fail    rebrand-v1 target is missing from o...
+backup-tag            fail    pre-rebrand-history-rewrite-backup ...
+backup-branch         fail    backup/pre-rebrand-history-rewrite-...
+offline-mirror        fail    /tmp/rox-one-terminal-backup-2026-0...
+red - 4 R.11 pre-rewrite prerequisite(s) failing
+```
+
 ## 9. Build output summary
 
 No build was run. This changes the report-only preflight script and tests, not
@@ -135,7 +159,7 @@ backup refs, create mirrors, run `git filter-repo`, force-push, or call
 | Regression test fails before implementation | Green | RED run showed the evaluator ignored tag-on-main |
 | Regression test passes after implementation | Green | Targeted test reports 12 pass, 0 fail |
 | Preflight has a distinct `rebrand-tag-on-main` row | Green | `rebrand-tag-on-main` row added and tested |
-| Live preflight reports the current tag-on-main state | Pending | Not rerun yet |
+| Live preflight reports the current tag-on-main state | Green | Post-push preflight reports `rebrand-tag-on-main` fail |
 | Documentation/rebrand validation remains green | Green | `typecheck`, `validate:docs`, `validate:rebrand`, and `git diff --check` passed |
 | Destructive R.11 actions are not executed | Green | No tag rewrite, backup, mirror, filter-repo, force-push, or update_goal action was run |
-| Commit created | Pending | Commit not created yet |
+| Commit created | Green | Lore commit `cbe6912a` created and pushed |
