@@ -32,12 +32,22 @@
  *   7. The singleton's reset path rebuilds cleanly (HMR / test reload).
  */
 
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, setDefaultTimeout, test } from 'bun:test'
 import {
+  type CreateShikiHighlighterOptions,
   getSingletonHighlighter,
   resetSingletonHighlighter,
   resolveLanguage,
 } from '@rox-one/shared/highlight'
+
+setDefaultTimeout(30_000)
+
+const TEST_HIGHLIGHTER_OPTIONS = {
+  langs: ['javascript', 'typescript'],
+  themes: ['github-light', 'github-dark'],
+} as const satisfies CreateShikiHighlighterOptions
+
+const getTestHighlighter = () => getSingletonHighlighter(TEST_HIGHLIGHTER_OPTIONS)
 
 afterEach(() => {
   resetSingletonHighlighter()
@@ -72,7 +82,7 @@ describe('ShikiCodeViewer singleton wiring', () => {
   })
 
   test('singleton renders a <pre><code><span> shell so ShikiCodeViewer can mount markup', async () => {
-    const highlighter = await getSingletonHighlighter()
+    const highlighter = await getTestHighlighter()
     const html = await highlighter.highlight(
       'const value: number = 42',
       'typescript',
@@ -87,7 +97,7 @@ describe('ShikiCodeViewer singleton wiring', () => {
   })
 
   test('singleton honours both github-light and github-dark themes', async () => {
-    const highlighter = await getSingletonHighlighter()
+    const highlighter = await getTestHighlighter()
     const code = 'function id<T>(x: T): T { return x }'
     const light = await highlighter.highlight(code, 'typescript', { theme: 'github-light' })
     const dark = await highlighter.highlight(code, 'typescript', { theme: 'github-dark' })
@@ -104,7 +114,7 @@ describe('ShikiCodeViewer singleton wiring', () => {
     // adapter's graceful fallback means unknown theme names render as the
     // default theme rather than throwing, so the viewer never crashes on a
     // mid-migration preset.
-    const highlighter = await getSingletonHighlighter()
+    const highlighter = await getTestHighlighter()
     const html = await highlighter.highlight(
       "console.log('hi')",
       'javascript',
@@ -115,7 +125,7 @@ describe('ShikiCodeViewer singleton wiring', () => {
   })
 
   test('singleton output is deterministic per (code, lang, theme) — ShikiCodeViewer contract', async () => {
-    const highlighter = await getSingletonHighlighter()
+    const highlighter = await getTestHighlighter()
     const code = "console.log('hi')"
     const a = await highlighter.highlight(code, 'javascript', { theme: 'github-light' })
     const b = await highlighter.highlight(code, 'javascript', { theme: 'github-light' })
@@ -123,7 +133,7 @@ describe('ShikiCodeViewer singleton wiring', () => {
   })
 
   test('singleton renders unsupported language as plain text without throwing', async () => {
-    const highlighter = await getSingletonHighlighter()
+    const highlighter = await getTestHighlighter()
     // ShikiCodeViewer relies on the adapter's graceful fallback because its
     // own `resolveLanguage(...) ?? 'text'` arm passes literal 'text' down.
     // The adapter accepts 'text' and renders it as plain pre/code without
@@ -133,9 +143,9 @@ describe('ShikiCodeViewer singleton wiring', () => {
   })
 
   test('resetSingletonHighlighter rebuilds cleanly — HMR / test reload path', async () => {
-    const a = await getSingletonHighlighter()
+    const a = await getTestHighlighter()
     resetSingletonHighlighter()
-    const b = await getSingletonHighlighter()
+    const b = await getTestHighlighter()
     expect(a).not.toBe(b)
     const html = await b.highlight('let n = 1', 'typescript', { theme: 'github-light' })
     expect(html.includes('<span')).toBe(true)

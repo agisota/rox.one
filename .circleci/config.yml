@@ -1,0 +1,205 @@
+version: 2.1
+
+commands:
+  install_bun:
+    description: Install the Bun version used by the existing GitHub CI jobs.
+    steps:
+      - run:
+          name: Install Bun
+          command: |
+            curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.13"
+            echo 'export BUN_INSTALL="$HOME/.bun"' >> "$BASH_ENV"
+            echo 'export PATH="$BUN_INSTALL/bin:$PATH"' >> "$BASH_ENV"
+  install_uv:
+    description: Install uv for document-tool validation parity with GitHub CI.
+    steps:
+      - run:
+          name: Install uv
+          command: |
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$BASH_ENV"
+  restore_bun_cache:
+    steps:
+      - restore_cache:
+          keys:
+            - bun-v1-{{ arch }}-{{ checksum "bun.lock" }}
+            - bun-v1-{{ arch }}-
+  save_bun_cache:
+    steps:
+      - save_cache:
+          key: bun-v1-{{ arch }}-{{ checksum "bun.lock" }}
+          paths:
+            - ~/.bun/install/cache
+  install_dependencies:
+    steps:
+      - restore_bun_cache
+      - run:
+          name: Install dependencies
+          command: bun install --frozen-lockfile
+      - save_bun_cache
+
+jobs:
+  build:
+    docker:
+      - image: cimg/node:22.16
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun
+      - install_uv
+      - run:
+          name: Print tool versions
+          command: |
+            bun --version
+            node --version
+            uv --version
+      - install_dependencies
+      - run:
+          name: Validate CircleCI default trigger surface
+          command: |
+            bun run validate:docs
+            bun run validate:ci-contract
+
+  validate:
+    docker:
+      - image: cimg/node:22.16
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun
+      - install_uv
+      - run:
+          name: Print tool versions
+          command: |
+            bun --version
+            node --version
+            uv --version
+      - install_dependencies
+      - run:
+          name: Install Playwright Chromium
+          command: ./node_modules/.bin/playwright install --with-deps chromium
+      - run:
+          name: Prepare validation logs
+          command: mkdir -p .ci-logs
+      - run:
+          name: validate:rebrand gate
+          command: |
+            set -o pipefail
+            bun run validate:rebrand 2>&1 | tee .ci-logs/validate-rebrand.log
+      - run:
+          name: Run validation suite
+          command: |
+            set -o pipefail
+            bun run validate:agent-contract 2>&1 | tee .ci-logs/agent-contract.log
+            bun run validate:architecture-docs 2>&1 | tee .ci-logs/architecture-docs.log
+            bun run validate:ci 2>&1 | tee .ci-logs/validate-ci.log
+            bun run test:units 2>&1 | tee .ci-logs/test-units.log
+      - store_artifacts:
+          path: .ci-logs
+          destination: validation-logs
+
+  secret-scan:
+    docker:
+      - image: cimg/base:2025.11
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Install gitleaks
+          command: |
+            curl -fsSL -o /tmp/gitleaks.tar.gz \
+              https://github.com/gitleaks/gitleaks/releases/download/v8.30.0/gitleaks_8.30.0_linux_x64.tar.gz
+            tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+            sudo install /tmp/gitleaks /usr/local/bin/gitleaks
+            gitleaks version
+      - run:
+          name: Run gitleaks
+          command: |
+            base_ref="${ROX_GITLEAKS_BASE_REF:-main}"
+            git fetch origin "$base_ref:refs/remotes/origin/$base_ref" --depth=200
+            base="origin/$base_ref"
+            changed_files="$(git diff --name-only --diff-filter=ACMR "$base"...HEAD)"
+            if [ -z "$changed_files" ]; then
+              echo "No changed files to scan against $base"
+              exit 0
+            fi
+            scan_dir="$(mktemp -d)"
+            printf '%s\n' "$changed_files" | while IFS= read -r file; do
+              [ -f "$file" ] || continue
+              mkdir -p "$scan_dir/$(dirname "$file")"
+              cp "$file" "$scan_dir/$file"
+            done
+            gitleaks dir "$scan_dir" --redact --no-banner --verbose
+
+  e2e-core:
+    macos:
+      xcode: 26.3.0
+    resource_class: m4pro.medium
+    environment:
+      ROX_E2E_FAKE_PROVIDERS: "1"
+      ROX_HEADLESS: "1"
+    steps:
+      - checkout
+      - install_bun
+      - install_uv
+      - install_dependencies
+      - run:
+          name: Validate E2E core contract
+          command: bun run validate:e2e-core-scenarios
+      - run:
+          name: Run E2E core scenarios
+          command: bun run e2e:core
+      - store_artifacts:
+          path: .e2e-logs
+          destination: e2e-core-logs
+
+  mac-arm-build:
+    macos:
+      xcode: 26.3.0
+    resource_class: m4pro.medium
+    environment:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      ROX_DEV_RUNTIME: "1"
+    steps:
+      - checkout
+      - install_bun
+      - install_uv
+      - install_dependencies
+      - run:
+          name: Validate Mac ARM workflow contract
+          command: bun run validate:mac-arm-build-workflow
+      - run:
+          name: Typecheck all packages
+          command: bun run typecheck:all
+      - run:
+          name: Check i18n parity
+          command: bun run lint:i18n:parity
+      - run:
+          name: Build Electron app
+          command: bun run electron:build
+      - run:
+          name: Package ROX ONE for macOS ARM64
+          command: bun run electron:dist:dev:mac:arm64
+      - run:
+          name: Smoke packaged ROX ONE app
+          command: bun run electron:smoke:packaged:mac
+      - run:
+          name: Smoke Electron startup path
+          command: bun run electron:smoke
+      - run:
+          name: Validate packaged artifact metadata
+          command: bun run validate:packaged-artifacts
+      - run:
+          name: Validate private mac release trust boundary
+          command: bun run validate:mac-private-release-boundary
+      - store_artifacts:
+          path: apps/electron/release
+          destination: rox-one-mac-arm64
+
+workflows:
+  ci:
+    jobs:
+      - validate
+      - secret-scan
+      - e2e-core
+      - mac-arm-build

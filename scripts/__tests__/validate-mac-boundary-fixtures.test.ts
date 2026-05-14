@@ -19,6 +19,7 @@ const fixturesRoot = join(repoRoot, 'scripts/__fixtures__/mac-bundle');
 const goodFixture = join(fixturesRoot, 'good-bundle');
 const badFixture = join(fixturesRoot, 'bad-bundle');
 const runnerScript = join(repoRoot, 'scripts/validate-mac-boundary-fixtures.ts');
+const afterSignScript = join(repoRoot, 'apps/electron/scripts/afterSign.cjs');
 
 function runValidator(fixturePath: string) {
   return spawnSync(
@@ -100,5 +101,45 @@ describe('validate-mac-boundary-fixtures contract (M.18 T251)', () => {
 
   test('orchestrator runner script exists on disk', () => {
     expect(existsSync(runnerScript)).toBe(true);
+  });
+
+  test('mac afterSign hook enforces ad-hoc signing with hardened runtime', async () => {
+    expect(existsSync(afterSignScript)).toBe(true);
+    const source = await Bun.file(afterSignScript).text();
+    expect(source).toContain('codesign');
+    expect(source).toContain('--sign');
+    expect(source).toContain('-');
+    expect(source).toContain('--options');
+    expect(source).toContain('runtime');
+    expect(source).toContain('--entitlements');
+    expect(source).toContain('build/entitlements.mac.plist');
+    expect(source).toContain('ROX.ONE.app');
+    expect(source).toContain('collectSignablePaths');
+    expect(source).toContain('SIGNABLE_FILE_NAMES');
+    expect(source).toContain("'claude'");
+    expect(source).toContain("'bun'");
+    expect(source).toContain("'rg'");
+    expect(source).not.toContain("'--deep'");
+  });
+
+  test('live mac validator requests codesign metadata separately from entitlements', async () => {
+    const source = await Bun.file(validatorPath).text();
+    expect(source).toContain("run('codesign', ['-dv', '--verbose=4', appPath])");
+    expect(source).toContain("run('codesign', ['-d', '--entitlements', '-', appPath])");
+    expect(source).not.toContain("['-dv', '--verbose=4', '--entitlements', '-', appPath]");
+  });
+
+  test('live mac validator accepts the ad-hoc executable codesign identifier fallback', async () => {
+    const source = await Bun.file(validatorPath).text();
+    expect(source).toContain("new Set(['com.rox.one', 'ROX.ONE'])");
+    expect(source).toContain('assertCodesignIdentifier(codesignMetadata.output)');
+    expect(source).toContain('signingOutputText: liveSigningOutput');
+    expect(source).not.toContain('requireNativeBinaryEntries: false');
+  });
+
+  test('live mac validator recursively verifies the signed app bundle', async () => {
+    const source = await Bun.file(validatorPath).text();
+    expect(source).toContain("run('codesign', ['--verify', '--deep', '--strict', '--verbose=4', appPath])");
+    expect(source).toContain('codesign recursive verification failed');
   });
 });

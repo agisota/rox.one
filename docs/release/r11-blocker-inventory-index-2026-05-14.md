@@ -35,6 +35,10 @@ not a substitute for fresh preflight context; see
 `docs/release/r11-preflight-context-inventory-2026-05-14.md` for the latest
 open-PR, checkout, main-sync, and worktree-clean rows.
 
+The current-main validation artifact also contains the T470 refresh: validation
+baseline `02275b9b`, pushed report commit `e4f3970e`, and full-suite evidence
+of 6910 pass, 13 skip, and 0 fail. This remains pre-rewrite evidence only.
+
 | Passing guard | Evidence artifact |
 | --- | --- |
 | `current-branch`, `main-sync`, `worktree-clean`, validation snapshot | `docs/release/r11-current-main-validation-2026-05-14.md` |

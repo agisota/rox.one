@@ -80,6 +80,20 @@ function run(command: string, args: string[]): { status: number | null; output: 
   return { status: result.status, output };
 }
 
+function assertCodesignIdentifier(codesignOutput: string): void {
+  const match = /^Identifier=(.+)$/m.exec(codesignOutput);
+  const identifier = match?.[1]?.trim();
+  // Ad-hoc app signing on CircleCI can report the CodeDirectory identifier as
+  // the executable name even while Info.plist keeps the canonical bundle id.
+  const acceptedIdentifiers = new Set(['com.rox.one', 'ROX.ONE']);
+  if (!identifier || !acceptedIdentifiers.has(identifier)) {
+    fail(
+      `missing ROX.ONE code signing identifier: Identifier=com.rox.one ` +
+        `(observed ${identifier ?? '<missing>'})`,
+    );
+  }
+}
+
 /** Minimal plist parser sufficient for this validator. Reads <key>/<value>
  *  pairs from an XML plist and returns a flat map. Handles `<string>`,
  *  `<true/>`, `<false/>`, and `<integer>`. */
@@ -130,9 +144,18 @@ interface BundleAssertions {
   bundlePath: string;
   /** Optional path to a sidecar `signing-output.txt` for fixture mode. */
   signingOutputPath?: string;
+  /** Optional live codesign output for runtime/entitlement checks. */
+  signingOutputText?: string;
+  /** Fixture sidecars list every binary; live top-level codesign output does not. */
+  requireNativeBinaryEntries?: boolean;
 }
 
-function assertBundleContract({ bundlePath, signingOutputPath }: BundleAssertions): void {
+function assertBundleContract({
+  bundlePath,
+  signingOutputPath,
+  signingOutputText,
+  requireNativeBinaryEntries,
+}: BundleAssertions): void {
   const infoPlistPath = path.join(bundlePath, 'Contents', 'Info.plist');
   if (!existsSync(infoPlistPath)) {
     fail(`bundle missing Info.plist: ${infoPlistPath}`);
@@ -154,9 +177,9 @@ function assertBundleContract({ bundlePath, signingOutputPath }: BundleAssertion
   const hardenedFromInfo =
     infoPlist['HardenedRuntime'] === true ||
     infoPlist['com.apple.security.cs.hardened-runtime'] === true;
-  const signingOutput = signingOutputPath && existsSync(signingOutputPath)
+  const signingOutput = signingOutputText ?? (signingOutputPath && existsSync(signingOutputPath)
     ? readFileSync(signingOutputPath, 'utf8')
-    : '';
+    : '');
   const hardenedFromSigning = /flags=0x[0-9a-fA-F]*10000\b/.test(signingOutput) ||
     signingOutput.includes('runtime');
   if (!hardenedFromInfo && !hardenedFromSigning) {
@@ -185,7 +208,8 @@ function assertBundleContract({ bundlePath, signingOutputPath }: BundleAssertion
   const nativeBinaries = allFiles.filter((file) =>
     /\.(dylib|node|framework)$/.test(file) || /\/MacOS\//.test(file),
   );
-  if (signingOutput) {
+  const mustCheckNativeBinaryEntries = requireNativeBinaryEntries ?? Boolean(signingOutputPath);
+  if (signingOutput && mustCheckNativeBinaryEntries) {
     for (const binary of nativeBinaries) {
       const baseName = path.basename(binary);
       if (!signingOutput.includes(baseName)) {
@@ -238,8 +262,20 @@ requireText(
 requireText(builderConfig, 'CSC_LINK', 'production signing credential hint');
 requireText(builderConfig, 'APPLE_TEAM_ID', 'production notarization team hint');
 requireText(builderConfig, 'hardenedRuntime: true', 'hardenedRuntime electron-builder flag');
+requireText(builderConfig, 'identity: "-"', 'ad-hoc signing identity required to preserve hardened runtime');
+requireText(builderConfig, 'afterSign: scripts/afterSign.cjs', 'private mac hardened-runtime afterSign hook');
 requireText(builderConfig, 'entitlements: build/entitlements.mac.plist', 'entitlements file reference');
 requireText(builderConfig, 'appId: com.rox.one', 'canonical bundle-id appId');
+
+const afterSignHook = read('apps/electron/scripts/afterSign.cjs');
+requireText(afterSignHook, 'ROX_DEV_RUNTIME', 'afterSign private-build guard');
+requireText(afterSignHook, 'codesign', 'afterSign codesign invocation');
+requireText(afterSignHook, "'--options'", 'afterSign codesign options flag');
+requireText(afterSignHook, "'runtime'", 'afterSign hardened runtime option');
+requireText(afterSignHook, "'--entitlements'", 'afterSign entitlements flag');
+requireText(afterSignHook, 'build/entitlements.mac.plist', 'afterSign entitlements path');
+requireText(afterSignHook, 'collectSignablePaths', 'afterSign explicit nested signing plan');
+refuseText(afterSignHook, "'--deep'", 'afterSign must not blanket-sign nested code');
 
 // 3. Entitlements plist: hardened minimum surface.
 const entitlements = read('apps/electron/build/entitlements.mac.plist');
@@ -304,13 +340,26 @@ if (!existsSync(appPath)) {
   fail('missing packaged app: apps/electron/release/mac-arm64/ROX.ONE.app; run electron:dist:dev:mac:arm64 first');
 }
 
-const codesign = run('codesign', ['-dv', '--verbose=4', '--entitlements', '-', appPath]);
-if (codesign.status !== 0) {
-  fail(`codesign inspection failed:\n${codesign.output}`);
+const recursiveVerification = run('codesign', ['--verify', '--deep', '--strict', '--verbose=4', appPath]);
+if (recursiveVerification.status !== 0) {
+  fail(`codesign recursive verification failed:\n${recursiveVerification.output}`);
 }
-requireText(codesign.output, 'Identifier=com.rox.one', 'ROX.ONE code signing identifier');
-requireText(codesign.output, 'Signature=adhoc', 'ad-hoc signature marker for private/local RC');
-requireText(codesign.output, 'TeamIdentifier=not set', 'missing TeamIdentifier marker for private/local RC');
+const codesignMetadata = run('codesign', ['-dv', '--verbose=4', appPath]);
+if (codesignMetadata.status !== 0) {
+  fail(`codesign metadata inspection failed:\n${codesignMetadata.output}`);
+}
+const codesignEntitlements = run('codesign', ['-d', '--entitlements', '-', appPath]);
+if (codesignEntitlements.status !== 0) {
+  fail(`codesign entitlement inspection failed:\n${codesignEntitlements.output}`);
+}
+const liveSigningOutput = `${codesignMetadata.output}\n${codesignEntitlements.output}`;
+assertBundleContract({
+  bundlePath: appPath,
+  signingOutputText: liveSigningOutput,
+});
+assertCodesignIdentifier(codesignMetadata.output);
+requireText(codesignMetadata.output, 'Signature=adhoc', 'ad-hoc signature marker for private/local RC');
+requireText(codesignMetadata.output, 'TeamIdentifier=not set', 'missing TeamIdentifier marker for private/local RC');
 
 const stapler = run('xcrun', ['stapler', 'validate', appPath]);
 if (stapler.status === 0) {
@@ -322,20 +371,14 @@ requireText(
   'missing notarization ticket marker for private/local RC',
 );
 
-// 7. Live bundle structural assertions when running on darwin against the
-//    packaged app. Pipes the codesign --entitlements output as the sidecar so
-//    the entitlement and native-binary checks share one code path with fixture
-//    mode.
-assertBundleContract({
-  bundlePath: appPath,
-  signingOutputPath: undefined,
-});
-// Re-run entitlement gates against live codesign output.
+// 7. Re-run entitlement gates against live codesign output with the same
+//    failure wording older CI logs used before the bundle-contract helper
+//    accepted live metadata.
 for (const key of REQUIRED_CLIENT_ENTITLEMENTS) {
-  requireText(codesign.output, key, `required entitlement: ${key}`);
+  requireText(liveSigningOutput, key, `required entitlement: ${key}`);
 }
 for (const key of FORBIDDEN_ENTITLEMENTS) {
-  refuseText(codesign.output, `<key>${key}</key>`, `forbidden entitlement (${key})`);
+  refuseText(liveSigningOutput, `<key>${key}</key>`, `forbidden entitlement (${key})`);
 }
 
 console.log('[mac-private-release-boundary] packaged app signature: adhoc, TeamIdentifier=not set');
