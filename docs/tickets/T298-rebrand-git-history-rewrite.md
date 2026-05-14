@@ -33,6 +33,17 @@ Use the report-only R.11 preflight before any destructive step:
 bun run rebrand:r11-preflight
 ```
 
+After backup artifacts exist and before any `git filter-repo` invocation, run
+the explicit pre-rewrite gate:
+
+```bash
+ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite
+```
+
+That gate must pass `backup-tag-target`, `backup-branch-target`, and
+`offline-mirror-target`; those rows prove the backup tag, backup branch, and
+offline mirror `main` target match current `main`.
+
 ## Required Subagents
 
 None required before unblock. Use review/verifier help only after the
@@ -48,6 +59,9 @@ non-zero.
 - Do not run `git filter-repo` while preflight is red.
 - Do not create or push the backup tag or backup branch while preflight is red.
 - Do not create the offline mirror while open PR or active-goal blockers remain.
+- Do not run `git filter-repo` until `backup-tag-target`,
+  `backup-branch-target`, and `offline-mirror-target` all pass against current
+  `main`.
 - Do not force-push any ref until all backup and legal-preserve checks pass.
 - Preserve Apache 2.0 attribution files and Dockerfile source URL exactly.
 - Record pre/post commit counts and all validation output in the worklog.
@@ -70,6 +84,8 @@ non-zero.
 - [ ] Backup tag exists on origin.
 - [ ] Backup branch exists on origin.
 - [ ] Offline mirror exists at `/tmp/rox-one-terminal-backup-2026-05-13.git`.
+- [ ] `backup-tag-target`, `backup-branch-target`, and
+  `offline-mirror-target` all pass against current `main`.
 - [ ] Explicit pre-rewrite remote branch review passes.
 - [ ] `git filter-repo` command history is recorded.
 - [ ] `bun run rebrand:r11-legal-preserve` passes.

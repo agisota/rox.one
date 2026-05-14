@@ -580,4 +580,30 @@ describe('R.11 closeout worklog documentation', () => {
     expect(worklogHeader).toContain('Status: BLOCKED')
     expect(worklogHeader).not.toContain('Status: DONE')
   })
+
+  test('keeps T298 backup artifact instructions aligned with target guard rows', () => {
+    const ticket = readFileSync(
+      join(repoRoot, 'docs', 'tickets', 'T298-rebrand-git-history-rewrite.md'),
+      'utf8',
+    )
+    const worklog = readFileSync(
+      join(repoRoot, 'docs', 'worklog', 'T298-rebrand-git-history-rewrite.md'),
+      'utf8',
+    )
+    const worklogHeader = worklog.split('## 1. Task summary')[0] ?? ''
+
+    for (const targetGuard of [
+      'backup-tag-target',
+      'backup-branch-target',
+      'offline-mirror-target',
+    ]) {
+      expect(ticket).toContain(targetGuard)
+      expect(worklog).toContain(targetGuard)
+    }
+
+    expect(ticket).toContain('current `main`')
+    expect(worklog).toContain('not emitted while the corresponding artifact is missing')
+    expect(worklogHeader).toContain('Status: BLOCKED')
+    expect(worklogHeader).not.toContain('Status: DONE')
+  })
 })
