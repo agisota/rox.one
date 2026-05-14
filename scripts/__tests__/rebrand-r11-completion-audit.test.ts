@@ -312,6 +312,22 @@ describe('R.11 completion audit', () => {
     expect(backupArtifactInventory).toContain('offline-mirror: missing')
   })
 
+  test('records backup artifact target guards in the dedicated inventory', () => {
+    const backupArtifactInventory = readFileSync(backupArtifactInventoryPath, 'utf8')
+
+    for (const targetGuard of [
+      'backup-tag-target',
+      'backup-branch-target',
+      'offline-mirror-target',
+    ]) {
+      expect(backupArtifactInventory).toContain(targetGuard)
+    }
+
+    expect(backupArtifactInventory).toContain('latent target rows')
+    expect(backupArtifactInventory).toContain('not emitted while the corresponding artifact is missing')
+    expect(backupArtifactInventory).toContain('current `main`')
+  })
+
   test('records latent backup target guards from the current pre-rewrite gate', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const promptChecklist =
