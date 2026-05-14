@@ -28,6 +28,8 @@ function passingSnapshot(
     backupBranchPresent: true,
     offlineMirrorPresent: true,
     staleRemoteBranches: [],
+    currentBranch: 'main',
+    currentBranchIsMain: true,
     gitFilterRepoPresent: true,
     r11CloseoutTicketPresent: true,
     r11CloseoutWorklogPresent: true,
@@ -117,6 +119,20 @@ describe('evaluateR11Preflight', () => {
     expect(report.allPassed).toBe(false)
     expect(report.results.find((result) => result.id === 'no-active-goal'))
       .toMatchObject({ passed: false })
+  })
+
+  test('fails closed when the current checkout is not main', () => {
+    const report = evaluateR11Preflight(passingSnapshot({
+      currentBranch: 'chore/rebrand-R10-final-sweep-and-gate',
+      currentBranchIsMain: false,
+    }))
+
+    expect(report.allPassed).toBe(false)
+    expect(report.results.find((result) => result.id === 'current-branch'))
+      .toMatchObject({
+        passed: false,
+        detail: expect.stringContaining('chore/rebrand-R10-final-sweep-and-gate'),
+      })
   })
 
   test('fails closed when the exact R.11 closeout worklog is missing', () => {
@@ -234,6 +250,8 @@ describe('evaluateR11Preflight', () => {
       backupTagPresent: false,
       backupBranchPresent: false,
       offlineMirrorPresent: false,
+      currentBranch: 'feature/not-main',
+      currentBranchIsMain: false,
       gitFilterRepoPresent: false,
       r11CloseoutTicketPresent: false,
       r11CloseoutWorklogPresent: false,
@@ -242,8 +260,9 @@ describe('evaluateR11Preflight', () => {
     }))
 
     expect(report.allPassed).toBe(false)
-    expect(report.results.filter((result) => !result.passed)).toHaveLength(14)
+    expect(report.results.filter((result) => !result.passed)).toHaveLength(15)
     expect(formatR11PreflightReport(report)).toContain('#189')
+    expect(formatR11PreflightReport(report)).toContain('current-branch')
     expect(formatR11PreflightReport(report)).toContain('fork-review')
     expect(formatR11PreflightReport(report)).toContain('rebrand-closeouts')
     expect(formatR11PreflightReport(report)).toContain('rebrand-tag-local-sync')

@@ -32,6 +32,8 @@ export interface R11PreflightSnapshot {
   backupBranchPresent: boolean
   offlineMirrorPresent: boolean
   staleRemoteBranches: string[]
+  currentBranch?: string
+  currentBranchIsMain: boolean
   gitFilterRepoPresent: boolean
   r11CloseoutTicketPresent: boolean
   r11CloseoutWorklogPresent: boolean
@@ -334,6 +336,19 @@ export function evaluateR11Preflight(
     }
   }
   results.push(
+    snapshot.currentBranchIsMain
+      ? pass(
+          'current-branch',
+          'Current checkout is main',
+          'Current checkout is main.',
+        )
+      : fail(
+          'current-branch',
+          'Current checkout is main',
+          `Current checkout is ${describeCommit(snapshot.currentBranch)}; switch to main before R.11.`,
+        ),
+  )
+  results.push(
     snapshot.gitFilterRepoPresent
       ? pass('git-filter-repo', 'git-filter-repo available', 'git-filter-repo is on PATH.')
       : fail('git-filter-repo', 'git-filter-repo available', 'git-filter-repo is missing from PATH.'),
@@ -572,6 +587,10 @@ export function collectR11PreflightSnapshot(
     repoRoot,
   ).stdout
   const status = run(['git', 'status', '--porcelain'], repoRoot).stdout
+  const currentBranchResult = run(['git', 'branch', '--show-current'], repoRoot)
+  const currentBranch = currentBranchResult.exitCode === 0 && currentBranchResult.stdout.length > 0
+    ? currentBranchResult.stdout
+    : undefined
   const filterRepo = run(['bash', '-lc', 'command -v git-filter-repo'], repoRoot)
 
   return {
@@ -596,6 +615,8 @@ export function collectR11PreflightSnapshot(
     offlineMirrorPresent: existsSync(DEFAULT_OFFLINE_MIRROR),
     staleRemoteBranches,
     staleRemoteBranchesError,
+    currentBranch,
+    currentBranchIsMain: currentBranch === 'main',
     gitFilterRepoPresent: filterRepo.exitCode === 0 && filterRepo.stdout.length > 0,
     r11CloseoutTicketPresent: existsSync(
       join(repoRoot, 'docs', 'tickets', 'T298-rebrand-git-history-rewrite.md'),
