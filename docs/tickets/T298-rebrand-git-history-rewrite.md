@@ -71,6 +71,7 @@ non-zero.
 - [ ] Backup tag exists on origin.
 - [ ] Backup branch exists on origin.
 - [ ] Offline mirror exists at `/tmp/rox-one-terminal-backup-2026-05-13.git`.
+- [ ] Explicit pre-rewrite remote branch review passes.
 - [ ] `git filter-repo` command history is recorded.
 - [ ] Legal-preserve byte diffs are empty.
 - [ ] Dockerfile upstream attribution URL remains intact.
