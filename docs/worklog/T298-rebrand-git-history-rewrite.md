@@ -121,8 +121,8 @@ the full post-rewrite build matrix before this ticket can become `DONE`.
 
 ### Current follow-up evidence pointers
 
-T409-T412 now keep the durable R.11 completion audit and current-main
-validation evidence in
+T409 and later audit-hygiene tickets keep the durable R.11 completion audit,
+current-main validation evidence, and exact report-only blocker IDs in
 `docs/release/r11-completion-audit-2026-05-14.md`. This T298 worklog remains
 the destructive closeout surface; use the completion audit for the latest
 report-only blocker matrix until R.11 is unblocked.
