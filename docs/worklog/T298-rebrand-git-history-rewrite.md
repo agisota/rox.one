@@ -118,17 +118,19 @@ exited 0 with no output.
 No build expected for this scaffold. The future destructive rewrite must run
 the full post-rewrite build matrix before this ticket can become `DONE`.
 
-### Current follow-up evidence, 2026-05-14T04:14:43Z
+### Current follow-up evidence, 2026-05-14T04:41:16Z
 
-T375 through T402 refreshed the blocker state after PR #205 merged, after
+T375 through T408 refreshed the blocker state after PR #205 merged, after
 the staged preflight split landed, after the R.11 local path runbook repair,
 after the pre-rewrite backup branch check landed, and after the fork-review
 closeout-prerequisite, tag-on-main, local-tag-sync, and remote-branch-review
-preflight rows landed:
+preflight rows landed, and after the report-only history/legal-preserve gates
+were added and wired into the R.11 goal:
 
 - GitHub reports no open PRs.
 - GitHub fork count is `0`.
-- `origin/main...HEAD` is `0 0`.
+- `main` and `origin/main` are synchronized (`origin/main...HEAD` is `0 0`
+  in clean post-push checks).
 - `rebrand-v1` exists on `origin`.
 - Local `rebrand-v1^{commit}` and origin `refs/tags/rebrand-v1^{}` currently
   differ.
@@ -155,6 +157,9 @@ preflight rows landed:
   post-rewrite legal-preserve byte checks and Dockerfile source-label check. It
   currently exits red because the backup tag does not exist yet; Dockerfile
   attribution itself passes.
+- The R.11 goal now points operators at
+  `bun run rebrand:r11-legal-preserve` instead of the older manual `/tmp`
+  byte-diff snippets.
 - The R.11 offline mirror and rollback snippets now point at the current
   checkout path, `/home/dev/craft/rox-one-terminal`, and the regression test
   fails if `/home/dev/rox/rox-one-terminal` returns.
@@ -188,7 +193,7 @@ worktree-clean       pass    git status --porcelain is empty.
 rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
 phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
 phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
-red - 3 R.11 pre-backup prerequisite(s) failing
+red — 3 R.11 pre-backup prerequisite(s) failing
 ```
 
 The latest explicit pre-rewrite preflight remains red on tag drift,
@@ -206,7 +211,18 @@ worktree-clean       pass    git status --porcelain is empty.
 rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
 phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
 phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
-red - 6 R.11 pre-rewrite prerequisite(s) failing
+red — 6 R.11 pre-rewrite prerequisite(s) failing
+```
+
+The latest legal-preserve runner remains blocked on the missing backup tag but
+proves that Dockerfile attribution is currently intact:
+
+```text
+legal-file-LICENSE             fail
+legal-file-NOTICE              fail
+legal-file-TRADEMARK.md        fail
+dockerfile-source-attribution  pass
+red - 3 R.11 legal-preserve check(s) failing
 ```
 
 ## 10. Remaining risks
