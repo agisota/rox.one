@@ -246,12 +246,14 @@ describe('R.11 completion audit', () => {
 
     expect(backlog).toContain('Status: ACTIVE CONSOLIDATION BACKLOG')
     expect(backlog).toContain('Pre-T463 origin/main baseline: `2fa129f3`')
-    expect(backlog).toContain('Open PRs: `#214`')
-    expect(backlog).toContain('CI blocked by GitHub account billing lock')
-    expect(backlog).toContain('149')
-    expect(backlog).toContain('148 non-main/non-R.11-backup')
-    expect(backlog).toContain('132 merged PR branch cleanup candidates')
-    expect(backlog).toContain('14 operator-review branches')
+    expect(backlog).toContain('Open PRs: none')
+    expect(backlog).toContain('PR queue status: cleared after PR #216 merged and PR #214 closed unmerged')
+    expect(backlog).toContain('PR #216 merged into `origin/main` as `0b0a218f`')
+    expect(backlog).toContain('PR #214 closed without merge')
+    expect(backlog).toContain('151')
+    expect(backlog).toContain('150 non-main/non-R.11-backup')
+    expect(backlog).toContain('0 open PR branches')
+    expect(backlog).toContain('150 origin branch review candidates')
     expect(backlog).toContain('destructive R.11 gates')
     expect(backlog).toContain('No branch deletion, tag mutation, backup ref creation, mirror creation, filter-repo, force-push, or PR merge was authorized by this artifact')
   })
@@ -263,7 +265,6 @@ describe('R.11 completion audit', () => {
 
     for (const blockerId of [
       'no-active-goal',
-      'no-open-prs',
       'rebrand-tag-local-sync',
       'rebrand-tag-on-main',
       'backup-tag',
@@ -281,22 +282,24 @@ describe('R.11 completion audit', () => {
     }
   })
 
-  test('records volatile preflight context blockers without destructive authorization', () => {
+  test('records volatile preflight context without destructive authorization', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const currentBlockers =
       audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
     const preflightContextInventory = readFileSync(preflightContextInventoryPath, 'utf8')
 
-    expect(currentBlockers).toContain('no-open-prs')
-    expect(currentBlockers).toContain('#214')
+    expect(currentBlockers).toContain('`no-open-prs` is green')
+    expect(currentBlockers).toContain('PR #216 merged')
+    expect(currentBlockers).toContain('PR #214 closed without merge')
     expect(currentBlockers).toContain('docs/release/r11-preflight-context-inventory-2026-05-14.md')
     expect(currentBlockers).toContain('main-sync')
     expect(currentBlockers).toContain('origin/main...main is 0 0')
     expect(currentBlockers).toContain('worktree-clean')
     expect(currentBlockers).toContain('git status --porcelain is empty')
-    expect(preflightContextInventory).toContain('Status: PREFLIGHT CONTEXT BLOCKERS')
-    expect(preflightContextInventory).toContain('Open PRs: 1')
-    expect(preflightContextInventory).toContain('#214')
+    expect(preflightContextInventory).toContain('Status: PREFLIGHT CONTEXT SNAPSHOT')
+    expect(preflightContextInventory).toContain('Open PRs: 0')
+    expect(preflightContextInventory).toContain('PR #216 merged into `origin/main` as `0b0a218f`')
+    expect(preflightContextInventory).toContain('PR #214 closed without merge')
     expect(preflightContextInventory).toContain('Current checkout: `main`')
     expect(preflightContextInventory).toContain('Pre-T463 origin/main baseline: `2fa129f3`')
     expect(preflightContextInventory).toContain('origin/main...main: `0 0`')
@@ -388,13 +391,16 @@ describe('R.11 completion audit', () => {
     const remoteBranchReview = readFileSync(remoteBranchReviewPath, 'utf8')
 
     expect(currentBlockers).toContain('remote-branch-review')
-    expect(currentBlockers).toContain('148 non-main/non-R.11-backup origin branches')
+    expect(currentBlockers).toContain('150 non-main/non-R.11-backup origin branches')
     expect(currentBlockers).toContain('docs/release/r11-remote-branch-review-2026-05-14.md')
-    expect(remoteBranchReview).toContain('Total origin heads: 149')
-    expect(remoteBranchReview).toContain('Non-main/non-R.11-backup origin branches: 148')
+    expect(remoteBranchReview).toContain('Total origin heads: 151')
+    expect(remoteBranchReview).toContain('Non-main/non-R.11-backup origin branches: 150')
+    expect(remoteBranchReview).toContain('Open PR branches: 0')
     expect(remoteBranchReview).toContain('operator-review-required')
     expect(remoteBranchReview).toContain('feat/M14-T250-rpc-admin-audit-list')
     expect(remoteBranchReview).toContain('fix/t132-main-bundle-regression')
+    expect(remoteBranchReview).toContain('feat/M16-T132e-shrink-main-chunk')
+    expect(remoteBranchReview).toContain('feat/M16-T132e-shrink-main-chunk-direct')
     expect(remoteBranchReview).toContain('docs/M20-T299-phase-20-closeout')
     expect(remoteBranchReview).toContain('chore/bundle-budget-pdf-worker-carveout')
     expect(remoteBranchReview).toContain('fix/renderer-prod-sourcemap-leak')
@@ -523,7 +529,8 @@ describe('R.11 completion audit', () => {
       'active `/goal` run',
       '`rebrand-v1` tag targets',
       'origin/main ancestry',
-      '148 non-main/non-R.11-backup origin branches',
+      '150 non-main/non-R.11-backup origin branches',
+      '0 open PR branches',
       'backup tag, backup branch, and offline mirror',
       'legal-preserve',
       'history scan',

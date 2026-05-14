@@ -14,10 +14,15 @@ git ls-remote --heads origin
 
 Summary:
 
-- Total origin heads: 149
+- Total origin heads: 151
 - Excluded from blocker count: `main`
 - R.11 backup branch present: no
-- Non-main/non-R.11-backup origin branches: 148
+- Non-main/non-R.11-backup origin branches: 150
+- Open PR branches: 0
+- Merged PR branch cleanup candidates: 133
+- Closed/unmerged PR branch review candidates: 9
+- No-visible-PR branch review candidates: 7
+- Backup/protected branch review candidates: 1
 - Default disposition in this report: `operator-review-required`
 
 ## Branch Inventory
@@ -83,6 +88,7 @@ Summary:
 | `chore/ci-sbom-secret-scan` | `5a5cbaea090f32efd0bb40f457741ce26b15bca9` | operator-review-required |
 | `feat/f1-shiki-engine-swap` | `5f0f76694adee156d4a4dc95582ddf53d0fbc92d` | operator-review-required |
 | `feat/M13-T071b-roles-rate-limiter` | `60a44818f00e182fdb1639da0815e5f52a2d93ff` | operator-review-required |
+| `feat/M16-T132e-shrink-main-chunk` | `61f1a6914b6b3d2c9ce42da142a93e53cecbd080` | operator-review-required |
 | `chore/bundle-budget-pdf-worker-carveout` | `62a930dc006bb8e82f394b91a8d33718769342b3` | operator-review-required |
 | `feat/M7-T242d-domain-orchestrator-client` | `653be7bb2e280776bc33a48394afef339949dfe9` | operator-review-required |
 | `mac/rox-production-ready-rc` | `65ff6e8568311ddd52d82fd832bd13e5c9bd8b26` | operator-review-required |
@@ -161,6 +167,7 @@ Summary:
 | `feat/M7-T242-orchestrator-host-composition` | `e1043fc3e729642421ccb9b3f7bb20197c8ff647` | operator-review-required |
 | `feat/browser-hung-tab-detection` | `e433017d9c442987669b2d39125ba51619aab8de` | operator-review-required |
 | `feat/M8-T244b-mission-store-host` | `e6810bfaaef42675efca95a73cab8e15c386f612` | operator-review-required |
+| `feat/M16-T132e-shrink-main-chunk-direct` | `eaaf708f7fc77ec24e2399841c51f4fc3ae8bf94` | operator-review-required |
 | `test/edit-popover-focus-trap-a11y` | `e70a42e02ac6bc2e808f9dc487f907c48eb97c4a` | operator-review-required |
 | `chore/rename-t355-m21-to-t356` | `ef8b5ad56252bc33f98881fdbe6f755f55d5f32e` | operator-review-required |
 | `feat/M16-bundle-budget` | `efb9e5ad3026ce29ee7696c1329a4e9ada678b91` | operator-review-required |
