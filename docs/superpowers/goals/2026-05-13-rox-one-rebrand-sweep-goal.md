@@ -648,7 +648,7 @@ cd /tmp && git clone --mirror file:///home/dev/craft/rox-one-terminal \
   /tmp/rox-one-terminal-backup-2026-05-13.git
 ```
 
-The backup tag and the offline mirror must **both** exist before any filter-repo invocation. Confirm with `ls -la /tmp/rox-one-terminal-backup-2026-05-13.git` and `git ls-remote --tags origin | grep pre-rebrand`, then run the explicit pre-rewrite helper gate:
+The backup tag, backup branch, and offline mirror must **all** exist before any filter-repo invocation. Confirm with `ls -la /tmp/rox-one-terminal-backup-2026-05-13.git`, `git ls-remote --tags origin | grep pre-rebrand`, and `git ls-remote --heads origin backup/pre-rebrand-history-rewrite-2026-05-13`, then run the explicit pre-rewrite helper gate:
 
 ```bash
 bun run rebrand:r11-preflight --stage pre-rewrite

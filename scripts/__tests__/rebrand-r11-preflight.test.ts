@@ -253,4 +253,23 @@ describe('R.11 goal documentation', () => {
     expect(spine).not.toContain('R.11 has nine hard prerequisites')
     expect(spine).toContain('R.11 has hard prerequisites')
   })
+
+  test('documents every backup artifact enforced by the pre-rewrite gate', () => {
+    const goal = readFileSync(
+      join(
+        repoRoot,
+        'docs',
+        'superpowers',
+        'goals',
+        '2026-05-13-rox-one-rebrand-sweep-goal.md',
+      ),
+      'utf8',
+    )
+
+    expect(goal).toContain(
+      'The backup tag, backup branch, and offline mirror must **all** exist before any filter-repo invocation.',
+    )
+    expect(goal).toContain('backup/pre-rebrand-history-rewrite-2026-05-13')
+    expect(goal).toContain('bun run rebrand:r11-preflight --stage pre-rewrite')
+  })
 })
