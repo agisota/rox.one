@@ -93,4 +93,13 @@ describe('R.11 completion audit', () => {
     expect(currentBlockers).toContain('remote-branch-review')
     expect(currentBlockers).toContain('139 non-main/non-R.11-backup origin branches')
   })
+
+  test('records the current rebrand-v1 tag targets', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const currentBlockers =
+      audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
+
+    expect(currentBlockers).toContain('906896e145156d92cf98457c4dc1893c53323bac')
+    expect(currentBlockers).toContain('b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99')
+  })
 })
