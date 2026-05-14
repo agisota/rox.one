@@ -73,14 +73,15 @@ Fresh evidence from the latest clean post-push checks:
 - `bun run rebrand:r11-preflight` exits red with 3 blockers:
   `no-active-goal`, `rebrand-tag-local-sync`, and `rebrand-tag-on-main`.
 - `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite`
-  exits red with 6 blockers: the two tag blockers, missing backup tag, missing
-  backup branch, missing offline mirror, and 139 non-main/non-R.11-backup
-  origin branches.
-- `bun run rebrand:r11-legal-preserve` exits red on the three legal-file rows
-  because `pre-rebrand-history-rewrite-backup` is missing; the Dockerfile
-  attribution row passes.
-- `REBRAND_R11_HISTORY_MAX_FINDINGS=8 bun run rebrand:r11-history-scan` exits
-  red with bounded historical findings.
+  exits red with 6 blockers: `rebrand-tag-local-sync`,
+  `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`, and
+  `remote-branch-review`.
+- `bun run rebrand:r11-legal-preserve` exits red on `legal-file-LICENSE`,
+  `legal-file-NOTICE`, and `legal-file-TRADEMARK.md` because
+  `pre-rebrand-history-rewrite-backup` is missing; the
+  `dockerfile-source-attribution` row passes.
+- `REBRAND_R11_HISTORY_MAX_FINDINGS=8 bun run rebrand:r11-history-scan`
+  (`history-scan`) exits red with bounded historical findings.
 
 ## Stop Condition
 
