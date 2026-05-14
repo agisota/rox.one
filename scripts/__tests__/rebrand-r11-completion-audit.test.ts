@@ -10,6 +10,12 @@ const remoteBranchReviewPath = join(
   'release',
   'r11-remote-branch-review-2026-05-14.md',
 )
+const remoteBranchRetirementManifestPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-remote-branch-retirement-manifest-2026-05-14.md',
+)
 const historyScanInventoryPath = join(
   repoRoot,
   'docs',
@@ -339,6 +345,7 @@ describe('R.11 completion audit', () => {
       'docs/release/r11-tag-drift-inventory-2026-05-14.md',
       'docs/release/r11-backup-artifact-inventory-2026-05-14.md',
       'docs/release/r11-remote-branch-review-2026-05-14.md',
+      'docs/release/r11-remote-branch-retirement-manifest-2026-05-14.md',
       'docs/release/r11-legal-preserve-inventory-2026-05-14.md',
       'docs/release/r11-history-scan-inventory-2026-05-14.md',
     ]) {
@@ -410,6 +417,28 @@ describe('R.11 completion audit', () => {
     expect(remoteBranchReview).toContain('feat/M18-T253b-linux-deb-rpm')
     expect(remoteBranchReview).toContain('chore/T297-rebrand-prepush-ci-gate')
     expect(remoteBranchReview).toContain('backup/agent-workbench-t000-t012-2026-04-30')
+  })
+
+  test('records an operator-ready remote branch retirement manifest', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const manifest = readFileSync(remoteBranchRetirementManifestPath, 'utf8')
+
+    expect(audit).toContain('docs/release/r11-remote-branch-retirement-manifest-2026-05-14.md')
+    expect(manifest).toContain('Status: OPERATOR REVIEW MANIFEST')
+    expect(manifest).toContain('Non-main/non-R.11-backup origin branches: 150')
+    expect(manifest).toContain('Open PR branches: 0')
+    expect(manifest).toContain('Merged PR branch heads: 133')
+    expect(manifest).toContain('Closed/unmerged PR branch heads: 9')
+    expect(manifest).toContain('No-visible-PR branch heads: 7')
+    expect(manifest).toContain('Backup/protected branch heads: 1')
+    expect(manifest).toContain('No branch deletion, pruning, merging, preservation, tag mutation, backup creation, `git filter-repo`, force-push, or goal completion is authorized by this manifest.')
+    expect(manifest).toContain('Dry-run review commands')
+    expect(manifest).toContain('git push origin --delete')
+    expect(manifest).toContain('Do not run the delete commands until an operator-owned destructive window is explicit')
+    expect(manifest).toContain('fix/t132-main-bundle-regression')
+    expect(manifest).toContain('feat/M16-T132e-shrink-main-chunk')
+    expect(manifest).toContain('feat/M16-T132e-shrink-main-chunk-direct')
+    expect(manifest).toContain('backup/agent-workbench-t000-t012-2026-04-30')
   })
 
   test('records the current rebrand-v1 tag targets', () => {

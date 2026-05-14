@@ -24,7 +24,7 @@ Source evidence:
 | Fork review | `fork-review` | `docs/release/r11-fork-review-inventory-2026-05-14.md` |
 | Rebrand tag drift | `rebrand-tag-local-sync`, `rebrand-tag-on-main` | `docs/release/r11-tag-drift-inventory-2026-05-14.md` |
 | Backup artifacts | `backup-tag`, `backup-branch`, `offline-mirror` | `docs/release/r11-backup-artifact-inventory-2026-05-14.md` |
-| Remote branch review | `remote-branch-review` | `docs/release/r11-remote-branch-review-2026-05-14.md` |
+| Remote branch review | `remote-branch-review` | `docs/release/r11-remote-branch-review-2026-05-14.md`; `docs/release/r11-remote-branch-retirement-manifest-2026-05-14.md` |
 | Legal preserve | `legal-file-LICENSE`, `legal-file-NOTICE`, `legal-file-TRADEMARK.md` | `docs/release/r11-legal-preserve-inventory-2026-05-14.md` |
 | History scan | `history-scan` | `docs/release/r11-history-scan-inventory-2026-05-14.md` |
 
