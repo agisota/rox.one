@@ -363,7 +363,8 @@ describe('R.11 closeout worklog documentation', () => {
     )
 
     expect(worklog).toContain('docs/release/r11-completion-audit-2026-05-14.md')
-    expect(worklog).toContain('T409-T411')
+    expect(worklog).toContain('T409-T412')
+    expect(worklog).not.toContain('after T402')
     expect(worklog).not.toContain('T375 through T408')
   })
 })
