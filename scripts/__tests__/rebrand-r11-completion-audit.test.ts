@@ -312,6 +312,29 @@ describe('R.11 completion audit', () => {
     expect(backupArtifactInventory).toContain('offline-mirror: missing')
   })
 
+  test('records latent backup target guards from the current pre-rewrite gate', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const promptChecklist =
+      audit.split('## Prompt-to-Artifact Checklist')[1]?.split('## R.11 Hard Prerequisite Evidence')[0] ?? ''
+    const currentBlockers =
+      audit.split('## Current Blockers')[1]?.split('## Operator-Owned Unblock Checklist')[0] ?? ''
+    const operatorChecklist =
+      audit.split('## Operator-Owned Unblock Checklist')[1]?.split('## Stop Condition')[0] ?? ''
+
+    for (const targetGuard of [
+      'backup-tag-target',
+      'backup-branch-target',
+      'offline-mirror-target',
+    ]) {
+      expect(promptChecklist).toContain(targetGuard)
+      expect(currentBlockers).toContain(targetGuard)
+      expect(operatorChecklist).toContain(targetGuard)
+    }
+
+    expect(currentBlockers).toContain('not emitted while the corresponding artifact is missing')
+    expect(operatorChecklist).toContain('after backup artifacts exist')
+  })
+
   test('records exact legal-preserve gate state', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const currentBlockers =
