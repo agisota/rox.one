@@ -11,7 +11,7 @@ rebrand-R.6-env-var-shim | 777ada7 | T285,T286,T287,T288 | 2026-05-13T16:30:00Z
 rebrand-R.7-docker-ci-build | 1766229,24b0d01,23a3b73 | T289,T290,T291 | 2026-05-13T20:35:00Z
 rebrand-R.8-user-data-migration | 3f9ea58,efdf1bc,f39d087 | T292,T293,T294 | 2026-05-13T21:00:00Z
 rebrand-R.9-community-link-audit | 17990c4 | T295 | 2026-05-13T17:54:46Z
-rebrand-R.9.5-allowlist-and-final-text | b8d6abd | T298a,T299a,T300a | 2026-05-13T18:09:00Z
+rebrand-R.9.5-allowlist-and-final-text | b8d6abd | T298a,T300a | 2026-05-13T18:09:00Z
 rebrand-R.10-final-sweep-and-gate | b287c4e | T296,T297 | 2026-05-13T21:50:00Z
 M.2-foundation | 89e3423,375e89a | T224,T225 | 2026-05-13T18:57:16Z
 M.2-T226-rbac-resolver | cad0550 | T226 | 2026-05-13T19:08:05Z
