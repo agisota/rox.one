@@ -60,6 +60,7 @@ bun run typecheck
 bun test apps/electron/src/renderer/components/keyboard-cheatsheet/__tests__/shortcut-registry.test.ts
 bun run validate:agent-contract
 bun run validate:docs
+bun run build
 git diff --check
 ```
 
@@ -73,12 +74,14 @@ git diff --check
   tickets, 7 required docs`.
 - `bun run validate:docs`: agent contract, architecture docs, and sync v2
   design validations pass.
+- `bun run build`: exits 0; Electron main, preload, renderer, resources, and
+  assets build successfully.
 - `git diff --check`: exits 0.
 
 ## 9. Build Output Summary
 
-No build was run for this token-only lint repair. The source edit changes one
-Tailwind class from a rejected shadow token to an approved shadow token.
+`bun run build` exits 0. The build completes Electron main, preload, renderer,
+resources, and assets after the renderer TSX token change.
 
 ## 10. Remaining Risks
 
@@ -95,4 +98,5 @@ Tailwind class from a rejected shadow token to an approved shadow token.
 | `bun run lint` exits 0 with no lint errors | Pass | Lint exits 0 with 7 warnings and 0 errors |
 | Cheatsheet overlay uses an approved shadow class | Pass | `CheatsheetOverlay.tsx` uses `shadow-xs` |
 | `bun run typecheck` exits 0 after the TSX edit | Pass | Typecheck exits 0 |
+| `bun run build` exits 0 after the renderer TSX edit | Pass | Build exits 0 |
 | `git diff --check` exits 0 | Pass | Whitespace check exits 0 |

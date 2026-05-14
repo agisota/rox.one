@@ -42,6 +42,7 @@ behavior or weakening the approved shadow-token rule.
 ```bash
 bun run lint
 bun run typecheck
+bun run build
 git diff --check
 ```
 
@@ -50,6 +51,7 @@ git diff --check
 - [x] `bun run lint` exits 0 with no lint errors.
 - [x] The cheatsheet overlay uses an approved shadow class.
 - [x] `bun run typecheck` exits 0 after the TSX edit.
+- [x] `bun run build` exits 0 after the renderer TSX edit.
 - [x] `git diff --check` exits 0.
 
 ## Worklog
