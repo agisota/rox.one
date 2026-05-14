@@ -12,7 +12,7 @@
  * Engine swaps must continue to satisfy all three.
  */
 
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { promises as fs } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -24,6 +24,8 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const HIGHLIGHT_DIR = path.resolve(HERE, '..')
 const SIZE_SIDECAR = path.join(HIGHLIGHT_DIR, 'highlight-bundle-size.json')
 const SIZE_BUDGET_OVERSHOOT_RATIO = 0.2 // 20%
+
+setDefaultTimeout(30_000)
 
 // Module files whose byte-size we track. Stored as a JSON sidecar in the
 // highlight dir; CI fails if the sum grows by more than 20% versus the

@@ -9,7 +9,9 @@ buildVersion: "92"
 electronVersion: "39.8.9"
 
 # Hook to compile macOS 26+ Liquid Glass icon after packaging
+beforeBuild: scripts/beforeBuild.cjs
 afterPack: scripts/afterPack.cjs
+afterSign: scripts/afterSign.cjs
 
 directories:
   output: release
@@ -92,6 +94,10 @@ asar: false
 mac:
   category: public.app-category.productivity
   icon: resources/icon.icns
+  # Private/local RC builds intentionally use ad-hoc signing. electron-builder
+  # only preserves hardened runtime for ad-hoc output when identity is "-";
+  # disabling signing via null/CSC_IDENTITY_AUTO_DISCOVERY=false drops runtime.
+  identity: "-"
   # macOS 26+ Liquid Glass: Tell macOS to look for icon in Assets.car
   # The value must match --app-icon used in actool (see afterPack.cjs)
   extendInfo:
@@ -177,10 +183,6 @@ win:
     sign: null
     signingHashAlgorithms: []
     publisherName: ""
-  # Pin the canonical AppUserModelID so afterPack-windows.cjs and the
-  # validator both grep the same scope. Mirrors the Mac `appId:
-  # com.rox.one` top-level pin.
-  publisherName: roxone
   files:
     # Exclude binaries for other platforms
     - "!**/vendor/codex/darwin-*/**"
@@ -241,9 +243,10 @@ linux:
   maintainer: "roxone <support@rox.one>"
   executableName: rox-one
   desktop:
-    Name: rox-one
-    Exec: rox-one %U
-    Categories: Office;Utility;Development;
+    entry:
+      Name: rox-one
+      Exec: rox-one %U
+      Categories: Office;Utility;Development;
   # T253b: Add deb + rpm targets alongside AppImage for broad Linux
   # package-manager coverage. Both share the canonical category, synopsis,
   # and maintainer declared above.

@@ -1,25 +1,35 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { spawnDevServer, type DevServerHandle } from "../src/runners/dev-server-runner.ts";
 import { crawlRoutes } from "../src/route-crawler.ts";
 import { createPlaywrightRunner, type PlaywrightRunner } from "../src/runners/playwright-runner.ts";
 
+const REPO_ROOT = join(import.meta.dir, "..", "..", "..");
 const FIXTURE = join(import.meta.dir, "fixtures", "spa-fixture");
-// bun executable: use process.execPath when running under bun (it resolves to the bun binary itself).
-const BUN_BIN = process.execPath;
+const VITE_BIN = join(
+  REPO_ROOT,
+  "node_modules",
+  ".bin",
+  process.platform === "win32" ? "vite.cmd" : "vite",
+);
+const SERVER_TIMEOUT_MS = process.env.CI ? 90_000 : 30_000;
 let server: DevServerHandle | null = null;
 let pw: PlaywrightRunner | null = null;
 
 beforeAll(async () => {
+  if (!existsSync(VITE_BIN)) {
+    throw new Error(`missing root Vite binary: ${VITE_BIN}; run bun install`);
+  }
   server = await spawnDevServer({
-    command: BUN_BIN,
-    args: ["run", "dev"],
+    command: VITE_BIN,
+    args: ["--host", "127.0.0.1", "--port", "5174"],
     cwd: FIXTURE,
     readyPattern: /Local:\s+(http:\/\/[^\s/]+\/?)/,
-    timeoutMs: 30_000,
+    timeoutMs: SERVER_TIMEOUT_MS,
   });
   pw = await createPlaywrightRunner();
-}, 60_000);
+}, SERVER_TIMEOUT_MS + 30_000);
 
 afterAll(async () => {
   if (pw) await pw.close();

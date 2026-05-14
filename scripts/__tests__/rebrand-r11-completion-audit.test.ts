@@ -95,6 +95,9 @@ const rebrandMappingPath = join(
   'rebrand-mapping-2026-05-13.md',
 )
 
+const markdownSection = (markdown: string, heading: string): string =>
+  markdown.split(`## ${heading}`)[1]?.split('\n## ')[0] ?? ''
+
 describe('R.11 completion audit', () => {
   test('maps every global stopping condition to concrete evidence', () => {
     const audit = readFileSync(auditPath, 'utf8')
@@ -315,6 +318,25 @@ describe('R.11 completion audit', () => {
     expect(audit).toContain('open PRs remain 0')
     expect(audit).toContain('default preflight remains red with 4 blockers')
     expect(audit).toContain('pre-rewrite preflight remains red with 7 blockers')
+  })
+
+  test('records post-T470 current-main validation evidence in the completion audit and backlog', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const backlog = readFileSync(consolidationBacklogPath, 'utf8')
+    const postT470AuditSection = markdownSection(
+      audit,
+      'Post-T470 current-main validation evidence',
+    )
+
+    expect(postT470AuditSection).toContain('T470 current-main validation refresh')
+    expect(postT470AuditSection).toContain('`e4f3970e`')
+    expect(postT470AuditSection).toContain('`02275b9b`')
+    expect(postT470AuditSection).toContain('6910 pass, 13 skip, 0 fail')
+    expect(postT470AuditSection).toContain('Post-T470 default preflight remains red with 4 blockers')
+    expect(postT470AuditSection).toContain('pre-rewrite preflight remains red with 7 blockers')
+    expect(backlog).toContain('Latest report-only validation baseline: `e4f3970e`')
+    expect(backlog).toContain('T470 current-main validation baseline: `02275b9b`')
+    expect(backlog).toContain('Current full-suite evidence: `6910 pass`, `13 skip`, `0 fail`')
   })
 
   test('records exact current report-only blocker IDs', () => {

@@ -16,6 +16,9 @@ No branch deletion, tag mutation, backup ref creation, mirror creation, filter-r
 - Authoring branch: `report/r11-t463-consolidation-backlog`
 - T464 live refresh baseline: `8923923e`
 - T464 post-PR-closeout live baseline: `0b0a218f`
+- Latest report-only validation baseline: `e4f3970e`
+- T470 current-main validation baseline: `02275b9b`
+- Current full-suite evidence: `6910 pass`, `13 skip`, `0 fail`
 - Open PRs: none
 - PR queue status: cleared after PR #216 merged and PR #214 closed unmerged
 - Origin heads: `151`
@@ -125,6 +128,9 @@ with irreversible ref or history operations.
 Current gate snapshot:
 
 - Open PRs: 0
+- Latest report-only validation baseline: `e4f3970e`
+- T470 current-main validation baseline: `02275b9b`
+- Current full-suite evidence: `6910 pass`, `13 skip`, `0 fail`
 - Remote branches requiring review: 150
 - Default preflight blockers: `no-active-goal`, `fork-review`, `rebrand-tag-local-sync`, `rebrand-tag-on-main`
 - Pre-rewrite blockers: `fork-review`, `rebrand-tag-local-sync`, `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`, `remote-branch-review`
