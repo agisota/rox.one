@@ -21,6 +21,10 @@ events.jsonl
 _.log
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
+# Local test temp roots
+.tmp-test-file-audit-sink/
+.tmp-test-host-audit-producer/
+
 # dotenv environment variable files
 .env
 .env.development.local
