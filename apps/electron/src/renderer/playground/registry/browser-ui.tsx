@@ -546,6 +546,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: false,
       themeColor: '#4f46e5',
+      hungTab: false,
     },
     {
       id: 'mock-2',
@@ -561,6 +562,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: true,
       themeColor: 'lch(96.667% 0 282.863 / 1)',
+      hungTab: false,
     },
     {
       id: 'mock-3',
@@ -576,6 +578,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: false,
       agentControlActive: false,
       themeColor: '#6db33f',
+      hungTab: false,
     },
     {
       id: 'mock-4',
@@ -591,6 +594,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: false,
       themeColor: '#1e2327',
+      hungTab: false,
     },
     {
       id: 'mock-5',
@@ -606,6 +610,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: false,
       themeColor: '#002244',
+      hungTab: false,
     },
   ],
   'long-names': [
@@ -623,6 +628,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: false,
       themeColor: null,
+      hungTab: false,
     },
     {
       id: 'long-2',
@@ -638,6 +644,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: true,
       themeColor: 'lch(96.667% 0 282.863 / 1)',
+      hungTab: false,
     },
     {
       id: 'long-3',
@@ -653,6 +660,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: false,
       agentControlActive: false,
       themeColor: null,
+      hungTab: false,
     },
   ],
   'many-running': [
@@ -670,6 +678,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: true,
       themeColor: null,
+      hungTab: false,
     },
     {
       id: 'run-2',
@@ -685,6 +694,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: true,
       themeColor: 'lch(96.667% 0 282.863 / 1)',
+      hungTab: false,
     },
     {
       id: 'run-3',
@@ -700,6 +710,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: false,
       themeColor: '#1e2327',
+      hungTab: false,
     },
     {
       id: 'run-4',
@@ -715,6 +726,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: false,
       themeColor: '#6db33f',
+      hungTab: false,
     },
     {
       id: 'run-5',
@@ -730,6 +742,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: false,
       agentControlActive: false,
       themeColor: '#111111',
+      hungTab: false,
     },
   ],
   'stress-mix': [
@@ -747,6 +760,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: false,
       themeColor: null,
+      hungTab: false,
     },
     {
       id: 'mix-2',
@@ -762,6 +776,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: true,
       themeColor: 'lch(96.667% 0 282.863 / 1)',
+      hungTab: false,
     },
     {
       id: 'mix-3',
@@ -777,6 +792,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: false,
       agentControlActive: false,
       themeColor: null,
+      hungTab: false,
     },
     {
       id: 'mix-4',
@@ -792,6 +808,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: false,
       themeColor: '#1e2327',
+      hungTab: false,
     },
     {
       id: 'mix-5',
@@ -807,6 +824,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: false,
       themeColor: '#1abcfe',
+      hungTab: false,
     },
     {
       id: 'mix-6',
@@ -822,6 +840,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: false,
       themeColor: '#1a73e8',
+      hungTab: false,
     },
     {
       id: 'mix-7',
@@ -837,6 +856,7 @@ const MOCK_BROWSER_PRESETS: Record<BrowserTabStripMockPreset, BrowserInstanceInf
       isVisible: true,
       agentControlActive: false,
       themeColor: '#002244',
+      hungTab: false,
     },
   ],
 }

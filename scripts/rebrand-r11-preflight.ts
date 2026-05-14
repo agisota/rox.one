@@ -1,0 +1,305 @@
+/**
+ * Report-only R.11 preflight runner.
+ *
+ * This script checks the hard prerequisites for the destructive rebrand
+ * history rewrite. It never creates refs, runs filter-repo, or pushes.
+ */
+
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
+
+export interface R11PullRequest {
+  number: number
+  title: string
+  headRefName?: string
+  baseRefName?: string
+}
+
+export interface R11PreflightSnapshot {
+  noActiveGoalAcknowledged: boolean
+  openPullRequests: R11PullRequest[]
+  rebrandTagPresent: boolean
+  backupTagPresent: boolean
+  offlineMirrorPresent: boolean
+  gitFilterRepoPresent: boolean
+  r11CloseoutTicketPresent: boolean
+  mainSyncedWithOrigin: boolean
+  worktreeClean: boolean
+  openPullRequestsError?: string
+}
+
+export interface R11PreflightResult {
+  id: string
+  label: string
+  passed: boolean
+  detail: string
+}
+
+export interface R11PreflightReport {
+  results: R11PreflightResult[]
+  allPassed: boolean
+}
+
+const DEFAULT_REPO_ROOT = join(import.meta.dir, '..')
+const DEFAULT_OFFLINE_MIRROR = '/tmp/rox-one-terminal-backup-2026-05-13.git'
+
+function pass(id: string, label: string, detail: string): R11PreflightResult {
+  return { id, label, passed: true, detail }
+}
+
+function fail(id: string, label: string, detail: string): R11PreflightResult {
+  return { id, label, passed: false, detail }
+}
+
+export function evaluateR11Preflight(
+  snapshot: R11PreflightSnapshot,
+): R11PreflightReport {
+  const results: R11PreflightResult[] = []
+
+  results.push(
+    snapshot.noActiveGoalAcknowledged
+      ? pass(
+          'no-active-goal',
+          'No active Codex goal',
+          'Operator acknowledged no active /goal run.',
+        )
+      : fail(
+          'no-active-goal',
+          'No active Codex goal',
+          'Missing ROX_R11_NO_ACTIVE_GOAL=1 acknowledgement.',
+        ),
+  )
+
+  if (snapshot.openPullRequestsError) {
+    results.push(
+      fail(
+        'no-open-prs',
+        'No open PRs',
+        `Could not query open PRs: ${snapshot.openPullRequestsError}`,
+      ),
+    )
+  } else if (snapshot.openPullRequests.length === 0) {
+    results.push(pass('no-open-prs', 'No open PRs', 'GitHub reports no open PRs.'))
+  } else {
+    const prs = snapshot.openPullRequests
+      .map((pr) => `#${pr.number} ${pr.headRefName ?? '?'} -> ${pr.baseRefName ?? '?'} (${pr.title})`)
+      .join('; ')
+    results.push(fail('no-open-prs', 'No open PRs', prs))
+  }
+
+  results.push(
+    snapshot.rebrandTagPresent
+      ? pass('rebrand-tag', 'rebrand-v1 tag exists', 'rebrand-v1 is visible on origin.')
+      : fail('rebrand-tag', 'rebrand-v1 tag exists', 'rebrand-v1 is missing.'),
+  )
+  results.push(
+    snapshot.backupTagPresent
+      ? pass(
+          'backup-tag',
+          'Backup tag exists',
+          'pre-rebrand-history-rewrite-backup is visible on origin.',
+        )
+      : fail(
+          'backup-tag',
+          'Backup tag exists',
+          'pre-rebrand-history-rewrite-backup is missing on origin.',
+        ),
+  )
+  results.push(
+    snapshot.offlineMirrorPresent
+      ? pass(
+          'offline-mirror',
+          'Offline mirror exists',
+          `${DEFAULT_OFFLINE_MIRROR} exists.`,
+        )
+      : fail(
+          'offline-mirror',
+          'Offline mirror exists',
+          `${DEFAULT_OFFLINE_MIRROR} is missing.`,
+        ),
+  )
+  results.push(
+    snapshot.gitFilterRepoPresent
+      ? pass('git-filter-repo', 'git-filter-repo available', 'git-filter-repo is on PATH.')
+      : fail('git-filter-repo', 'git-filter-repo available', 'git-filter-repo is missing from PATH.'),
+  )
+  results.push(
+    snapshot.r11CloseoutTicketPresent
+      ? pass(
+          'r11-closeout-ticket',
+          'R.11 closeout ticket exists',
+          'docs/tickets/T298-rebrand-git-history-rewrite.md exists.',
+        )
+      : fail(
+          'r11-closeout-ticket',
+          'R.11 closeout ticket exists',
+          'docs/tickets/T298-rebrand-git-history-rewrite.md is missing.',
+        ),
+  )
+  results.push(
+    snapshot.mainSyncedWithOrigin
+      ? pass('main-sync', 'main synced with origin/main', 'origin/main...main is 0 0.')
+      : fail('main-sync', 'main synced with origin/main', 'origin/main...main is not 0 0.'),
+  )
+  results.push(
+    snapshot.worktreeClean
+      ? pass('worktree-clean', 'Worktree clean', 'git status --porcelain is empty.')
+      : fail('worktree-clean', 'Worktree clean', 'git status --porcelain is not empty.'),
+  )
+
+  return {
+    results,
+    allPassed: results.every((result) => result.passed),
+  }
+}
+
+function run(
+  cmd: string[],
+  cwd: string,
+): { exitCode: number; stdout: string; stderr: string } {
+  const proc = Bun.spawnSync({
+    cmd,
+    cwd,
+    stdout: 'pipe',
+    stderr: 'pipe',
+    env: { ...process.env },
+  })
+  return {
+    exitCode: proc.exitCode,
+    stdout: new TextDecoder().decode(proc.stdout).trim(),
+    stderr: new TextDecoder().decode(proc.stderr).trim(),
+  }
+}
+
+function parseOpenPullRequests(stdout: string): R11PullRequest[] {
+  const parsed = JSON.parse(stdout || '[]')
+  if (!Array.isArray(parsed)) return []
+  return parsed
+    .filter((item) => item && typeof item === 'object')
+    .map((item) => ({
+      number: Number(item.number),
+      title: String(item.title ?? ''),
+      headRefName: item.headRefName ? String(item.headRefName) : undefined,
+      baseRefName: item.baseRefName ? String(item.baseRefName) : undefined,
+    }))
+    .filter((item) => Number.isFinite(item.number) && item.number > 0)
+}
+
+export function collectR11PreflightSnapshot(
+  repoRoot = DEFAULT_REPO_ROOT,
+): R11PreflightSnapshot {
+  const prQuery = run(
+    [
+      'gh',
+      'pr',
+      'list',
+      '--state',
+      'open',
+      '--limit',
+      '200',
+      '--json',
+      'number,title,headRefName,baseRefName',
+    ],
+    repoRoot,
+  )
+  let openPullRequests: R11PullRequest[] = []
+  let openPullRequestsError: string | undefined
+  if (prQuery.exitCode === 0) {
+    try {
+      openPullRequests = parseOpenPullRequests(prQuery.stdout)
+    } catch (error) {
+      openPullRequestsError = error instanceof Error ? error.message : String(error)
+    }
+  } else {
+    openPullRequestsError = prQuery.stderr || prQuery.stdout || `exit ${prQuery.exitCode}`
+  }
+
+  const remoteTags = run(
+    [
+      'git',
+      'ls-remote',
+      '--tags',
+      'origin',
+      'rebrand-v1',
+      'pre-rebrand-history-rewrite-backup',
+    ],
+    repoRoot,
+  ).stdout
+  const sync = run(
+    ['git', 'rev-list', '--left-right', '--count', 'origin/main...main'],
+    repoRoot,
+  ).stdout
+  const status = run(['git', 'status', '--porcelain'], repoRoot).stdout
+  const filterRepo = run(['bash', '-lc', 'command -v git-filter-repo'], repoRoot)
+
+  return {
+    noActiveGoalAcknowledged: process.env.ROX_R11_NO_ACTIVE_GOAL === '1',
+    openPullRequests,
+    openPullRequestsError,
+    rebrandTagPresent: remoteTags.includes('refs/tags/rebrand-v1'),
+    backupTagPresent: remoteTags.includes('refs/tags/pre-rebrand-history-rewrite-backup'),
+    offlineMirrorPresent: existsSync(DEFAULT_OFFLINE_MIRROR),
+    gitFilterRepoPresent: filterRepo.exitCode === 0 && filterRepo.stdout.length > 0,
+    r11CloseoutTicketPresent: existsSync(
+      join(repoRoot, 'docs', 'tickets', 'T298-rebrand-git-history-rewrite.md'),
+    ),
+    mainSyncedWithOrigin: /^0\s+0$/.test(sync),
+    worktreeClean: status.length === 0,
+  }
+}
+
+function padRight(value: string, width: number): string {
+  return value.length >= width ? value : value + ' '.repeat(width - value.length)
+}
+
+export function formatR11PreflightReport(report: R11PreflightReport): string {
+  const headers = ['id', 'status', 'detail'] as const
+  const rows = report.results.map((result) => [
+    result.id,
+    result.passed ? 'pass' : 'fail',
+    result.detail,
+  ])
+  const widths = headers.map((header, idx) => {
+    const cells = [header, ...rows.map((row) => row[idx] ?? '')]
+    return Math.min(36, Math.max(...cells.map((cell) => cell.length)))
+  })
+  const renderRow = (cells: readonly string[]): string =>
+    cells
+      .map((cell, idx) => {
+        const width = widths[idx] ?? 0
+        const clipped = cell.length > width ? `${cell.slice(0, width - 1)}…` : cell
+        return padRight(clipped, width)
+      })
+      .join('  ')
+      .trimEnd()
+  const lines = [
+    renderRow(headers),
+    widths.map((width) => '-'.repeat(width)).join('  '),
+    ...rows.map(renderRow),
+    '',
+    report.allPassed
+      ? 'green — every R.11 prerequisite is satisfied'
+      : `red — ${report.results.filter((result) => !result.passed).length} R.11 prerequisite(s) failing`,
+  ]
+  return lines.join('\n')
+}
+
+async function main(): Promise<number> {
+  const snapshot = collectR11PreflightSnapshot()
+  const report = evaluateR11Preflight(snapshot)
+  // eslint-disable-next-line no-console
+  console.log(formatR11PreflightReport(report))
+  return report.allPassed ? 0 : 1
+}
+
+if (import.meta.main) {
+  main()
+    .then((code) => {
+      process.exit(code)
+    })
+    .catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error('rebrand-r11-preflight crashed:', error)
+      process.exit(2)
+    })
+}
