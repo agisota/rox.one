@@ -40,6 +40,12 @@ const forkReviewInventoryPath = join(
   'release',
   'r11-fork-review-inventory-2026-05-14.md',
 )
+const activeGoalInventoryPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-active-goal-inventory-2026-05-14.md',
+)
 const currentMainValidationPath = join(
   repoRoot,
   'docs',
@@ -234,6 +240,21 @@ describe('R.11 completion audit', () => {
     expect(currentBlockers).toContain('Current checkout is main')
     expect(currentBlockers).toContain('pass')
     expect(audit).toContain('This does not satisfy the final post-rewrite validation requirement')
+  })
+
+  test('records the active goal blocker as a dedicated inventory', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const currentBlockers =
+      audit.split('## Current Blockers')[1]?.split('## Operator-Owned Unblock Checklist')[0] ?? ''
+    const activeGoalInventory = readFileSync(activeGoalInventoryPath, 'utf8')
+
+    expect(currentBlockers).toContain('no-active-goal')
+    expect(currentBlockers).toContain('docs/release/r11-active-goal-inventory-2026-05-14.md')
+    expect(activeGoalInventory).toContain('Status: ACTIVE GOAL BLOCKER')
+    expect(activeGoalInventory).toContain('Gate row: `no-active-goal`')
+    expect(activeGoalInventory).toContain('Current goal status: active')
+    expect(activeGoalInventory).toContain('docs/superpowers/goals/2026-05-13-rox-one-rebrand-sweep-goal.md')
+    expect(activeGoalInventory).toContain('does not authorize destructive R.11 work')
   })
 
   test('records the current fork-review blocker count', () => {
