@@ -389,6 +389,21 @@ describe('R.11 closeout worklog documentation', () => {
     }
   })
 
+  test('keeps the R.9.5 roadmap ledger aligned with actual suffixed tickets', () => {
+    const roadmap = readFileSync(
+      join(repoRoot, '.swarm', 'master-roadmap-log.md'),
+      'utf8',
+    )
+    const r95Line = roadmap
+      .split('\n')
+      .find((line) => line.startsWith('rebrand-R.9.5-allowlist-and-final-text |'))
+
+    expect(r95Line).toBe(
+      'rebrand-R.9.5-allowlist-and-final-text | b8d6abd | T298a,T300a | 2026-05-13T18:09:00Z',
+    )
+    expect(r95Line).not.toContain('T299a')
+  })
+
   test('points current evidence at the durable completion audit instead of drifting ticket ranges', () => {
     const worklog = readFileSync(
       join(repoRoot, 'docs', 'worklog', 'T298-rebrand-git-history-rewrite.md'),
