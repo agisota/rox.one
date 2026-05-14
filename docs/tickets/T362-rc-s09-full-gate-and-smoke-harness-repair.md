@@ -1,4 +1,4 @@
-# T360 - RC S09 Full Gate And Smoke Harness Repair
+# T362 - RC S09 Full Gate And Smoke Harness Repair
 
 Status: Blocked
 
@@ -21,7 +21,7 @@ default workspace bundle, Electron storage scope, runtime resolver paths, and
 backend creation.
 
 `origin/main` advanced again to `303b0b05` after this evidence was captured.
-[T361](T361-rc-s09-full-suite-shared-fixture-repair.md) carries the remaining
+[T363](T363-rc-s09-full-suite-shared-fixture-repair.md) carries the remaining
 full-suite repair so the S09 harness registration can stay atomic.
 
 ## Goal
@@ -48,7 +48,7 @@ ROX custom-flow surface without hiding broad suite regressions.
 - Preserve the `plan.md §6.2` protected ROX path list.
 - Split follow-up repair tickets if investigation shows unrelated root causes
   that should not be fixed atomically with the S09 harness registration.
-- Keep this ticket `Blocked` while [T361](T361-rc-s09-full-suite-shared-fixture-repair.md)
+- Keep this ticket `Blocked` while [T363](T363-rc-s09-full-suite-shared-fixture-repair.md)
   owns the remaining full-suite failures.
 
 ## Validation Commands
@@ -78,8 +78,8 @@ git diff --check
 - [ ] The R.9 community-link audit remains strict and passes.
 - [x] `bun run typecheck` and `bun run lint` pass.
 - [x] Worklog captures red/green evidence for the harness registration and
-      points the remaining full-suite clusters at T361.
+      points the remaining full-suite clusters at T363.
 
 ## Worklog
 
-Update `docs/worklog/T360-rc-s09-full-gate-and-smoke-harness-repair.md`.
+Update `docs/worklog/T362-rc-s09-full-gate-and-smoke-harness-repair.md`.

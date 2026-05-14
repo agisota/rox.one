@@ -1,11 +1,11 @@
-# T360 - RC S09 Full Gate And Smoke Harness Repair
+# T362 - RC S09 Full Gate And Smoke Harness Repair
 
 ## 1. Task Summary
 
 Register the missing `s09-upstream-rox-flows` RC smoke scenario and repair the
 S09 validation harness so the upstream base can be checked against ROX-owned
 custom-flow coverage. The targeted smoke path is repaired; the full-suite gate
-is split to T361 because it remains broadly red outside this atomic harness
+is split to T363 because it remains broadly red outside this atomic harness
 change.
 
 ## 2. Repo Context Discovered
@@ -26,8 +26,8 @@ ticket's fresh local evidence is on code base `e10537ef`.
 
 - `AGENTS.md`
 - `docs/tickets/T347-rc-s09-upstream-base-rox-custom-flows.md`
-- `docs/tickets/T360-rc-s09-full-gate-and-smoke-harness-repair.md`
-- `docs/tickets/T361-rc-s09-full-suite-shared-fixture-repair.md`
+- `docs/tickets/T362-rc-s09-full-gate-and-smoke-harness-repair.md`
+- `docs/tickets/T363-rc-s09-full-suite-shared-fixture-repair.md`
 - `docs/release/2026-05-14-rc-evidence.md`
 - `scripts/e2e-smoke.ts`
 - `scripts/__tests__/e2e-smoke-harness.test.ts`
@@ -66,9 +66,9 @@ error: Unsupported scenario "s09-upstream-rox-flows". Supported scenarios: s01-r
 - Registered `s09-upstream-rox-flows` in `SUPPORTED_SCENARIOS`.
 - Added `scripts/__tests__/protected-rox-paths.test.ts` to keep `plan.md §6.2`
   and the worktree protected-path list executable.
-- Updated the T360 ticket to `Blocked` because the smoke harness is repaired
+- Updated the T362 ticket to `Blocked` because the smoke harness is repaired
   but the full suite remains red.
-- Filed T361 for the remaining full-suite shared-fixture/runtime failures.
+- Filed T363 for the remaining full-suite shared-fixture/runtime failures.
 - Updated the RC evidence row and blocker table for S09.
 
 ## 7. Validation Commands Run
@@ -111,8 +111,8 @@ red. Build remains part of the downstream RC completion gate.
 ## 10. Remaining Risks
 
 - Full `bun test` exits 1 with 181 failures and 2 errors on code base
-  `e10537ef`; T361 owns this remaining blocker.
-- `origin/main` advanced to `303b0b05` after the fresh local evidence, so T361
+  `e10537ef`; T363 owns this remaining blocker.
+- `origin/main` advanced to `303b0b05` after the fresh local evidence, so T363
   must rebase and refresh the full-gate shape before editing.
 - Packaged Electron screenshot/browser-console evidence is still pending for
   the RC scenario.
@@ -123,10 +123,10 @@ red. Build remains part of the downstream RC completion gate.
 |---|---|---|
 | `s09-upstream-rox-flows` is listed in supported smoke scenarios | Pass | Harness test resolves S09 |
 | S09 smoke runs current ROX custom-flow coverage | Pass | S09 smoke passes 325 tests across 32 files |
-| `bun test` passes with zero failures | Blocked | Full gate exits 1 with 181 fail and 2 errors; split to T361 |
+| `bun test` passes with zero failures | Blocked | Full gate exits 1 with 181 fail and 2 errors; split to T363 |
 | C4 tenant isolation tests pass in the full gate | Blocked | Targeted S09 C4 smoke passes; full gate has C4-adjacent failures |
 | RBAC policy and RPC tests pass in the full gate | Pass | Targeted S09 RBAC policy/RPC tests pass |
 | Experience Layer tests pass in the full gate | Pass | Targeted S09 Experience Layer tests pass |
 | R.9 community-link audit remains strict and passes | Blocked | Full gate still fails R.9 community-link audit |
 | `bun run typecheck` and `bun run lint` pass | Pass | Typecheck exits 0; lint exits 0 with 7 warnings |
-| Worklog captures red/green evidence for every repaired cluster | Pass | Harness red/green captured; full-suite clusters split to T361 |
+| Worklog captures red/green evidence for every repaired cluster | Pass | Harness red/green captured; full-suite clusters split to T363 |
