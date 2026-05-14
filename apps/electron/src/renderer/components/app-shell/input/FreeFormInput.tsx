@@ -115,6 +115,7 @@ import {
 } from './emphasis-mode'
 import { PasteImagePreviewDialog } from './PasteImagePreviewDialog'
 import { extractPastedImage, type PastedImagePreview } from './paste-image'
+import { extractDroppedImage } from './extractDroppedImage'
 
 /**
  * Format token count for display (e.g., 1500 -> "1.5k", 200000 -> "200k")
@@ -1441,10 +1442,11 @@ export function FreeFormInput({
     setIsDraggingOver(false)
     if (disabled) return
 
-    const files = Array.from(e.dataTransfer.files)
+    const dt = e.dataTransfer
+    const files = Array.from(dt.files)
 
-    // T237: single-image drops route through the preview dialog. Multi-file or
-    // non-image drops keep the legacy direct-attach path.
+    // T237: single-image drops from any source route through the preview dialog.
+    // Multi-file or non-image drops keep the legacy direct-attach path.
     if (files.length === 1 && files[0].type.startsWith('image/')) {
       const preview = await extractPastedImage(e.nativeEvent as unknown as DragEvent)
       if (preview) {
@@ -1452,6 +1454,29 @@ export function FreeFormInput({
         return
       }
     }
+
+    // T237c: external-app drops (Finder, Files, browsers) that carry no files
+    // in DataTransfer.files (e.g., a browser image dragged via text/uri-list)
+    // are handled by extractDroppedImage. Intra-app dnd-kit drags never set
+    // DataTransfer.files, and their types array won't include 'Files' either,
+    // so we gate on that to avoid wasteful extraction on intra-app events.
+    if (files.length === 0 && dt.types.includes('Files') || (files.length === 0 && (dt.types.includes('text/uri-list') || dt.types.includes('text/x-moz-url')))) {
+      const blob = await extractDroppedImage(dt)
+      if (blob != null) {
+        // Build a synthetic File so the shared processFileAttachment / preview
+        // path receives the same shape as a native OS file drop.
+        const mime = blob.type || 'image/png'
+        const ext = mime.split('/')[1]?.split(';')[0] ?? 'png'
+        const syntheticFile = new File([blob], `dropped-image.${ext}`, { type: mime })
+        const preview = await extractPastedImage({ dataTransfer: { files: [syntheticFile] as unknown as FileList } } as unknown as DragEvent)
+        if (preview) {
+          setPendingPastedImage(preview)
+          return
+        }
+      }
+    }
+
+    if (files.length === 0) return
 
     setLoadingCount(files.length)
 
