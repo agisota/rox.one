@@ -27,6 +27,7 @@ function passingSnapshot(
     backupTagPresent: true,
     backupBranchPresent: true,
     offlineMirrorPresent: true,
+    staleRemoteBranches: [],
     gitFilterRepoPresent: true,
     r11CloseoutTicketPresent: true,
     r11CloseoutWorklogPresent: true,
@@ -74,6 +75,31 @@ describe('evaluateR11Preflight', () => {
     expect(report.allPassed).toBe(false)
     expect(report.results.find((result) => result.id === 'backup-branch'))
       .toMatchObject({ passed: false })
+  })
+
+  test('pre-backup stage does not require stale remote branch cleanup before backups exist', () => {
+    const report = evaluateR11Preflight(passingSnapshot({
+      staleRemoteBranches: ['chore/rebrand-R10-final-sweep-and-gate'],
+    }))
+
+    expect(report.allPassed).toBe(true)
+    expect(report.results.some((result) => result.id === 'remote-branch-review')).toBe(false)
+  })
+
+  test('pre-rewrite stage fails closed while stale origin branches remain', () => {
+    const report = evaluateR11Preflight(passingSnapshot({
+      staleRemoteBranches: [
+        'chore/rebrand-R10-final-sweep-and-gate',
+        'feat/M2-rbac-foundation',
+      ],
+    }), { stage: 'pre-rewrite' })
+
+    expect(report.allPassed).toBe(false)
+    expect(report.results.find((result) => result.id === 'remote-branch-review'))
+      .toMatchObject({
+        passed: false,
+        detail: expect.stringContaining('chore/rebrand-R10-final-sweep-and-gate'),
+      })
   })
 
   test('pre-rewrite stage passes only when every destructive R.11 prerequisite is true', () => {
