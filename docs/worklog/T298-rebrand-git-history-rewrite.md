@@ -138,6 +138,9 @@ preflight rows landed:
 - `/tmp/rox-one-terminal-backup-2026-05-13.git` does not exist.
 - Origin currently has 139 non-main/non-R.11-backup branches, so the explicit
   pre-rewrite helper reports `remote-branch-review` as a blocker.
+- `docs/release/rebrand-mapping-2026-05-13.md` has an R.11 pending closeout
+  slot, but it cannot record a real R.11 closeout commit SHA until the
+  destructive rewrite and post-rewrite validation succeed.
 - The active Codex goal is still this rebrand sweep.
 - The default pre-backup helper no longer requires backup artifacts before the
   backup procedure can create them.
@@ -224,5 +227,7 @@ path authorizes them. After backup creation, `bun run rebrand:r11-preflight
 | Force-push completes with lease | Blocked | Not allowed while preflight is red |
 | Post-rewrite validation matrix is green | Blocked | Not allowed while preflight is red |
 | README coordination banner is handled if required | Blocked | Only required after force-push |
+| Mapping report records R.11 closeout SHA | Blocked | `docs/release/rebrand-mapping-2026-05-13.md` carries only an R.11 pending slot until the rewrite completes |
+| `git log -p --all` history scan is clean | Blocked | Historical forbidden-token matches remain until the authorized rewrite runs |
 | Worklog is complete with command evidence | Blocked | This scaffold records current blockers only |
 | Commit or force-push result is recorded | Blocked | No destructive result exists yet |

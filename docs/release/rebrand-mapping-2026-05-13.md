@@ -221,3 +221,9 @@ Closeout phase ledger:
 | R.9.5 | T298a,T300a | `b6ce2c4,6537ada,512dacc` |
 | R.10 | T296,T297 | `7cee988` |
 | R.10 follow-up | T321 | `c42e3d59` |
+| R.11 | T298 | `BLOCKED - pending destructive rewrite closeout SHA` |
+
+The R.11 row is intentionally not a closeout SHA yet. It must be replaced with
+the actual post-rewrite closeout commit SHA only after the R.11 backup,
+`git-filter-repo`, legal-preserve, force-push, validation-matrix, and
+`git log -p --all` history-scan gates pass.
