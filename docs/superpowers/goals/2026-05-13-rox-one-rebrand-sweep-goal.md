@@ -615,8 +615,10 @@ The operator explicitly waived the CLAUDE.md `<git_and_versioning>` rule "Never 
 5. **No active codex `/goal` runs.** Confirm in codex with `/goal` (no args) → "no active goal". If codex shows an active goal, `/goal pause` first; do not resume until R.11 closeout.
 6. **No third-party forks expected to upstream.** Confirm by listing `gh api repos/agisota/rox-one-terminal/forks` and checking the count is what you expect (typically zero or one for backup).
 7. The `rebrand-v1` tag from Phase R.10 exists.
-8. Local working tree is clean: `git status --porcelain` → empty.
-9. Local `main` is in sync with `origin/main`: `git rev-list --left-right --count origin/main...HEAD` → `0	0`.
+8. The origin `rebrand-v1` target is on `origin/main` ancestry.
+9. The local `rebrand-v1` tag target matches origin's `rebrand-v1` target.
+10. Local working tree is clean: `git status --porcelain` → empty.
+11. Local `main` is in sync with `origin/main`: `git rev-list --left-right --count origin/main...HEAD` → `0	0`.
 
 Use the report-only helper: run `bun run rebrand:r11-preflight` before any
 backup step. The helper checks the local/remote prerequisites it can verify

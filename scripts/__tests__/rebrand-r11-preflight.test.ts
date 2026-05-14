@@ -225,4 +225,32 @@ describe('R.11 goal documentation', () => {
     expect(goal).toContain('cd /home/dev/craft/rox-one-terminal')
     expect(goal).not.toContain('/home/dev/rox/rox-one-terminal')
   })
+
+  test('documents the tag-target prerequisites enforced by the preflight runner', () => {
+    const goal = readFileSync(
+      join(
+        repoRoot,
+        'docs',
+        'superpowers',
+        'goals',
+        '2026-05-13-rox-one-rebrand-sweep-goal.md',
+      ),
+      'utf8',
+    )
+    const spine = readFileSync(
+      join(
+        repoRoot,
+        'docs',
+        'superpowers',
+        'goals',
+        '2026-05-13-rox-one-v1-end-to-end-spine-goal.md',
+      ),
+      'utf8',
+    )
+
+    expect(goal).toContain('origin `rebrand-v1` target is on `origin/main` ancestry')
+    expect(goal).toContain("local `rebrand-v1` tag target matches origin's `rebrand-v1` target")
+    expect(spine).not.toContain('R.11 has nine hard prerequisites')
+    expect(spine).toContain('R.11 has hard prerequisites')
+  })
 })
