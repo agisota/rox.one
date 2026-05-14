@@ -28,8 +28,13 @@ export interface R11PreflightSnapshot {
   rebrandTagLocalCommit?: string
   rebrandTagLocalMatchesRemote: boolean
   rebrandTagOnMain: boolean
+  mainCommit?: string
   backupTagPresent: boolean
+  backupTagCommit?: string
+  backupTagMatchesMain: boolean
   backupBranchPresent: boolean
+  backupBranchCommit?: string
+  backupBranchMatchesMain: boolean
   offlineMirrorPresent: boolean
   staleRemoteBranches: string[]
   currentBranch?: string
@@ -283,6 +288,21 @@ export function evaluateR11Preflight(
             'pre-rebrand-history-rewrite-backup is missing on origin.',
           ),
     )
+    if (snapshot.backupTagPresent) {
+      results.push(
+        snapshot.backupTagMatchesMain
+          ? pass(
+              'backup-tag-target',
+              'Backup tag matches main',
+              `pre-rebrand-history-rewrite-backup and main both point to ${describeCommit(snapshot.mainCommit)}.`,
+            )
+          : fail(
+              'backup-tag-target',
+              'Backup tag matches main',
+              `pre-rebrand-history-rewrite-backup target ${describeCommit(snapshot.backupTagCommit)} differs from main ${describeCommit(snapshot.mainCommit)}.`,
+            ),
+      )
+    }
     results.push(
       snapshot.backupBranchPresent
         ? pass(
@@ -296,6 +316,21 @@ export function evaluateR11Preflight(
             'backup/pre-rebrand-history-rewrite-2026-05-13 is missing on origin.',
           ),
     )
+    if (snapshot.backupBranchPresent) {
+      results.push(
+        snapshot.backupBranchMatchesMain
+          ? pass(
+              'backup-branch-target',
+              'Backup branch matches main',
+              `backup/pre-rebrand-history-rewrite-2026-05-13 and main both point to ${describeCommit(snapshot.mainCommit)}.`,
+            )
+          : fail(
+              'backup-branch-target',
+              'Backup branch matches main',
+              `backup/pre-rebrand-history-rewrite-2026-05-13 target ${describeCommit(snapshot.backupBranchCommit)} differs from main ${describeCommit(snapshot.mainCommit)}.`,
+            ),
+      )
+    }
     results.push(
       snapshot.offlineMirrorPresent
         ? pass(
@@ -448,6 +483,13 @@ function parseRemoteBranchNames(stdout: string): string[] {
     .sort()
 }
 
+function parseFirstLsRemoteCommit(stdout: string): string | undefined {
+  return stdout
+    .split('\n')
+    .map((line) => line.trim().split(/\s+/)[0] ?? '')
+    .find((value) => value.length > 0)
+}
+
 function isDoneTicket(repoRoot: string, ticketPath: string): boolean {
   const absolutePath = join(repoRoot, ticketPath)
   if (!existsSync(absolutePath)) return false
@@ -572,15 +614,42 @@ export function collectR11PreflightSnapshot(
     ['git', 'rev-parse', '--verify', 'rebrand-v1^{commit}'],
     repoRoot,
   )
+  const backupTagRemoteCommit = run(
+    [
+      'bash',
+      '-lc',
+      [
+        "remote_tag_commit=$(git ls-remote --tags origin 'refs/tags/pre-rebrand-history-rewrite-backup^{}' | awk '{print $1}')",
+        "if [ -z \"$remote_tag_commit\" ]; then remote_tag_commit=$(git ls-remote --tags origin 'refs/tags/pre-rebrand-history-rewrite-backup' | awk '{print $1}'); fi",
+        'printf "%s" "$remote_tag_commit"',
+      ].join(' && '),
+    ],
+    repoRoot,
+  )
+  const mainCommitResult = run(
+    ['git', 'rev-parse', '--verify', 'main^{commit}'],
+    repoRoot,
+  )
   const remoteCommit = rebrandTagRemoteCommit.stdout || undefined
   const localCommit = rebrandTagLocalCommit.exitCode === 0
     ? rebrandTagLocalCommit.stdout || undefined
     : undefined
+  const mainCommit = mainCommitResult.exitCode === 0
+    ? mainCommitResult.stdout || undefined
+    : undefined
+  const backupTagCommit = backupTagRemoteCommit.stdout || undefined
+  const backupBranchCommit = parseFirstLsRemoteCommit(remoteBackupBranch.stdout)
   const rebrandTagOnMain = remoteCommit
     ? run(['git', 'merge-base', '--is-ancestor', remoteCommit, 'origin/main'], repoRoot)
     : { exitCode: 1 }
   const rebrandTagLocalMatchesRemote = Boolean(
     remoteCommit && localCommit && remoteCommit === localCommit,
+  )
+  const backupTagMatchesMain = Boolean(
+    mainCommit && backupTagCommit && mainCommit === backupTagCommit,
+  )
+  const backupBranchMatchesMain = Boolean(
+    mainCommit && backupBranchCommit && mainCommit === backupBranchCommit,
   )
   const sync = run(
     ['git', 'rev-list', '--left-right', '--count', 'origin/main...main'],
@@ -608,10 +677,15 @@ export function collectR11PreflightSnapshot(
     rebrandTagLocalCommit: localCommit,
     rebrandTagLocalMatchesRemote,
     rebrandTagOnMain: rebrandTagOnMain.exitCode === 0,
+    mainCommit,
     backupTagPresent: remoteTags.includes('refs/tags/pre-rebrand-history-rewrite-backup'),
+    backupTagCommit,
+    backupTagMatchesMain,
     backupBranchPresent: remoteBackupBranch.includes(
       `refs/heads/${R11_BACKUP_BRANCH}`,
     ),
+    backupBranchCommit,
+    backupBranchMatchesMain,
     offlineMirrorPresent: existsSync(DEFAULT_OFFLINE_MIRROR),
     staleRemoteBranches,
     staleRemoteBranchesError,

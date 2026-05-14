@@ -648,7 +648,7 @@ cd /tmp && git clone --mirror file:///home/dev/craft/rox-one-terminal \
   /tmp/rox-one-terminal-backup-2026-05-13.git
 ```
 
-The backup tag, backup branch, and offline mirror must **all** exist before any filter-repo invocation. Confirm with `ls -la /tmp/rox-one-terminal-backup-2026-05-13.git`, `git ls-remote --tags origin | grep pre-rebrand`, and `git ls-remote --heads origin backup/pre-rebrand-history-rewrite-2026-05-13`, then run the explicit pre-rewrite helper gate:
+The backup tag, backup branch, and offline mirror must **all** exist before any filter-repo invocation. The backup tag and backup branch targets must match `main`; the explicit pre-rewrite helper reports these as `backup-tag-target` and `backup-branch-target`. Confirm with `ls -la /tmp/rox-one-terminal-backup-2026-05-13.git`, `git ls-remote --tags origin | grep pre-rebrand`, and `git ls-remote --heads origin backup/pre-rebrand-history-rewrite-2026-05-13`, then run the explicit pre-rewrite helper gate:
 
 ```bash
 bun run rebrand:r11-preflight --stage pre-rewrite
@@ -747,7 +747,8 @@ Document this in `README.md` § "After R.11 history rewrite" with a 72-hour visi
 
 ### Stopping condition
 
-- Backup tag, backup branch, and backup mirror all exist.
+- Backup tag, backup branch, and backup mirror all exist; the backup tag and
+  backup branch targets match `main`.
 - Force-push completed without rejection.
 - `bun run rebrand:r11-legal-preserve` passes.
 - T298 `Status: DONE`.
@@ -781,7 +782,7 @@ All of:
 3. `bun run typecheck`, full `bun test`, `bun run lint`, `bun run build`, `bun run validate:docs`, `bun run validate:agent-contract` all green on `main`.
 4. The master roadmap's Phase 2 (RBAC) has merged and is on the rewritten ancestry — i.e. R.11 ran *after* RBAC closeout, so RBAC commits live on the cleaned history rather than the legacy one.
 5. `rebrand-v1` tag exists on `main` (re-pointed to the post-rewrite SHA in Phase R.11).
-6. `pre-rebrand-history-rewrite-backup` tag and `backup/pre-rebrand-history-rewrite-2026-05-13` branch exist on `origin`, and the offline mirror at `/tmp/rox-one-terminal-backup-2026-05-13.git` is preserved for at least 90 days.
+6. `pre-rebrand-history-rewrite-backup` tag and `backup/pre-rebrand-history-rewrite-2026-05-13` branch exist on `origin`, both targets match `main`, and the offline mirror at `/tmp/rox-one-terminal-backup-2026-05-13.git` is preserved for at least 90 days.
 7. `docs/release/rebrand-mapping-2026-05-13.md` is updated with closeout commit SHAs.
 8. `git log -p --all` shows zero matches for the forbidden-token list outside the legal-preserve allowlist.
 
