@@ -53,6 +53,7 @@ for (const scriptName of [
   'validate:linux-private-release-boundary',
   'validate:linux-boundary-fixtures',
   'validate:linux-signed-release-pipeline',
+  'validate:linux-deb-rpm',
   'electron:build',
 ]) {
   if (typeof scripts[scriptName] !== 'string' || scripts[scriptName].length === 0) {
