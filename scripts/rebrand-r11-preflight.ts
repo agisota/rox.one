@@ -18,6 +18,8 @@ export interface R11PullRequest {
 export interface R11PreflightSnapshot {
   noActiveGoalAcknowledged: boolean
   openPullRequests: R11PullRequest[]
+  forkCount: number
+  expectedForkCount: number
   rebrandTagPresent: boolean
   backupTagPresent: boolean
   backupBranchPresent: boolean
@@ -28,6 +30,7 @@ export interface R11PreflightSnapshot {
   mainSyncedWithOrigin: boolean
   worktreeClean: boolean
   openPullRequestsError?: string
+  forkReviewError?: string
 }
 
 export interface R11PreflightResult {
@@ -96,6 +99,32 @@ export function evaluateR11Preflight(
       .map((pr) => `#${pr.number} ${pr.headRefName ?? '?'} -> ${pr.baseRefName ?? '?'} (${pr.title})`)
       .join('; ')
     results.push(fail('no-open-prs', 'No open PRs', prs))
+  }
+
+  if (snapshot.forkReviewError) {
+    results.push(
+      fail(
+        'fork-review',
+        'Fork count reviewed',
+        `Could not review forks: ${snapshot.forkReviewError}`,
+      ),
+    )
+  } else if (snapshot.forkCount === snapshot.expectedForkCount) {
+    results.push(
+      pass(
+        'fork-review',
+        'Fork count reviewed',
+        `GitHub reports expected fork count ${snapshot.expectedForkCount}.`,
+      ),
+    )
+  } else {
+    results.push(
+      fail(
+        'fork-review',
+        'Fork count reviewed',
+        `GitHub reports ${snapshot.forkCount} fork(s); expected ${snapshot.expectedForkCount}.`,
+      ),
+    )
   }
 
   results.push(
@@ -225,6 +254,15 @@ function parseOpenPullRequests(stdout: string): R11PullRequest[] {
     .filter((item) => Number.isFinite(item.number) && item.number > 0)
 }
 
+function parseExpectedForkCount(value: string | undefined): { count: number; error?: string } {
+  if (value === undefined || value === '') return { count: 0 }
+  const count = Number(value)
+  if (!Number.isInteger(count) || count < 0) {
+    return { count: 0, error: `invalid ROX_R11_EXPECTED_FORKS=${value}` }
+  }
+  return { count }
+}
+
 export function collectR11PreflightSnapshot(
   repoRoot = DEFAULT_REPO_ROOT,
 ): R11PreflightSnapshot {
@@ -252,6 +290,24 @@ export function collectR11PreflightSnapshot(
     }
   } else {
     openPullRequestsError = prQuery.stderr || prQuery.stdout || `exit ${prQuery.exitCode}`
+  }
+
+  const expectedForkCount = parseExpectedForkCount(process.env.ROX_R11_EXPECTED_FORKS)
+  const forksQuery = run(
+    ['gh', 'api', 'repos/agisota/rox-one-terminal/forks', '--jq', 'length'],
+    repoRoot,
+  )
+  let forkCount = 0
+  let forkReviewError = expectedForkCount.error
+  if (forksQuery.exitCode === 0) {
+    const parsedForkCount = Number(forksQuery.stdout)
+    if (Number.isInteger(parsedForkCount) && parsedForkCount >= 0) {
+      forkCount = parsedForkCount
+    } else {
+      forkReviewError = `invalid fork count response: ${forksQuery.stdout}`
+    }
+  } else {
+    forkReviewError = forksQuery.stderr || forksQuery.stdout || `exit ${forksQuery.exitCode}`
   }
 
   const remoteTags = run(
@@ -286,6 +342,9 @@ export function collectR11PreflightSnapshot(
     noActiveGoalAcknowledged: process.env.ROX_R11_NO_ACTIVE_GOAL === '1',
     openPullRequests,
     openPullRequestsError,
+    forkCount,
+    expectedForkCount: expectedForkCount.count,
+    forkReviewError,
     rebrandTagPresent: remoteTags.includes('refs/tags/rebrand-v1'),
     backupTagPresent: remoteTags.includes('refs/tags/pre-rebrand-history-rewrite-backup'),
     backupBranchPresent: remoteBackupBranch.includes(
