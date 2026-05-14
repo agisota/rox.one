@@ -14,10 +14,10 @@ git ls-remote --heads origin
 
 Summary:
 
-- Total origin heads: 141
+- Total origin heads: 143
 - Excluded from blocker count: `main`
 - R.11 backup branch present: no
-- Non-main/non-R.11-backup origin branches: 140
+- Non-main/non-R.11-backup origin branches: 142
 - Default disposition in this report: `operator-review-required`
 
 ## Branch Inventory
@@ -79,6 +79,7 @@ Summary:
 | `chore/ci-sbom-secret-scan` | `5a5cbaea090f32efd0bb40f457741ce26b15bca9` | operator-review-required |
 | `feat/f1-shiki-engine-swap` | `5f0f76694adee156d4a4dc95582ddf53d0fbc92d` | operator-review-required |
 | `feat/M13-T071b-roles-rate-limiter` | `60a44818f00e182fdb1639da0815e5f52a2d93ff` | operator-review-required |
+| `chore/bundle-budget-pdf-worker-carveout` | `62a930dc006bb8e82f394b91a8d33718769342b3` | operator-review-required |
 | `feat/M7-T242d-domain-orchestrator-client` | `653be7bb2e280776bc33a48394afef339949dfe9` | operator-review-required |
 | `mac/rox-production-ready-rc` | `65ff6e8568311ddd52d82fd832bd13e5c9bd8b26` | operator-review-required |
 | `feat/M10-T239-voice-asr-webspeech` | `68cfa9c24ef29ea185d125f9ecd7ef2f9ed094b6` | operator-review-required |
@@ -147,6 +148,7 @@ Summary:
 | `fix/parse-server-url-by-delimiter` | `da3fd3505d3084d4da8d027ac6673a6978bd1a57` | operator-review-required |
 | `feat/M13-T086-rpc-integration-v2` | `da9e98ef8b5e4f100332a045f5e76cdce0a8c4b9` | operator-review-required |
 | `test/workspace-sync-multi-client-conflict` | `dcf6d03fc4ff2631a64208101b9586fc08c348b0` | operator-review-required |
+| `fix/renderer-prod-sourcemap-leak` | `dfb730f7fe21e649f9e185515f5eabef8b7d0e8d` | operator-review-required |
 | `chore/playground-dev-only-and-codesplit-plan` | `dd34436bf2b08dcbd6972c2e909fcc95198f75fe` | operator-review-required |
 | `feat/audit-harness-spec` | `de58568133464d9e62f191a3d2c3d5b107bbfaad` | operator-review-required |
 | `feat/M11-shiki-migration` | `e049606b2ec1585c5fb339caf27b29a03bbf591f` | operator-review-required |

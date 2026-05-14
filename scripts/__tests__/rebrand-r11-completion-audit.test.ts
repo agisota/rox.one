@@ -52,6 +52,12 @@ const blockerInventoryIndexPath = join(
   'release',
   'r11-blocker-inventory-index-2026-05-14.md',
 )
+const preflightContextInventoryPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-preflight-context-inventory-2026-05-14.md',
+)
 const currentMainValidationPath = join(
   repoRoot,
   'docs',
@@ -236,6 +242,7 @@ describe('R.11 completion audit', () => {
 
     for (const blockerId of [
       'no-active-goal',
+      'no-open-prs',
       'rebrand-tag-local-sync',
       'rebrand-tag-on-main',
       'backup-tag',
@@ -248,19 +255,38 @@ describe('R.11 completion audit', () => {
       'legal-file-TRADEMARK.md',
       'dockerfile-source-attribution',
       'history-scan',
+      'current-branch',
+      'main-sync',
     ]) {
       expect(currentBlockers).toContain(blockerId)
     }
   })
 
-  test('records the current branch guard as passing evidence', () => {
+  test('records volatile preflight context blockers without destructive authorization', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const currentBlockers =
       audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
+    const preflightContextInventory = readFileSync(preflightContextInventoryPath, 'utf8')
 
+    expect(currentBlockers).toContain('no-open-prs')
+    expect(currentBlockers).toContain('#207')
+    expect(currentBlockers).toContain('#208')
+    expect(currentBlockers).toContain('docs/release/r11-preflight-context-inventory-2026-05-14.md')
     expect(currentBlockers).toContain('current-branch')
-    expect(currentBlockers).toContain('Current checkout is main')
-    expect(currentBlockers).toContain('pass')
+    expect(currentBlockers).toContain('Current checkout is fix/renderer-prod-sourcemap-leak')
+    expect(currentBlockers).toContain('main-sync')
+    expect(currentBlockers).toContain('origin/main...main is not 0 0')
+    expect(currentBlockers).toContain('worktree-clean')
+    expect(currentBlockers).toContain('git status --porcelain is empty')
+    expect(preflightContextInventory).toContain('Status: PREFLIGHT CONTEXT BLOCKERS')
+    expect(preflightContextInventory).toContain('Open PRs: 2')
+    expect(preflightContextInventory).toContain('#207')
+    expect(preflightContextInventory).toContain('#208')
+    expect(preflightContextInventory).toContain('Current checkout: `fix/renderer-prod-sourcemap-leak`')
+    expect(preflightContextInventory).toContain('Local `main`: `8ce67b4d`')
+    expect(preflightContextInventory).toContain('Origin `main`: `16c8321b`')
+    expect(preflightContextInventory).toContain('main...origin/main: `1 2`')
+    expect(preflightContextInventory).toContain('does not authorize destructive R.11 work')
     expect(audit).toContain('This does not satisfy the final post-rewrite validation requirement')
   })
 
@@ -275,6 +301,7 @@ describe('R.11 completion audit', () => {
 
     for (const expected of [
       'no-active-goal',
+      'no-open-prs',
       'fork-review',
       'rebrand-tag-local-sync',
       'rebrand-tag-on-main',
@@ -286,6 +313,10 @@ describe('R.11 completion audit', () => {
       'legal-file-NOTICE',
       'legal-file-TRADEMARK.md',
       'history-scan',
+      'current-branch',
+      'main-sync',
+      'worktree-clean',
+      'docs/release/r11-preflight-context-inventory-2026-05-14.md',
       'docs/release/r11-active-goal-inventory-2026-05-14.md',
       'docs/release/r11-fork-review-inventory-2026-05-14.md',
       'docs/release/r11-tag-drift-inventory-2026-05-14.md',
@@ -343,12 +374,14 @@ describe('R.11 completion audit', () => {
     const remoteBranchReview = readFileSync(remoteBranchReviewPath, 'utf8')
 
     expect(currentBlockers).toContain('remote-branch-review')
-    expect(currentBlockers).toContain('140 non-main/non-R.11-backup origin branches')
+    expect(currentBlockers).toContain('142 non-main/non-R.11-backup origin branches')
     expect(currentBlockers).toContain('docs/release/r11-remote-branch-review-2026-05-14.md')
-    expect(remoteBranchReview).toContain('Total origin heads: 141')
-    expect(remoteBranchReview).toContain('Non-main/non-R.11-backup origin branches: 140')
+    expect(remoteBranchReview).toContain('Total origin heads: 143')
+    expect(remoteBranchReview).toContain('Non-main/non-R.11-backup origin branches: 142')
     expect(remoteBranchReview).toContain('operator-review-required')
     expect(remoteBranchReview).toContain('docs/M20-T299-phase-20-closeout')
+    expect(remoteBranchReview).toContain('chore/bundle-budget-pdf-worker-carveout')
+    expect(remoteBranchReview).toContain('fix/renderer-prod-sourcemap-leak')
     expect(remoteBranchReview).toContain('chore/T297-rebrand-prepush-ci-gate')
     expect(remoteBranchReview).toContain('backup/agent-workbench-t000-t012-2026-04-30')
   })
@@ -470,7 +503,7 @@ describe('R.11 completion audit', () => {
       'active `/goal` run',
       '`rebrand-v1` tag targets',
       'origin/main ancestry',
-      '140 non-main/non-R.11-backup origin branches',
+      '142 non-main/non-R.11-backup origin branches',
       'backup tag, backup branch, and offline mirror',
       'legal-preserve',
       'history scan',
