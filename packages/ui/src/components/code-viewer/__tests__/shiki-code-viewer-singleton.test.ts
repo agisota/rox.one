@@ -44,7 +44,7 @@ setDefaultTimeout(30_000)
 
 const TEST_HIGHLIGHTER_OPTIONS = {
   langs: ['javascript', 'typescript'],
-  themes: ['github-light', 'github-dark'],
+  themes: ['github-light', 'github-dark', 'dracula'],
 } as const satisfies CreateShikiHighlighterOptions
 
 const getTestHighlighter = () => getSingletonHighlighter(TEST_HIGHLIGHTER_OPTIONS)
@@ -118,7 +118,7 @@ describe('ShikiCodeViewer singleton wiring', () => {
     const html = await highlighter.highlight(
       "console.log('hi')",
       'javascript',
-      { theme: 'github-dark' },
+      { theme: 'dracula' },
     )
     expect(html).toMatch(/<pre[^>]*><code/)
     expect(html.includes('<span')).toBe(true)

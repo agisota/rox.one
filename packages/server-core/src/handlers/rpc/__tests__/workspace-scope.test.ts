@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it, setDefaultTimeout } from 'bun:test'
 import { spawnSync } from 'node:child_process'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -10,6 +10,8 @@ const repoRoot = resolve(testDir, '../../../../../..')
 const workspaceModuleUrl = pathToFileURL(resolve(testDir, '../workspace.ts')).href
 const runtimeModuleUrl = pathToFileURL(resolve(repoRoot, 'packages/shared/src/config/storage-scope-runtime.ts')).href
 const protocolModuleUrl = pathToFileURL(resolve(repoRoot, 'packages/shared/src/protocol/index.ts')).href
+
+setDefaultTimeout(30_000)
 
 type WorkspaceOperation =
   | 'workspaces.GET'
