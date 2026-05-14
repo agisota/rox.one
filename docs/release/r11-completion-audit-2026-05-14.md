@@ -78,8 +78,12 @@ R.11 backup or history-rewrite step starts. Current evidence:
 
 ## Current Main Validation Matrix
 
-Pre-rewrite current main validation evidence from the latest clean checks is
-preserved in `docs/release/r11-current-main-validation-2026-05-14.md`.
+Pre-rewrite full-matrix snapshot evidence from T429 is preserved in
+`docs/release/r11-current-main-validation-2026-05-14.md`. The exact
+agent-contract ticket count in that report is a captured value from that run,
+not a live ticket-count source for later audit-hygiene tickets.
+
+Subsequent report-only audit tickets carry their own targeted validation evidence in their worklogs.
 
 This does not satisfy the final post-rewrite validation requirement. The goal
 requires the global validation matrix to pass after the R.11 rewrite has

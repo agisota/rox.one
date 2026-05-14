@@ -364,6 +364,8 @@ describe('R.11 closeout worklog documentation', () => {
 
     expect(worklog).toContain('docs/release/r11-completion-audit-2026-05-14.md')
     expect(worklog).toContain('docs/release/r11-current-main-validation-2026-05-14.md')
+    expect(worklog).toContain('T429 full-matrix snapshot')
+    expect(worklog).toContain('later audit-hygiene tickets carry their own fresh targeted validation evidence')
     expect(worklog).toContain('6753 pass, 13 skip, 0 fail')
     expect(worklog).toContain('GitHub reports 1 fork(s); expected 0')
     expect(worklog).toContain('T409 and later audit-hygiene tickets')

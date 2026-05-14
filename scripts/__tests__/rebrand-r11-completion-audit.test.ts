@@ -125,8 +125,9 @@ describe('R.11 completion audit', () => {
       audit.split('## Current Main Validation Matrix')[1]?.split('## Current Blockers')[0] ?? ''
     const currentMainValidationReport = readFileSync(currentMainValidationPath, 'utf8')
 
-    expect(currentMainValidation).toContain('Pre-rewrite current main validation evidence')
+    expect(currentMainValidation).toContain('Pre-rewrite full-matrix snapshot evidence')
     expect(currentMainValidation).toContain('docs/release/r11-current-main-validation-2026-05-14.md')
+    expect(currentMainValidation).toContain('Subsequent report-only audit tickets carry their own targeted validation evidence')
     for (const command of [
       'bun run typecheck',
       'bun run lint',
@@ -141,14 +142,17 @@ describe('R.11 completion audit', () => {
     )
   })
 
-  test('records fresh current-main validation counts', () => {
+  test('records current-main validation counts as a captured snapshot', () => {
     const currentMainValidationReport = readFileSync(currentMainValidationPath, 'utf8')
 
+    expect(currentMainValidationReport).toContain('Captured full-matrix snapshot')
+    expect(currentMainValidationReport).toContain('not a live ticket-count source')
+    expect(currentMainValidationReport).toContain('later report-only audit tickets must record their own fresh validation evidence')
     expect(currentMainValidationReport).toContain('Exit 0 with 7 existing warnings')
     expect(currentMainValidationReport).toContain('6753 pass, 13 skip, 0 fail')
     expect(currentMainValidationReport).toContain('26839 expect() calls')
     expect(currentMainValidationReport).toContain('6766 tests in 562 files')
-    expect(currentMainValidationReport).toContain('agent-contract reported 394 tickets')
+    expect(currentMainValidationReport).toContain('agent-contract reported 394 tickets at capture time')
   })
 
   test('records exact current report-only blocker IDs', () => {

@@ -2,9 +2,11 @@
 
 Status: PRE-REWRITE VALIDATION ONLY
 
-This report records validation evidence for the current `main` branch before
-any R.11 history rewrite. It does not satisfy the final post-rewrite validation
-requirement in the rebrand-sweep goal.
+Captured full-matrix snapshot: this report records validation for the current `main`
+branch before any R.11 history rewrite. It does not satisfy the final
+post-rewrite validation requirement in the rebrand-sweep goal, and it is not a live ticket-count source for later audit-hygiene tickets.
+
+later report-only audit tickets must record their own fresh validation evidence in their worklogs.
 
 Validated state:
 
@@ -21,7 +23,7 @@ Validated state:
 | `bun run lint` | Pass with warnings | Exit 0 with 7 existing warnings. |
 | `bun test` | Pass | Exit 0; 6753 pass, 13 skip, 0 fail, 1 snapshot, 26839 expect() calls, across 6766 tests in 562 files. |
 | `bun run build` | Pass with warnings | Exit 0 with existing Vite dynamic-import and chunk-size warnings. |
-| `bun run validate:docs` | Pass | Exit 0; agent-contract reported 394 tickets and 7 required docs. |
+| `bun run validate:docs` | Pass | Exit 0; agent-contract reported 394 tickets at capture time and 7 required docs. |
 | `bun run validate:rebrand` | Pass | Exit 0; no forbidden tokens outside the allowlist. |
 | `git diff --check` | Pass | Exit 0; no whitespace errors. |
 
