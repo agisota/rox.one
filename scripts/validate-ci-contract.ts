@@ -42,6 +42,7 @@ for (const requiredCommand of [
 
 const workflow = read(".github/workflows/validate.yml");
 for (const requiredText of [
+  "fetch-depth: 0",
   'bun-version: "1.3.13"',
   "bun install --frozen-lockfile",
   "./node_modules/.bin/playwright install --with-deps chromium",
