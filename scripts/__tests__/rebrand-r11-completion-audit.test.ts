@@ -84,4 +84,13 @@ describe('R.11 completion audit', () => {
       expect(currentBlockers).toContain(blockerId)
     }
   })
+
+  test('records the current remote branch review blocker count', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const currentBlockers =
+      audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
+
+    expect(currentBlockers).toContain('remote-branch-review')
+    expect(currentBlockers).toContain('139 non-main/non-R.11-backup origin branches')
+  })
 })

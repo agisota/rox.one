@@ -75,7 +75,8 @@ Fresh evidence from the latest clean post-push checks:
 - `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite`
   exits red with 6 blockers: `rebrand-tag-local-sync`,
   `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`, and
-  `remote-branch-review`.
+  `remote-branch-review`; the remote branch review currently reports
+  `139 non-main/non-R.11-backup origin branches`.
 - `bun run rebrand:r11-legal-preserve` exits red on `legal-file-LICENSE`,
   `legal-file-NOTICE`, and `legal-file-TRADEMARK.md` because
   `pre-rebrand-history-rewrite-backup` is missing; the
