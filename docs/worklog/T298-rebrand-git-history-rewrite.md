@@ -20,7 +20,7 @@ durable audit at `docs/release/r11-completion-audit-2026-05-14.md`:
 | No active `/goal` runs | `get_goal` still reports the rebrand-sweep goal active | Blocked |
 | No open PRs | `gh pr list --state open --json number,title,headRefName,url --limit 200` returned `[]` | Green |
 | Fork count reviewed | Preflight reports `fork-review` fail: GitHub reports 1 fork(s); expected 0 | Blocked |
-| R.0-R.10 closeouts done | Preflight reports exact rebrand ticket/worklog closeouts present and done | Green |
+| R.0-R.10 closeouts done | Preflight reports exact rebrand ticket/worklog closeouts present and done, including the T298a/T300a R.9.5 suffixed tickets | Green |
 | C4 Phase 1 closeout done | Preflight reports exact T223 closeout ticket done | Green |
 | RBAC Phase 2 closeout done | Preflight reports exact T229 closeout ticket done | Green |
 | `rebrand-v1` tag exists | Preflight reports pass | Green |
@@ -185,9 +185,10 @@ history/legal-preserve gates were added and wired into the R.11 goal:
 - The report-only helper now checks fork count against
   `ROX_R11_EXPECTED_FORKS` (default `0`), and the latest run reports
   `fork-review` fail because GitHub reports 1 fork(s); expected 0.
-- The helper now checks exact R.0-R.10 rebrand ticket/worklog closeouts, exact
-  T223 C4 Phase 1 closeout status, and exact T229 RBAC Phase 2 closeout
-  status before any R.11 backup or rewrite action.
+- The helper now checks exact R.0-R.10 rebrand ticket/worklog closeouts,
+  including the T298a/T300a R.9.5 suffixed tickets, exact T223 C4 Phase 1
+  closeout status, and exact T229 RBAC Phase 2 closeout status before any
+  R.11 backup or rewrite action.
 - The helper now checks whether the remote `rebrand-v1` target is on
   `origin/main` ancestry; the latest run reports it is not.
 - The helper now checks whether local `rebrand-v1` and origin `rebrand-v1`

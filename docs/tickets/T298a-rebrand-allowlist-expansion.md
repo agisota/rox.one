@@ -1,5 +1,7 @@
 # T298a - Rebrand allowlist expansion (R.9.5 — shim-preservation surfaces)
 
+Status: DONE
+
 ## Context
 
 We are building a white-label fork of Rox Agents OSS into Agent Workbench Suite.

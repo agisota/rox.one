@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 
@@ -356,6 +356,39 @@ describe('R.11 goal documentation', () => {
 })
 
 describe('R.11 closeout worklog documentation', () => {
+  test('includes the R.9.5 suffixed tickets in closeout preflight coverage', () => {
+    const preflightSource = readFileSync(
+      join(repoRoot, 'scripts', 'rebrand-r11-preflight.ts'),
+      'utf8',
+    )
+
+    expect(preflightSource).toContain('docs/tickets/T298a-rebrand-allowlist-expansion.md')
+    expect(preflightSource).toContain('docs/tickets/T300a-rebrand-agents-md-and-misc.md')
+    expect(preflightSource).not.toContain('docs/tickets/T299a')
+  })
+
+  test('keeps R.9.5 suffixed tickets in the standard ticket and worklog shape', () => {
+    for (const slug of [
+      'T298a-rebrand-allowlist-expansion',
+      'T300a-rebrand-agents-md-and-misc',
+    ]) {
+      const ticketPath = join(repoRoot, 'docs', 'tickets', `${slug}.md`)
+      const worklogPath = join(repoRoot, 'docs', 'worklog', `${slug}.md`)
+
+      expect(existsSync(ticketPath)).toBe(true)
+      expect(existsSync(worklogPath)).toBe(true)
+
+      const ticket = readFileSync(ticketPath, 'utf8')
+      const worklog = readFileSync(worklogPath, 'utf8')
+
+      expect(ticket).toMatch(/^Status:\s*DONE\b/m)
+      for (let section = 1; section <= 11; section += 1) {
+        expect(worklog).toContain(`## ${section}.`)
+      }
+      expect(worklog).toContain('Acceptance criteria matrix')
+    }
+  })
+
   test('points current evidence at the durable completion audit instead of drifting ticket ranges', () => {
     const worklog = readFileSync(
       join(repoRoot, 'docs', 'worklog', 'T298-rebrand-git-history-rewrite.md'),
