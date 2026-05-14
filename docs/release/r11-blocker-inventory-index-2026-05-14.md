@@ -20,6 +20,7 @@ Source evidence:
 | Blocker family | Current blocker rows | Inventory artifact |
 | --- | --- | --- |
 | Active goal state | `no-active-goal` | `docs/release/r11-active-goal-inventory-2026-05-14.md` |
+| Preflight coordination/context | `no-open-prs`, `current-branch`, `main-sync`, `worktree-clean` | `docs/release/r11-preflight-context-inventory-2026-05-14.md` |
 | Fork review | `fork-review` | `docs/release/r11-fork-review-inventory-2026-05-14.md` |
 | Rebrand tag drift | `rebrand-tag-local-sync`, `rebrand-tag-on-main` | `docs/release/r11-tag-drift-inventory-2026-05-14.md` |
 | Backup artifacts | `backup-tag`, `backup-branch`, `offline-mirror` | `docs/release/r11-backup-artifact-inventory-2026-05-14.md` |
@@ -27,10 +28,12 @@ Source evidence:
 | Legal preserve | `legal-file-LICENSE`, `legal-file-NOTICE`, `legal-file-TRADEMARK.md` | `docs/release/r11-legal-preserve-inventory-2026-05-14.md` |
 | History scan | `history-scan` | `docs/release/r11-history-scan-inventory-2026-05-14.md` |
 
-## Passing Guard Evidence
+## Historical Guard Evidence
 
-These rows are not blockers, but they are current report-only proof that R.11 is
-waiting on operator-owned prerequisites rather than local checkout drift.
+This snapshot is preserved as earlier current-main validation evidence. It is
+not a substitute for fresh preflight context; see
+`docs/release/r11-preflight-context-inventory-2026-05-14.md` for the latest
+open-PR, checkout, main-sync, and worktree-clean rows.
 
 | Passing guard | Evidence artifact |
 | --- | --- |
