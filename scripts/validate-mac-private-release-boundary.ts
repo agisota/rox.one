@@ -274,6 +274,8 @@ requireText(afterSignHook, "'--options'", 'afterSign codesign options flag');
 requireText(afterSignHook, "'runtime'", 'afterSign hardened runtime option');
 requireText(afterSignHook, "'--entitlements'", 'afterSign entitlements flag');
 requireText(afterSignHook, 'build/entitlements.mac.plist', 'afterSign entitlements path');
+requireText(afterSignHook, 'collectSignablePaths', 'afterSign explicit nested signing plan');
+refuseText(afterSignHook, "'--deep'", 'afterSign must not blanket-sign nested code');
 
 // 3. Entitlements plist: hardened minimum surface.
 const entitlements = read('apps/electron/build/entitlements.mac.plist');
@@ -338,6 +340,10 @@ if (!existsSync(appPath)) {
   fail('missing packaged app: apps/electron/release/mac-arm64/ROX.ONE.app; run electron:dist:dev:mac:arm64 first');
 }
 
+const recursiveVerification = run('codesign', ['--verify', '--deep', '--strict', '--verbose=4', appPath]);
+if (recursiveVerification.status !== 0) {
+  fail(`codesign recursive verification failed:\n${recursiveVerification.output}`);
+}
 const codesignMetadata = run('codesign', ['-dv', '--verbose=4', appPath]);
 if (codesignMetadata.status !== 0) {
   fail(`codesign metadata inspection failed:\n${codesignMetadata.output}`);
@@ -350,7 +356,6 @@ const liveSigningOutput = `${codesignMetadata.output}\n${codesignEntitlements.ou
 assertBundleContract({
   bundlePath: appPath,
   signingOutputText: liveSigningOutput,
-  requireNativeBinaryEntries: false,
 });
 assertCodesignIdentifier(codesignMetadata.output);
 requireText(codesignMetadata.output, 'Signature=adhoc', 'ad-hoc signature marker for private/local RC');

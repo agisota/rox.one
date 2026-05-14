@@ -128,5 +128,5 @@ Fresh remote CI evidence is still required after pushing the T478 commit.
 | Mac packaging config wires a post-sign runtime enforcement hook | PASS | `apps/electron/electron-builder.yml` now declares `afterSign: scripts/afterSign.cjs` |
 | Mac boundary tests and validators pass locally | PASS | Mac fixture test, mac ARM workflow validator, and mac private release boundary validator passed |
 | User-data migration conflict resolution passes its targeted tests | PASS | `bun test packages/shared/src/config/__tests__/user-data-migration.test.ts` passed with `6 pass`, `0 fail`, `70 expect() calls` |
-| PR #217 is pushed for fresh CI | PASS | T478 commit is ready to push; final remote SHA and CI status are recorded outside this pre-push worklog |
+| PR #217 is pushed for fresh CI | PASS | `git push` updated `origin/chore/r11-t473-post-t470-audit-refresh` from `f2f15543` to `4b9fd262`; `gh pr view 217` reported `mergeable=MERGEABLE` at head `4b9fd262`; CircleCI `secret-scan` #129 passed and `validate` #128 was running on that SHA |
 | No destructive R.11 action is performed | PASS | No destructive R.11 command has been run |
