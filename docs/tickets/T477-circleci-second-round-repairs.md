@@ -13,6 +13,12 @@ failures but exposed second-round parity gaps:
   full Shiki language/theme set;
 - mac ARM packaging let electron-builder inspect production `node_modules`, which
   failed on the vulnerable `libsignal -> protobufjs@6.8.8` exact dependency.
+- the SPA route-crawler fixture could time out in clean CircleCI runners because
+  it launched the fixture-local package script instead of the root-installed
+  Vite binary;
+- the live mac trust-boundary validator requested codesign metadata and
+  entitlements in one call, which can hide the `Identifier=` metadata needed by
+  the canonical bundle-id assertion.
 
 ## Acceptance Criteria
 
@@ -22,4 +28,8 @@ failures but exposed second-round parity gaps:
   real assertion failures.
 - mac ARM packaging marks `node_modules` as handled outside electron-builder's
   production dependency collector.
+- Audit SPA route-crawler tests use root-installed Vite and keep diagnostic
+  child-process output on startup failures.
+- Live mac trust-boundary validation checks codesign metadata separately from
+  entitlements.
 - Relevant local validation passes before pushing and rerunning CircleCI.

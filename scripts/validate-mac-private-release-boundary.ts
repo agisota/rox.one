@@ -304,13 +304,18 @@ if (!existsSync(appPath)) {
   fail('missing packaged app: apps/electron/release/mac-arm64/ROX.ONE.app; run electron:dist:dev:mac:arm64 first');
 }
 
-const codesign = run('codesign', ['-dv', '--verbose=4', '--entitlements', '-', appPath]);
-if (codesign.status !== 0) {
-  fail(`codesign inspection failed:\n${codesign.output}`);
+const codesignMetadata = run('codesign', ['-dv', '--verbose=4', appPath]);
+if (codesignMetadata.status !== 0) {
+  fail(`codesign metadata inspection failed:\n${codesignMetadata.output}`);
 }
-requireText(codesign.output, 'Identifier=com.rox.one', 'ROX.ONE code signing identifier');
-requireText(codesign.output, 'Signature=adhoc', 'ad-hoc signature marker for private/local RC');
-requireText(codesign.output, 'TeamIdentifier=not set', 'missing TeamIdentifier marker for private/local RC');
+const codesignEntitlements = run('codesign', ['-d', '--entitlements', '-', appPath]);
+if (codesignEntitlements.status !== 0) {
+  fail(`codesign entitlement inspection failed:\n${codesignEntitlements.output}`);
+}
+const liveSigningOutput = `${codesignMetadata.output}\n${codesignEntitlements.output}`;
+requireText(codesignMetadata.output, 'Identifier=com.rox.one', 'ROX.ONE code signing identifier');
+requireText(codesignMetadata.output, 'Signature=adhoc', 'ad-hoc signature marker for private/local RC');
+requireText(codesignMetadata.output, 'TeamIdentifier=not set', 'missing TeamIdentifier marker for private/local RC');
 
 const stapler = run('xcrun', ['stapler', 'validate', appPath]);
 if (stapler.status === 0) {
@@ -332,10 +337,10 @@ assertBundleContract({
 });
 // Re-run entitlement gates against live codesign output.
 for (const key of REQUIRED_CLIENT_ENTITLEMENTS) {
-  requireText(codesign.output, key, `required entitlement: ${key}`);
+  requireText(liveSigningOutput, key, `required entitlement: ${key}`);
 }
 for (const key of FORBIDDEN_ENTITLEMENTS) {
-  refuseText(codesign.output, `<key>${key}</key>`, `forbidden entitlement (${key})`);
+  refuseText(liveSigningOutput, `<key>${key}</key>`, `forbidden entitlement (${key})`);
 }
 
 console.log('[mac-private-release-boundary] packaged app signature: adhoc, TeamIdentifier=not set');

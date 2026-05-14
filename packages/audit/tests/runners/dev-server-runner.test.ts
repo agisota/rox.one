@@ -14,12 +14,12 @@ describe("spawnDevServer", () => {
     await expect(
       spawnDevServer({
         command: "node",
-        args: ["-e", "setInterval(() => {}, 1000)"],
+        args: ["-e", "console.error('booting fixture server'); setInterval(() => {}, 1000)"],
         cwd: process.cwd(),
         readyPattern: /Local:\s+(http:\/\/[^\s]+)/,
         timeoutMs: 500,
       }),
-    ).rejects.toThrow(/timeout/);
+    ).rejects.toThrow(/booting fixture server/);
   });
 
   test("resolves with URL when ready pattern matches", async () => {
