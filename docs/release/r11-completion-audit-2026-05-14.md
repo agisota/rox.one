@@ -108,6 +108,28 @@ match, `origin/main...main` remains `0 0`, open PRs remain 0, default preflight 
 This evidence makes the worklist current, but it does not unblock R.11 or
 authorize destructive ref/history operations.
 
+## Post-T470 current-main validation evidence
+
+T470 recorded the current-main validation refresh after T471/T472 repaired
+fixture drift. The validation baseline is `02275b9b`, and the pushed report
+commit is `e4f3970e`. The evidence lives in
+`docs/release/r11-current-main-validation-2026-05-14.md` under
+`## T470 Fresh Current-Main Validation Refresh`.
+
+The T470 current-main validation refresh recorded `bun run typecheck`,
+`bun run lint`, full `bun test`, `bun run build`, docs validation, rebrand
+validation, roadmap validation, and `git diff --check`. The full-suite evidence
+was 6910 pass, 13 skip, 0 fail, 1 snapshot, and 27371 expect calls across 6923
+tests in 566 files.
+
+Post-T470 post-push checks after `e4f3970e` showed `HEAD` and `origin/main`
+matched, `origin/main...main` remained `0 0`, and the worktree was clean.
+Post-T470 default preflight remains red with 4 blockers, and post-T470
+pre-rewrite preflight remains red with 7 blockers.
+This current-main validation baseline still does not satisfy the final
+post-rewrite validation requirement and does not authorize destructive
+ref/history operations.
+
 ## Current Blockers
 
 Fresh evidence from report-only post-push checks, without pinning this audit to a moving latest commit:

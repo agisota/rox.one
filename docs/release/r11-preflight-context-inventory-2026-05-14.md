@@ -28,8 +28,10 @@ git rev-list --left-right --count origin/main...main
 - Current checkout: `main`
 - Pre-T463 origin/main baseline: `2fa129f3`
 - T464 post-PR-closeout live baseline: `0b0a218f`
-- Local `main`: same as origin after PR #216 landed
-- Origin `main`: same as local after PR #216 landed
+- Post-T470 pushed baseline: `e4f3970e`
+- T470 current-main validation baseline: `02275b9b`
+- Local `main`: same as origin after T470/T471/T472 landed
+- Origin `main`: same as local after T470/T471/T472 landed
 - origin/main...main: `0 0`
 - Worktree clean: yes, `git status --porcelain is empty`
 - Default pre-backup preflight blockers: 4 after open PRs cleared
