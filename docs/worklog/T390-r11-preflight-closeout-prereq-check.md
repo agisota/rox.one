@@ -1,6 +1,6 @@
 # T390 - R.11 preflight closeout prerequisite check
 
-Status: IN PROGRESS
+Status: DONE
 Phase: R.11 preflight hardening
 Ticket: docs/tickets/T390-r11-preflight-closeout-prereq-check.md
 
@@ -92,6 +92,8 @@ closeout prerequisites.
 - `bun run validate:docs`
 - `bun run validate:rebrand`
 - `git diff --check`
+- `bun run rebrand:r11-preflight`
+- `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite`
 
 ## 8. Passing test output summary
 
@@ -133,6 +135,31 @@ git diff --check
 
 exited 0 with no output.
 
+Post-push default pre-backup preflight, 2026-05-14:
+
+```text
+rebrand-closeouts     pass    R.0-R.10 tickets are Status: DONE a...
+phase1-closeout       pass    docs/tickets/T223-c4-followups-clos...
+phase2-rbac-closeout  pass    docs/tickets/T229-rbac-integration-...
+main-sync             pass    origin/main...main is 0 0.
+worktree-clean        pass    git status --porcelain is empty.
+red - 1 R.11 pre-backup prerequisite(s) failing
+```
+
+Post-push explicit pre-rewrite preflight:
+
+```text
+rebrand-closeouts     pass    R.0-R.10 tickets are Status: DONE a...
+phase1-closeout       pass    docs/tickets/T223-c4-followups-clos...
+phase2-rbac-closeout  pass    docs/tickets/T229-rbac-integration-...
+backup-tag            fail    pre-rebrand-history-rewrite-backup ...
+backup-branch         fail    backup/pre-rebrand-history-rewrite-...
+offline-mirror        fail    /tmp/rox-one-terminal-backup-2026-0...
+main-sync             pass    origin/main...main is 0 0.
+worktree-clean        pass    git status --porcelain is empty.
+red - 3 R.11 pre-rewrite prerequisite(s) failing
+```
+
 ## 9. Build output summary
 
 No build was run. This changes the report-only preflight script and tests, not
@@ -150,8 +177,8 @@ force-push, post-rewrite validation, and `update_goal` remain unexecuted.
 | Regression test fails before implementation | Green | RED run showed the evaluator ignored the closeout prerequisites |
 | Regression test passes after implementation | Green | Targeted test reports 11 pass, 0 fail |
 | Preflight has distinct rows for R.0-R.10, T223, and T229 closeouts | Green | Added `rebrand-closeouts`, `phase1-closeout`, and `phase2-rbac-closeout` rows |
-| Live default preflight still fails only on active goal | Pending | Not rerun yet |
-| Live pre-rewrite preflight still fails only on backup artifacts with active-goal ack | Pending | Not rerun yet |
+| Live default preflight still fails only on active goal | Green | Post-push default preflight is red only on `no-active-goal` |
+| Live pre-rewrite preflight still fails only on backup artifacts with active-goal ack | Green | Post-push pre-rewrite preflight is red only on `backup-tag`, `backup-branch`, and `offline-mirror` |
 | Documentation/rebrand validation remains green | Green | `typecheck`, `validate:docs`, `validate:rebrand`, and `git diff --check` passed |
 | Destructive R.11 actions are not executed | Green | No backup, mirror, filter-repo, force-push, or update_goal action was run |
-| Commit created | Pending | Commit not created yet |
+| Commit created | Green | Lore commit `060e3ffd` created and pushed |

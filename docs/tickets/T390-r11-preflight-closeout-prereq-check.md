@@ -1,6 +1,6 @@
 # T390 - R.11 preflight closeout prerequisite check
 
-Status: TODO
+Status: DONE
 
 ## Context
 
@@ -66,15 +66,15 @@ reports distinct rows for:
 
 ## Acceptance Criteria
 
-- [ ] Regression test fails before implementation.
-- [ ] Regression test passes after implementation.
-- [ ] Preflight has distinct rows for R.0-R.10, T223, and T229 closeouts.
-- [ ] Live default preflight still fails only on active goal.
-- [ ] Live pre-rewrite preflight still fails only on backup tag, backup branch,
+- [x] Regression test fails before implementation.
+- [x] Regression test passes after implementation.
+- [x] Preflight has distinct rows for R.0-R.10, T223, and T229 closeouts.
+- [x] Live default preflight still fails only on active goal.
+- [x] Live pre-rewrite preflight still fails only on backup tag, backup branch,
   and offline mirror when `ROX_R11_NO_ACTIVE_GOAL=1` is set.
-- [ ] Documentation/rebrand validation remains green.
-- [ ] Destructive R.11 actions are not executed.
-- [ ] Commit created.
+- [x] Documentation/rebrand validation remains green.
+- [x] Destructive R.11 actions are not executed.
+- [x] Commit created.
 
 ## Worklog
 
