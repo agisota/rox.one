@@ -34,6 +34,12 @@ const backupArtifactInventoryPath = join(
   'release',
   'r11-backup-artifact-inventory-2026-05-14.md',
 )
+const currentMainValidationPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-current-main-validation-2026-05-14.md',
+)
 
 describe('R.11 completion audit', () => {
   test('maps every global stopping condition to concrete evidence', () => {
@@ -89,28 +95,32 @@ describe('R.11 completion audit', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const currentMainValidation =
       audit.split('## Current Main Validation Matrix')[1]?.split('## Current Blockers')[0] ?? ''
+    const currentMainValidationReport = readFileSync(currentMainValidationPath, 'utf8')
 
     expect(currentMainValidation).toContain('Pre-rewrite current main validation evidence')
+    expect(currentMainValidation).toContain('docs/release/r11-current-main-validation-2026-05-14.md')
     for (const command of [
       'bun run typecheck',
       'bun run lint',
       'bun test',
       'bun run build',
     ]) {
-      expect(currentMainValidation).toContain(command)
+      expect(currentMainValidationReport).toContain(command)
     }
+    expect(currentMainValidationReport).toContain('Status: PRE-REWRITE VALIDATION ONLY')
     expect(currentMainValidation).toContain(
       'This does not satisfy the final post-rewrite validation requirement',
     )
   })
 
   test('records fresh current-main validation counts', () => {
-    const audit = readFileSync(auditPath, 'utf8')
-    const currentMainValidation =
-      audit.split('## Current Main Validation Matrix')[1]?.split('## Current Blockers')[0] ?? ''
+    const currentMainValidationReport = readFileSync(currentMainValidationPath, 'utf8')
 
-    expect(currentMainValidation).toContain('7 warnings')
-    expect(currentMainValidation).toContain('6751 pass, 13 skip, 0 fail')
+    expect(currentMainValidationReport).toContain('Exit 0 with 7 existing warnings')
+    expect(currentMainValidationReport).toContain('6753 pass, 13 skip, 0 fail')
+    expect(currentMainValidationReport).toContain('26839 expect() calls')
+    expect(currentMainValidationReport).toContain('6766 tests in 562 files')
+    expect(currentMainValidationReport).toContain('agent-contract reported 394 tickets')
   })
 
   test('records exact current report-only blocker IDs', () => {
