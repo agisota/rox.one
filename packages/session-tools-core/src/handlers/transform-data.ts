@@ -26,8 +26,8 @@ export interface TransformDataArgs {
 }
 
 const TRANSFORM_DATA_TIMEOUT_MS = 30_000;
-const TRANSFORM_DATA_SPAWN_ATTEMPTS = 3;
-const TRANSFORM_DATA_SPAWN_RETRY_DELAY_MS = 25;
+const TRANSFORM_DATA_SPAWN_ATTEMPTS = 6;
+const TRANSFORM_DATA_SPAWN_RETRY_DELAY_MS = 50;
 const TRANSIENT_SPAWN_ERROR_CODES = new Set(['EBADF', 'EMFILE', 'ENFILE']);
 
 type TransformProcessResult = { stdout: string; stderr: string; code: number | null };
