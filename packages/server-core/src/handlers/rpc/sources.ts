@@ -37,6 +37,23 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
 
   // Create a new source
   server.handle(RPC_CHANNELS.sources.CREATE, async (ctx, workspaceId: string, config: Partial<import('@rox-one/shared/sources').CreateSourceInput>) => {
+    // T086d: optional rate-limit. Sits BEFORE workspace access check and
+    // BEFORE the source creation so a burst of source creates from a single
+    // actor cannot bypass the cap. Absent => no-op.
+    if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+      return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+
+    // T086d: optional per-actor budget guard. Runs AFTER the bucket gate
+    // and BEFORE workspace access / source creation. Absent => no-op.
+    if (deps.budgetGuard) {
+      const key = ctx.userId ?? '__anonymous__'
+      const result = deps.budgetGuard.consume(key, 1)
+      if (!result.ok) {
+        return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+      }
+    }
+
     parseId('workspaceId', workspaceId)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
     const workspace = getWorkspaceByNameOrId(workspaceId)
@@ -55,6 +72,21 @@ export function registerSourcesHandlers(server: RpcServer, deps: HandlerDeps): v
 
   // Delete a source
   server.handle(RPC_CHANNELS.sources.DELETE, async (ctx, workspaceId: string, sourceSlug: string) => {
+    // T086d: optional rate-limit + per-actor budget guard. Shares the
+    // injected bucket and guard with sources.create so a single actor
+    // cannot bypass either cap by alternating create / delete bursts.
+    // Absent => no-op.
+    if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+      return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+    }
+    if (deps.budgetGuard) {
+      const key = ctx.userId ?? '__anonymous__'
+      const result = deps.budgetGuard.consume(key, 1)
+      if (!result.ok) {
+        return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+      }
+    }
+
     parseId('workspaceId', workspaceId)
     parseSlug('sourceSlug', sourceSlug)
     await requireWorkspaceAccess(deps, ctx, workspaceId)
