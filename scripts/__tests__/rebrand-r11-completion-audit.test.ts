@@ -343,11 +343,12 @@ describe('R.11 completion audit', () => {
     const remoteBranchReview = readFileSync(remoteBranchReviewPath, 'utf8')
 
     expect(currentBlockers).toContain('remote-branch-review')
-    expect(currentBlockers).toContain('139 non-main/non-R.11-backup origin branches')
+    expect(currentBlockers).toContain('140 non-main/non-R.11-backup origin branches')
     expect(currentBlockers).toContain('docs/release/r11-remote-branch-review-2026-05-14.md')
-    expect(remoteBranchReview).toContain('Total origin heads: 140')
-    expect(remoteBranchReview).toContain('Non-main/non-R.11-backup origin branches: 139')
+    expect(remoteBranchReview).toContain('Total origin heads: 141')
+    expect(remoteBranchReview).toContain('Non-main/non-R.11-backup origin branches: 140')
     expect(remoteBranchReview).toContain('operator-review-required')
+    expect(remoteBranchReview).toContain('docs/M20-T299-phase-20-closeout')
     expect(remoteBranchReview).toContain('chore/T297-rebrand-prepush-ci-gate')
     expect(remoteBranchReview).toContain('backup/agent-workbench-t000-t012-2026-04-30')
   })
@@ -469,7 +470,7 @@ describe('R.11 completion audit', () => {
       'active `/goal` run',
       '`rebrand-v1` tag targets',
       'origin/main ancestry',
-      '139 non-main/non-R.11-backup origin branches',
+      '140 non-main/non-R.11-backup origin branches',
       'backup tag, backup branch, and offline mirror',
       'legal-preserve',
       'history scan',
