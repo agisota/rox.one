@@ -103,7 +103,9 @@ Fresh evidence from the latest clean post-push checks:
   preserved in `docs/release/r11-remote-branch-review-2026-05-14.md`. The
   missing backup artifacts are `pre-rebrand-history-rewrite-backup`,
   `backup/pre-rebrand-history-rewrite-2026-05-13`, and
-  `/tmp/rox-one-terminal-backup-2026-05-13.git`.
+  `/tmp/rox-one-terminal-backup-2026-05-13.git`. The backup artifact inventory
+  is preserved in
+  `docs/release/r11-backup-artifact-inventory-2026-05-14.md`.
 - `bun run rebrand:r11-legal-preserve` exits red on `legal-file-LICENSE`,
   `legal-file-NOTICE`, and `legal-file-TRADEMARK.md` because
   `pre-rebrand-history-rewrite-backup` is missing; the
