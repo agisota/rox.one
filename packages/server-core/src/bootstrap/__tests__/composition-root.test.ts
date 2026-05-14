@@ -6,7 +6,7 @@
  * to a cwd-relative temp dir before the dynamic import so the lock
  * file lands inside the worktree (no `/tmp`, no `~/.rox` mutation).
  */
-import { describe, expect, it, beforeAll, afterAll } from 'bun:test'
+import { describe, expect, it, beforeAll, afterAll, setDefaultTimeout } from 'bun:test'
 import { mkdirSync, existsSync, rmSync, mkdtempSync } from 'node:fs'
 import { join, resolve as resolvePath } from 'node:path'
 
@@ -26,6 +26,8 @@ import type { AttachAuditProducerOptions } from '../audit-bootstrap.ts'
 import type { ServerBootstrapOptions } from '../headless-start.ts'
 
 const TEMP_ROOT = resolvePath(process.cwd(), '.tmp-test-composition-root')
+
+setDefaultTimeout(30_000)
 
 // CRITICAL: redirect `ROX_CONFIG_DIR` BEFORE the bootstrap module is
 // imported so `CONFIG_DIR` (captured at module-load time) and therefore
