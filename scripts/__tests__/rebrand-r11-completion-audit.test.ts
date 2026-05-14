@@ -16,6 +16,12 @@ const historyScanInventoryPath = join(
   'release',
   'r11-history-scan-inventory-2026-05-14.md',
 )
+const legalPreserveInventoryPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-legal-preserve-inventory-2026-05-14.md',
+)
 
 describe('R.11 completion audit', () => {
   test('maps every global stopping condition to concrete evidence', () => {
@@ -168,6 +174,22 @@ describe('R.11 completion audit', () => {
     expect(currentBlockers).toContain('pre-rebrand-history-rewrite-backup')
     expect(currentBlockers).toContain('backup/pre-rebrand-history-rewrite-2026-05-13')
     expect(currentBlockers).toContain('/tmp/rox-one-terminal-backup-2026-05-13.git')
+  })
+
+  test('records exact legal-preserve gate state', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const currentBlockers =
+      audit.split('## Current Blockers')[1]?.split('## Stop Condition')[0] ?? ''
+    const legalPreserveInventory = readFileSync(legalPreserveInventoryPath, 'utf8')
+
+    expect(currentBlockers).toContain('docs/release/r11-legal-preserve-inventory-2026-05-14.md')
+    expect(legalPreserveInventory).toContain('Status: BLOCKED ON BACKUP TAG')
+    expect(legalPreserveInventory).toContain('pre-rebrand-history-rewrite-backup')
+    expect(legalPreserveInventory).toContain('legal-file-LICENSE')
+    expect(legalPreserveInventory).toContain('legal-file-NOTICE')
+    expect(legalPreserveInventory).toContain('legal-file-TRADEMARK.md')
+    expect(legalPreserveInventory).toContain('dockerfile-source-attribution')
+    expect(legalPreserveInventory).toContain('Dockerfile.server source attribution is intact')
   })
 
   test('separates operator-owned unblocks from destructive authorization', () => {

@@ -106,7 +106,8 @@ Fresh evidence from the latest clean post-push checks:
 - `bun run rebrand:r11-legal-preserve` exits red on `legal-file-LICENSE`,
   `legal-file-NOTICE`, and `legal-file-TRADEMARK.md` because
   `pre-rebrand-history-rewrite-backup` is missing; the
-  `dockerfile-source-attribution` row passes.
+  `dockerfile-source-attribution` row passes. The gate inventory is preserved in
+  `docs/release/r11-legal-preserve-inventory-2026-05-14.md`.
 - `REBRAND_R11_HISTORY_MAX_FINDINGS=8 bun run rebrand:r11-history-scan`
   (`history-scan`) exits red with `9 forbidden-token patch lines` outside the
   legal-preserve allowlist. The sanitized finding inventory is preserved in
