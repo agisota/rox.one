@@ -96,6 +96,18 @@ This does not satisfy the final post-rewrite validation requirement. The goal
 requires the global validation matrix to pass after the R.11 rewrite has
 actually produced cleaned ancestry.
 
+## Post-T468 worklist evidence
+
+T468 pushed the canonical remaining-worklist surface to `origin/main` as
+`604e0f5e`. The current continuation checklist lives in
+`docs/release/r11-consolidation-backlog-2026-05-14.md` under
+`## Full Remaining Worklist`.
+
+Fresh post-push checks after `604e0f5e` show that `HEAD` and `origin/main`
+match, `origin/main...main` remains `0 0`, open PRs remain 0, default preflight remains red with 4 blockers, and pre-rewrite preflight remains red with 7 blockers.
+This evidence makes the worklist current, but it does not unblock R.11 or
+authorize destructive ref/history operations.
+
 ## Current Blockers
 
 Fresh evidence from report-only post-push checks, without pinning this audit to a moving latest commit:
