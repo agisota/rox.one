@@ -14,6 +14,8 @@ describe('evaluateR11Preflight', () => {
     const report = evaluateR11Preflight({
       noActiveGoalAcknowledged: true,
       openPullRequests: [],
+      forkCount: 0,
+      expectedForkCount: 0,
       rebrandTagPresent: true,
       backupTagPresent: false,
       backupBranchPresent: false,
@@ -35,6 +37,8 @@ describe('evaluateR11Preflight', () => {
     const report = evaluateR11Preflight({
       noActiveGoalAcknowledged: true,
       openPullRequests: [],
+      forkCount: 0,
+      expectedForkCount: 0,
       rebrandTagPresent: true,
       backupTagPresent: false,
       backupBranchPresent: false,
@@ -59,6 +63,8 @@ describe('evaluateR11Preflight', () => {
     const report = evaluateR11Preflight({
       noActiveGoalAcknowledged: true,
       openPullRequests: [],
+      forkCount: 0,
+      expectedForkCount: 0,
       rebrandTagPresent: true,
       backupTagPresent: true,
       backupBranchPresent: false,
@@ -79,6 +85,8 @@ describe('evaluateR11Preflight', () => {
     const report = evaluateR11Preflight({
       noActiveGoalAcknowledged: true,
       openPullRequests: [],
+      forkCount: 0,
+      expectedForkCount: 0,
       rebrandTagPresent: true,
       backupTagPresent: true,
       backupBranchPresent: true,
@@ -98,6 +106,8 @@ describe('evaluateR11Preflight', () => {
     const report = evaluateR11Preflight({
       noActiveGoalAcknowledged: false,
       openPullRequests: [],
+      forkCount: 0,
+      expectedForkCount: 0,
       rebrandTagPresent: true,
       backupTagPresent: true,
       backupBranchPresent: true,
@@ -118,6 +128,8 @@ describe('evaluateR11Preflight', () => {
     const report = evaluateR11Preflight({
       noActiveGoalAcknowledged: true,
       openPullRequests: [],
+      forkCount: 0,
+      expectedForkCount: 0,
       rebrandTagPresent: true,
       backupTagPresent: true,
       backupBranchPresent: true,
@@ -134,6 +146,28 @@ describe('evaluateR11Preflight', () => {
       .toMatchObject({ passed: false })
   })
 
+  test('fails closed when the fork count does not match the expected count', () => {
+    const report = evaluateR11Preflight({
+      noActiveGoalAcknowledged: true,
+      openPullRequests: [],
+      forkCount: 2,
+      expectedForkCount: 0,
+      rebrandTagPresent: true,
+      backupTagPresent: true,
+      backupBranchPresent: true,
+      offlineMirrorPresent: true,
+      gitFilterRepoPresent: true,
+      r11CloseoutTicketPresent: true,
+      r11CloseoutWorklogPresent: true,
+      mainSyncedWithOrigin: true,
+      worktreeClean: true,
+    })
+
+    expect(report.allPassed).toBe(false)
+    expect(report.results.find((result) => result.id === 'fork-review'))
+      .toMatchObject({ passed: false })
+  })
+
   test('reports every blocker instead of stopping after the first red check', () => {
     const report = evaluateR11Preflight({
       noActiveGoalAcknowledged: false,
@@ -141,6 +175,8 @@ describe('evaluateR11Preflight', () => {
         { number: 189, title: 'route boundary', headRefName: 'feature-a' },
         { number: 171, title: 'csp cleanup', headRefName: 'feature-b' },
       ],
+      forkCount: 2,
+      expectedForkCount: 0,
       rebrandTagPresent: false,
       backupTagPresent: false,
       backupBranchPresent: false,
@@ -153,8 +189,9 @@ describe('evaluateR11Preflight', () => {
     })
 
     expect(report.allPassed).toBe(false)
-    expect(report.results.filter((result) => !result.passed)).toHaveLength(8)
+    expect(report.results.filter((result) => !result.passed)).toHaveLength(9)
     expect(formatR11PreflightReport(report)).toContain('#189')
+    expect(formatR11PreflightReport(report)).toContain('fork-review')
     expect(formatR11PreflightReport(report)).toContain('r11-closeout-worklog')
     expect(formatR11PreflightReport(report)).toContain('red')
   })
