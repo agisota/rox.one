@@ -9,10 +9,15 @@ const realSpawn = childProcess.spawn;
 
 let nextSpawnError: (Error & { code?: string; syscall?: string }) | undefined;
 let remainingSpawnErrors = 0;
+let failPipeStdio = false;
 let spawnCalls = 0;
 
 const mockedSpawn = ((...args: unknown[]) => {
   spawnCalls += 1;
+  const options = args[2] as { stdio?: unknown } | undefined;
+  if (failPipeStdio && Array.isArray(options?.stdio) && options.stdio.includes('pipe')) {
+    throw transientSpawnError('EBADF');
+  }
   if (nextSpawnError && remainingSpawnErrors > 0) {
     const error = nextSpawnError;
     remainingSpawnErrors -= 1;
@@ -49,6 +54,7 @@ describe('transform_data transient spawn retry', () => {
   afterEach(() => {
     nextSpawnError = undefined;
     remainingSpawnErrors = 0;
+    failPipeStdio = false;
     spawnCalls = 0;
     if (rootDir) {
       rmSync(rootDir, { recursive: true, force: true });
@@ -116,6 +122,21 @@ describe('transform_data transient spawn retry', () => {
 
     expect(result.isError).toBe(false);
     expect(spawnCalls).toBe(4);
+    expect(existsSync(join(dataDir, 'out.json'))).toBe(true);
+  });
+
+  test('does not depend on child-process pipe stdio for hosted Bun startup', async () => {
+    failPipeStdio = true;
+
+    const result = await handleTransformData(setupContext(), {
+      language: 'node',
+      script: "const fs=require('node:fs');fs.writeFileSync(process.argv.at(-1), JSON.stringify({ok:true}));",
+      inputFiles: ['in.txt'],
+      outputFile: 'out.json',
+    });
+
+    expect(result.isError).toBe(false);
+    expect(spawnCalls).toBe(1);
     expect(existsSync(join(dataDir, 'out.json'))).toBe(true);
   });
 

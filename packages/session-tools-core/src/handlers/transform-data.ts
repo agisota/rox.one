@@ -12,7 +12,17 @@ import type { ToolResult } from '../types.ts';
 import { successResponse, errorResponse } from '../response.ts';
 import { spawn } from 'node:child_process';
 import { join, resolve } from 'node:path';
-import { existsSync, mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { createScriptRuntimeEnv } from '../runtime/sandbox-env.ts';
 import { isPathWithinDirectory, isPathWithinDirectoryForCreation } from '../runtime/path-security.ts';
@@ -31,6 +41,13 @@ const TRANSFORM_DATA_SPAWN_RETRY_DELAY_MS = 50;
 const TRANSIENT_SPAWN_ERROR_CODES = new Set(['EBADF', 'EMFILE', 'ENFILE']);
 
 type TransformProcessResult = { stdout: string; stderr: string; code: number | null };
+type StdioCapture = {
+  dir: string;
+  stdoutPath: string;
+  stderrPath: string;
+  stdoutFd: number;
+  stderrFd: number;
+};
 
 function getErrorCode(error: unknown): string | undefined {
   return typeof error === 'object' && error !== null && 'code' in error
@@ -47,6 +64,35 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolveDelay) => setTimeout(resolveDelay, ms));
 }
 
+function createStdioCapture(dataDir: string): StdioCapture {
+  const dir = mkdtempSync(join(dataDir, '.transform-stdio-'));
+  const stdoutPath = join(dir, 'stdout.log');
+  const stderrPath = join(dir, 'stderr.log');
+
+  return {
+    dir,
+    stdoutPath,
+    stderrPath,
+    stdoutFd: openSync(stdoutPath, 'w+'),
+    stderrFd: openSync(stderrPath, 'w+'),
+  };
+}
+
+function readTextIfExists(path: string): string {
+  try {
+    return readFileSync(path, 'utf8');
+  } catch {
+    return '';
+  }
+}
+
+function closeStdioCapture(capture: StdioCapture): void {
+  for (const fd of [capture.stdoutFd, capture.stderrFd]) {
+    try { closeSync(fd); } catch { /* ignore cleanup errors */ }
+  }
+  try { rmSync(capture.dir, { recursive: true, force: true }); } catch { /* ignore cleanup errors */ }
+}
+
 function runTransformProcessOnce(
   cmd: string,
   spawnArgs: string[],
@@ -54,20 +100,20 @@ function runTransformProcessOnce(
   env: NodeJS.ProcessEnv,
 ): Promise<TransformProcessResult> {
   return new Promise((resolvePromise, reject) => {
+    const capture = createStdioCapture(dataDir);
     let child: ReturnType<typeof spawn>;
     try {
       child = spawn(cmd, spawnArgs, {
         cwd: dataDir,
         env,
-        stdio: ['ignore', 'pipe', 'pipe'],
+        stdio: ['ignore', capture.stdoutFd, capture.stderrFd],
       });
     } catch (error) {
+      closeStdioCapture(capture);
       reject(error);
       return;
     }
 
-    let stdout = '';
-    let stderr = '';
     let timedOut = false;
 
     const killTimer = setTimeout(() => {
@@ -75,11 +121,11 @@ function runTransformProcessOnce(
       child.kill('SIGKILL');
     }, TRANSFORM_DATA_TIMEOUT_MS);
 
-    child.stdout?.on('data', (data: Buffer) => { stdout += data.toString(); });
-    child.stderr?.on('data', (data: Buffer) => { stderr += data.toString(); });
-
     child.on('close', (code) => {
       clearTimeout(killTimer);
+      const stdout = readTextIfExists(capture.stdoutPath);
+      const stderr = readTextIfExists(capture.stderrPath);
+      closeStdioCapture(capture);
       if (timedOut) {
         resolvePromise({ stdout, stderr: `Script timed out after ${TRANSFORM_DATA_TIMEOUT_MS / 1000}s and was killed`, code });
       } else {
@@ -89,6 +135,7 @@ function runTransformProcessOnce(
 
     child.on('error', (err) => {
       clearTimeout(killTimer);
+      closeStdioCapture(capture);
       reject(err);
     });
   });
