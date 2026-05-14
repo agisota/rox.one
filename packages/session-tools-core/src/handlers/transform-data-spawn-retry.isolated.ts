@@ -8,13 +8,17 @@ const childProcess = await import('node:child_process');
 const realSpawn = childProcess.spawn;
 
 let nextSpawnError: (Error & { code?: string; syscall?: string }) | undefined;
+let remainingSpawnErrors = 0;
 let spawnCalls = 0;
 
 const mockedSpawn = ((...args: unknown[]) => {
   spawnCalls += 1;
-  if (nextSpawnError) {
+  if (nextSpawnError && remainingSpawnErrors > 0) {
     const error = nextSpawnError;
-    nextSpawnError = undefined;
+    remainingSpawnErrors -= 1;
+    if (remainingSpawnErrors === 0) {
+      nextSpawnError = undefined;
+    }
     throw error;
   }
   return (realSpawn as unknown as (...spawnArgs: unknown[]) => ReturnType<typeof realSpawn>)(...args);
@@ -44,6 +48,7 @@ describe('transform_data transient spawn retry', () => {
 
   afterEach(() => {
     nextSpawnError = undefined;
+    remainingSpawnErrors = 0;
     spawnCalls = 0;
     if (rootDir) {
       rmSync(rootDir, { recursive: true, force: true });
@@ -84,6 +89,7 @@ describe('transform_data transient spawn retry', () => {
 
   test('retries a transient EBADF spawn startup failure and writes output', async () => {
     nextSpawnError = transientSpawnError('EBADF');
+    remainingSpawnErrors = 1;
 
     const result = await handleTransformData(setupContext(), {
       language: 'node',
@@ -95,5 +101,38 @@ describe('transform_data transient spawn retry', () => {
     expect(result.isError).toBe(false);
     expect(spawnCalls).toBe(2);
     expect(existsSync(join(dataDir, 'out.json'))).toBe(true);
+  });
+
+  test('retries a short transient EBADF burst and writes output', async () => {
+    nextSpawnError = transientSpawnError('EBADF');
+    remainingSpawnErrors = 3;
+
+    const result = await handleTransformData(setupContext(), {
+      language: 'node',
+      script: "const fs=require('node:fs');fs.writeFileSync(process.argv.at(-1), JSON.stringify({ok:true}));",
+      inputFiles: ['in.txt'],
+      outputFile: 'out.json',
+    });
+
+    expect(result.isError).toBe(false);
+    expect(spawnCalls).toBe(4);
+    expect(existsSync(join(dataDir, 'out.json'))).toBe(true);
+  });
+
+  test('does not retry non-transient spawn startup errors', async () => {
+    nextSpawnError = transientSpawnError('EACCES');
+    remainingSpawnErrors = 1;
+
+    const result = await handleTransformData(setupContext(), {
+      language: 'node',
+      script: "const fs=require('node:fs');fs.writeFileSync(process.argv.at(-1), JSON.stringify({ok:true}));",
+      inputFiles: ['in.txt'],
+      outputFile: 'out.json',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('EACCES: transient spawn startup failure');
+    expect(spawnCalls).toBe(1);
+    expect(existsSync(join(dataDir, 'out.json'))).toBe(false);
   });
 });
