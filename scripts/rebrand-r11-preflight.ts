@@ -102,6 +102,8 @@ const REBRAND_R0_R10_TICKET_PATHS = [
   'docs/tickets/T295-community-link-audit-and-fix.md',
   'docs/tickets/T296-rebrand-sweep-closeout.md',
   'docs/tickets/T297-rebrand-prepush-hook-and-ci-gate.md',
+  'docs/tickets/T298a-rebrand-allowlist-expansion.md',
+  'docs/tickets/T300a-rebrand-agents-md-and-misc.md',
 ]
 const MASTER_PHASE_1_CLOSEOUT_TICKET = 'docs/tickets/T223-c4-followups-closeout.md'
 const MASTER_PHASE_2_CLOSEOUT_TICKET = 'docs/tickets/T229-rbac-integration-tests.md'
@@ -194,7 +196,7 @@ export function evaluateR11Preflight(
       pass(
         'rebrand-closeouts',
         'R.0-R.10 closeouts done',
-        'R.0-R.10 tickets are Status: DONE and matching worklogs exist.',
+        'R.0-R.10 tickets, including R.9.5 suffixed tickets, are Status: DONE and matching worklogs exist.',
       ),
     )
   } else {

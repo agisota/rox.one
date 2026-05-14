@@ -41,7 +41,7 @@ Concrete deliverables:
 
 | Requirement | Evidence checked | Current state | Result |
 | --- | --- | --- | --- |
-| T260-T298 status and worklogs | `docs/tickets/T298-rebrand-git-history-rewrite.md`; `docs/worklog/T298-rebrand-git-history-rewrite.md` | T298 remains `Status: BLOCKED`; R.0-R.10 closeouts pass preflight | Blocked |
+| T260-T298 status and worklogs | `docs/tickets/T298-rebrand-git-history-rewrite.md`; `docs/worklog/T298-rebrand-git-history-rewrite.md` | T298 remains `Status: BLOCKED`; R.0-R.10 closeouts, including the R.9.5 suffixed ticket pair, pass preflight | Blocked |
 | validate:rebrand on main | `bun run validate:rebrand` | Passes on current `main` | Green |
 | global validation matrix | Recent targeted checks plus required matrix in the goal | Not fully satisfied after a rewrite; full suite and build have not run on rewritten history | Blocked |
 | RBAC on rewritten ancestry | Goal requires R.11 after RBAC closeout | RBAC closeout ticket passes preflight, but no rewritten ancestry exists | Blocked |
@@ -64,7 +64,7 @@ R.11 backup or history-rewrite step starts. Current evidence:
 
 | # | Hard prerequisite | Current evidence | Result |
 | --- | --- | --- | --- |
-| 1. R.0-R.10 closeouts | `bun run rebrand:r11-preflight` reports `rebrand-closeouts` pass. | Green |
+| 1. R.0-R.10 closeouts | `bun run rebrand:r11-preflight` reports `rebrand-closeouts` pass, including T298a and T300a R.9.5 coverage. | Green |
 | 2. T223 Phase 1 closeout | `bun run rebrand:r11-preflight` reports `phase1-closeout` pass. | Green |
 | 3. T229 RBAC closeout | `bun run rebrand:r11-preflight` reports `phase2-rbac-closeout` pass. | Green |
 | 4. Open PR list | `bun run rebrand:r11-preflight` reports `no-open-prs` pass. | Green |
