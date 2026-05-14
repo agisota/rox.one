@@ -20,7 +20,12 @@ failures but exposed second-round parity gaps:
 - the live mac trust-boundary validator requested codesign metadata and
   entitlements in one call, which can hide metadata, and then treated
   ad-hoc `Identifier=ROX.ONE` output as a bundle-id violation even when
-  `CFBundleIdentifier` remained `com.rox.one`.
+  `CFBundleIdentifier` remained `com.rox.one`;
+- mac ARM packaging used disabled signing discovery without an explicit
+  ad-hoc `mac.identity: "-"`, so electron-builder dropped hardened runtime
+  even though `hardenedRuntime: true` was configured.
+- the full CircleCI unit suite can transiently fail `transform_data` subprocess
+  startup with `EBADF: bad file descriptor, epoll_ctl` under runner fd pressure.
 
 ## Acceptance Criteria
 
@@ -37,4 +42,8 @@ failures but exposed second-round parity gaps:
   entitlements.
 - Live mac trust-boundary validation accepts the ad-hoc executable identifier
   fallback only after the bundle Info.plist proves the canonical bundle id.
+- mac ARM packaging uses explicit ad-hoc signing identity so hardened runtime is
+  preserved in private/local RC artifacts.
+- `transform_data` retries transient subprocess startup fd errors without
+  hiding deterministic script failures.
 - Relevant local validation passes before pushing and rerunning CircleCI.

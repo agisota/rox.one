@@ -93,6 +93,10 @@ asar: false
 mac:
   category: public.app-category.productivity
   icon: resources/icon.icns
+  # Private/local RC builds intentionally use ad-hoc signing. electron-builder
+  # only preserves hardened runtime for ad-hoc output when identity is "-";
+  # disabling signing via null/CSC_IDENTITY_AUTO_DISCOVERY=false drops runtime.
+  identity: "-"
   # macOS 26+ Liquid Glass: Tell macOS to look for icon in Assets.car
   # The value must match --app-icon used in actool (see afterPack.cjs)
   extendInfo:

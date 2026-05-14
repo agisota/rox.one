@@ -26,6 +26,94 @@ export interface TransformDataArgs {
 }
 
 const TRANSFORM_DATA_TIMEOUT_MS = 30_000;
+const TRANSFORM_DATA_SPAWN_ATTEMPTS = 3;
+const TRANSFORM_DATA_SPAWN_RETRY_DELAY_MS = 25;
+const TRANSIENT_SPAWN_ERROR_CODES = new Set(['EBADF', 'EMFILE', 'ENFILE']);
+
+type TransformProcessResult = { stdout: string; stderr: string; code: number | null };
+
+function getErrorCode(error: unknown): string | undefined {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code)
+    : undefined;
+}
+
+function isTransientSpawnStartupError(error: unknown): boolean {
+  const code = getErrorCode(error);
+  return code !== undefined && TRANSIENT_SPAWN_ERROR_CODES.has(code);
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolveDelay) => setTimeout(resolveDelay, ms));
+}
+
+function runTransformProcessOnce(
+  cmd: string,
+  spawnArgs: string[],
+  dataDir: string,
+  env: NodeJS.ProcessEnv,
+): Promise<TransformProcessResult> {
+  return new Promise((resolvePromise, reject) => {
+    let child: ReturnType<typeof spawn>;
+    try {
+      child = spawn(cmd, spawnArgs, {
+        cwd: dataDir,
+        env,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    let stdout = '';
+    let stderr = '';
+    let timedOut = false;
+
+    const killTimer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGKILL');
+    }, TRANSFORM_DATA_TIMEOUT_MS);
+
+    child.stdout?.on('data', (data: Buffer) => { stdout += data.toString(); });
+    child.stderr?.on('data', (data: Buffer) => { stderr += data.toString(); });
+
+    child.on('close', (code) => {
+      clearTimeout(killTimer);
+      if (timedOut) {
+        resolvePromise({ stdout, stderr: `Script timed out after ${TRANSFORM_DATA_TIMEOUT_MS / 1000}s and was killed`, code });
+      } else {
+        resolvePromise({ stdout, stderr, code });
+      }
+    });
+
+    child.on('error', (err) => {
+      clearTimeout(killTimer);
+      reject(err);
+    });
+  });
+}
+
+async function runTransformProcess(
+  cmd: string,
+  spawnArgs: string[],
+  dataDir: string,
+  env: NodeJS.ProcessEnv,
+): Promise<TransformProcessResult> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= TRANSFORM_DATA_SPAWN_ATTEMPTS; attempt += 1) {
+    try {
+      return await runTransformProcessOnce(cmd, spawnArgs, dataDir, env);
+    } catch (error) {
+      lastError = error;
+      if (!isTransientSpawnStartupError(error) || attempt === TRANSFORM_DATA_SPAWN_ATTEMPTS) {
+        throw error;
+      }
+      await delay(TRANSFORM_DATA_SPAWN_RETRY_DELAY_MS * attempt);
+    }
+  }
+  throw lastError;
+}
 
 /**
  * Handle the transform_data tool call.
@@ -102,39 +190,7 @@ export async function handleTransformData(
     // Spawn subprocess with manual timeout that escalates to SIGKILL.
     // We can't rely on spawn()'s built-in `timeout` option because it only sends
     // SIGTERM, which can be caught/ignored — leaving the promise hanging forever.
-    const result = await new Promise<{ stdout: string; stderr: string; code: number | null }>((resolvePromise, reject) => {
-      const child = spawn(cmd, spawnArgs, {
-        cwd: dataDir,
-        env,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
-
-      let stdout = '';
-      let stderr = '';
-      let timedOut = false;
-
-      const killTimer = setTimeout(() => {
-        timedOut = true;
-        child.kill('SIGKILL');
-      }, TRANSFORM_DATA_TIMEOUT_MS);
-
-      child.stdout.on('data', (data: Buffer) => { stdout += data.toString(); });
-      child.stderr.on('data', (data: Buffer) => { stderr += data.toString(); });
-
-      child.on('close', (code) => {
-        clearTimeout(killTimer);
-        if (timedOut) {
-          resolvePromise({ stdout, stderr: `Script timed out after ${TRANSFORM_DATA_TIMEOUT_MS / 1000}s and was killed`, code });
-        } else {
-          resolvePromise({ stdout, stderr, code });
-        }
-      });
-
-      child.on('error', (err) => {
-        clearTimeout(killTimer);
-        reject(err);
-      });
-    });
+    const result = await runTransformProcess(cmd, spawnArgs, dataDir, env);
 
     if (result.code !== 0) {
       const errorOutput = result.stderr || result.stdout || 'Script exited with non-zero code';
