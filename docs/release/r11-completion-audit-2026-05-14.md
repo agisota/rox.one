@@ -69,15 +69,8 @@ R.11 backup or history-rewrite step starts. Current evidence:
 
 ## Current Main Validation Matrix
 
-Pre-rewrite current main validation evidence from the latest clean checks:
-
-- `bun run typecheck` exits 0.
-- `bun run lint` exits 0 with 7 warnings.
-- `bun test` exits 0: 6751 pass, 13 skip, 0 fail.
-- `bun run build` exits 0.
-- `bun run validate:docs` exits 0.
-- `bun run validate:rebrand` exits 0.
-- `git diff --check` exits 0.
+Pre-rewrite current main validation evidence from the latest clean checks is
+preserved in `docs/release/r11-current-main-validation-2026-05-14.md`.
 
 This does not satisfy the final post-rewrite validation requirement. The goal
 requires the global validation matrix to pass after the R.11 rewrite has
