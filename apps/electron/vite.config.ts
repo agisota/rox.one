@@ -45,7 +45,7 @@ export default defineConfig(({ command }) => {
   build: {
     outDir: resolve(__dirname, 'dist/renderer'),
     emptyDirBeforeWrite: true,
-    sourcemap: true,  // Source maps generated for debugging. Not uploaded to Sentry (see CLAUDE.md).
+    sourcemap: isDev,  // Source maps in dev only; disabled for production to avoid leaking .map files into the shipped bundle.
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'src/renderer/index.html'),
