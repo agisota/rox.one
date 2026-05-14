@@ -638,7 +638,7 @@ export function collectR11PreflightSnapshot(
     ? mainCommitResult.stdout || undefined
     : undefined
   const backupTagCommit = backupTagRemoteCommit.stdout || undefined
-  const backupBranchCommit = parseFirstLsRemoteCommit(remoteBackupBranch.stdout)
+  const backupBranchCommit = parseFirstLsRemoteCommit(remoteBackupBranch)
   const rebrandTagOnMain = remoteCommit
     ? run(['git', 'merge-base', '--is-ancestor', remoteCommit, 'origin/main'], repoRoot)
     : { exitCode: 1 }
