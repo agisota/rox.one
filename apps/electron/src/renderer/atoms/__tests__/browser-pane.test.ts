@@ -23,6 +23,7 @@ function makeInstance(id: string): BrowserInstanceInfo {
     isVisible: true,
     agentControlActive: false,
     themeColor: null,
+    hungTab: false,
   }
 }
 
