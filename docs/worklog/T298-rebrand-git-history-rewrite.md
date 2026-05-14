@@ -117,7 +117,7 @@ exited 0 with no output.
 No build expected for this scaffold. The future destructive rewrite must run
 the full post-rewrite build matrix before this ticket can become `DONE`.
 
-### Current follow-up evidence, 2026-05-14T03:39:12Z
+### Current follow-up evidence, 2026-05-14T03:44:04Z
 
 T375 through T395 refreshed the blocker state after PR #205 merged, after
 the staged preflight split landed, after the R.11 local path runbook repair,
@@ -160,23 +160,22 @@ closeout-prerequisite, tag-on-main, and local-tag-sync preflight rows landed:
 - The helper now checks whether local `rebrand-v1` and origin `rebrand-v1`
   peel to the same commit; the latest run reports they do not.
 
-The latest pre-commit default pre-backup preflight reports the new tag drift
-blocker. It also reports `worktree-clean` while the T395 changes are
-uncommitted:
+The latest post-push default pre-backup preflight reports three blockers:
 
 ```text
 no-active-goal       fail    Missing ROX_R11_NO_ACTIVE_GOAL=1 ac...
 rebrand-tag-local-sync fail  Local rebrand-v1 target differs fro...
 rebrand-tag-on-main  fail    rebrand-v1 target is missing from o...
-worktree-clean       fail    git status --porcelain is not empty.
+main-sync            pass    origin/main...main is 0 0.
+worktree-clean       pass    git status --porcelain is empty.
 rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
 phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
 phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
-red - 4 R.11 pre-backup prerequisite(s) failing
+red - 3 R.11 pre-backup prerequisite(s) failing
 ```
 
-The latest pre-commit explicit pre-rewrite preflight remains red on tag drift,
-tag-on-main, backup artifacts, and the dirty worktree:
+The latest explicit pre-rewrite preflight remains red on tag drift,
+tag-on-main, and backup artifacts:
 
 ```text
 rebrand-tag-local-sync fail  Local rebrand-v1 target differs fro...
@@ -184,11 +183,12 @@ rebrand-tag-on-main  fail    rebrand-v1 target is missing from o...
 backup-tag           fail    pre-rebrand-history-rewrite-backup ...
 backup-branch        fail    backup/pre-rebrand-history-rewrite-...
 offline-mirror       fail    /tmp/rox-one-terminal-backup-2026-0...
-worktree-clean       fail    git status --porcelain is not empty.
+main-sync            pass    origin/main...main is 0 0.
+worktree-clean       pass    git status --porcelain is empty.
 rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
 phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
 phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
-red - 6 R.11 pre-rewrite prerequisite(s) failing
+red - 5 R.11 pre-rewrite prerequisite(s) failing
 ```
 
 ## 10. Remaining risks

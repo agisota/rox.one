@@ -88,6 +88,9 @@ The failure proved the evaluator ignored local-vs-origin tag drift.
 - `bun run validate:rebrand`
 - `bun run rebrand:r11-preflight`
 - `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite`
+- `git status --short --branch`
+- `git rev-parse --short HEAD`
+- `git rev-parse --short origin/main`
 
 ## 8. Passing test output summary
 
@@ -148,6 +151,40 @@ red - 6 R.11 pre-rewrite prerequisite(s) failing
 The dirty worktree failure is expected before the T395 commit. A post-push
 rerun must verify `worktree-clean` and `main-sync` return to pass.
 
+Post-push sync:
+
+```text
+## main...origin/main
+8be58252
+8be58252
+```
+
+Post-push default pre-backup preflight:
+
+```text
+no-active-goal          fail    Missing ROX_R11_NO_ACTIVE_GOAL=1 ac...
+rebrand-tag             pass    rebrand-v1 is visible on origin.
+rebrand-tag-local-sync  fail    Local rebrand-v1 target differs fro...
+rebrand-tag-on-main     fail    rebrand-v1 target is missing from o...
+main-sync               pass    origin/main...main is 0 0.
+worktree-clean          pass    git status --porcelain is empty.
+red - 3 R.11 pre-backup prerequisite(s) failing
+```
+
+Post-push explicit pre-rewrite preflight:
+
+```text
+rebrand-tag             pass    rebrand-v1 is visible on origin.
+rebrand-tag-local-sync  fail    Local rebrand-v1 target differs fro...
+rebrand-tag-on-main     fail    rebrand-v1 target is missing from o...
+backup-tag              fail    pre-rebrand-history-rewrite-backup ...
+backup-branch           fail    backup/pre-rebrand-history-rewrite-...
+offline-mirror          fail    /tmp/rox-one-terminal-backup-2026-0...
+main-sync               pass    origin/main...main is 0 0.
+worktree-clean          pass    git status --porcelain is empty.
+red - 5 R.11 pre-rewrite prerequisite(s) failing
+```
+
 ## 9. Build output summary
 
 No build was run. This changes a report-only release preflight script and its
@@ -166,8 +203,8 @@ R.11 remains blocked by active goal state, local/remote tag drift, off-main
 | Regression test fails before implementation | Green | RED run showed the evaluator ignored local/remote tag drift |
 | Regression test passes after implementation | Green | Targeted test reports 13 pass, 0 fail |
 | Preflight has a distinct `rebrand-tag-local-sync` row | Green | Row added and tested |
-| Live preflight reports the local/remote tag mismatch | Green | Pre-commit live preflight reports `rebrand-tag-local-sync` fail |
+| Live preflight reports the local/remote tag mismatch | Green | Post-push live preflight reports `rebrand-tag-local-sync` fail |
 | T298 blocker surface records the mismatch | Green | T298 table and current evidence updated |
 | Documentation/rebrand validation remains green | Green | `typecheck`, `validate:docs`, and `validate:rebrand` passed |
 | Destructive R.11 actions are not executed | Green | No tag rewrite, backup, mirror, filter-repo, force-push, or update_goal action was run |
-| Commit created | Green | Lore commit created for this ticket |
+| Commit created | Green | Lore commit `8be58252` created and pushed |
