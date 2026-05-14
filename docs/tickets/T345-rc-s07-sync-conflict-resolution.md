@@ -1,6 +1,6 @@
 # T345 - RC Scenario S07: Sync Push/Pull → Conflict → Explicit Resolution
 
-Status: Todo
+Status: Blocked
 
 ## Context
 
@@ -74,7 +74,7 @@ close.
 bun run e2e:smoke -- --scenario s07-sync-conflict-resolution
 
 # Sync engine integration tests
-bun test packages/server-core/src/**/__tests__/sync*.test.ts
+bun test packages/server-core/src/sync/__tests__/workspace-sync-service.test.ts packages/server-core/src/sync/__tests__/local-cloud-sync.test.ts packages/server-core/src/sync/__tests__/workspace-sync-multi-client-conflict.test.ts
 
 # Agent contract gate
 bun run validate:agent-contract

@@ -89,6 +89,55 @@ function parseRightSidebar(parsed: URL): string | undefined {
   return parsed.searchParams.get('sidebar') || undefined
 }
 
+/** Maximum URL length accepted from argv (defence against oversized payloads) */
+const MAX_DEEPLINK_URL_LENGTH = 8_192
+
+/** Allowed schemes for deep links sourced from untrusted argv */
+const ALLOWED_DEEPLINK_SCHEMES = ['rox:', 'roxagents:']
+
+/**
+ * W-3: Sanitize a deep link URL received from an untrusted source (argv).
+ *
+ * Enforces:
+ *   - Scheme is in the known allowlist (`rox:`, `roxagents:`)
+ *   - Total length does not exceed MAX_DEEPLINK_URL_LENGTH
+ *   - No ASCII control characters (U+0000–U+001F, U+007F)
+ *
+ * Returns the original string when it passes all checks, or null with a warn
+ * log when any check fails.
+ */
+export function sanitizeDeepLinkUrl(raw: string): string | null {
+  if (raw.length > MAX_DEEPLINK_URL_LENGTH) {
+    mainLog.warn('[DeepLink] Argv URL exceeds maximum length — rejecting', {
+      length: raw.length,
+      limit: MAX_DEEPLINK_URL_LENGTH,
+    })
+    return null
+  }
+
+  // eslint-disable-next-line no-control-regex
+  if (/[\x00-\x1F\x7F]/.test(raw)) {
+    mainLog.warn('[DeepLink] Argv URL contains control characters — rejecting', { url: raw })
+    return null
+  }
+
+  try {
+    const parsed = new URL(raw)
+    if (!ALLOWED_DEEPLINK_SCHEMES.includes(parsed.protocol)) {
+      mainLog.warn('[DeepLink] Argv URL has disallowed scheme — rejecting', {
+        scheme: parsed.protocol,
+        url: raw,
+      })
+      return null
+    }
+  } catch {
+    mainLog.warn('[DeepLink] Argv URL failed to parse during sanitization — rejecting', { url: raw })
+    return null
+  }
+
+  return raw
+}
+
 /**
  * Parse a deep link URL into structured target
  */
@@ -107,6 +156,12 @@ export function parseDeepLink(url: string): DeepLinkTarget | null {
     const pathParts = parsed.pathname.split('/').filter(Boolean)
     const windowMode = parseWindowMode(parsed)
     const rightSidebar = parseRightSidebar(parsed)
+
+    // W-2: rox:/// (empty host) — warn before returning null
+    if (!host) {
+      mainLog.warn('[DeepLink] Empty host in deep link URL — ignoring', { url })
+      return null
+    }
 
     // rox://auth-callback?... (OAuth callbacks - return null to let existing handler process)
     if (host === 'auth-callback') {
@@ -192,6 +247,8 @@ export function parseDeepLink(url: string): DeepLinkTarget | null {
       return result
     }
 
+    // W-1: Unknown host — warn so callers can distinguish bad routes from wrong schemes
+    mainLog.warn('[DeepLink] Unknown host in deep link URL — ignoring', { url, host })
     return null
   } catch (error) {
     mainLog.error('[DeepLink] Failed to parse URL:', url, error)
@@ -275,6 +332,8 @@ export async function handleDeepLink(
 
     if (!wsId) {
       mainLog.error('[DeepLink] No workspace available for new window')
+      // W-4: emit structured metric line so monitoring can alert on this failure path
+      mainLog.warn('[DeepLink] metric', { metric_name: 'deep_link_window_resolve_failed', url })
       return { success: false, error: 'No workspace available for new window' }
     }
 

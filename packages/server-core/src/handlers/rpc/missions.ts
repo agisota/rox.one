@@ -144,6 +144,27 @@ export function registerMissionsCoreHandlers(server: RpcServer, deps: HandlerDep
       ctx: RequestContext,
       input: { id: MissionId; event: SchedulerInputEvent },
     ) => {
+      // T071c: optional rate-limit. Mirrors the T071b pattern in
+      // `roles.ts`. Sits BEFORE validation, permission, and scheduler
+      // dispatch so a hot burst from a single actor cannot exhaust the
+      // mission surface — even malformed or unauthorised requests
+      // consume bucket tokens. The limiter is optional; absent => no-op.
+      if (deps.rateLimiter && !deps.rateLimiter.tryAcquire(1)) {
+        return { error: 'rate-limited', reason: 'token-bucket-exhausted' }
+      }
+
+      // T086b: optional per-actor budget guard. Runs AFTER the
+      // token-bucket gate and BEFORE validation/permission/scheduler
+      // dispatch. Keyed by `ctx.userId` so each actor has an isolated
+      // lifetime cap independent of the burst-shaped bucket. Absent => no-op.
+      if (deps.budgetGuard) {
+        const key = ctx.userId ?? '__anonymous__'
+        const result = deps.budgetGuard.consume(key, 1)
+        if (!result.ok) {
+          return { error: 'budget-exceeded', reason: 'per-actor-cap-exhausted' }
+        }
+      }
+
       // Validate the input envelope before the permission check so the
       // caller gets a useful invalid-argument response for malformed
       // payloads. Permission check still runs second to avoid leaking

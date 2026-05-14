@@ -1,6 +1,6 @@
 # T346 - RC Scenario S08: Share Session → Public Shortlink Opens
 
-Status: Todo
+Status: Blocked
 
 ## Context
 
@@ -69,12 +69,8 @@ close.
 # Smoke run via E2E harness
 bun run e2e:smoke -- --scenario s08-share-session-shortlink
 
-# Shortlink provider tests
-bun test packages/server-core/src/**/__tests__/shortlink*.test.ts
-bun test packages/shared/src/**/__tests__/share*.test.ts
-
-# Secret-leak fuzz check (Phase 13 requirement)
-bun test packages/shared/src/**/__tests__/share-payload-secret*.test.ts
+# Shortlink provider and secret-leak coverage
+bun test packages/server-core/src/sessions/share-provider.test.ts packages/server-core/src/sessions/share-errors.test.ts packages/server-core/src/sessions/session-share-provider.test.ts apps/electron/src/renderer/components/app-shell/__tests__/session-share-flow.test.ts
 
 # Agent contract gate
 bun run validate:agent-contract

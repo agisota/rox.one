@@ -227,8 +227,19 @@ nsis:
 
 linux:
   icon: resources/icon.png
-  category: Utility
+  # T253: trust-boundary signing placeholder. Real gpg detached
+  # signing is wired by `.github/workflows/linux-signed-release.yml`
+  # (T255 follow-up). Local builds stay unsigned; CI swaps in the
+  # real key id + sidecar via repo secrets. The afterPack-linux.cjs
+  # hook (apps/electron/scripts/afterPack-linux.cjs) emits the
+  # canonical (T253 linux boundary ok) marker.
+  category: Office
   maintainer: "roxone <support@rox.one>"
+  executableName: rox-one
+  desktop:
+    Name: rox-one
+    Exec: rox-one %U
+    Categories: Office;Utility;Development;
   target:
     - target: AppImage
       arch:

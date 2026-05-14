@@ -41,12 +41,16 @@ import { SourceInfoPage, ChatPage } from '@/pages'
 import SkillInfoPage from '@/pages/SkillInfoPage'
 import { getSettingsPageComponent } from '@/pages/settings/settings-pages'
 import { AutomationInfoPage } from '../automations/AutomationInfoPage'
-import { WorkbenchRoutePage } from '../workbench/WorkbenchRoutePage'
 import { ExperienceGlobalHud } from '../workbench/ExperienceGlobalHud'
 import { createInitialExperienceRuntimeState, type ExperienceLayer } from '@rox-one/shared/workbench'
 import type { ExecutionEntry } from '../automations/types'
 import { automationsAtom } from '@/atoms/automations'
 import { SendResourceToWorkspaceDialog, type SendResourceType } from './SendResourceToWorkspaceDialog'
+
+// T132: lazy-load WorkbenchRoutePage — it is never visible on cold start
+const WorkbenchRoutePage = React.lazy(() =>
+  import(/* webpackChunkName: 'workbench' */ '../workbench/WorkbenchRoutePage').then((m) => ({ default: m.WorkbenchRoutePage }))
+)
 
 const EMPTY_EXPERIENCE_RUNTIME_STATE = createInitialExperienceRuntimeState()
 
@@ -244,17 +248,21 @@ export function MainContentPanel({
   if (isWorkbenchNavigation(navState)) {
     return wrapWithStoplight(
       <Panel variant="grow" className={className}>
-        <WorkbenchRoutePage screen={navState.screen} />
+        <React.Suspense fallback={<div className="flex h-full w-full bg-background" />}>
+          <WorkbenchRoutePage screen={navState.screen} />
+        </React.Suspense>
       </Panel>
     )
   }
 
-  // Settings navigator - uses component map from settings-pages.ts
+  // Settings navigator - uses lazy component map from settings-pages.ts (T132)
   if (isSettingsNavigation(navState)) {
     const SettingsPageComponent = getSettingsPageComponent(navState.subpage)
     return wrapWithStoplight(
       <Panel variant="grow" className={className}>
-        <SettingsPageComponent />
+        <React.Suspense fallback={<div className="flex h-full w-full bg-background" />}>
+          <SettingsPageComponent />
+        </React.Suspense>
       </Panel>
     )
   }
