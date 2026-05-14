@@ -6,7 +6,7 @@ Captured full-matrix snapshot: this report records validation for the current `m
 branch before any R.11 history rewrite. It does not satisfy the final
 post-rewrite validation requirement in the rebrand-sweep goal, and it is not a live ticket-count source for later audit-hygiene tickets.
 
-later report-only audit tickets must record their own fresh validation evidence in their worklogs.
+Later report-only audit tickets must record their own fresh validation evidence in their worklogs.
 
 Validated state:
 

@@ -147,7 +147,8 @@ describe('R.11 completion audit', () => {
 
     expect(currentMainValidationReport).toContain('Captured full-matrix snapshot')
     expect(currentMainValidationReport).toContain('not a live ticket-count source')
-    expect(currentMainValidationReport).toContain('later report-only audit tickets must record their own fresh validation evidence')
+    expect(currentMainValidationReport).toContain('Later report-only audit tickets must record their own fresh validation evidence')
+    expect(currentMainValidationReport).not.toContain('\nlater report-only audit tickets')
     expect(currentMainValidationReport).toContain('Exit 0 with 7 existing warnings')
     expect(currentMainValidationReport).toContain('6753 pass, 13 skip, 0 fail')
     expect(currentMainValidationReport).toContain('26839 expect() calls')
