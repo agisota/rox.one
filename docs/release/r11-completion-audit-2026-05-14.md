@@ -48,6 +48,25 @@ Concrete deliverables:
 | Default R.11 preflight | `bun run rebrand:r11-preflight` | Exits red on active goal acknowledgement and tag blockers | Blocked |
 | Pre-rewrite R.11 preflight | `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite` | Exits red on tag blockers, missing backup artifacts, and remote branch review | Blocked |
 
+## R.11 Hard Prerequisite Evidence
+
+The goal file defines 11 hard prerequisites that must all be true before any
+R.11 backup or history-rewrite step starts. Current evidence:
+
+| # | Hard prerequisite | Current evidence | Result |
+| --- | --- | --- | --- |
+| 1. R.0-R.10 closeouts | `bun run rebrand:r11-preflight` reports `rebrand-closeouts` pass. | Green |
+| 2. T223 Phase 1 closeout | `bun run rebrand:r11-preflight` reports `phase1-closeout` pass. | Green |
+| 3. T229 RBAC closeout | `bun run rebrand:r11-preflight` reports `phase2-rbac-closeout` pass. | Green |
+| 4. Open PR list | `bun run rebrand:r11-preflight` reports `no-open-prs` pass. | Green |
+| 5. No active `/goal` run | Default preflight reports `no-active-goal` fail because the active goal is still running. | Blocked |
+| 6. Fork review | `bun run rebrand:r11-preflight` reports `fork-review` pass with expected fork count 0. | Green |
+| 7. `rebrand-v1` exists | `bun run rebrand:r11-preflight` reports `rebrand-tag` pass. | Green |
+| 8. origin `rebrand-v1` is on origin/main | `bun run rebrand:r11-preflight` reports `rebrand-tag-on-main` fail for origin target `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`. | Blocked |
+| 9. local `rebrand-v1` matches origin | `bun run rebrand:r11-preflight` reports `rebrand-tag-local-sync` fail: local `906896e145156d92cf98457c4dc1893c53323bac`, origin `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`. | Blocked |
+| 10. Working tree clean | `bun run rebrand:r11-preflight` reports `worktree-clean` pass. | Green |
+| 11. main sync | `bun run rebrand:r11-preflight` reports `main-sync` pass with `origin/main...main` at `0 0`. | Green |
+
 ## Current Main Validation Matrix
 
 Pre-rewrite current main validation evidence from the latest clean checks:
