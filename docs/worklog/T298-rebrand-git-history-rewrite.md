@@ -12,13 +12,16 @@ stop state. The destructive history rewrite has not started.
 ## 2. Repo context discovered
 
 The rebrand-sweep goal requires R.11 to run only after all hard prerequisites
-are true. Current staged report-only preflight evidence after T389:
+are true. Current staged report-only preflight evidence after T391:
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
 | No active `/goal` runs | `get_goal` still reports the rebrand-sweep goal active | Blocked |
 | No open PRs | `gh pr list --state open --json number,title,headRefName,url --limit 200` returned `[]` | Green |
 | Fork count reviewed | Preflight reports expected fork count `0` | Green |
+| R.0-R.10 closeouts done | Preflight reports exact rebrand ticket/worklog closeouts present and done | Green |
+| C4 Phase 1 closeout done | Preflight reports exact T223 closeout ticket done | Green |
+| RBAC Phase 2 closeout done | Preflight reports exact T229 closeout ticket done | Green |
 | `rebrand-v1` tag exists | Preflight reports pass | Green |
 | Backup tag exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
 | Backup branch exists | Required by `bun run rebrand:r11-preflight --stage pre-rewrite`, after backup creation and before `git filter-repo` | Pre-rewrite blocked |
@@ -112,12 +115,12 @@ exited 0 with no output.
 No build expected for this scaffold. The future destructive rewrite must run
 the full post-rewrite build matrix before this ticket can become `DONE`.
 
-### Current follow-up evidence, 2026-05-14T03:08:41Z
+### Current follow-up evidence, 2026-05-14T03:18:42Z
 
-T375 through T389 refreshed the blocker state after PR #205 merged, after
+T375 through T391 refreshed the blocker state after PR #205 merged, after
 the staged preflight split landed, after the R.11 local path runbook repair,
 after the pre-rewrite backup branch check landed, and after the fork-review
-preflight row landed:
+and closeout-prerequisite preflight rows landed:
 
 - GitHub reports no open PRs.
 - GitHub fork count is `0`.
@@ -144,11 +147,17 @@ preflight row landed:
 - The report-only helper now checks fork count against
   `ROX_R11_EXPECTED_FORKS` (default `0`), and the latest run reports the
   expected count.
+- The helper now checks exact R.0-R.10 rebrand ticket/worklog closeouts, exact
+  T223 C4 Phase 1 closeout status, and exact T229 RBAC Phase 2 closeout
+  status before any R.11 backup or rewrite action.
 
 The latest default pre-backup preflight remains red on one blocker:
 
 ```text
 no-active-goal       fail    Missing ROX_R11_NO_ACTIVE_GOAL=1 ac...
+rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
+phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
+phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
 red - 1 R.11 pre-backup prerequisite(s) failing
 ```
 
@@ -158,6 +167,9 @@ The latest explicit pre-rewrite preflight remains red on backup artifacts:
 backup-tag           fail    pre-rebrand-history-rewrite-backup ...
 backup-branch        fail    backup/pre-rebrand-history-rewrite-...
 offline-mirror       fail    /tmp/rox-one-terminal-backup-2026-0...
+rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
+phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
+phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
 red - 3 R.11 pre-rewrite prerequisite(s) failing
 ```
 
