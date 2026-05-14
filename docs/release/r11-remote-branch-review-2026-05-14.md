@@ -14,10 +14,10 @@ git ls-remote --heads origin
 
 Summary:
 
-- Total origin heads: 147
+- Total origin heads: 149
 - Excluded from blocker count: `main`
 - R.11 backup branch present: no
-- Non-main/non-R.11-backup origin branches: 146
+- Non-main/non-R.11-backup origin branches: 148
 - Default disposition in this report: `operator-review-required`
 
 ## Branch Inventory
@@ -79,6 +79,7 @@ Summary:
 | `feat/rpc-med-risk-boundary-validators` | `50c49a41c6f42e08d5dc0da684b61b3988a1215b` | operator-review-required |
 | `feat/M9-T273-experience-ipc-bridge` | `51ca5b6900095e71f03afccdd1e6c815c475777a` | operator-review-required |
 | `feat/M2-T227-part2-roles-handler` | `55b35c4ce51c03825d483cbd4dadce066a2818d3` | operator-review-required |
+| `feat/M14-T250-rpc-admin-audit-list` | `553ba8e86abed72c194a7c78be60f5a997067477` | operator-review-required |
 | `chore/ci-sbom-secret-scan` | `5a5cbaea090f32efd0bb40f457741ce26b15bca9` | operator-review-required |
 | `feat/f1-shiki-engine-swap` | `5f0f76694adee156d4a4dc95582ddf53d0fbc92d` | operator-review-required |
 | `feat/M13-T071b-roles-rate-limiter` | `60a44818f00e182fdb1639da0815e5f52a2d93ff` | operator-review-required |
@@ -90,6 +91,7 @@ Summary:
 | `chore/rebrand-R7-docker-ci-build` | `6f540bf3a47ee941ebaade9d3c20fd37222867da` | operator-review-required |
 | `chore/slash-mention-rtl-cleanup` | `72075048e9d2f448948eb2e6b6f924c887fe7d83` | operator-review-required |
 | `feat/audit-a1-static` | `7607f361ad08786d019f7b453bb32efc7f655714` | operator-review-required |
+| `fix/t132-main-bundle-regression` | `781044135a77d73770bdf0aed6aa8acd46eeb2af` | operator-review-required |
 | `feat/d-a11y-perf-budgets` | `788f3bdb39ea829bd0ae028e35ca0707c00541fc` | operator-review-required |
 | `feat/M13-T086b-budget-guard-wiring` | `7a0f119e4c3661050bc440251c6e17d938881d28` | operator-review-required |
 | `feat/M18-mac-trust-boundary` | `7a8b415fce65f013bba7556d42cfca6d3b4f8d33` | operator-review-required |
