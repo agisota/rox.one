@@ -84,6 +84,9 @@ agent-contract ticket count in that report is a captured value from that run,
 not a live ticket-count source for later audit-hygiene tickets.
 
 Subsequent report-only audit tickets carry their own targeted validation evidence in their worklogs.
+The latest one is T439, which extended `bun run validate:roadmap` to validate
+committed rebrand rows in `.swarm/master-roadmap-log.md`; the fresh post-push
+command reports `14 rebrand master-roadmap log rows`.
 
 This does not satisfy the final post-rewrite validation requirement. The goal
 requires the global validation matrix to pass after the R.11 rewrite has
