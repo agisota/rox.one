@@ -276,6 +276,25 @@ describe('R.11 completion audit', () => {
     expect(backlog).toContain('No branch deletion, tag mutation, backup ref creation, mirror creation, filter-repo, force-push, or PR merge was authorized by this artifact')
   })
 
+  test('records a unified remaining-worklist for continuing R.11', () => {
+    const backlog = readFileSync(consolidationBacklogPath, 'utf8')
+
+    expect(backlog).toContain('## Full Remaining Worklist')
+    expect(backlog).toContain('Phase 0 - Keep report-only evidence fresh')
+    expect(backlog).toContain('Phase 1 - Operator decisions before unblock')
+    expect(backlog).toContain('Phase 2 - Remote branch retirement')
+    expect(backlog).toContain('Phase 3 - Backup artifact creation')
+    expect(backlog).toContain('Phase 4 - Legal preserve and rewrite readiness')
+    expect(backlog).toContain('Phase 5 - Destructive rewrite window')
+    expect(backlog).toContain('Phase 6 - Post-rewrite closeout')
+    expect(backlog).toContain('Default preflight blockers: `no-active-goal`, `fork-review`, `rebrand-tag-local-sync`, `rebrand-tag-on-main`')
+    expect(backlog).toContain('Pre-rewrite blockers: `fork-review`, `rebrand-tag-local-sync`, `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`, `remote-branch-review`')
+    expect(backlog).toContain('Open PRs: 0')
+    expect(backlog).toContain('Remote branches requiring review: 150')
+    expect(backlog).toContain('History scan findings: 81 forbidden-token patch lines')
+    expect(backlog).toContain('Do not delete remote branches or mutate tags until an operator-owned destructive window is explicit')
+  })
+
   test('records exact current report-only blocker IDs', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const currentBlockers =
