@@ -259,6 +259,16 @@ describe('R.11 completion audit', () => {
     expect(currentMainValidationReport).not.toContain('freshness evidence')
   })
 
+  test('records the T470 current-main validation refresh without claiming R11 completion', () => {
+    const currentMainValidationReport = readFileSync(currentMainValidationPath, 'utf8')
+
+    expect(currentMainValidationReport).toContain('## T470 Fresh Current-Main Validation Refresh')
+    expect(currentMainValidationReport).toContain('Refreshed commit: `02275b9b`')
+    expect(currentMainValidationReport).toContain('agent-contract reported 439 tickets at refresh time')
+    expect(currentMainValidationReport).toContain('This still does not satisfy the final post-rewrite validation requirement')
+    expect(currentMainValidationReport).toContain('No backup refs, backup branches, offline mirrors, rewritten history, force-pushes, or tag mutations were created by T470')
+  })
+
   test('records the current consolidation backlog as the execution surface', () => {
     const backlog = readFileSync(consolidationBacklogPath, 'utf8')
 
