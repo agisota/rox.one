@@ -42,4 +42,23 @@ describe('R.11 completion audit', () => {
     expect(currentBlockers).not.toMatch(/after commit `[0-9a-f]{8}`/)
     expect(currentBlockers).not.toMatch(/both resolve to `[0-9a-f]{8}`/)
   })
+
+  test('records current-main validation without claiming post-rewrite completion', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const currentMainValidation =
+      audit.split('## Current Main Validation Matrix')[1]?.split('## Current Blockers')[0] ?? ''
+
+    expect(currentMainValidation).toContain('Pre-rewrite current main validation evidence')
+    for (const command of [
+      'bun run typecheck',
+      'bun run lint',
+      'bun test',
+      'bun run build',
+    ]) {
+      expect(currentMainValidation).toContain(command)
+    }
+    expect(currentMainValidation).toContain(
+      'This does not satisfy the final post-rewrite validation requirement',
+    )
+  })
 })
