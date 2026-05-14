@@ -39,6 +39,41 @@ commands:
       - save_bun_cache
 
 jobs:
+  build:
+    docker:
+      - image: cimg/node:22.16
+    resource_class: large
+    steps:
+      - checkout
+      - install_bun
+      - install_uv
+      - run:
+          name: Print tool versions
+          command: |
+            bun --version
+            node --version
+            uv --version
+      - install_dependencies
+      - run:
+          name: Prepare validation logs
+          command: mkdir -p .ci-logs
+      - run:
+          name: validate:rebrand gate
+          command: |
+            set -o pipefail
+            bun run validate:rebrand 2>&1 | tee .ci-logs/validate-rebrand.log
+      - run:
+          name: Run validation suite
+          command: |
+            set -o pipefail
+            bun run validate:agent-contract 2>&1 | tee .ci-logs/agent-contract.log
+            bun run validate:architecture-docs 2>&1 | tee .ci-logs/architecture-docs.log
+            bun run validate:ci 2>&1 | tee .ci-logs/validate-ci.log
+            bun run test:units 2>&1 | tee .ci-logs/test-units.log
+      - store_artifacts:
+          path: .ci-logs
+          destination: validation-logs
+
   validate:
     docker:
       - image: cimg/node:22.16

@@ -48,6 +48,7 @@ fatal: path '.circleci/config.yml' exists on disk, but not in 'HEAD'
 
 - Added `.circleci/config.yml`.
 - Added reusable install/cache commands for Bun and uv.
+- Added a `build` compatibility job for CircleCI v1.1 default branch triggers.
 - Added a Linux `validate` job that mirrors the existing GitHub validate gate.
 - Added a Linux `secret-scan` job using Gitleaks with redaction enabled.
 - Added macOS `e2e-core` and `mac-arm-build` jobs using the CircleCI macOS
@@ -66,7 +67,7 @@ fatal: path '.circleci/config.yml' exists on disk, but not in 'HEAD'
 YAML parse output listed all expected CircleCI jobs:
 
 ```text
-validate,secret-scan,e2e-core,mac-arm-build
+build,validate,secret-scan,e2e-core,mac-arm-build
 ```
 
 `bun run validate:ci-contract` passed:
@@ -103,6 +104,7 @@ history rewrite, force-push, `/goal` clearing, or goal completion.
 | --- | --- | --- |
 | Branch-local CircleCI config exists | PASS | `.circleci/config.yml` added |
 | CircleCI config parses as YAML | PASS | YAML parse command listed expected jobs |
-| CircleCI config includes validate, secret scan, e2e core, and mac ARM jobs | PASS | `validate,secret-scan,e2e-core,mac-arm-build` |
+| CircleCI config includes validate, secret scan, e2e core, and mac ARM jobs | PASS | `build,validate,secret-scan,e2e-core,mac-arm-build` |
+| CircleCI config includes a default `build` job for v1.1 API compatibility | PASS | `.circleci/config.yml` defines `jobs.build` |
 | Existing CI contract validator remains green | PASS | `bun run validate:ci-contract` passed |
 | No secrets are committed | PASS | Config contains no tokens or credentials |
