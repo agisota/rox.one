@@ -78,6 +78,10 @@ non-zero.
 - [ ] Force-push completes with lease.
 - [ ] Post-rewrite validation matrix is green.
 - [ ] README post-rewrite coordination banner is added if required by the goal.
+- [ ] `docs/release/rebrand-mapping-2026-05-13.md` records the R.11 closeout
+  commit SHA.
+- [ ] `git log -p --all` history scan shows zero forbidden-token matches
+  outside the legal-preserve allowlist.
 - [ ] Worklog is complete with command evidence.
 - [ ] Commit or force-push result is recorded.
 
