@@ -272,4 +272,22 @@ describe('R.11 goal documentation', () => {
     expect(goal).toContain('backup/pre-rebrand-history-rewrite-2026-05-13')
     expect(goal).toContain('bun run rebrand:r11-preflight --stage pre-rewrite')
   })
+
+  test('includes the backup branch in R.11 stopping conditions', () => {
+    const goal = readFileSync(
+      join(
+        repoRoot,
+        'docs',
+        'superpowers',
+        'goals',
+        '2026-05-13-rox-one-rebrand-sweep-goal.md',
+      ),
+      'utf8',
+    )
+
+    expect(goal).toContain('- Backup tag, backup branch, and backup mirror all exist.')
+    expect(goal).toContain(
+      '`pre-rebrand-history-rewrite-backup` tag and `backup/pre-rebrand-history-rewrite-2026-05-13` branch exist on `origin`',
+    )
+  })
 })
