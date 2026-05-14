@@ -15,10 +15,12 @@ failures but exposed second-round parity gaps:
   failed on the vulnerable `libsignal -> protobufjs@6.8.8` exact dependency.
 - the SPA route-crawler fixture could time out in clean CircleCI runners because
   it launched the fixture-local package script instead of the root-installed
-  Vite binary;
+  Vite binary, and because colored Vite output hid the ready URL from the raw
+  regex matcher;
 - the live mac trust-boundary validator requested codesign metadata and
-  entitlements in one call, which can hide the `Identifier=` metadata needed by
-  the canonical bundle-id assertion.
+  entitlements in one call, which can hide metadata, and then treated
+  ad-hoc `Identifier=ROX.ONE` output as a bundle-id violation even when
+  `CFBundleIdentifier` remained `com.rox.one`.
 
 ## Acceptance Criteria
 
@@ -30,6 +32,9 @@ failures but exposed second-round parity gaps:
   production dependency collector.
 - Audit SPA route-crawler tests use root-installed Vite and keep diagnostic
   child-process output on startup failures.
+- Dev-server ready matching tolerates ANSI-colored tool output.
 - Live mac trust-boundary validation checks codesign metadata separately from
   entitlements.
+- Live mac trust-boundary validation accepts the ad-hoc executable identifier
+  fallback only after the bundle Info.plist proves the canonical bundle id.
 - Relevant local validation passes before pushing and rerunning CircleCI.
