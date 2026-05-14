@@ -87,6 +87,33 @@ const S08_SHARE_SESSION_SHORTLINK_TESTS = [
   'apps/electron/src/renderer/components/app-shell/__tests__/session-share-flow.test.ts',
 ] as const
 
+const S09_UPSTREAM_ROX_FLOW_TESTS = [
+  'scripts/__tests__/protected-rox-paths.test.ts',
+  'packages/shared/src/config/__tests__/storage-scope.test.ts',
+  'packages/shared/src/config/__tests__/storage-scope-auth.test.ts',
+  'packages/shared/src/config/__tests__/storage-multi-tenant-migration.test.ts',
+  'packages/shared/src/config/__tests__/storage-scope-runtime.test.ts',
+  'packages/server-core/src/storage/__tests__/object-storage.test.ts',
+  'packages/server-core/src/handlers/rpc/__tests__/server-core-rpc-storage-scope.test.ts',
+  'packages/server-core/src/handlers/rpc/__tests__/workspace-scope.test.ts',
+  'packages/server-core/src/handlers/rpc/__tests__/workspace-rbac-wire.test.ts',
+  'packages/server-core/src/handlers/rpc/__tests__/rbac-e2e.test.ts',
+  'packages/shared/src/auth/__tests__/policy-engine.test.ts',
+  'packages/shared/src/auth/__tests__/scope-forgery.property.test.ts',
+  'packages/server-core/src/handlers/rpc/__tests__/roles.test.ts',
+  'packages/server-core/src/handlers/rpc/__tests__/roles-audit.test.ts',
+  'packages/server-core/src/webui/__tests__/account-session-boundary.test.ts',
+  'packages/server-core/src/webui/__tests__/account-http.test.ts',
+  ...S02_PROMPT_PIPELINE_TESTS,
+  'packages/shared/src/workbench/__tests__/validation-gates.test.ts',
+  'packages/shared/src/workbench/__tests__/experience-layer.test.ts',
+  'packages/shared/src/workbench/__tests__/experience-layer-registry.test.ts',
+  'packages/shared/src/workbench/__tests__/experience-layer-security.test.ts',
+  'packages/shared/src/workbench/__tests__/experience-layer-e2e-scenario.test.ts',
+  'packages/server-core/src/handlers/rpc/__tests__/experience-rpc.test.ts',
+  'apps/electron/src/renderer/experience-layer/__tests__/ipc-bridge.test.ts',
+] as const
+
 export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
   {
     id: 's01-registration',
@@ -128,6 +155,11 @@ export const SUPPORTED_SCENARIOS: SmokeScenario[] = [
     id: 's08-share-session-shortlink',
     title: 'RC S08 share session shortlink smoke',
     command: ['bun', 'test', ...S08_SHARE_SESSION_SHORTLINK_TESTS],
+  },
+  {
+    id: 's09-upstream-rox-flows',
+    title: 'RC S09 upstream base ROX custom flows smoke',
+    command: ['bun', 'test', ...S09_UPSTREAM_ROX_FLOW_TESTS],
   },
 ]
 
