@@ -34,6 +34,12 @@ const tagDriftInventoryPath = join(
   'release',
   'r11-tag-drift-inventory-2026-05-14.md',
 )
+const tagDriftReconciliationManifestPath = join(
+  repoRoot,
+  'docs',
+  'release',
+  'r11-tag-drift-reconciliation-manifest-2026-05-14.md',
+)
 const backupArtifactInventoryPath = join(
   repoRoot,
   'docs',
@@ -343,6 +349,7 @@ describe('R.11 completion audit', () => {
       'docs/release/r11-active-goal-inventory-2026-05-14.md',
       'docs/release/r11-fork-review-inventory-2026-05-14.md',
       'docs/release/r11-tag-drift-inventory-2026-05-14.md',
+      'docs/release/r11-tag-drift-reconciliation-manifest-2026-05-14.md',
       'docs/release/r11-backup-artifact-inventory-2026-05-14.md',
       'docs/release/r11-remote-branch-review-2026-05-14.md',
       'docs/release/r11-remote-branch-retirement-manifest-2026-05-14.md',
@@ -458,6 +465,24 @@ describe('R.11 completion audit', () => {
     expect(tagDriftInventory).toContain('merge-base --is-ancestor')
     expect(tagDriftInventory).toContain('exit 1')
     expect(tagDriftInventory).toContain('origin/chore/rebrand-R10-final-sweep-and-gate')
+  })
+
+  test('records an operator-ready tag drift reconciliation manifest', () => {
+    const audit = readFileSync(auditPath, 'utf8')
+    const manifest = readFileSync(tagDriftReconciliationManifestPath, 'utf8')
+
+    expect(audit).toContain('docs/release/r11-tag-drift-reconciliation-manifest-2026-05-14.md')
+    expect(manifest).toContain('Status: OPERATOR TAG RECONCILIATION MANIFEST')
+    expect(manifest).toContain('Local tag object: `8e30f545169e52daa2763659d6c562a699a2575b`')
+    expect(manifest).toContain('Local peeled commit: `906896e145156d92cf98457c4dc1893c53323bac`')
+    expect(manifest).toContain('Origin tag object: `e32deed37b33fe3296edde6228adb1f76255027d`')
+    expect(manifest).toContain('Origin peeled commit: `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`')
+    expect(manifest).toContain('Origin peeled commit on `origin/main` ancestry: no')
+    expect(manifest).toContain('Remote branch currently containing origin peeled commit: `origin/chore/rebrand-R10-final-sweep-and-gate`')
+    expect(manifest).toContain('No tag deletion, tag retargeting, local tag sync, origin tag push, backup creation, `git filter-repo`, force-push, or goal completion is authorized by this manifest.')
+    expect(manifest).toContain('Dry-run verification commands')
+    expect(manifest).toContain('git push origin refs/tags/rebrand-v1')
+    expect(manifest).toContain('Do not run tag mutation commands until an operator-owned destructive window is explicit')
   })
 
   test('records the current history-scan finding count', () => {
