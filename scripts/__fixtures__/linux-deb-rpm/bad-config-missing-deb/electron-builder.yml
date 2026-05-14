@@ -1,0 +1,25 @@
+# Bad fixture (M.18 T253b): deb target missing — validator must fail.
+appId: com.rox.one
+productName: ROX.ONE
+
+linux:
+  icon: resources/icon.png
+  # T253: trust-boundary signing placeholder.
+  category: Office
+  synopsis: "ROX.ONE Agent Workbench Suite"
+  maintainer: "roxone <support@rox.one>"
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: rpm
+      arch:
+        - x64
+
+# deb: block intentionally omitted — this is the bad fixture
+
+rpm:
+  packageCategory: Applications/Office
+  depends:
+    - libnotify
+    - nss
