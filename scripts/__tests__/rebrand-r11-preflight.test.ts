@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, test } from 'bun:test'
 
 import {
+  collectR11PreflightSnapshot,
   evaluateR11Preflight,
   formatR11PreflightReport,
   type R11PreflightSnapshot,
@@ -320,6 +321,18 @@ describe('evaluateR11Preflight', () => {
     expect(formatR11PreflightReport(report)).toContain('r11-closeout-worklog')
     expect(formatR11PreflightReport(report)).toContain('red')
   })
+})
+
+describe('collectR11PreflightSnapshot', () => {
+  test('collects backup branch commit evidence without crashing', () => {
+    const snapshot = collectR11PreflightSnapshot(repoRoot)
+
+    expect(typeof snapshot.backupBranchPresent).toBe('boolean')
+    expect(
+      snapshot.backupBranchCommit === undefined
+      || typeof snapshot.backupBranchCommit === 'string',
+    ).toBe(true)
+  }, 15_000)
 })
 
 describe('R.11 goal documentation', () => {
