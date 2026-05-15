@@ -161,6 +161,9 @@ Representative report-only evidence anchors include:
 - T493 added the post-PR #226 fork review snapshot showing the two visible
   forks are both 0 commits ahead of `agisota/main`, with a reviewed expected
   fork count of 2 for the future destructive-window dry run if unchanged.
+- T494 added the post-PR #227 ref blocker snapshot showing local and origin
+  `rebrand-v1` now match, `rebrand-tag-on-main` still fails, and the live
+  remote branch review count is 158.
 
 This list is a set of stable anchors, not a live chronology. Later report-only
 audit-hygiene tickets carry their own fresh targeted validation evidence in
@@ -192,12 +195,12 @@ history/legal-preserve gates were added and wired into the R.11 goal:
   in clean post-push checks).
 - `rebrand-v1` exists on `origin`.
 - Local `rebrand-v1^{commit}` and origin `refs/tags/rebrand-v1^{}` currently
-  differ.
+  match after T494's post-PR #227 snapshot.
 - The `rebrand-v1` target is not currently on `origin/main` ancestry.
 - `pre-rebrand-history-rewrite-backup` does not exist on `origin`.
 - `backup/pre-rebrand-history-rewrite-2026-05-13` does not exist on `origin`.
 - `/tmp/rox-one-terminal-backup-2026-05-13.git` does not exist.
-- Origin currently has 157 non-main/non-R.11-backup branches, so the explicit
+- Origin currently has 158 non-main/non-R.11-backup branches, so the explicit
   pre-rewrite helper reports `remote-branch-review` as a blocker.
 - `docs/release/rebrand-mapping-2026-05-13.md` has an R.11 pending closeout
   slot, but it cannot record a real R.11 closeout commit SHA until the

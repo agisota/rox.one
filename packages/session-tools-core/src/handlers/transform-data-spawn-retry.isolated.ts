@@ -141,6 +141,22 @@ describe('transform_data transient spawn retry', () => {
     expect(existsSync(join(dataDir, 'out.json'))).toBe(true);
   });
 
+  test('falls back after exhausted transient Node spawn EBADF startup failures', async () => {
+    nextSpawnError = transientSpawnError('EBADF');
+    remainingSpawnErrors = 6;
+
+    const result = await handleTransformData(setupContext(), {
+      language: 'node',
+      script: "const fs=require('node:fs');fs.writeFileSync(process.argv.at(-1), JSON.stringify({ok:true}));",
+      inputFiles: ['in.txt'],
+      outputFile: 'out.json',
+    });
+
+    expect(result.isError).toBe(false);
+    expect(spawnCalls).toBe(6);
+    expect(existsSync(join(dataDir, 'out.json'))).toBe(true);
+  });
+
   test('does not depend on child-process pipe stdio for hosted Bun startup', async () => {
     failPipeStdio = true;
 
