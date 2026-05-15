@@ -14,14 +14,14 @@ git ls-remote --heads origin
 
 Summary:
 
-- Total origin heads: 151
+- Total origin heads: 158
 - Excluded from blocker count: `main`
 - R.11 backup branch present: no
-- Non-main/non-R.11-backup origin branches: 150
+- Non-main/non-R.11-backup origin branches: 157
 - Open PR branches: 0
-- Merged PR branch cleanup candidates: 133
+- Merged PR branch cleanup candidates: 139
 - Closed/unmerged PR branch review candidates: 9
-- No-visible-PR branch review candidates: 7
+- No-visible-PR branch review candidates: 8
 - Backup/protected branch review candidates: 1
 - Default disposition in this report: `operator-review-required`
 
@@ -38,6 +38,7 @@ Summary:
 | `feat/M8-durable-mission-scheduler` | `0997e671ae825e5c641cbdd3012b30824bc5d6a7` | operator-review-required |
 | `docs/agent-workbench-suite-roadmap-goal` | `0c477de347e33fe1c79736adbae6041b42409820` | operator-review-required |
 | `chore/T297-rebrand-prepush-ci-gate` | `0c8362be4fda0d4ce0dc9e490c33ee11896bdbde` | operator-review-required |
+| `circleci-project-setup` | `d33836ffbd002188560b316685583f858935ef9d` | operator-review-required |
 | `feat/M10-T238-voice-input-slot` | `0d5b8ed14dede550793fe6d89e2bec15674bef9b` | operator-review-required |
 | `feat/M14-T246c-bootstrap-host-audit` | `0d816a88290006416420638f2ce87b866ea94ead` | operator-review-required |
 | `feat/M18-T253b-linux-deb-rpm` | `0ed82ce11d14577ce3c88a460282d431872c5960` | operator-review-required |
@@ -66,6 +67,7 @@ Summary:
 | `test/auto-update-signature-verification` | `326a5b40912da0ab7c8129f8b168802105a76908` | operator-review-required |
 | `feat/M14-T246d-composition-root-wire` | `35c36d58bd0d49e547087ec2a0e0630f87c7f4c4` | operator-review-required |
 | `chore/pin-security-critical-deps` | `36d1c15f52ff82785ab8fd933f143f8c5dee11b2` | operator-review-required |
+| `chore/r11-t473-post-t470-audit-refresh` | `906bb544fd0ad31ed3f6e74b212a022c01a5c255` | operator-review-required |
 | `chore/rebrand-R9.5-allowlist-and-final-text` | `37f08f9aa83be9893022b3b21f634b7a2e907517` | operator-review-required |
 | `feat/M14-observability-audit-trail` | `3af084726fb38e74f1ec0e77e20a84d4a231c0bb` | operator-review-required |
 | `feat/audit-a2-runtime` | `3f07d6ba1f5ec98ba890f6970d34b851c6bd1e4a` | operator-review-required |
@@ -98,6 +100,7 @@ Summary:
 | `chore/slash-mention-rtl-cleanup` | `72075048e9d2f448948eb2e6b6f924c887fe7d83` | operator-review-required |
 | `feat/audit-a1-static` | `7607f361ad08786d019f7b453bb32efc7f655714` | operator-review-required |
 | `fix/t132-main-bundle-regression` | `781044135a77d73770bdf0aed6aa8acd46eeb2af` | operator-review-required |
+| `fix/t474-shiki-codeblock-timeout` | `aded2628fab9d73564b67658cf3e4d53f2e8c579` | operator-review-required |
 | `feat/d-a11y-perf-budgets` | `788f3bdb39ea829bd0ae028e35ca0707c00541fc` | operator-review-required |
 | `feat/M13-T086b-budget-guard-wiring` | `7a0f119e4c3661050bc440251c6e17d938881d28` | operator-review-required |
 | `feat/M18-mac-trust-boundary` | `7a8b415fce65f013bba7556d42cfca6d3b4f8d33` | operator-review-required |
@@ -116,7 +119,9 @@ Summary:
 | `feat/M11-T174-delete-legacy-highlighter` | `86a9a6de1609c9beca798511222b542c4859bb37` | operator-review-required |
 | `feat/M10-T237b-image-resize` | `8b709cf6b0c1bcfc8cd305da3440f842058da1b0` | operator-review-required |
 | `docs/M20-T299-phase-20-closeout` | `8ce67b4d1448d2af5a655fe8d54f76b0cc53d7fd` | operator-review-required |
+| `docs/m21-prep-checklist` | `cbbcec7e2be1c7c61b2a8e5399b5da4811e7c4f3` | operator-review-required |
 | `fix/a11y-muted-foreground-wcag-1-4-3` | `8d6198a2d1221f0178a53508bd125e5a282b6ddd` | operator-review-required |
+| `fix/ci-ripgrep-github-token-auth` | `234d198072549586c6cb4105187b80aea352d74c` | operator-review-required |
 | `feat/T132-code-split-index-chunk` | `9038a9b4358b8e9f42ddcad7580ba155873ebf51` | operator-review-required |
 | `feat/M6-sqlite-persistence-adapter` | `9061116cc3dcf91c2b138c138f08f62038e60488` | operator-review-required |
 | `docs/adr-0107-0111-infrastructure` | `945b7cf0d844c9d4e1f38925bc29c0b5a455338c` | operator-review-required |
@@ -158,6 +163,7 @@ Summary:
 | `feat/M2-rbac-foundation` | `d340836517129faa54a614baa580d01d07ef8e32` | operator-review-required |
 | `docs/rc-s08-validation-blocker` | `d8c5e34bb7ef91f6b24092018441fa97174b008e` | operator-review-required |
 | `fix/parse-server-url-by-delimiter` | `da3fd3505d3084d4da8d027ac6673a6978bd1a57` | operator-review-required |
+| `fix/post-218-validation-closeout` | `3fbc6b795490af862230d444ed721df539ca5150` | operator-review-required |
 | `feat/M13-T086-rpc-integration-v2` | `da9e98ef8b5e4f100332a045f5e76cdce0a8c4b9` | operator-review-required |
 | `test/workspace-sync-multi-client-conflict` | `dcf6d03fc4ff2631a64208101b9586fc08c348b0` | operator-review-required |
 | `fix/renderer-prod-sourcemap-leak` | `dfb730f7fe21e649f9e185515f5eabef8b7d0e8d` | operator-review-required |
@@ -172,6 +178,7 @@ Summary:
 | `chore/rename-t355-m21-to-t356` | `ef8b5ad56252bc33f98881fdbe6f755f55d5f32e` | operator-review-required |
 | `feat/M16-bundle-budget` | `efb9e5ad3026ce29ee7696c1329a4e9ada678b91` | operator-review-required |
 | `fix/user-data-migration-rox-agent-priority` | `f05d4c7c9085e1c77e26ab5616020faf478123e2` | operator-review-required |
+| `fix/user-data-migration-self-copy-guard` | `412bce6588eb69532a12d899dd690426a70206c7` | operator-review-required |
 | `docs/v1-release-prep` | `f22a6d6dd7eb9cd0e8922170075ba481efb04a6b` | operator-review-required |
 | `chore/deps-cve-overrides` | `f3175b90f161aad08590eac706a284e13e964e36` | operator-review-required |
 | `chore/bundle-shrinkage-findings` | `f3c00f2700b854b4e939b6822a5854350e9c452a` | operator-review-required |

@@ -52,8 +52,8 @@ Concrete deliverables:
 | README post-rewrite coordination banner | `README.md` § "After R.11 history rewrite" | Only required after force-push; the 72-hour visible banner is blocked until R.11 actually rewrites and pushes history | Blocked |
 | pre/post commit count delta | `git rev-list --count main`; `git log --oneline \| wc -l` | Only available after rewritten ancestry exists; the filter-repo delta cannot be documented until R.11 actually rewrites history | Blocked |
 | Legal-preserve gate | `bun run rebrand:r11-legal-preserve` | Legal-file checks fail because backup tag is missing; Dockerfile attribution passes | Blocked |
-| Default R.11 preflight | `bun run rebrand:r11-preflight` | Exits red on active goal acknowledgement, fork review, and tag blockers; `no-open-prs` is green after PR #216 merged and PR #214 closed without merge | Blocked |
-| Pre-rewrite R.11 preflight | `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite` | Exits red on fork review, tag blockers, missing backup artifacts, and remote branch review; `no-open-prs` is green | Blocked |
+| Default R.11 preflight | `bun run rebrand:r11-preflight` | Exits red on active goal acknowledgement, fork review, tag blockers, current branch, and worktree cleanliness; `no-open-prs` is green after PR #222 merged | Blocked |
+| Pre-rewrite R.11 preflight | `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite` | Exits red on fork review, tag blockers, missing backup artifacts, remote branch review, current branch, and worktree cleanliness; `no-open-prs` is green | Blocked |
 
 Commit-count command notation: `git log --oneline | wc -l`.
 
@@ -67,13 +67,13 @@ R.11 backup or history-rewrite step starts. Current evidence:
 | 1. R.0-R.10 closeouts | `bun run rebrand:r11-preflight` reports `rebrand-closeouts` pass, including T298a and T300a R.9.5 coverage. | Green |
 | 2. T223 Phase 1 closeout | `bun run rebrand:r11-preflight` reports `phase1-closeout` pass. | Green |
 | 3. T229 RBAC closeout | `bun run rebrand:r11-preflight` reports `phase2-rbac-closeout` pass. | Green |
-| 4. Open PR list | `bun run rebrand:r11-preflight` reports `no-open-prs` pass. GitHub reports 0 open PRs; PR #216 merged into `origin/main` as `0b0a218f`, and PR #214 closed without merge. | Green |
+| 4. Open PR list | `bun run rebrand:r11-preflight` reports `no-open-prs` pass. GitHub reports 0 open PRs after PR #222 merged into `origin/main` as `fd22607d`. | Green |
 | 5. No active `/goal` run | Default preflight reports `no-active-goal` fail because the active goal is still running. | Blocked |
-| 6. Fork review | `bun run rebrand:r11-preflight` reports `fork-review` fail: GitHub reports 1 fork(s); expected 0. | Blocked |
+| 6. Fork review | `bun run rebrand:r11-preflight` reports `fork-review` fail: GitHub reports 2 fork(s); expected 0. | Blocked |
 | 7. `rebrand-v1` exists | `bun run rebrand:r11-preflight` reports `rebrand-tag` pass. | Green |
 | 8. origin `rebrand-v1` is on origin/main | `bun run rebrand:r11-preflight` reports `rebrand-tag-on-main` fail for origin target `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`. | Blocked |
 | 9. local `rebrand-v1` matches origin | `bun run rebrand:r11-preflight` reports `rebrand-tag-local-sync` fail: local `906896e145156d92cf98457c4dc1893c53323bac`, origin `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`. | Blocked |
-| 10. Working tree clean | `bun run rebrand:r11-preflight` reports `worktree-clean` pass. | Green |
+| 10. Working tree clean | `bun run rebrand:r11-preflight` reports `worktree-clean` fail while `.omc/state/last-tool-error.json` and `.omx/context/wave-v13-final-5-20260514T120000Z.md` remain dirty. | Blocked |
 | 11. main sync | `bun run rebrand:r11-preflight` reports `main-sync` pass with local `main` and `origin/main` synchronized and `origin/main...main` at `0 0`. | Green |
 
 ## Current Main Validation Matrix
@@ -130,6 +130,18 @@ This current-main validation baseline still does not satisfy the final
 post-rewrite validation requirement and does not authorize destructive
 ref/history operations.
 
+## Post-T488 blocker refresh evidence
+
+T488 refreshes the report-only blocker evidence after PR #222 merged into
+`origin/main` as `fd22607d`. The refresh records the current fork count (`2`),
+remote branch review count (`157 non-main/non-R.11-backup origin branches`),
+and local worktree/checkout blockers while preserving the rule that this
+report branch does not authorize destructive R.11 operations.
+
+The refresh keeps the current-main validation requirement blocked: no rewritten
+ancestry exists, and no post-rewrite `typecheck`, full `bun test`, `lint`, or
+`build` run can satisfy the final R.11 stopping condition yet.
+
 ## Current Blockers
 
 Fresh evidence from report-only post-push checks, without pinning this audit to a moving latest commit:
@@ -138,13 +150,14 @@ Fresh evidence from report-only post-push checks, without pinning this audit to 
   `docs/release/r11-blocker-inventory-index-2026-05-14.md`.
 - Volatile preflight context is preserved in
   `docs/release/r11-preflight-context-inventory-2026-05-14.md`.
-- `bun run rebrand:r11-preflight` exits red with 4 blockers:
-  `no-active-goal`, `fork-review`, `rebrand-tag-local-sync`, and
-  `rebrand-tag-on-main`. `no-open-prs` is green: GitHub reports 0 open PRs;
-  PR #216 merged into `origin/main` as `0b0a218f`, and PR #214 closed without merge.
+- `bun run rebrand:r11-preflight` exits red with 6 blockers:
+  `no-active-goal`, `fork-review`, `rebrand-tag-local-sync`,
+  `rebrand-tag-on-main`, `current-branch`, and `worktree-clean`. `no-open-prs`
+  is green: GitHub reports 0 open PRs after PR #222 merged into `origin/main`
+  as `fd22607d`.
   The active-goal inventory is preserved in
   `docs/release/r11-active-goal-inventory-2026-05-14.md`;
-  GitHub reports 1 fork(s); expected 0;
+  GitHub reports 2 fork(s); expected 0;
   the fork inventory is preserved in
   `docs/release/r11-fork-review-inventory-2026-05-14.md`, and the operator
   fork decision manifest is preserved in
@@ -155,16 +168,20 @@ Fresh evidence from report-only post-push checks, without pinning this audit to 
   preserved in `docs/release/r11-tag-drift-inventory-2026-05-14.md`, and the
   operator tag reconciliation manifest is preserved in
   `docs/release/r11-tag-drift-reconciliation-manifest-2026-05-14.md`;
-  `current-branch` passes because Current checkout is main;
+  `current-branch` fails because the checkout is
+  `docs/r11-post-222-blocker-refresh`;
   `main-sync` passes because origin/main...main is 0 0; `worktree-clean`
-  passes with `git status --porcelain is empty`.
+  fails because `git status --porcelain` includes
+  `.omc/state/last-tool-error.json` and
+  `.omx/context/wave-v13-final-5-20260514T120000Z.md`.
 - `ROX_R11_NO_ACTIVE_GOAL=1 bun run rebrand:r11-preflight --stage pre-rewrite`
-  exits red with 7 blockers: `fork-review`, `rebrand-tag-local-sync`,
+  exits red with 9 blockers: `fork-review`, `rebrand-tag-local-sync`,
   `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`,
-  `remote-branch-review`, and no current-branch or open-PR blocker; GitHub
-  reports 1 fork(s); expected 0; the
+  `remote-branch-review`, `current-branch`, and `worktree-clean`, and no
+  open-PR blocker; GitHub
+  reports 2 fork(s); expected 0; the
   remote branch review currently reports
-  `150 non-main/non-R.11-backup origin branches`. The full branch inventory is
+  `157 non-main/non-R.11-backup origin branches`. The full branch inventory is
   preserved in `docs/release/r11-remote-branch-review-2026-05-14.md`, and the
   operator-ready retirement manifest is preserved in
   `docs/release/r11-remote-branch-retirement-manifest-2026-05-14.md`. The
@@ -176,8 +193,8 @@ Fresh evidence from report-only post-push checks, without pinning this audit to 
   post-T446/T448 target rows `backup-tag-target`, `backup-branch-target`, and
   `offline-mirror-target` are not emitted while the corresponding artifact is missing;
   once those artifacts exist, they must match current `main` before
-  any `git filter-repo` invocation. The `worktree-clean` row passes here too:
-  `git status --porcelain is empty`.
+  any `git filter-repo` invocation. The `worktree-clean` row fails here too:
+  `git status --porcelain is not empty`.
 - `bun run rebrand:r11-legal-preserve` exits red on `legal-file-LICENSE`,
   `legal-file-NOTICE`, and `legal-file-TRADEMARK.md` because
   `pre-rebrand-history-rewrite-backup` is missing; the
@@ -205,11 +222,12 @@ truthfully leave report-only mode.
 - Confirm the origin `rebrand-v1` target is on origin/main ancestry before any
   backup or rewrite step starts.
 - Re-review GitHub forks and update the expected fork count only after the
-  operator confirms the fork inventory is acceptable for destructive rewrite.
+  operator confirms the current two-fork inventory is acceptable for
+  destructive rewrite.
 - Use `docs/release/r11-fork-review-decision-manifest-2026-05-14.md` as the
   report-only fork decision surface; it does not authorize fork-owner contact
   or expected-count override.
-- Review the `150 non-main/non-R.11-backup origin branches` and decide which
+- Review the `157 non-main/non-R.11-backup origin branches` and decide which
   still-relevant branches must be merged, preserved, or explicitly retired
   before destructive history rewrite work.
 - Treat the PR queue as currently clear: there are 0 open PR branches, but
