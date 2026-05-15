@@ -40,7 +40,7 @@ Concrete deliverables:
 | Requirement | Evidence checked | Current state | Result |
 | --- | --- | --- | --- |
 | T260-T298 status and worklogs | `docs/tickets/T298-rebrand-git-history-rewrite.md`; `docs/worklog/T298-rebrand-git-history-rewrite.md`; `/tmp/r11-preflight-current-20260515T0210.log` | R.0-R.10 closeouts pass; T298 remains `Status: BLOCKED` | Blocked |
-| `validate:rebrand` on main | `/tmp/r11-validate-rebrand-current-20260515T0214.log` SHA `f3050d71972623b1a193b47b031c92acdc1a3e0b5f0c29efe8c96a862d7cb575` | Passes on current pre-rewrite `main` | Green, not final |
+| `validate:rebrand` on main | `/tmp/r11-validate-rebrand-current-20260515T0214.log` SHA `f3050d71972623b1a193b47b031c92acdc1a3e0b5f0c29efe8c96a862d7cb575` | Passed in the captured pre-rewrite evidence packet | Green, not final |
 | Global validation matrix | Goal stopping condition | Not run on rewritten history because rewritten history does not exist | Blocked |
 | RBAC on rewritten ancestry | `bun run rebrand:r11-preflight` reports `phase2-rbac-closeout` pass | RBAC closeout exists, but no rewritten ancestry exists | Blocked |
 | `rebrand-v1` tag on main | `/tmp/r11-preflight-ack-current-20260515T0210.log`; `/tmp/r11-remote-backup-refs-current-20260515T0215.log` | Local and origin tag peel to `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99`, but origin target is missing from `origin/main` ancestry | Blocked |
@@ -51,27 +51,29 @@ Concrete deliverables:
 | README post-rewrite banner | README | Only required after force-push; no rewrite or force-push has happened | Blocked |
 | Pre/post commit count delta | T298 closeout surface | Cannot be recorded until `git filter-repo` runs | Blocked |
 
-## Current R.11 Gate Evidence
+## Captured R.11 Gate Evidence
 
-Fresh report-only evidence from 2026-05-15:
+Fresh report-only evidence captured on 2026-05-15 before this audit was
+committed. Treat exact commit SHAs in this table as packet evidence, not as a
+moving latest-`main` claim after later report-only audit commits.
 
 | Gate | Evidence | Result |
 | --- | --- | --- |
 | Default pre-backup preflight | `/tmp/r11-preflight-current-20260515T0210.log` SHA `ea99074e9b79d4b5caa258e2d8db1fbcb03b435c16ea0e938b4d1e16ff60da4d` | Red: `no-active-goal`, `fork-review`, `rebrand-tag-on-main` |
 | Pre-backup with explicit acknowledgements | `/tmp/r11-preflight-ack-current-20260515T0210.log` SHA `18ab339154b2cba0c48f28d05100047cbf905ea4b77f4732dd80a0c3e9cf3a73` | Red: `rebrand-tag-on-main` |
 | Pre-rewrite with explicit acknowledgements | `/tmp/r11-prewrite-ack-current-20260515T0210.log` SHA `720951d743c94702ca5570c591db626a3af731e526bade93d2e59214f790931b` | Red: `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`, `remote-branch-review` |
-| Git status | `/tmp/r11-git-status-current-20260515T0214.log` SHA `a3d9517261863dd97e8005c6a6714a618347502a7efe49aadb3c6fdbfafdbcfa` | Clean `main`, `origin/main...HEAD = 0 0`, both at `527e594f8bace7ea2a47e655a266ae030d368179` |
+| Git status | `/tmp/r11-git-status-current-20260515T0214.log` SHA `a3d9517261863dd97e8005c6a6714a618347502a7efe49aadb3c6fdbfafdbcfa` | Captured clean `main`, `origin/main...HEAD = 0 0`, both at `527e594f8bace7ea2a47e655a266ae030d368179` |
 | Remote refs | `/tmp/r11-remote-backup-refs-current-20260515T0215.log` SHA `b01516e63e01d554815894cad9750a6a44365de6e4051d94f560e93d09f80694` | `rebrand-v1` exists; backup refs absent; offline mirror absent |
 | Worktree whitespace | `/tmp/r11-git-diff-check-current-20260515T0214.log` SHA `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | Green |
 
 ## Handoff Packet
 
-The current non-destructive handoff packet is packaged in `/tmp`:
+The captured evidence packet is packaged in `/tmp`:
 
 | Artifact | SHA-256 | Notes |
 | --- | --- | --- |
 | `/tmp/r11-completion-audit-current-20260515T0216Z.md` | `21f66547e19fea986cecafdcfcd4fa11393b2fa86165be2fa38d88d3356e7651` | Prompt-to-artifact checklist for this blocker state |
-| `/tmp/r11-execution-bundle-20260515T0205Z.tar.gz` | `fb2f53a3301a748e0f0ab0539c1d365b4dd2779e54ed0292586e192820b87c98` | Includes current audit, current gate logs, fork inventory, scripts, and command sheet |
+| `/tmp/r11-execution-bundle-20260515T0205Z.tar.gz` | `fb2f53a3301a748e0f0ab0539c1d365b4dd2779e54ed0292586e192820b87c98` | Includes the captured audit, gate logs, fork inventory, scripts, and command sheet |
 | `/tmp/r11-execution-bundle-20260515T0205Z/SHA256SUMS` | `ea117d66045e447a1dbeca57857a20531c4900e3fe431bb9765dc879eb19221e` | Verifies bundle contents |
 | `/tmp/r11-execution-bundle-extract-verify-20260515T0221-audit.log` | `f916d88a92aeca09a896bbe1de36393205bd3e53cca4d22c6e2e8879de7b7202` | `sha256sum -c`, `bash -n r11-*.sh`, and required-file checks passed |
 | `/tmp/r11-readiness-manifest-20260515T013601Z.json` | `6f7a696b88e1a90c5d91aa624891c6642f5f284108fde94abedaeb9e7a0ccd36` | Machine-readable blocker state |
