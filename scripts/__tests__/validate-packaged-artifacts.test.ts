@@ -27,7 +27,7 @@ const validatorPath = join(repoRoot, 'scripts/validate-packaged-artifacts.ts');
 
 /** Bytes representing a "real" artifact (>= 50 MB) */
 const FIFTY_MB = 50 * 1024 * 1024;
-/** Bytes representing a "real" blockmap (>= 1 MB) */
+/** Bytes representing a generously sized synthetic blockmap fixture. */
 const ONE_MB = 1 * 1024 * 1024;
 
 function createFakeFile(filePath: string, size: number): void {
@@ -161,6 +161,15 @@ function fixture(opts: FixtureOptions): string {
 // ---------------------------------------------------------------------------
 
 describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
+  test('passes Mac validation with hosted-sized blockmaps below 1 MB', () => {
+    const cwd = fixture({ mac: true, blockmapSize: 235 * 1024 });
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'mac' });
+    const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    expect(result.status).toBe(0);
+    expect(combined).toContain('ROX-ONE-arm64.dmg.blockmap');
+    expect(combined).toContain('platform=mac');
+  });
+
   test('passes Mac validation with only Mac artifacts', () => {
     const cwd = fixture({ mac: true });
     const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'mac' });
