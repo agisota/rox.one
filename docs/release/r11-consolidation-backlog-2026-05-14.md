@@ -18,15 +18,16 @@ No branch deletion, tag mutation, backup ref creation, mirror creation, filter-r
 - T464 post-PR-closeout live baseline: `0b0a218f`
 - Latest report-only validation baseline: `e4f3970e`
 - T470 current-main validation baseline: `02275b9b`
+- T488 post-PR-222 baseline: `fd22607d`
 - Current full-suite evidence: `6910 pass`, `13 skip`, `0 fail`
 - Open PRs: none
-- PR queue status: cleared after PR #216 merged and PR #214 closed unmerged
-- Origin heads: `151`
-- R.11 branch blocker count: `150 non-main/non-R.11-backup`
+- PR queue status: cleared after PR #222 merged
+- Origin heads: `158`
+- R.11 branch blocker count: `157 non-main/non-R.11-backup`
 
 ## Already Integrated
 
-PRs #207 through #213 and #216 are merged into `origin/main`:
+PRs #207 through #213 and #216 through #222 are merged into `origin/main`:
 
 - #207 `fix/renderer-prod-sourcemap-leak`
 - #208 `chore/bundle-budget-pdf-worker-carveout`
@@ -36,6 +37,12 @@ PRs #207 through #213 and #216 are merged into `origin/main`:
 - #212 `feat/M18-T253b-linux-deb-rpm`
 - #213 `feat/M14-T250-rpc-admin-audit-list`
 - #216 `feat/M16-T132e-shrink-main-chunk`
+- #217 `chore/r11-t473-post-t470-audit-refresh`
+- #218 `fix/t474-shiki-codeblock-timeout`
+- #219 `fix/ci-ripgrep-github-token-auth`
+- #220 `docs/m21-prep-checklist`
+- #221 `fix/user-data-migration-self-copy-guard`
+- #222 `fix/post-218-validation-closeout`
 
 PR #216 merged into `origin/main` as `0b0a218f`. PR #214 closed without merge
 after local validation showed it could merge cleanly over the earlier
@@ -66,16 +73,16 @@ remote-ref hygiene gate before destructive history rewrite.
 
 | Category | Count | Disposition |
 | --- | ---: | --- |
-| Merged PR branch cleanup candidates | 133 | Candidate remote branches whose matching PR is merged; retire only in an operator-approved cleanup window |
+| Merged PR branch cleanup candidates | 139 | Candidate remote branches whose matching PR is merged; retire only in an operator-approved cleanup window |
 | Open PR branches | 0 | No open PR branch blocks the merge queue now |
 | Closed/unmerged PR branch review candidates | 9 | Review before deleting or preserving because their PRs did not merge |
-| No-visible-PR branch review candidates | 7 | Review manually because GitHub PR metadata is absent from the current API window |
+| No-visible-PR branch review candidates | 8 | Review manually because GitHub PR metadata is absent from the current API window |
 | Obvious backup/protected branches | 1 | Retain or explicitly account for `backup/agent-workbench-t000-t012-2026-04-30` separately from the R.11 backup branch |
 
-Summary: 150 origin branch review candidates remain before the R.11
+Summary: 157 origin branch review candidates remain before the R.11
 remote-branch gate can be green. There are 0 open PR branches.
 
-The 17 closed/no-visible-PR/backup review branches are:
+The 18 closed/no-visible-PR/backup review branches are:
 
 - `backup/agent-workbench-t000-t012-2026-04-30`
 - `chore/bundle-shrinkage-findings`
@@ -92,6 +99,7 @@ The 17 closed/no-visible-PR/backup review branches are:
 - `feat/M6-sqlite-persistence-adapter`
 - `feat/audit-harness-spec`
 - `feat/f1-shiki-engine-swap`
+- `circleci-project-setup`
 - `fix/t132-main-bundle-regression`
 - `mac/rox-production-ready-rc`
 
@@ -99,7 +107,7 @@ The 17 closed/no-visible-PR/backup review branches are:
 
 1. Keep `no-active-goal` as a hard stop until an operator-controlled
    destructive R.11 window begins.
-2. Re-review fork policy: current fork count is `1`, default expected count is
+2. Re-review fork policy: current fork count is `2`, default expected count is
    `0`.
 3. Reconcile `rebrand-v1`: local target
    `906896e145156d92cf98457c4dc1893c53323bac`, origin target
@@ -108,7 +116,7 @@ The 17 closed/no-visible-PR/backup review branches are:
 4. Keep the destructive-window checkout on real `main`; do not run destructive
    R.11 commands from report branches.
 5. Complete remote branch review so explicit pre-rewrite mode no longer sees
-   `150 non-main/non-R.11-backup` branches.
+   `157 non-main/non-R.11-backup` branches.
 6. Only after the pre-backup gate is green, create the R.11 backup tag, backup
    branch, and offline mirror.
 7. Rerun explicit pre-rewrite mode and require backup target rows to pass.
@@ -130,8 +138,9 @@ Current gate snapshot:
 - Open PRs: 0
 - Latest report-only validation baseline: `e4f3970e`
 - T470 current-main validation baseline: `02275b9b`
+- T488 post-PR-222 baseline: `fd22607d`
 - Current full-suite evidence: `6910 pass`, `13 skip`, `0 fail`
-- Remote branches requiring review: 150
+- Remote branches requiring review: 157
 - Default preflight blockers: `no-active-goal`, `fork-review`, `rebrand-tag-local-sync`, `rebrand-tag-on-main`
 - Pre-rewrite blockers: `fork-review`, `rebrand-tag-local-sync`, `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`, `remote-branch-review`
 - Legal-preserve blockers: `legal-file-LICENSE`, `legal-file-NOTICE`,
@@ -173,13 +182,13 @@ clear `/goal`, or call `update_goal` while the report-only gates remain red.
 
 - Treat the PR merge queue as clear: there are 0 open PRs and 0 open PR
   branches.
-- Review all 150 non-main/non-R.11-backup origin branches before pre-rewrite
+- Review all 157 non-main/non-R.11-backup origin branches before pre-rewrite
   can pass.
-- Retire or preserve the 133 merged-PR branch cleanup candidates in an
+- Retire or preserve the 139 merged-PR branch cleanup candidates in an
   operator-approved branch cleanup window.
 - Decide the 9 closed/unmerged PR branch review candidates, including
   `fix/t132-main-bundle-regression`.
-- Decide the 7 no-visible-PR branch review candidates.
+- Decide the 8 no-visible-PR branch review candidates.
 - Account for `backup/agent-workbench-t000-t012-2026-04-30` separately from the
   missing R.11 backup branch.
 

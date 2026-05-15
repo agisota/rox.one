@@ -567,7 +567,7 @@ describe('R.11 closeout worklog documentation', () => {
     expect(worklog).toContain('T429 full-matrix snapshot')
     expect(worklog).toContain('later audit-hygiene tickets carry their own fresh targeted validation evidence')
     expect(worklog).toContain('6753 pass, 13 skip, 0 fail')
-    expect(worklog).toContain('GitHub reports 1 fork(s); expected 0')
+    expect(worklog).toContain('GitHub reports 2 fork(s); expected 0')
     expect(worklog).toContain('T409 and later audit-hygiene tickets')
     expect(worklog).not.toContain('after T402')
     expect(worklog).not.toContain('T375 through T408')
@@ -588,6 +588,7 @@ describe('R.11 closeout worklog documentation', () => {
     expect(worklog).toContain('T442')
     expect(worklog).toContain('T449')
     expect(worklog).toContain('T450')
+    expect(worklog).toContain('T488')
     expect(worklog).toContain('docs/release/r11-completion-audit-2026-05-14.md')
     expect(worklog).toContain('docs/release/rebrand-mapping-2026-05-13.md')
     expect(worklog).toContain(

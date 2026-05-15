@@ -15,7 +15,7 @@ gh api repos/agisota/rox-one-terminal/forks --jq '.[] | {full_name, html_url, ow
 
 Summary:
 
-- Current fork count: 1
+- Current fork count: 2
 - Expected fork count: 0
 - Gate row: `fork-review`
 - Gate state: fail until the operator confirms the visible fork inventory is
@@ -26,11 +26,12 @@ Summary:
 
 | Fork | Owner | Default branch | Last pushed | Disposition |
 | --- | --- | --- | --- | --- |
+| `agisotadev/rox-one-terminal` | `agisotadev` | `main` | `2026-05-14T19:49:03Z` | operator-review-required |
 | `dofaromg/rox-one-terminal` | `dofaromg` | `main` | `2026-05-14T06:26:58Z` | operator-review-required |
 
 ## Operator Note
 
 The expected fork count defaults to `0`. Treat this inventory as a hard stop
-until the operator decides whether the visible fork is acceptable for the
+until the operator decides whether the visible forks are acceptable for the
 one-time destructive rewrite. Do not change `ROX_R11_EXPECTED_FORKS` or proceed
 to backup/rewrite steps from this report-only agent run.
