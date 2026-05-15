@@ -22,14 +22,20 @@ Related inventory:
 
 ## Current Fork State
 
-- Current fork count: 1
+- Current fork count: 2
 - Expected fork count: 0
 - Gate row: `fork-review`
 - Gate state: fail until the operator confirms the visible fork inventory is
   acceptable for destructive rewrite, or updates `ROX_R11_EXPECTED_FORKS`
   during an operator-controlled R.11 window.
 
-Visible fork:
+Visible forks:
+
+- Fork: `agisotadev/rox-one-terminal`
+- Owner: `agisotadev`
+- Default branch: `main`
+- Last pushed: `2026-05-14T19:49:03Z`
+- Disposition: operator-review-required
 
 - Fork: `dofaromg/rox-one-terminal`
 - Owner: `dofaromg`
@@ -41,7 +47,7 @@ Visible fork:
 
 | Option | Effect | Risk |
 | --- | --- | --- |
-| Accept the visible fork for the R.11 rewrite window | Lets the operator run preflight with `ROX_R11_EXPECTED_FORKS=1` | Requires explicit acknowledgement that fork owners may need coordination after force-push |
+| Accept the visible forks for the R.11 rewrite window | Lets the operator run preflight with `ROX_R11_EXPECTED_FORKS=2` | Requires explicit acknowledgement that fork owners may need coordination after force-push |
 | Contact fork owner before destructive rewrite | May reduce downstream surprise | External coordination is outside this report-only lane |
 | Keep expected fork count at 0 | Preserves the strict default policy | Keeps `fork-review` red |
 | Defer fork decision until destructive window | Avoids premature policy change | Keeps default pre-backup gate red |
@@ -60,7 +66,7 @@ Potential expected-count override shape, recorded only so an operator can
 review the policy surface:
 
 ```bash
-ROX_R11_EXPECTED_FORKS=1 bun run rebrand:r11-preflight
+ROX_R11_EXPECTED_FORKS=2 bun run rebrand:r11-preflight
 ```
 
 Do not set ROX_R11_EXPECTED_FORKS until an operator-owned destructive window is explicit.
