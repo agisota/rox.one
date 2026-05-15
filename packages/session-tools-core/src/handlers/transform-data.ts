@@ -49,6 +49,19 @@ type StdioCapture = {
   stdoutFd: number;
   stderrFd: number;
 };
+type BunSpawnSubprocess = {
+  exited: Promise<number | null>;
+  kill(signal?: string | number): void;
+};
+type BunSpawnOptions = {
+  cmd: string[];
+  cwd: string;
+  env: NodeJS.ProcessEnv;
+  stdin: 'ignore';
+  stdout: number;
+  stderr: number;
+};
+type BunSpawnFn = (options: BunSpawnOptions) => BunSpawnSubprocess;
 
 function getErrorCode(error: unknown): string | undefined {
   return typeof error === 'object' && error !== null && 'code' in error
@@ -59,6 +72,11 @@ function getErrorCode(error: unknown): string | undefined {
 function isTransientSpawnStartupError(error: unknown): boolean {
   const code = getErrorCode(error);
   return code !== undefined && TRANSIENT_SPAWN_ERROR_CODES.has(code);
+}
+
+function getBunSpawn(): BunSpawnFn | undefined {
+  const bun = (globalThis as { Bun?: { spawn?: unknown } }).Bun;
+  return typeof bun?.spawn === 'function' ? (bun.spawn as BunSpawnFn) : undefined;
 }
 
 function delay(ms: number): Promise<void> {
@@ -164,6 +182,61 @@ function runTransformProcessOnce(
   });
 }
 
+async function runTransformProcessWithBun(
+  bunSpawn: BunSpawnFn,
+  cmd: string,
+  spawnArgs: string[],
+  dataDir: string,
+  env: NodeJS.ProcessEnv,
+): Promise<TransformProcessResult> {
+  const capture = createStdioCapture(dataDir);
+  let proc: BunSpawnSubprocess;
+  try {
+    proc = bunSpawn({
+      cmd: [cmd, ...spawnArgs],
+      cwd: dataDir,
+      env,
+      stdin: 'ignore',
+      stdout: capture.stdoutFd,
+      stderr: capture.stderrFd,
+    });
+  } catch (error) {
+    closeStdioCapture(capture);
+    throw error;
+  }
+
+  let timedOut = false;
+  const killTimer = setTimeout(() => {
+    timedOut = true;
+    try { proc.kill('SIGKILL'); } catch { /* ignore kill errors */ }
+  }, TRANSFORM_DATA_TIMEOUT_MS);
+
+  try {
+    const code = await proc.exited;
+    clearTimeout(killTimer);
+    const stdoutCapture = readTextIfExists(capture.stdoutPath, 'stdout');
+    const stderrCapture = readTextIfExists(capture.stderrPath, 'stderr');
+    const stderr = appendCaptureReadErrors(stderrCapture.text, [
+      stderrCapture.readError,
+      stdoutCapture.readError,
+    ]);
+    if (timedOut) {
+      return {
+        stdout: stdoutCapture.text,
+        stderr: appendCaptureReadErrors(
+          `Script timed out after ${TRANSFORM_DATA_TIMEOUT_MS / 1000}s and was killed`,
+          [stderr],
+        ),
+        code,
+      };
+    }
+    return { stdout: stdoutCapture.text, stderr, code };
+  } finally {
+    clearTimeout(killTimer);
+    closeStdioCapture(capture);
+  }
+}
+
 async function runTransformProcess(
   cmd: string,
   spawnArgs: string[],
@@ -177,6 +250,12 @@ async function runTransformProcess(
     } catch (error) {
       lastError = error;
       if (!isTransientSpawnStartupError(error) || attempt === TRANSFORM_DATA_SPAWN_ATTEMPTS) {
+        if (isTransientSpawnStartupError(error) && attempt === TRANSFORM_DATA_SPAWN_ATTEMPTS) {
+          const bunSpawn = getBunSpawn();
+          if (bunSpawn) {
+            return await runTransformProcessWithBun(bunSpawn, cmd, spawnArgs, dataDir, env);
+          }
+        }
         throw error;
       }
       await delay(TRANSFORM_DATA_SPAWN_RETRY_DELAY_MS * attempt);
