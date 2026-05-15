@@ -152,6 +152,9 @@ Representative report-only evidence anchors include:
   later clean-`main` blocker state, 158 remote branch review candidates, a
   synchronized local/origin `rebrand-v1` target that is still not on
   `origin/main`, and the current `/tmp` handoff bundle hashes.
+- T490 clarified that the 2026-05-15 `/tmp` bundle hashes and exact main SHA
+  are captured evidence, not a moving latest-head claim after later report-only
+  audit commits.
 
 This list is a set of stable anchors, not a live chronology. Later report-only
 audit-hygiene tickets carry their own fresh targeted validation evidence in
