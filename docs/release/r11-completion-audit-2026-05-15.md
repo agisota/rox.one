@@ -141,6 +141,27 @@ only if the state is unchanged:
 ROX_R11_NO_ACTIVE_GOAL=1 ROX_R11_EXPECTED_FORKS=2 bun run rebrand:r11-preflight
 ```
 
+## Current Ref Blocker Snapshot
+
+The current ref-blocker snapshot is
+`docs/release/r11-ref-blocker-snapshot-2026-05-15.md`, backed by
+`/tmp/r11-ref-blockers-post-pr227-main-20260515T1138.log` SHA
+`40075f721604434982eb86e6b9fd0ec647baf54075ec9be531e0bd9615f3e65f`.
+
+Current ref state:
+
+| Gate | State | Evidence |
+| --- | --- | --- |
+| `rebrand-tag-local-sync` | Pass | Local and origin `rebrand-v1` both peel to `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99` |
+| `rebrand-tag-on-main` | Fail | The peeled tag target is not on `origin/main` ancestry and is contained by `origin/chore/rebrand-R10-final-sweep-and-gate` |
+| `remote-branch-review` | Fail | Origin has 158 non-`main`, non-R.11-backup heads |
+
+Read-only ancestry inspection shows a no-retag merge shim is not a clean
+agent-safe unblock: `main...rebrand-v1^{}` is `347 3`, the three tag-branch
+commits are already represented by squash commit `ff687795`, and `ff687795`
+has the same tree as `b817d1c3`. Treat the tag policy as operator-owned ref
+control, not report-only work.
+
 Remaining safe/report-only work:
 
 1. Keep `docs/release/r11-completion-audit-2026-05-15.md`,
