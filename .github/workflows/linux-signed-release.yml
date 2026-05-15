@@ -166,7 +166,7 @@ jobs:
           echo "Signing ${APPIMAGE_PATH}"
           export GNUPGHOME="$(mktemp -d)"
           chmod 700 "${GNUPGHOME}"
-          echo "${ROX_LINUX_GPG_KEY}" | gpg --batch --yes --import 2>&1 | tee .ci-logs/linux-signed-release/gpg-import.log
+          echo "${ROX_LINUX_GPG_KEY}" | base64 -d | gpg --batch --yes --import 2>&1 | tee .ci-logs/linux-signed-release/gpg-import.log
           echo "${ROX_LINUX_GPG_PASSPHRASE}" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
             --local-user "${ROX_LINUX_GPG_KEY_ID}" \
             --detach-sign --armor --output "${APPIMAGE_PATH}.sig" "${APPIMAGE_PATH}" 2>&1 | tee .ci-logs/linux-signed-release/gpg-sign.log
