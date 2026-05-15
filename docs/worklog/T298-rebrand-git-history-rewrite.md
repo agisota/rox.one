@@ -168,6 +168,10 @@ Representative report-only evidence anchors include:
   `a93d6bae`, reconciling the T495 hosted CI proof and recording the current
   159 remote-branch-review count plus the dirty `.omc/state/last-tool-error.json`
   worktree blocker.
+- T497 restored `.omc/state/last-tool-error.json` to `HEAD`, clearing the local
+  runtime-state worktree blocker before docs edits. The remaining acknowledged
+  pre-backup blockers on the report branch were `rebrand-tag-on-main` and
+  `current-branch`.
 
 This list is a set of stable anchors, not a live chronology. Later report-only
 audit-hygiene tickets carry their own fresh targeted validation evidence in
@@ -206,6 +210,8 @@ history/legal-preserve gates were added and wired into the R.11 goal:
 - `/tmp/rox-one-terminal-backup-2026-05-13.git` does not exist.
 - Origin currently has 159 non-main/non-R.11-backup branches, so the explicit
   pre-rewrite helper reports `remote-branch-review` as a blocker.
+- The tracked `.omc/state/last-tool-error.json` runtime-state diff was restored
+  in T497; `worktree-clean` passed before the T497 docs edits.
 - `docs/release/rebrand-mapping-2026-05-13.md` has an R.11 pending closeout
   slot, but it cannot record a real R.11 closeout commit SHA until the
   destructive rewrite and post-rewrite validation succeed.
@@ -254,30 +260,25 @@ history/legal-preserve gates were added and wired into the R.11 goal:
   the latest run reports 159 branches outside `main` and the R.11 backup
   branch.
 
-The latest report-only default pre-backup preflight reports five blockers while
-this refresh branch is checked out:
+The latest acknowledged pre-backup preflight after restoring the OMC
+runtime-state file reports two blockers while this report branch is checked
+out:
 
 ```text
-no-active-goal       fail    Missing ROX_R11_NO_ACTIVE_GOAL=1 ac...
-fork-review          fail    GitHub reports 2 fork(s); expected 0.
 rebrand-tag-on-main  fail    rebrand-v1 target is missing from o...
-current-branch       fail    Current checkout is docs/r11-post-228-blocker-refresh.
-worktree-clean       fail    git status --porcelain is not empty.
+current-branch       fail    Current checkout is docs/r11-worktree-clean-runtime-state.
+worktree-clean       pass    git status --porcelain is empty.
 no-open-prs          pass    0 open PRs.
 main-sync            pass    origin/main...main is 0 0.
 rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
 phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
 phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
-red - 5 R.11 pre-backup prerequisite(s) failing
+red - 2 R.11 pre-backup prerequisite(s) failing
 ```
 
-With `ROX_R11_NO_ACTIVE_GOAL=1 ROX_R11_EXPECTED_FORKS=2`, the latest
-pre-backup preflight remains red on `rebrand-tag-on-main` and
-`worktree-clean`.
-
-The latest explicit pre-rewrite preflight with the same acknowledgements
-remains red on tag-on-main, backup artifacts, stale remote branches, and
-worktree state:
+The latest explicit pre-rewrite preflight run on this report branch with the
+same acknowledgements remains red on tag-on-main, backup artifacts, stale
+remote branches, checkout branch, and docs-edit worktree state:
 
 ```text
 rebrand-tag-on-main  fail    rebrand-v1 target is missing from o...
@@ -286,13 +287,13 @@ backup-branch        fail    backup/pre-rebrand-history-rewrite-...
 offline-mirror       fail    /tmp/rox-one-terminal-backup-2026-0...
 remote-branch-review fail    origin has 159 non-main/non-R.11-ba...
 no-open-prs          pass    0 open PRs.
-current-branch       pass    Current checkout is main.
+current-branch       fail    Current checkout is docs/r11-worktree-clean-runtime-state.
 main-sync            pass    origin/main...main is 0 0.
 worktree-clean       fail    git status --porcelain is not empty.
 rebrand-closeouts    pass    R.0-R.10 tickets are Status: DONE a...
 phase1-closeout      pass    docs/tickets/T223-c4-followups-clos...
 phase2-rbac-closeout pass    docs/tickets/T229-rbac-integration-...
-red - 6 R.11 pre-rewrite prerequisite(s) failing
+red - 7 R.11 pre-rewrite prerequisite(s) failing
 ```
 
 The latest legal-preserve runner remains blocked on the missing backup tag but
@@ -308,9 +309,9 @@ red - 3 R.11 legal-preserve check(s) failing
 
 ## 10. Remaining risks
 
-R.11 pre-backup remains blocked by active goal state, fork count policy, the
-off-main `rebrand-v1` target, the non-main report branch checkout, and the
-dirty `.omc/state/last-tool-error.json` worktree.
+R.11 pre-backup remains blocked by active goal state and fork count policy in
+the strict default helper, plus the off-main `rebrand-v1` target. The local OMC
+runtime-state worktree blocker was cleared in T497 before docs edits.
 The open-PR gate is green, but the merged and closed PR heads remain part of
 the remote branch review blocker.
 Backup tag,
@@ -323,7 +324,7 @@ path authorizes them. After backup creation, `bun run rebrand:r11-preflight
 
 | Acceptance criterion | Status | Evidence |
 | --- | --- | --- |
-| R.11 preflight is green before backup creation | Blocked | Default pre-backup gate fails on active goal, `fork-review`, `rebrand-tag-on-main`, `current-branch`, and `worktree-clean`; `no-open-prs` is green |
+| R.11 preflight is green before backup creation | Blocked | Acknowledged pre-backup gate fails on `rebrand-tag-on-main` plus `current-branch` while the report branch is checked out; `worktree-clean` passed before docs edits |
 | Backup tag exists on origin | Blocked | Not created while preflight is red |
 | Backup branch exists on origin | Blocked | Not created while preflight is red |
 | Offline mirror exists | Blocked | Not created while preflight is red |
