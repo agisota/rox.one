@@ -189,6 +189,25 @@ jobs:
           sha256sum "${APPIMAGE_PATH}.sig" >> "${OUT}"
           cat "${OUT}"
 
+      # T508: Generate CycloneDX SBOM after build, before artifact upload.
+      # cdxgen -t bun resolves the bun.lock dependency graph. The SBOM is
+      # uploaded as a long-lived workflow artifact (90 days) so it can be
+      # attached to a release or submitted to a dependency-tracking system.
+      # Mac and Windows SBOM steps land via orchestrator rebase after A2/A3.
+      - name: Generate CycloneDX SBOM
+        shell: bash
+        run: |
+          npx -y @cyclonedx/cdxgen@latest -t bun -o sbom-linux.json
+          echo "SBOM generated: $(wc -c < sbom-linux.json) bytes"
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-linux
+          path: sbom-linux.json
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Upload signed AppImage artifact
         if: success()
         uses: actions/upload-artifact@v4
