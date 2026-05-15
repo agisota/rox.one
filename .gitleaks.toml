@@ -1,0 +1,9 @@
+# ROX.ONE gitleaks config
+[allowlist]
+description = "ROX.ONE allowlist"
+paths = [
+  '''docs/.*\.md''',                          # documentation may include example keys
+  '''.*test.*fixtures/.*''',                  # test fixtures
+  '''.*__snapshots__/.*''',
+  '''docs/release/dependency-risk-register-.*\.md''',
+]
