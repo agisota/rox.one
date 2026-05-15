@@ -148,6 +148,10 @@ Representative report-only evidence anchors include:
 - T488 refreshed the durable audit, fork inventory, branch inventory, and this
   T298 surface after PR #222 merged, recording 2 forks, 157 remote branch
   review candidates, and the current dirty `.omc/.omx` worktree blockers.
+- T489 added `docs/release/r11-completion-audit-2026-05-15.md`, recording the
+  later clean-`main` blocker state, 158 remote branch review candidates, a
+  synchronized local/origin `rebrand-v1` target that is still not on
+  `origin/main`, and the current `/tmp` handoff bundle hashes.
 
 This list is a set of stable anchors, not a live chronology. Later report-only
 audit-hygiene tickets carry their own fresh targeted validation evidence in
