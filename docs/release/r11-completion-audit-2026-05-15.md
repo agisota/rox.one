@@ -261,6 +261,50 @@ Remaining operator-owned or destructive work, in required order:
     validation output, and force-push result in T298.
 18. Mark T298 `Status: DONE` only after all R.11 stopping conditions pass.
 
+## Post-PR #230 Current Worklist
+
+The current post-PR #230 worklist is
+`docs/release/r11-post-230-current-worklist-2026-05-16.md`.
+
+PR #230 merged into `main` as
+`f679e717162f587ee2f6cd94b2afb02b84afb197`. Current report-only evidence
+shows local `main` and `origin/main` synchronized at that commit, no open PRs,
+and a clean worktree before the T498 report branch was created.
+
+Current acknowledged pre-backup state:
+
+| Gate | Current state |
+| --- | --- |
+| `no-active-goal` | Pass with `ROX_R11_NO_ACTIVE_GOAL=1` report-only acknowledgement |
+| `fork-review` | Pass with `ROX_R11_EXPECTED_FORKS=2` reviewed fork acknowledgement |
+| `no-open-prs` | Pass |
+| `main-sync` | Pass: `origin/main...main` is `0 0` |
+| `worktree-clean` | Pass |
+| `rebrand-tag-local-sync` | Pass: local and origin `rebrand-v1` peel to `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99` |
+| `rebrand-tag-on-main` | Fail: the peeled tag target is still outside `origin/main` ancestry |
+
+With those acknowledgements, `rebrand-tag-on-main` is the only current
+pre-backup blocker on clean `main`.
+
+Current explicit pre-rewrite state remains red on:
+
+- `rebrand-tag-on-main`
+- `backup-tag`
+- `backup-branch`
+- `offline-mirror`
+- `remote-branch-review`
+
+The read-only ref audit identifies
+`ff6877954dddb2a96a4b4a4e65b24857f0e5c38b` as the semantic retag target if the
+operator chooses the existing preferred policy of moving `rebrand-v1` to the
+R.10 landed state on `main`. That commit is on `origin/main`, has subject
+`Complete R.10 final rebrand sweep + permanent gate + rebrand-v1 tag (#71)`,
+and has the same tree as the current off-main peeled tag commit.
+
+This audit still does not authorize tag retargeting, branch deletion, backup
+creation, offline mirror creation, `git filter-repo`, force-push, `/goal`
+state changes, or `update_goal`.
+
 ## Stop Condition
 
 The objective is NOT ACHIEVED.

@@ -172,6 +172,11 @@ Representative report-only evidence anchors include:
   runtime-state worktree blocker before docs edits. The remaining acknowledged
   pre-backup blockers on the report branch were `rebrand-tag-on-main` and
   `current-branch`.
+- T498 records the post-PR #230 clean-main state after `f679e717`: local `main`
+  and `origin/main` are synchronized, no open PRs exist, acknowledged
+  pre-backup preflight fails only on `rebrand-tag-on-main`, and explicit
+  pre-rewrite mode remains red on the tag, backup artifacts, offline mirror,
+  and remote branch review.
 
 This list is a set of stable anchors, not a live chronology. Later report-only
 audit-hygiene tickets carry their own fresh targeted validation evidence in
