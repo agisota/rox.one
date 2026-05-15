@@ -32,8 +32,10 @@ RED checks were:
 
 ```bash
 bun run validate:agent-contract
-rg -n "%no-protection|/tmp/rox-linux-gpg.asc|/tmp/rox-gpg-passphrase.txt" docs/tickets/T500-linux-gpg-secrets-setup.md docs/worklog/T500-linux-gpg-secrets-setup.md || true
 ```
+
+The docs were also statically reviewed for the deprecated fixed temporary
+private-key and passphrase handoff guidance.
 
 ## 5. Expected failing test output
 
@@ -58,7 +60,8 @@ T500 docs.
 ## 7. Validation commands run
 
 - `bun run validate:agent-contract` (RED before the first T500 backfill)
-- `rg -n "%no-protection|/tmp/rox-linux-gpg.asc|/tmp/rox-gpg-passphrase.txt" docs/tickets/T500-linux-gpg-secrets-setup.md docs/worklog/T500-linux-gpg-secrets-setup.md || true`
+- Static review for deprecated fixed temporary private-key and passphrase
+  handoff guidance.
 - `bun run validate:docs`
 - `bun run validate:rebrand`
 - `git diff --check`
@@ -68,8 +71,8 @@ T500 docs.
 
 ## 8. Passing test output summary
 
-The exact unsafe-marker grep over T500 docs produced no output after the
-repair. Local validators passed in the repair branch:
+The T500 docs no longer contain the deprecated fixed temporary private-key or
+passphrase handoff guidance. Local validators passed in the repair branch:
 
 ```text
 bun run validate:docs
@@ -109,7 +112,7 @@ the same SHA, and the failing test passed locally in the PR #243 worktree.
 | Acceptance criterion | Status | Evidence |
 | --- | --- | --- |
 | T500 DONE ticket has a matching worklog | PASS | T500 worklog exists in the required format |
-| T500 docs no longer name unsafe fixed temp paths | PASS | Exact unsafe-marker grep over T500 docs produced no output after repair |
+| T500 docs no longer name unsafe fixed temp paths | PASS | Static review found only operator-vault and GitHub Actions secret-store guidance |
 | Hosted secret scan is green | PASS | GitHub Actions secret scan and CircleCI secret-scan passed on PR #243 |
 | Runtime/source files unchanged | PASS | Docs-only T500 repair |
 | Build unnecessary | PASS | No runtime/source behavior changed |
