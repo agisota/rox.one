@@ -52,6 +52,9 @@ const shouldValidateLinux = artifactPlatform === 'linux' || artifactPlatform ===
 const shouldValidateMac = artifactPlatform === 'mac' || artifactPlatform === 'all';
 const requestedWindows = artifactPlatform === 'windows' || artifactPlatform === 'all';
 const shouldValidateWindows = isUnsigned && requestedWindows;
+const PRIMARY_ARTIFACT_MIN_BYTES = 50 * 1024 * 1024;
+const BLOCKMAP_MIN_BYTES = 128 * 1024;
+const PRESENCE_MIN_BYTES = 1;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -107,10 +110,10 @@ function assertMinSize(relativePath: string, minBytes: number): void {
  * The linux-signed-release.yml workflow GPG-signs them in every RC.
  */
 const LINUX_REQUIRED: Array<{ path: string; minBytes: number }> = [
-  { path: `ROX-ONE-${linuxArch}.deb`, minBytes: 50 * 1024 * 1024 },
-  { path: `ROX-ONE-${linuxArch}.rpm`, minBytes: 50 * 1024 * 1024 },
-  { path: `ROX-ONE-${linuxArch}.AppImage`, minBytes: 50 * 1024 * 1024 },
-  { path: `ROX-ONE-${linuxArch}.AppImage.sig`, minBytes: 1 },
+  { path: `ROX-ONE-${linuxArch}.deb`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+  { path: `ROX-ONE-${linuxArch}.rpm`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+  { path: `ROX-ONE-${linuxArch}.AppImage`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+  { path: `ROX-ONE-${linuxArch}.AppImage.sig`, minBytes: PRESENCE_MIN_BYTES },
 ];
 
 /**
@@ -118,11 +121,11 @@ const LINUX_REQUIRED: Array<{ path: string; minBytes: number }> = [
  * Code signature is also verified below.
  */
 const MAC_SIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
-  { path: `ROX-ONE-${macArch}.dmg`, minBytes: 50 * 1024 * 1024 },
-  { path: `ROX-ONE-${macArch}.zip`, minBytes: 50 * 1024 * 1024 },
-  { path: `ROX-ONE-${macArch}.dmg.blockmap`, minBytes: 1 * 1024 * 1024 },
-  { path: `ROX-ONE-${macArch}.zip.blockmap`, minBytes: 1 * 1024 * 1024 },
-  { path: 'latest-mac.yml', minBytes: 1 },
+  { path: `ROX-ONE-${macArch}.dmg`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+  { path: `ROX-ONE-${macArch}.zip`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+  { path: `ROX-ONE-${macArch}.dmg.blockmap`, minBytes: BLOCKMAP_MIN_BYTES },
+  { path: `ROX-ONE-${macArch}.zip.blockmap`, minBytes: BLOCKMAP_MIN_BYTES },
+  { path: 'latest-mac.yml', minBytes: PRESENCE_MIN_BYTES },
 ];
 
 /**
@@ -130,11 +133,11 @@ const MAC_SIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
  * No code signature check — a warning is logged instead.
  */
 const MAC_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
-  { path: `ROX-ONE-${macArch}.dmg`, minBytes: 50 * 1024 * 1024 },
-  { path: `ROX-ONE-${macArch}.zip`, minBytes: 50 * 1024 * 1024 },
-  { path: `ROX-ONE-${macArch}.dmg.blockmap`, minBytes: 1 * 1024 * 1024 },
-  { path: `ROX-ONE-${macArch}.zip.blockmap`, minBytes: 1 * 1024 * 1024 },
-  { path: 'latest-mac.yml', minBytes: 1 },
+  { path: `ROX-ONE-${macArch}.dmg`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+  { path: `ROX-ONE-${macArch}.zip`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+  { path: `ROX-ONE-${macArch}.dmg.blockmap`, minBytes: BLOCKMAP_MIN_BYTES },
+  { path: `ROX-ONE-${macArch}.zip.blockmap`, minBytes: BLOCKMAP_MIN_BYTES },
+  { path: 'latest-mac.yml', minBytes: PRESENCE_MIN_BYTES },
 ];
 
 /**
@@ -142,9 +145,9 @@ const MAC_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
  * Windows signed mode is not implemented yet — Windows only ships in RC2+.
  */
 const WINDOWS_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
-  { path: `ROX-ONE-${windowsArch}.exe`, minBytes: 50 * 1024 * 1024 },
-  { path: `ROX-ONE-${windowsArch}.exe.blockmap`, minBytes: 1 * 1024 * 1024 },
-  { path: 'latest.yml', minBytes: 1 },
+  { path: `ROX-ONE-${windowsArch}.exe`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+  { path: `ROX-ONE-${windowsArch}.exe.blockmap`, minBytes: BLOCKMAP_MIN_BYTES },
+  { path: 'latest.yml', minBytes: PRESENCE_MIN_BYTES },
 ];
 
 // ---------------------------------------------------------------------------

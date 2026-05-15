@@ -66,6 +66,9 @@ It also failed the Linux x64 pass case because the validator expected
 - Strengthened Windows `latest.yml` validation for exact `path`, installer URL,
   blockmap URL, and both on-disk sizes.
 - Scoped the Mac ARM workflow validator call with `ROX_ARTIFACT_PLATFORM: mac`.
+- Follow-up T512 lowered the `.blockmap` floor from the synthetic 1 MB fixture
+  threshold to 128 KB after hosted Mac ARM packaging produced a valid 234.64 KB
+  `ROX-ONE-arm64.dmg.blockmap`.
 
 ## 7. Validation commands run
 
@@ -104,4 +107,5 @@ workflow metadata, tests, and documentation.
 | Linux expected names match x64 builder output | PASS | Linux fixture passes with `ROX-ONE-x64.*` artifacts. |
 | Windows installer pattern is `ROX-ONE-${arch}.exe` | PASS | Windows fixture passes with `ROX-ONE-x64.exe` and rejects stale metadata. |
 | `latest.yml` validates installer and blockmap metadata | PASS | Negative tests cover stale installer size and missing blockmap entry. |
+| Hosted Mac blockmaps below 1 MB pass | PASS | T512 regression covers 235 KB Mac blockmaps while zero-byte blockmaps still fail. |
 | Required T503 worklog exists | PASS | This worklog matches the DONE ticket. |

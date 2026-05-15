@@ -40,7 +40,7 @@ platform so each workflow validates only the artifacts it produces.
 ## Size thresholds
 
 - `.dmg`, `.zip`, `.exe`, `.deb`, `.rpm`, `.AppImage`: >= 50 MB
-- `.blockmap` files: >= 1 MB
+- `.blockmap` files: >= 128 KB
 - `.AppImage.sig`, `latest-mac.yml`, `latest.yml`: >= 1 byte (presence only)
 
 ## Files changed
