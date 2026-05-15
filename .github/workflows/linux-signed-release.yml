@@ -114,25 +114,25 @@ jobs:
       - name: Validate linux-boundary fixtures
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           bun run validate:linux-boundary-fixtures 2>&1 | tee .ci-logs/linux-signed-release/validate-linux-boundary-fixtures.log
 
       - name: Validate private linux release trust boundary
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           bun run validate:linux-private-release-boundary 2>&1 | tee .ci-logs/linux-signed-release/validate-linux-private-release-boundary.log
 
       - name: Validate linux-signed-release pipeline shape
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           bun run validate:linux-signed-release-pipeline 2>&1 | tee .ci-logs/linux-signed-release/validate-linux-signed-release-pipeline.log
 
       - name: Build Electron app
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           bun run electron:build 2>&1 | tee .ci-logs/linux-signed-release/electron-build.log
 
       # Run electron-builder for Linux. We pass --publish=never so the
@@ -141,7 +141,7 @@ jobs:
       - name: Package Linux AppImage
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           cd apps/electron
           bunx electron-builder --linux --publish=never 2>&1 | tee ../../.ci-logs/linux-signed-release/electron-builder.log
 
@@ -190,14 +190,18 @@ jobs:
           cat "${OUT}"
 
       # T508: Generate CycloneDX SBOM after build, before artifact upload.
-      # cdxgen -t bun resolves the bun.lock dependency graph. The SBOM is
-      # uploaded as a long-lived workflow artifact (90 days) so it can be
-      # attached to a release or submitted to a dependency-tracking system.
+      # cdxgen -t bun resolves the bun.lock dependency graph. The pinned
+      # transient npx install avoids @latest drift without adding a production
+      # dependency. The SBOM is validated before upload, then uploaded as a
+      # long-lived workflow artifact (90 days) so it can be attached to a
+      # release or submitted to a dependency-tracking system.
       # Mac and Windows SBOM steps land via orchestrator rebase after A2/A3.
       - name: Generate CycloneDX SBOM
         shell: bash
         run: |
-          npx -y @cyclonedx/cdxgen@latest -t bun -o sbom-linux.json
+          set -euo pipefail
+          npx -y @cyclonedx/cdxgen@12.4.0 -t bun -o sbom-linux.json
+          bun run scripts/validate-sbom.ts sbom-linux.json
           echo "SBOM generated: $(wc -c < sbom-linux.json) bytes"
 
       - name: Upload SBOM artifact
