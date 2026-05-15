@@ -1,0 +1,159 @@
+name: Windows Unsigned Release
+
+# M.18 T502: unsigned-beta Windows NSIS installer workflow.
+#
+# UNSIGNED BETA STATUS
+# ~~~~~~~~~~~~~~~~~~~~
+# This workflow produces an Authenticode-unsigned .exe. Windows SmartScreen
+# will display an "Unknown publisher" warning on first install. This is
+# intentional for v1.0.0-rc.2; end-users must click "Run anyway" to proceed.
+#
+# v1.0.x migration path to signed builds
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# When a Windows code-signing certificate is procured ($200-500/year from
+# DigiCert or Sectigo), the following additional steps are required:
+#   1. Encode the .p12 / .pfx as base64 and store as secret CSC_LINK.
+#   2. Store the certificate password as secret CSC_KEY_PASSWORD.
+#   3. In electron-builder.yml `win.signtoolOptions`, set:
+#        signingHashAlgorithms: ["sha256"]
+#        publisherName: "Your Company Name"
+#   4. Wire the secrets into the electron-builder step via env vars.
+#   5. Create a new workflow (windows-signed-release.yml) mirroring this
+#      one but with signing enabled, and retire this unsigned workflow.
+#
+# Trigger model: workflow_dispatch only. Unsigned artifacts are produced on
+# demand for a named release tag; never on push or PR to avoid accidental
+# distribution of development builds.
+#
+# Untrusted-input safety: `inputs.tag` is only ever fed to a shell via the
+# INPUT_TAG env var (never via inline GitHub expression interpolation), and
+# only after a strict regex check. All other shell consumers of input values
+# follow the same env-var pattern.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (required, must match v[0-9]+.[0-9]+.[0-9]+(-rc.[0-9]+)?)"
+        required: true
+        type: string
+
+concurrency:
+  group: windows-unsigned-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  windows-unsigned-release:
+    name: ROX ONE Windows unsigned NSIS installer
+    runs-on: windows-latest
+    timeout-minutes: 75
+    env:
+      ROX_HEADLESS: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Tag-protection guard. The dispatch input is untrusted, so it is fed
+      # via env (never inline) and pattern-validated before any later step
+      # references it. This blocks injection payloads in the tag and also
+      # stops accidental runs against non-release refs.
+      - name: Validate release tag pattern
+        shell: pwsh
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $candidate = $env:INPUT_TAG -replace '^refs/tags/', ''
+          Write-Host "Candidate release tag: $candidate"
+          if ($candidate -notmatch '^v\d+\.\d+\.\d+(-rc\.\d+)?$') {
+            Write-Error "release tag '$candidate' does not match v[0-9]+.[0-9]+.[0-9]+(-rc.[0-9]+)?"
+            exit 1
+          }
+          "RELEASE_TAG=$candidate" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      # uv is required to run Python-based CLI tools (markitdown, pdf-tool,
+      # xlsx-tool, docx-tool, pptx-tool, ical-tool, img-tool, doc-diff)
+      # bundled into the Electron app via resources/bin/*.cmd wrappers.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Prepare unsigned-release logs
+        run: New-Item -ItemType Directory -Force -Path .ci-logs\windows-unsigned-release | Out-Null
+        shell: pwsh
+
+      # Build renderer + main using the Windows-specific build script which
+      # omits the macOS .env source that is unavailable on Windows runners.
+      - name: Build Electron app (Windows)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun run build:win *>&1 | Tee-Object -FilePath .ci-logs\windows-unsigned-release\electron-build.log
+
+      # Package with electron-builder for Windows x64 NSIS installer.
+      # --publish=never prevents upload to the generic update server; the
+      # workflow artifact upload below handles distribution.
+      # No signing env vars are set -- this is intentionally unsigned for
+      # the v1.0.0-rc.2 beta distribution (SmartScreen will warn on install).
+      - name: Package Windows NSIS installer (unsigned)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bunx electron-builder --win --x64 --publish=never *>&1 | Tee-Object -FilePath .ci-logs\windows-unsigned-release\electron-builder.log
+
+      # Compute SHA-256 checksums using PowerShell Get-FileHash (no coreutils
+      # dependency; standard on all Windows runners).
+      - name: Compute artifact checksums (SHA-256)
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $outFile = '.ci-logs\windows-unsigned-release\release-checksums.txt'
+          $lines = @()
+          $lines += "# ROX.ONE Windows unsigned release $env:RELEASE_TAG SHA-256 checksums"
+          $lines += "# generated at $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ' -AsUTC)"
+          $releaseDir = 'apps\electron\release'
+          foreach ($pat in @('*.exe', '*.yml', '*.blockmap')) {
+            $files = Get-ChildItem -Path $releaseDir -Filter $pat -ErrorAction SilentlyContinue
+            foreach ($f in $files) {
+              $hash = (Get-FileHash -Algorithm SHA256 -Path $f.FullName).Hash.ToLower()
+              $lines += "$hash  $($f.Name)"
+            }
+          }
+          $lines | Out-File -FilePath $outFile -Encoding utf8
+          Get-Content $outFile
+
+      - name: Upload Windows installer artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-unsigned-win-x64
+          path: |
+            apps/electron/release/*.exe
+            apps/electron/release/*.yml
+            apps/electron/release/*.blockmap
+            .ci-logs/windows-unsigned-release/release-checksums.txt
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload unsigned-release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-windows-unsigned-release-evidence
+          path: |
+            .ci-logs/windows-unsigned-release/**/*.log
+            .ci-logs/windows-unsigned-release/release-checksums.txt
+          retention-days: 14
+          if-no-files-found: warn
