@@ -193,6 +193,28 @@ execution step still requires clean `main`, an accepted `rebrand-v1` tag
 policy, fork-review acknowledgement if still current, green default preflight,
 backup artifacts, and green explicit pre-rewrite preflight.
 
+## Worktree Clean Runtime State
+
+The local worktree cleanup snapshot is
+`docs/release/r11-worktree-clean-runtime-state-2026-05-16.md`.
+
+T497 restored only `.omc/state/last-tool-error.json` to `HEAD`, clearing the
+tracked OMC runtime-state diff that was blocking `worktree-clean`. The cleanup
+did not mutate tags, branches, backup refs, offline mirrors, rewritten history,
+force-pushed refs, or `/goal` state.
+
+After the cleanup, acknowledged preflight on the report branch showed:
+
+| Gate | Current state |
+| --- | --- |
+| `worktree-clean` | Pass before docs edits |
+| `rebrand-tag-on-main` | Fail |
+| `current-branch` | Fail while the report branch is checked out |
+
+After T497 lands on `main`, the expected acknowledged pre-backup blocker set is
+reduced to `rebrand-tag-on-main`. That remaining blocker is operator-owned ref
+policy and is not cleared by local cleanup.
+
 Remaining safe/report-only work:
 
 1. Keep `docs/release/r11-completion-audit-2026-05-15.md`,
