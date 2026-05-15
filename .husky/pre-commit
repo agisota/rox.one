@@ -6,8 +6,8 @@
 
 # T507 — Gitleaks scan (RC2)
 # Scans staged changes for secrets BEFORE they enter git history.
-# Developers without gitleaks are NOT blocked (fail-open policy).
-# CI enforces this unconditionally via .github/workflows/secret-scan.yml.
+# Developers without gitleaks are NOT blocked locally (best-effort/fail-open).
+# Hosted CI secret-scan stays the hard gate via .github/workflows/secret-scan.yml.
 # Install: brew install gitleaks (mac) or apt install gitleaks (linux).
 if command -v gitleaks >/dev/null 2>&1; then
   gitleaks protect --staged --redact --no-banner
