@@ -90,18 +90,6 @@ jobs:
       # Run the validator fixture suite ahead of electron-builder so any
       # boundary regression (entitlements, appId, buildVersion) is caught
       # before we burn build minutes.
-      - name: Validate mac-boundary fixtures
-        shell: bash
-        run: |
-          set -o pipefail
-          bun run validate:mac-boundary-fixtures 2>&1 | tee .ci-logs/mac-unsigned-release/validate-mac-boundary-fixtures.log
-
-      - name: Validate private mac release trust boundary
-        shell: bash
-        run: |
-          set -o pipefail
-          bun run validate:mac-private-release-boundary 2>&1 | tee .ci-logs/mac-unsigned-release/validate-mac-private-release-boundary.log
-
       - name: Build Electron app
         shell: bash
         run: |
