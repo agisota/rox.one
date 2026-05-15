@@ -162,6 +162,37 @@ commits are already represented by squash commit `ff687795`, and `ff687795`
 has the same tree as `b817d1c3`. Treat the tag policy as operator-owned ref
 control, not report-only work.
 
+## Post-PR #228 Blocker Refresh
+
+The current post-PR #228 blocker snapshot is
+`docs/release/r11-post-228-blocker-refresh-2026-05-16.md`.
+
+PR #228 merged into `main` at
+`a93d6baebb13fb52979cf89819db9ede9aabc07b` on
+`2026-05-15T21:45:54Z`. Its GitHub checks and CircleCI checks are green,
+including CircleCI `validate`, so the T495 hosted `transform_data` EBADF
+fallback has hosted proof.
+
+Current post-PR #228 report-only state:
+
+| Gate | Current state |
+| --- | --- |
+| `no-open-prs` | Pass |
+| `main-sync` | Pass: `origin/main...main` is `0 0` at `a93d6bae` |
+| `rebrand-tag-local-sync` | Pass: local and origin `rebrand-v1` peel to `b817d1c311b30487e95dfd83fc6fdfe9ddc8bd99` |
+| `rebrand-tag-on-main` | Fail: the peeled tag target is still outside `origin/main` ancestry |
+| `worktree-clean` | Fail: `.omc/state/last-tool-error.json` is dirty |
+| `fork-review` | Fails by default because GitHub reports 2 forks and the default expected count is 0; passes only with the reviewed `ROX_R11_EXPECTED_FORKS=2` acknowledgement if unchanged |
+| `backup-tag`, `backup-branch`, `offline-mirror` | Fail in pre-rewrite mode because the R.11 backup artifacts do not exist |
+| `remote-branch-review` | Fail: origin has 159 non-main, non-R.11-backup heads |
+| `history-scan` | Fail: 81 forbidden-token patch lines remain until the authorized rewrite |
+| `legal-preserve` | Fail until `pre-rebrand-history-rewrite-backup` exists; Dockerfile attribution passes |
+
+This refresh does not authorize any destructive operation. The next R.11
+execution step still requires clean `main`, an accepted `rebrand-v1` tag
+policy, fork-review acknowledgement if still current, green default preflight,
+backup artifacts, and green explicit pre-rewrite preflight.
+
 Remaining safe/report-only work:
 
 1. Keep `docs/release/r11-completion-audit-2026-05-15.md`,
