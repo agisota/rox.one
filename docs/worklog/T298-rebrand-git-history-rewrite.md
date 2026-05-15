@@ -155,6 +155,9 @@ Representative report-only evidence anchors include:
 - T490 clarified that the 2026-05-15 `/tmp` bundle hashes and exact main SHA
   are captured evidence, not a moving latest-head claim after later report-only
   audit commits.
+- T491 added the post-PR #225 current remaining-work list to the 2026-05-15
+  audit, with fresh `f68e748d` evidence hashes and the ordered safe vs
+  destructive R.11 action sequence.
 
 This list is a set of stable anchors, not a live chronology. Later report-only
 audit-hygiene tickets carry their own fresh targeted validation evidence in

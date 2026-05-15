@@ -97,6 +97,71 @@ This checklist is not authorization for this active run.
 7. Update T298, the mapping report, README coordination banner, and
    `.swarm/master-roadmap-log.md` only after the rewrite actually completes.
 
+## Current Remaining Worklist
+
+Fresh report-only evidence was captured after PR #225 merged into `main` as
+`f68e748d19233b160b0983b79435d56e8e7b4249`. Local `main` and `origin/main`
+are synchronized (`origin/main...HEAD = 0 0`), the worktree is clean, and
+GitHub reports no open PRs.
+
+Current evidence artifacts:
+
+| Gate | Evidence | Result |
+| --- | --- | --- |
+| Git status | `/tmp/r11-git-status-post-pr225-20260515T025017Z.log` SHA `dca07d6acec0b3ec98be1ad40d7a946c950ba96f765ed26a439cc97cdf3ec047` | Clean `main` at `f68e748d`; `origin/main...HEAD = 0 0` |
+| Remote PR/ref snapshot | `/tmp/r11-remote-refs-post-pr225-20260515T025017Z.log` SHA `f0d9d29c83c9767c75d64b3b0130c7d0d516cab1cd48903ec5c5962abb210baa` | Open PRs `[]`; `rebrand-v1` exists; backup ref absent; offline mirror absent |
+| Default pre-backup preflight | `/tmp/r11-preflight-post-pr225-20260515T025017Z.log` SHA `ea99074e9b79d4b5caa258e2d8db1fbcb03b435c16ea0e938b4d1e16ff60da4d` | Red: `no-active-goal`, `fork-review`, `rebrand-tag-on-main` |
+| Pre-backup with explicit acknowledgements | `/tmp/r11-preflight-ack-post-pr225-20260515T025017Z.log` SHA `18ab339154b2cba0c48f28d05100047cbf905ea4b77f4732dd80a0c3e9cf3a73` | Red: `rebrand-tag-on-main` |
+| Pre-rewrite with explicit acknowledgements | `/tmp/r11-prewrite-ack-post-pr225-20260515T025017Z.log` SHA `720951d743c94702ca5570c591db626a3af731e526bade93d2e59214f790931b` | Red: `rebrand-tag-on-main`, `backup-tag`, `backup-branch`, `offline-mirror`, `remote-branch-review` |
+| History scan | `/tmp/r11-history-scan-post-pr225-20260515T025017Z.log` SHA `e61ea1799af5aebe9a4ebe1a057553a0ace7d7778427d2d4f0dfd4da13af12d2` | Red: 81 forbidden-token patch lines outside the legal-preserve allowlist |
+| Legal-preserve gate | `/tmp/r11-legal-preserve-post-pr225-20260515T025017Z.log` SHA `352f6a806d8835ef56da9aefa436dbbb39e5cc0f498a1ae7ddca7d94e2f48ab6` | Red: backup ref missing for `LICENSE`, `NOTICE`, `TRADEMARK.md`; Dockerfile attribution passes |
+
+Remaining safe/report-only work:
+
+1. Keep `docs/release/r11-completion-audit-2026-05-15.md`,
+   `docs/tickets/T298-rebrand-git-history-rewrite.md`, and
+   `docs/worklog/T298-rebrand-git-history-rewrite.md` synchronized with any
+   newly cleared blocker.
+2. Continue merging only non-destructive documentation/audit PRs that reduce
+   ambiguity; avoid broad runtime edits during the R.11 freeze.
+3. Re-run the report-only preflight after each merge or remote state change.
+4. Do not mark T298 `DONE` and do not call `update_goal` while any R.11 gate
+   remains red.
+
+Remaining operator-owned or destructive work, in required order:
+
+1. Clear or pause active Codex `/goal` state for the destructive R.11 window;
+   the current active goal itself proves this gate is not yet truthfully clear.
+2. Resolve fork review policy: either reduce GitHub forks to the expected
+   count or intentionally set the reviewed expected count for the run.
+3. Repoint `rebrand-v1` so the origin tag target is on `origin/main` ancestry,
+   and verify local and origin `rebrand-v1` still peel to the same commit.
+4. Run the default pre-backup gate and require green before creating backup
+   artifacts.
+5. Create and push `pre-rebrand-history-rewrite-backup`.
+6. Create and push `backup/pre-rebrand-history-rewrite-2026-05-13`.
+7. Create `/tmp/rox-one-terminal-backup-2026-05-13.git` as the offline mirror.
+8. Reduce or explicitly resolve the remote branch review queue so explicit
+   pre-rewrite mode sees only `main` plus the R.11 backup branch.
+9. Run `bun run rebrand:r11-preflight --stage pre-rewrite` and require
+   `backup-tag-target`, `backup-branch-target`, and `offline-mirror-target` to
+   pass against current `main`.
+10. Run the two-pass `git filter-repo` rewrite from the goal.
+11. Run `bun run rebrand:r11-legal-preserve` and stop on any attribution drift.
+12. Run `bun run validate:rebrand`, `bun run typecheck`, `bun test`,
+    `bun run lint`, `bun run build`, `bun run validate:docs`, and
+    `bun run validate:agent-contract` on the rewritten history.
+13. Run `bun run rebrand:r11-history-scan` and require zero forbidden-token
+    patch lines outside the legal-preserve allowlist.
+14. Force-push `main` with `--force-with-lease`, then force-push
+    `refs/tags/rebrand-v1`.
+15. Add the README 72-hour post-rewrite coordination banner.
+16. Update `docs/release/rebrand-mapping-2026-05-13.md` with the R.11 closeout
+    SHA.
+17. Record pre/post commit counts, destructive commands, backup evidence,
+    validation output, and force-push result in T298.
+18. Mark T298 `Status: DONE` only after all R.11 stopping conditions pass.
+
 ## Stop Condition
 
 The objective is NOT ACHIEVED.
