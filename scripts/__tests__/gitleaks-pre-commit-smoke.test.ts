@@ -1,19 +1,62 @@
 import { test, expect } from "bun:test";
-import { execSync } from "node:child_process";
-import { writeFileSync, unlinkSync } from "node:fs";
-import { mkdtempSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 
-test("gitleaks protect blocks staged fake AWS key", () => {
-  const tmpDir = mkdtempSync(join(tmpdir(), "gitleaks-test-"));
-  const fakeFile = join(tmpDir, "secret.txt");
-  writeFileSync(fakeFile, "AKIAIOSFODNN7EXAMPLE\nwJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n");
+const hookPath = join(process.cwd(), ".husky/pre-commit");
+
+test("pre-commit hook runs gitleaks protect against staged changes", () => {
+  const tmpDir = mkdtempSync(join(tmpdir(), "gitleaks-hook-"));
+  const binDir = join(tmpDir, "bin");
+  const argsFile = join(tmpDir, "args.txt");
+  const fakeGitleaks = join(binDir, "gitleaks");
+
+  mkdirSync(binDir);
+  writeFileSync(fakeGitleaks, [
+    "#!/usr/bin/env sh",
+    "printf '%s\\n' \"$@\" > \"$GITLEAKS_ARGS_FILE\"",
+    "exit 37",
+    "",
+  ].join("\n"));
+  chmodSync(fakeGitleaks, 0o755);
+
   try {
-    // Run gitleaks directly against the file
-    const result = execSync(`gitleaks detect --no-banner --no-git --source ${tmpDir} 2>&1 || true`, { encoding: "utf8" });
-    expect(result).toMatch(/leak|aws|secret|finding/i);
+    expect(() => execFileSync("/bin/sh", [hookPath], {
+      env: {
+        ...process.env,
+        GITLEAKS_ARGS_FILE: argsFile,
+        PATH: `${binDir}${delimiter}${process.env.PATH ?? ""}`,
+      },
+      encoding: "utf8",
+    })).toThrow();
+
+    expect(readFileSync(argsFile, "utf8").trim().split("\n")).toEqual([
+      "protect",
+      "--staged",
+      "--redact",
+      "--no-banner",
+    ]);
   } finally {
-    unlinkSync(fakeFile);
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("pre-commit hook is fail-open when local gitleaks is missing", () => {
+  const tmpDir = mkdtempSync(join(tmpdir(), "gitleaks-hook-missing-"));
+  const binDir = join(tmpDir, "bin");
+
+  try {
+    mkdirSync(binDir);
+    const output = execFileSync("/bin/sh", [hookPath], {
+      env: {
+        PATH: binDir,
+      },
+      encoding: "utf8",
+    });
+
+    expect(output).toContain("gitleaks not installed; skipping secret scan");
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
   }
 });
