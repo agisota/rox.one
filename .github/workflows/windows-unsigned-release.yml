@@ -114,16 +114,14 @@ jobs:
 
       # Build renderer + main using the Windows-specific build script which
       # omits the macOS .env source that is unavailable on Windows runners.
+      # The build:win script lives in apps/electron/package.json — set
+      # working-directory accordingly.
       - name: Build Electron app (Windows)
         shell: pwsh
+        working-directory: apps/electron
         run: |
           $ErrorActionPreference = 'Stop'
-          Push-Location apps\electron
-          try {
-            bun run build:win *>&1 | Tee-Object -FilePath ..\..\.ci-logs\windows-unsigned-release\electron-build.log
-          } finally {
-            Pop-Location
-          }
+          bun run build:win *>&1 | Tee-Object -FilePath ..\..\.ci-logs\windows-unsigned-release\electron-build.log
 
       # Package with electron-builder for Windows x64 NSIS installer.
       # --publish=never prevents upload to the generic update server; the
@@ -132,14 +130,10 @@ jobs:
       # the v1.0.0-rc.2 beta distribution (SmartScreen will warn on install).
       - name: Package Windows NSIS installer (unsigned)
         shell: pwsh
+        working-directory: apps/electron
         run: |
           $ErrorActionPreference = 'Stop'
-          Push-Location apps\electron
-          try {
-            bunx electron-builder --win --x64 --publish=never *>&1 | Tee-Object -FilePath ..\..\.ci-logs\windows-unsigned-release\electron-builder.log
-          } finally {
-            Pop-Location
-          }
+          bunx electron-builder --win --x64 --publish=never *>&1 | Tee-Object -FilePath ..\..\.ci-logs\windows-unsigned-release\electron-builder.log
 
       - name: Validate Windows unsigned-release boundary
         shell: pwsh
