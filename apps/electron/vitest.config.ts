@@ -1,6 +1,7 @@
-import { defineConfig } from 'vitest/config'
+import { mergeConfig, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'node:path'
+import sharedConfig from '../../vitest.shared.config'
 
 /**
  * Vitest config scoped to RTL tests (*.rtl.test.tsx).
@@ -8,8 +9,10 @@ import { resolve } from 'node:path'
  * Bun's native test runner remains the default for unit + integration tests.
  * Vitest is invoked via `bun run test:rtl` for tests that need a DOM (TipTap
  * contentEditable, cmdk, axe-core, motion/react).
+ *
+ * Extends vitest.shared.config.ts for common coverage/globals defaults.
  */
-export default defineConfig({
+export default mergeConfig(sharedConfig, defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
@@ -27,12 +30,8 @@ export default defineConfig({
     include: ['src/**/*.rtl.test.tsx'],
     environment: 'happy-dom',
     setupFiles: ['./src/test-utils/vitest-setup.ts'],
-    globals: false,
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'text-summary', 'json'],
       include: ['src/renderer/components/**/*.{ts,tsx}'],
-      exclude: ['**/__tests__/**', '**/*.test.*', '**/*.rtl.test.*'],
     },
   },
-})
+}))
