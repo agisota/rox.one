@@ -1,8 +1,8 @@
 # Security Audit: RPC Handler Rate-Limiting Coverage
 
-**Ticket:** T510  
-**Date:** 2026-05-15  
-**RC:** v1.0.0-rc.1  
+**Ticket:** T510
+**Date:** 2026-05-15
+**RC:** v1.0.0-rc.1
 **Auditor:** Automated audit per CLAUDE.md security rule — "Rate-limit all public APIs: per-IP and per-user limits, return 429 with Retry-After."
 
 ---
@@ -11,13 +11,13 @@
 
 This document audits every RPC handler in `packages/server-core/src/handlers/rpc/` for rate-limiting coverage. The review covers the T086d abuse-guard middleware pattern (token-bucket `rateLimiter` + per-actor `budgetGuard`) shipped in the RC.
 
-**Audit scope:** 26 handler files, covering approximately 90+ individual RPC channels.
+**Audit scope:** 22 registered RPC handler files, covering 218 `server.handle(...)` registrations.
 
 ---
 
 ## Methodology
 
-Rate-limiting evidence was determined by direct inspection of each handler file. The abuse-guard pattern used in this codebase is:
+Rate-limiting evidence was determined by direct inspection of each handler file registered by `packages/server-core/src/handlers/rpc/index.ts`. The abuse-guard pattern used in this codebase is:
 
 1. **abuse-guard (token bucket):** `deps.rateLimiter.tryAcquire(1)` — global burst limiter injected via `HandlerDeps.rateLimiter`. Returns `{error: 'rate-limited', reason: 'token-bucket-exhausted'}` on exhaustion.
 2. **per-actor budget guard:** `deps.budgetGuard.consume(key, 1)` — per-actor lifetime cap keyed by `ctx.userId`. Returns `{error: 'budget-exceeded', reason: 'per-actor-cap-exhausted'}` on exhaustion.
@@ -54,13 +54,14 @@ Rate-limiting evidence was determined by direct inspection of each handler file.
 | `transfer.ts` | `transfer.start`, `transfer.chunk`, `transfer.commit`, `transfer.abort` | Yes (all — assembles and executes arbitrary transferable handler) | — | — | n/a (WS-RPC) | NEEDS REVIEW — no rate limit; `transfer.chunk` with large payloads could exhaust disk; TTL mechanism only |
 | `system.ts` | `theme.getSystemPreference`, `system.versions`, `system.homeDir`, `system.isDebugMode`, `debug.log`, `shell.openUrl`, `shell.openFile`, `shell.showInFolder`, `releaseNotes.get`, `releaseNotes.getLatestVersion`, `git.getBranch`, `gitbash.check`, `gitbash.browse`, `gitbash.setPath` | Yes (`shell.openUrl`, `gitbash.setPath`) | — | — | n/a (WS-RPC) | NEEDS REVIEW — `shell.openUrl` (external browser open), `debug.log` (renderer→disk) unguarded |
 | `experience.ts` | `experience.emit`, `experience.subscribe`, `experience.unsubscribe` | Yes (emit) | — | — | n/a (WS-RPC) | NEEDS REVIEW — `experience.emit` (fans out to all subscribers) lacks rate limiting; fan-out amplification risk |
+| `server.ts` | `server.getWorkspaces`, `server.createWorkspace`, `server.getStatus`, `server.getHealth`, `server.getActiveSessions`, `server.homeDir` | Yes (`createWorkspace`) | — | — | n/a (WS-RPC) | NEEDS REVIEW — workspace creation and server inventory endpoints have RBAC filtering but no burst-rate protection |
+| `messaging.ts` | `messaging.getConfig`, `messaging.updateConfig`, `messaging.testTelegram`, `messaging.saveTelegram`, `messaging.testLark`, `messaging.saveLark`, `messaging.disconnect`, `messaging.forget`, `messaging.getBindings`, `messaging.generateCode`, `messaging.unbind`, `messaging.unbindBinding`, `messaging.generateSupergroupCode`, `messaging.getSupergroup`, `messaging.unbindSupergroup`, `messaging.waStartConnect`, `messaging.waSubmitPhone`, `messaging.getPlatformOwners`, `messaging.setPlatformOwners`, `messaging.getPlatformAccessMode`, `messaging.setPlatformAccessMode`, `messaging.getPendingSenders`, `messaging.dismissPendingSender`, `messaging.allowPendingSender`, `messaging.setBindingAccess` | Yes (config, credential, pairing, ownership, binding mutations) | — | — | n/a (WS-RPC) | NEEDS REVIEW — credential tests, pairing-code generation, ownership changes, and WhatsApp connect flow are unguarded |
 | `admin/audit-list.ts` | `audit.list` | No (read-only) | — | — | n/a (WS-RPC) | OK — read-only; protected by global-owner RBAC gate |
 | `experience-bus.ts` | (internal bus utility, not a handler file) | n/a | n/a | n/a | n/a | OUT OF SCOPE — internal module, no RPC channels |
 | `account-ownership.ts` | (auth helper, not a handler file) | n/a | n/a | n/a | n/a | OUT OF SCOPE — utility module |
 | `storage-scope.ts` | (storage helper, not a handler file) | n/a | n/a | n/a | n/a | OUT OF SCOPE — utility module |
 | `_validators.ts` | (validation helpers, not a handler file) | n/a | n/a | n/a | n/a | OUT OF SCOPE — utility module |
 | `index.ts` | (registration barrel, not a handler file) | n/a | n/a | n/a | n/a | OUT OF SCOPE — registration barrel |
-| `server.ts` | (server file not examined — name collision with `server-core/transport`) | — | — | — | n/a | NEEDS REVIEW — content could not be confirmed |
 
 ---
 
@@ -68,16 +69,16 @@ Rate-limiting evidence was determined by direct inspection of each handler file.
 
 | Metric | Count |
 |---|---|
-| Total handler files with RPC channels | 20 |
-| Channels audited (approximate) | 92 |
-| Handler files with abuse-guard (rateLimiter) | 6 |
-| Handler files with per-user rate limit (budgetGuard) | 6 |
+| Total registered handler files with RPC channels | 22 |
+| Channels audited | 218 |
+| Handler files with abuse-guard (rateLimiter) | 9 |
+| Handler files with per-user rate limit (budgetGuard) | 9 |
 | Handler files fully PROTECTED | 3 (`labels.ts`, `statuses.ts`, `skills.ts`) |
-| Handler files PARTIAL (some channels protected) | 5 (`auth.ts`, `sessions.ts`, `sources.ts`, `workspace.ts`, `roles.ts`, `missions.ts`) |
-| Handler files NEEDS REVIEW (no rate limiting) | 9 (`oauth.ts`, `onboarding.ts`, `llm-connections.ts`, `settings.ts`, `files.ts`, `resources.ts`, `automations.ts`, `transfer.ts`, `system.ts`, `experience.ts`) |
+| Handler files PARTIAL (some channels protected) | 6 (`auth.ts`, `sessions.ts`, `sources.ts`, `workspace.ts`, `roles.ts`, `missions.ts`) |
+| Handler files NEEDS REVIEW (no rate limiting) | 12 (`oauth.ts`, `onboarding.ts`, `llm-connections.ts`, `settings.ts`, `files.ts`, `resources.ts`, `automations.ts`, `transfer.ts`, `system.ts`, `experience.ts`, `server.ts`, `messaging.ts`) |
 | Handlers returning 429 HTTP status with Retry-After | 0 — WS-RPC transport; error returned as structured RPC result envelope |
 
-**Coverage rate of T086d abuse-guard pattern:** ~30% of handler files (6/20). The T086d ticket applied the pattern selectively to high-priority channels; remaining handler files were deferred.
+**Coverage rate of T086d abuse-guard pattern:** ~41% of registered handler files (9/22). The T086d ticket applied the pattern selectively to high-priority channels; remaining handler files were deferred.
 
 ---
 
@@ -113,6 +114,10 @@ Handlers are ordered by exploitation potential (external exposure × mutation im
 
 10. **`system.ts`** — `shell.openUrl` (external browser), `debug.log` (disk write), and `git.getBranch` (subprocess) are callable per-RPC with no rate gate. Low risk in Electron context (trusted origin); higher risk in WebSocket/server deployments.
 
+11. **`server.ts`** — `server.createWorkspace` mutates global workspace config and `server.getWorkspaces` / `server.getActiveSessions` expose inventory after ownership filtering. Add a burst gate before workspace creation and consider a low-cost read throttle for inventory endpoints.
+
+12. **`messaging.ts`** — `messaging.testTelegram`, `messaging.testLark`, WhatsApp connect, pairing-code generation, credential saves, and owner/access mutations are unguarded. These endpoints can hit external messaging providers or mutate workspace access state and should receive a shared messaging abuse guard.
+
 ---
 
 ## 429 / Retry-After Gap
@@ -135,3 +140,4 @@ None of the rate-limited responses currently return an HTTP 429 status code with
 | T519 | Add rate limiting to `resources.ts` (`resources.import`) | P3 | S |
 | T520 | Add 429 + `Retry-After` HTTP translation layer for WS-RPC rate-limit envelopes | P3 | L — architectural; affects transport layer |
 | T521 | Close remaining partial handlers: `sessions.ts` (command, setNotes, import), `sources.ts` (saveCredentials, getMcpTools), `workspace.ts` (writeImage, views.save, theme.set*), `roles.ts` (create), `missions.ts` (create) | P3 | S each |
+| T522 | Add rate limiting to `messaging.ts` provider/pairing/access mutations and `server.ts` workspace creation | P3 | M |

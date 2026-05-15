@@ -22,10 +22,12 @@ open (warn + allow) when gitleaks is not installed locally.
 - `.husky/pre-commit` — new hook; runs `gitleaks protect --staged --redact --no-banner`
   with a fail-open guard for developers who have not installed gitleaks.
 - `.gitleaks.toml` — new allowlist config at repo root for known false positives
-  (docs markdown, test fixtures, snapshots, dependency risk register files).
+  (test fixtures, snapshots, dependency risk register files).
 - `scripts/__tests__/gitleaks-pre-commit-smoke.test.ts` — smoke test that
-  verifies gitleaks detects a fake AWS key in a temp directory.
+  verifies the pre-commit hook invokes `gitleaks protect` through a fake binary
+  and remains fail-open when the local binary is absent.
 - `docs/tickets/T507-gitleaks-pre-commit.md` — this ticket.
+- `docs/worklog/T507-gitleaks-pre-commit.md` — implementation worklog.
 
 ## Validation
 
@@ -33,14 +35,15 @@ open (warn + allow) when gitleaks is not installed locally.
 # Syntax check
 bash -n .husky/pre-commit
 
-# Smoke test (requires gitleaks installed)
+# Smoke test (uses a fake gitleaks binary)
 bun test scripts/__tests__/gitleaks-pre-commit-smoke.test.ts
 ```
 
 ## Fail-open Policy
 
-If `gitleaks` is not installed, the hook emits install instructions and exits 0,
-so the commit proceeds. CI (`secret-scan.yml`) is the hard gate.
+If `gitleaks` is not installed, the local hook emits install instructions and
+exits 0, so the commit proceeds. Hosted CI (`secret-scan.yml`) is the hard gate
+and is not weakened by broad documentation allowlists.
 
 ## Install Instructions
 
