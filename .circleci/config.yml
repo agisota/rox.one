@@ -93,7 +93,10 @@ jobs:
             bun run validate:agent-contract 2>&1 | tee .ci-logs/agent-contract.log
             bun run validate:architecture-docs 2>&1 | tee .ci-logs/architecture-docs.log
             bun run validate:ci 2>&1 | tee .ci-logs/validate-ci.log
-            bun run test:units 2>&1 | tee .ci-logs/test-units.log
+            bun test --timeout=30000 2>&1 | tee .ci-logs/test-units.log
+            for f in $(find . -name '*.isolated.ts' -not -path './node_modules/*' -not -path './apps/electron/release/*'); do
+              bun test --timeout=30000 "$f" 2>&1 | tee -a .ci-logs/test-units.log || exit 1
+            done
       - store_artifacts:
           path: .ci-logs
           destination: validation-logs
