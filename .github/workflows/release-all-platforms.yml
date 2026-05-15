@@ -1,0 +1,470 @@
+name: Release All Platforms
+
+# Unified release workflow: builds Mac ARM64 + Linux x64 + Windows x64 in
+# parallel on a version tag push (or manual dispatch), then publishes all
+# artifacts to a draft GitHub release for the tag.
+#
+# Idempotency: softprops/action-gh-release is idempotent on tag_name — the
+# first matrix job to finish creates the draft release; each subsequent job
+# appends its artifacts to the same release object. No coordination job is
+# needed between matrix jobs.
+#
+# Signing status (v1.0.0-rc.2 baseline, UNSIGNED across all platforms):
+#   Mac   — CSC_IDENTITY_AUTO_DISCOVERY=false. Gatekeeper will warn on open;
+#            notarization requires CSC_LINK + APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD
+#            + APPLE_TEAM_ID. Wire those secrets and lift the notarize block
+#            from mac-signed-release.yml in a follow-up.
+#   Linux — GPG signing is skipped. To add it, lift the "GPG sign AppImage"
+#            block from linux-signed-release.yml and wire the three
+#            ROX_LINUX_GPG_KEY / ROX_LINUX_GPG_KEY_ID / ROX_LINUX_GPG_PASSPHRASE
+#            secrets in a follow-up.
+#   Win   — Authenticode signing is skipped (SmartScreen will warn on install).
+#            To add it, wire CSC_LINK + CSC_KEY_PASSWORD and update
+#            electron-builder.yml signtoolOptions in a follow-up.
+#
+# Per-platform ad-hoc workflows (mac-unsigned-release.yml, linux-signed-release.yml,
+# windows-unsigned-release.yml, mac-signed-release.yml) are NOT modified and
+# remain available for targeted reruns / signed rebuilds.
+#
+# Untrusted-input safety: workflow_dispatch `tag` input is always fed to bash
+# via an env var (DISPATCH_TAG / INPUT_TAG), never via inline ${{ }} interpolation
+# in a run: block. The tag is regex-validated before any shell consumer uses it.
+# Matrix values (platform names) are static workflow strings, not external input,
+# but are also passed through env: vars in run: blocks for consistency.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.0.0-rc.2). Defaults to the current ref when empty."
+        required: false
+        type: string
+
+# Releases must NEVER be cancelled mid-flight — a partial release would leave
+# an incomplete set of assets on GitHub. cancel-in-progress: false is
+# intentional and load-bearing.
+concurrency:
+  group: release-all-platforms-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write  # required by softprops/action-gh-release to create/update releases
+
+jobs:
+  build-and-release:
+    name: "ROX ONE ${{ matrix.platform }} release"
+    timeout-minutes: 90
+    strategy:
+      # Allow all three platform jobs to run even if one fails — partial
+      # releases are better than no release when only one platform regresses.
+      fail-fast: false
+      matrix:
+        include:
+          - platform: mac-arm64
+            runs-on: macos-15-xlarge
+          - platform: linux-x64
+            runs-on: ubuntu-latest
+          - platform: windows-x64
+            runs-on: windows-latest
+
+    runs-on: ${{ matrix.runs-on }}
+
+    env:
+      ROX_HEADLESS: "1"
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Resolve and validate the release tag
+      # -----------------------------------------------------------------------
+      - name: Resolve release tag
+        id: resolve-tag
+        # On tag push github.ref_name is already the tag (e.g. v1.0.0-rc.2).
+        # On workflow_dispatch, use the optional input or fall back to ref_name.
+        # Both DISPATCH_TAG and REF_NAME are passed through env vars — never
+        # inlined into the run: script body — to avoid injection attacks.
+        shell: bash
+        env:
+          DISPATCH_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ -n "${DISPATCH_TAG}" ]; then
+            CANDIDATE="${DISPATCH_TAG#refs/tags/}"
+          else
+            CANDIDATE="${REF_NAME#refs/tags/}"
+          fi
+          echo "Resolved candidate tag: ${CANDIDATE}"
+          if [[ ! "${CANDIDATE}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::release tag '${CANDIDATE}' does not match v[0-9]+.[0-9]+.[0-9]+(-rc.[0-9]+)?"
+            exit 1
+          fi
+          echo "RELEASE_TAG=${CANDIDATE}" >> "$GITHUB_ENV"
+          echo "tag=${CANDIDATE}" >> "$GITHUB_OUTPUT"
+
+      # -----------------------------------------------------------------------
+      # 2. Checkout the exact tag's code
+      # -----------------------------------------------------------------------
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          # Checkout the validated tag — NOT the default branch — so the build
+          # always reflects the exact tagged commit.
+          ref: ${{ steps.resolve-tag.outputs.tag }}
+          fetch-depth: 0
+
+      # -----------------------------------------------------------------------
+      # 3. Toolchain setup (common across all three platforms)
+      # -----------------------------------------------------------------------
+      - name: Setup Bun 1.3.11
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      # uv is required for the Python-based CLI helpers bundled into the app
+      # (markitdown, pdf-tool, xlsx-tool, docx-tool, pptx-tool, ical-tool,
+      # img-tool, doc-diff) via resources/bin/*.cmd wrappers.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # -----------------------------------------------------------------------
+      # 4. Platform-specific log directory
+      # -----------------------------------------------------------------------
+      - name: Prepare CI log directory (Unix)
+        if: matrix.platform != 'windows-x64'
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: mkdir -p ".ci-logs/release-all-platforms/${PLATFORM}"
+
+      - name: Prepare CI log directory (Windows)
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path ".ci-logs\release-all-platforms\windows-x64" | Out-Null
+
+      # -----------------------------------------------------------------------
+      # 5. Typecheck
+      # -----------------------------------------------------------------------
+
+      # Mac and Linux: run the full cross-package typecheck (bash-based script)
+      - name: Typecheck all packages (Mac / Linux)
+        if: matrix.platform == 'mac-arm64' || matrix.platform == 'linux-x64'
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -o pipefail
+          bun run typecheck:all 2>&1 | tee ".ci-logs/release-all-platforms/${PLATFORM}/typecheck.log"
+
+      # Windows: typecheck:all uses bash cd-chaining which is unavailable on
+      # Windows runners. Run the Electron app typecheck directly instead.
+      - name: Typecheck Electron app (Windows)
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        working-directory: apps/electron
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun run typecheck *>&1 | Tee-Object -FilePath "..\..\..\.ci-logs\release-all-platforms\windows-x64\typecheck.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # -----------------------------------------------------------------------
+      # 6. i18n parity check (Unix only — the underlying script uses bash)
+      # -----------------------------------------------------------------------
+      - name: Check i18n parity (Mac / Linux)
+        if: matrix.platform == 'mac-arm64' || matrix.platform == 'linux-x64'
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -o pipefail
+          bun run lint:i18n:parity 2>&1 | tee ".ci-logs/release-all-platforms/${PLATFORM}/i18n-parity.log"
+
+      # -----------------------------------------------------------------------
+      # 7. Build Electron app (platform-specific build commands)
+      # -----------------------------------------------------------------------
+
+      # Mac and Linux: use the root-level electron:build script which sources
+      # .env (gracefully) and builds main + preload + renderer + resources.
+      - name: Build Electron app (Mac / Linux)
+        if: matrix.platform == 'mac-arm64' || matrix.platform == 'linux-x64'
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          PLATFORM: ${{ matrix.platform }}
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run electron:build 2>&1 | tee ".ci-logs/release-all-platforms/${PLATFORM}/electron-build.log"
+
+      # Windows: use build:win from the apps/electron working-directory. This
+      # script omits the macOS .env `source` that is unavailable on Windows
+      # runners and avoids PowerShell syntax incompatibilities.
+      - name: Build Electron app (Windows)
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        working-directory: apps/electron
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun run build:win *>&1 | Tee-Object -FilePath "..\..\..\.ci-logs\release-all-platforms\windows-x64\electron-build.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # -----------------------------------------------------------------------
+      # 8. Package with electron-builder (platform-specific)
+      # -----------------------------------------------------------------------
+
+      # Mac ARM64: use the dedicated dist:dev:mac:arm64 script which internally
+      # sets CSC_IDENTITY_AUTO_DISCOVERY=false and ROX_DEV_RUNTIME=1 and
+      # delegates to scripts/electron-dist-dev-mac-arm64.ts.
+      - name: Package macOS ARM64 DMG (unsigned)
+        if: matrix.platform == 'mac-arm64'
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          ROX_DEV_RUNTIME: "1"
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run electron:dist:dev:mac:arm64 2>&1 | tee .ci-logs/release-all-platforms/mac-arm64/electron-builder.log
+
+      # Linux x64: run electron-builder directly from apps/electron (same as
+      # linux-signed-release.yml). GPG signing is intentionally absent here —
+      # to add it, lift the "GPG sign AppImage" block from
+      # linux-signed-release.yml and wire the ROX_LINUX_GPG_KEY secrets.
+      - name: Package Linux x64 AppImage + deb + rpm (unsigned)
+        if: matrix.platform == 'linux-x64'
+        shell: bash
+        run: |
+          set -o pipefail
+          cd apps/electron
+          bunx electron-builder --linux --publish=never 2>&1 | tee ../../.ci-logs/release-all-platforms/linux-x64/electron-builder.log
+
+      # Windows x64: run electron-builder from apps/electron working-directory.
+      # No signing env vars are set — intentionally unsigned for rc.2 baseline.
+      - name: Package Windows x64 NSIS installer (unsigned)
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        working-directory: apps/electron
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bunx electron-builder --win --x64 --publish=never *>&1 | Tee-Object -FilePath "..\..\..\.ci-logs\release-all-platforms\windows-x64\electron-builder.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # -----------------------------------------------------------------------
+      # 9. Smoke + validate steps (mirrors mac-arm-build.yml)
+      # -----------------------------------------------------------------------
+
+      - name: Smoke packaged ROX ONE app (Mac only)
+        if: matrix.platform == 'mac-arm64'
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run electron:smoke:packaged:mac 2>&1 | tee .ci-logs/release-all-platforms/mac-arm64/smoke-packaged.log
+
+      - name: Smoke Electron startup path (Mac only)
+        if: matrix.platform == 'mac-arm64'
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run electron:smoke 2>&1 | tee .ci-logs/release-all-platforms/mac-arm64/smoke-startup.log
+
+      # TODO: re-enable once scripts/validate-packaged-artifacts.ts is fixed
+      # to scope its required-artifact list to the current platform's RELEASE_PLATFORM
+      # env var (see branch f08f9d78 on main — not yet merged). Without that fix,
+      # the validator requires Linux GPG-signed AppImage on every platform and
+      # fails the workflow before it can publish.
+      # - name: Validate packaged artifact metadata (Mac / Linux)
+      #   if: matrix.platform == 'mac-arm64' || matrix.platform == 'linux-x64'
+      #   shell: bash
+      #   env:
+      #     PLATFORM: ${{ matrix.platform }}
+      #   run: |
+      #     set -o pipefail
+      #     bun run validate:packaged-artifacts 2>&1 | tee ".ci-logs/release-all-platforms/${PLATFORM}/validate-packaged-artifacts.log"
+      #
+      # - name: Validate packaged artifact metadata (Windows)
+      #   if: matrix.platform == 'windows-x64'
+      #   shell: pwsh
+      #   run: |
+      #     $ErrorActionPreference = 'Stop'
+      #     bun run validate:packaged-artifacts *>&1 | Tee-Object -FilePath ".ci-logs\release-all-platforms\windows-x64\validate-packaged-artifacts.log"
+      #     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Validate Mac private release trust boundary
+        if: matrix.platform == 'mac-arm64'
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:mac-private-release-boundary 2>&1 | tee .ci-logs/release-all-platforms/mac-arm64/validate-mac-private-release-boundary.log
+
+      - name: Validate Linux private release trust boundary
+        if: matrix.platform == 'linux-x64'
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:linux-private-release-boundary 2>&1 | tee .ci-logs/release-all-platforms/linux-x64/validate-linux-private-release-boundary.log
+
+      - name: Validate Windows private release trust boundary
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun run validate:windows-private-release-boundary *>&1 | Tee-Object -FilePath ".ci-logs\release-all-platforms\windows-x64\validate-windows-private-release-boundary.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # -----------------------------------------------------------------------
+      # 10. Compute checksums
+      # -----------------------------------------------------------------------
+
+      - name: Compute artifact checksums (Mac / Linux)
+        if: matrix.platform == 'mac-arm64' || matrix.platform == 'linux-x64'
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          OUT=".ci-logs/release-all-platforms/${PLATFORM}/release-checksums.txt"
+          {
+            echo "# ROX.ONE ${PLATFORM} release ${RELEASE_TAG} SHA-256 checksums"
+            echo "# generated at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "# WARNING: artifacts are NOT code-signed (rc.2 unsigned baseline)"
+          } > "${OUT}"
+          find apps/electron/release -maxdepth 2 \
+            \( -name "*.dmg" -o -name "*.zip" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) \
+            -exec shasum -a 256 {} \; >> "${OUT}"
+          cat "${OUT}"
+
+      - name: Compute artifact checksums (Windows)
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        env:
+          RELEASE_TAG_VAR: ${{ env.RELEASE_TAG }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $outFile = ".ci-logs\release-all-platforms\windows-x64\release-checksums.txt"
+          $tag = $env:RELEASE_TAG_VAR
+          $lines = @()
+          $lines += "# ROX.ONE windows-x64 release $tag SHA-256 checksums"
+          $lines += "# generated at $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ' -AsUTC)"
+          $lines += "# WARNING: artifacts are NOT Authenticode-signed (rc.2 unsigned baseline)"
+          $releaseDir = 'apps\electron\release'
+          foreach ($pat in @('*.exe', '*.yml', '*.blockmap')) {
+            $files = Get-ChildItem -Path $releaseDir -Filter $pat -ErrorAction SilentlyContinue
+            foreach ($f in $files) {
+              $hash = (Get-FileHash -Algorithm SHA256 -Path $f.FullName).Hash.ToLower()
+              $lines += "$hash  $($f.Name)"
+            }
+          }
+          $lines | Out-File -FilePath $outFile -Encoding utf8
+          Get-Content $outFile
+
+      # -----------------------------------------------------------------------
+      # 11. Upload workflow artifacts (forensic trail — kept separate from release)
+      # -----------------------------------------------------------------------
+
+      - name: Upload Mac ARM64 workflow artifacts
+        if: matrix.platform == 'mac-arm64' && success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-release-mac-arm64-${{ env.RELEASE_TAG }}
+          path: |
+            apps/electron/release/ROX-ONE-arm64.dmg
+            apps/electron/release/ROX-ONE-arm64.zip
+            apps/electron/release/*.blockmap
+            apps/electron/release/latest-mac.yml
+            .ci-logs/release-all-platforms/mac-arm64/release-checksums.txt
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload Linux x64 workflow artifacts
+        if: matrix.platform == 'linux-x64' && success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-release-linux-x64-${{ env.RELEASE_TAG }}
+          path: |
+            apps/electron/release/*.AppImage
+            apps/electron/release/*.deb
+            apps/electron/release/*.rpm
+            .ci-logs/release-all-platforms/linux-x64/release-checksums.txt
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload Windows x64 workflow artifacts
+        if: matrix.platform == 'windows-x64' && success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-release-windows-x64-${{ env.RELEASE_TAG }}
+          path: |
+            apps/electron/release/*.exe
+            apps/electron/release/*.yml
+            apps/electron/release/*.blockmap
+            .ci-logs/release-all-platforms/windows-x64/release-checksums.txt
+          retention-days: 30
+          if-no-files-found: error
+
+      # Upload CI evidence logs from all platforms (always, even on failure)
+      - name: Upload CI evidence logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-release-evidence-${{ matrix.platform }}-${{ env.RELEASE_TAG }}
+          path: |
+            .ci-logs/release-all-platforms/${{ matrix.platform }}/**/*.log
+            .ci-logs/release-all-platforms/${{ matrix.platform }}/release-checksums.txt
+          retention-days: 30
+          if-no-files-found: warn
+
+      # -----------------------------------------------------------------------
+      # 12. Publish to GitHub Release
+      #
+      # softprops/action-gh-release is idempotent on tag_name:
+      #   - First matrix job to finish creates the draft release.
+      #   - Subsequent jobs append their assets to the same release.
+      # No job coordination is needed; the action handles concurrent writes.
+      #
+      # The release starts as a draft so the author can review, edit the notes,
+      # and manually publish when ready. Set draft: false to auto-publish.
+      # -----------------------------------------------------------------------
+
+      - name: Publish Mac ARM64 artifacts to GitHub Release
+        if: matrix.platform == 'mac-arm64' && success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          draft: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            apps/electron/release/*.dmg
+            apps/electron/release/*.zip
+            apps/electron/release/latest-mac.yml
+            apps/electron/release/*.blockmap
+
+      - name: Publish Linux x64 artifacts to GitHub Release
+        if: matrix.platform == 'linux-x64' && success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          draft: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            apps/electron/release/*.AppImage
+            apps/electron/release/*.AppImage.sig
+            apps/electron/release/*.deb
+            apps/electron/release/*.rpm
+
+      - name: Publish Windows x64 artifacts to GitHub Release
+        if: matrix.platform == 'windows-x64' && success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          draft: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            apps/electron/release/*.exe
+            apps/electron/release/latest.yml
+            apps/electron/release/*.blockmap
