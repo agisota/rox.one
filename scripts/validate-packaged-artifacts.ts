@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import yaml from 'js-yaml';
 
@@ -12,9 +12,46 @@ const releaseDir = path.join(root, 'apps/electron/release');
  * ROX_RC_MODE controls which validation mode is active:
  *   '' | undefined  → signed (default, strict, used for v1.0.x production releases)
  *   'unsigned'      → unsigned-beta mode (v1.0.0-rc.2 Mac+Windows beta artifacts)
+ *
+ * ROX_ARTIFACT_PLATFORM scopes validation to the artifacts produced by the
+ * current workflow:
+ *   unset          → host platform (darwin=mac, linux=linux, win32=windows)
+ *   mac|darwin    → Mac artifacts only
+ *   linux         → Linux artifacts only
+ *   windows|win32 → Windows artifacts only
+ *   all           → aggregate release directory validation
  */
 const rcMode: string = process.env.ROX_RC_MODE ?? '';
 const isUnsigned = rcMode === 'unsigned';
+type ArtifactPlatform = 'mac' | 'linux' | 'windows' | 'all';
+
+function normalizeArtifactPlatform(input: string): ArtifactPlatform {
+  switch (input) {
+    case 'darwin':
+    case 'mac':
+      return 'mac';
+    case 'win32':
+    case 'windows':
+      return 'windows';
+    case 'linux':
+    case 'all':
+      return input;
+    default:
+      fail(`unsupported ROX_ARTIFACT_PLATFORM: ${input}`);
+  }
+}
+
+const hostPlatform: ArtifactPlatform =
+  process.platform === 'darwin' ? 'mac' : process.platform === 'win32' ? 'windows' : 'linux';
+const platformInput = (process.env.ROX_ARTIFACT_PLATFORM ?? hostPlatform).toLowerCase();
+const artifactPlatform = normalizeArtifactPlatform(platformInput);
+const linuxArch = process.env.ROX_ARTIFACT_ARCH ?? 'x64';
+const windowsArch = process.env.ROX_ARTIFACT_ARCH ?? 'x64';
+const macArch = process.env.ROX_ARTIFACT_ARCH ?? 'arm64';
+const shouldValidateLinux = artifactPlatform === 'linux' || artifactPlatform === 'all';
+const shouldValidateMac = artifactPlatform === 'mac' || artifactPlatform === 'all';
+const requestedWindows = artifactPlatform === 'windows' || artifactPlatform === 'all';
+const shouldValidateWindows = isUnsigned && requestedWindows;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -70,10 +107,10 @@ function assertMinSize(relativePath: string, minBytes: number): void {
  * The linux-signed-release.yml workflow GPG-signs them in every RC.
  */
 const LINUX_REQUIRED: Array<{ path: string; minBytes: number }> = [
-  { path: 'ROX-ONE-arm64.deb', minBytes: 50 * 1024 * 1024 },
-  { path: 'ROX-ONE-arm64.rpm', minBytes: 50 * 1024 * 1024 },
-  { path: 'ROX-ONE-arm64.AppImage', minBytes: 50 * 1024 * 1024 },
-  { path: 'ROX-ONE-arm64.AppImage.sig', minBytes: 1 },
+  { path: `ROX-ONE-${linuxArch}.deb`, minBytes: 50 * 1024 * 1024 },
+  { path: `ROX-ONE-${linuxArch}.rpm`, minBytes: 50 * 1024 * 1024 },
+  { path: `ROX-ONE-${linuxArch}.AppImage`, minBytes: 50 * 1024 * 1024 },
+  { path: `ROX-ONE-${linuxArch}.AppImage.sig`, minBytes: 1 },
 ];
 
 /**
@@ -81,10 +118,10 @@ const LINUX_REQUIRED: Array<{ path: string; minBytes: number }> = [
  * Code signature is also verified below.
  */
 const MAC_SIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
-  { path: 'ROX-ONE-arm64.dmg', minBytes: 50 * 1024 * 1024 },
-  { path: 'ROX-ONE-arm64.zip', minBytes: 50 * 1024 * 1024 },
-  { path: 'ROX-ONE-arm64.dmg.blockmap', minBytes: 1 * 1024 * 1024 },
-  { path: 'ROX-ONE-arm64.zip.blockmap', minBytes: 1 * 1024 * 1024 },
+  { path: `ROX-ONE-${macArch}.dmg`, minBytes: 50 * 1024 * 1024 },
+  { path: `ROX-ONE-${macArch}.zip`, minBytes: 50 * 1024 * 1024 },
+  { path: `ROX-ONE-${macArch}.dmg.blockmap`, minBytes: 1 * 1024 * 1024 },
+  { path: `ROX-ONE-${macArch}.zip.blockmap`, minBytes: 1 * 1024 * 1024 },
   { path: 'latest-mac.yml', minBytes: 1 },
 ];
 
@@ -93,10 +130,10 @@ const MAC_SIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
  * No code signature check — a warning is logged instead.
  */
 const MAC_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
-  { path: 'ROX-ONE-arm64.dmg', minBytes: 50 * 1024 * 1024 },
-  { path: 'ROX-ONE-arm64.zip', minBytes: 50 * 1024 * 1024 },
-  { path: 'ROX-ONE-arm64.dmg.blockmap', minBytes: 1 * 1024 * 1024 },
-  { path: 'ROX-ONE-arm64.zip.blockmap', minBytes: 1 * 1024 * 1024 },
+  { path: `ROX-ONE-${macArch}.dmg`, minBytes: 50 * 1024 * 1024 },
+  { path: `ROX-ONE-${macArch}.zip`, minBytes: 50 * 1024 * 1024 },
+  { path: `ROX-ONE-${macArch}.dmg.blockmap`, minBytes: 1 * 1024 * 1024 },
+  { path: `ROX-ONE-${macArch}.zip.blockmap`, minBytes: 1 * 1024 * 1024 },
   { path: 'latest-mac.yml', minBytes: 1 },
 ];
 
@@ -105,6 +142,8 @@ const MAC_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
  * Windows signed mode is not implemented yet — Windows only ships in RC2+.
  */
 const WINDOWS_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
+  { path: `ROX-ONE-${windowsArch}.exe`, minBytes: 50 * 1024 * 1024 },
+  { path: `ROX-ONE-${windowsArch}.exe.blockmap`, minBytes: 1 * 1024 * 1024 },
   { path: 'latest.yml', minBytes: 1 },
 ];
 
@@ -114,34 +153,23 @@ const WINDOWS_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
 
 const macRequired = isUnsigned ? MAC_UNSIGNED_REQUIRED : MAC_SIGNED_REQUIRED;
 
-for (const entry of [...LINUX_REQUIRED, ...macRequired]) {
-  assertMinSize(entry.path, entry.minBytes);
+if (shouldValidateLinux) {
+  for (const entry of LINUX_REQUIRED) {
+    assertMinSize(entry.path, entry.minBytes);
+  }
 }
 
-if (isUnsigned) {
-  // Windows Setup exe uses a glob pattern (version embedded in filename).
-  // We scan for any matching file and validate size.
-  const exeFiles = readdirSync(releaseDir).filter(
-    (f) => f.startsWith('ROX-ONE-Setup-') && f.endsWith('.exe'),
-  );
-  if (exeFiles.length === 0) {
-    fail('missing required artifact: apps/electron/release/ROX-ONE-Setup-*.exe');
+if (shouldValidateMac) {
+  for (const entry of macRequired) {
+    assertMinSize(entry.path, entry.minBytes);
   }
-  for (const exeFile of exeFiles) {
-    assertMinSize(exeFile, 50 * 1024 * 1024);
-  }
+}
 
-  // Windows blockmap (named after the exe)
-  const blockmapFiles = readdirSync(releaseDir).filter(
-    (f) => f.startsWith('ROX-ONE-Setup-') && f.endsWith('.exe.blockmap'),
-  );
-  if (blockmapFiles.length === 0) {
-    fail('missing required artifact: apps/electron/release/ROX-ONE-Setup-*.exe.blockmap');
-  }
-  for (const bm of blockmapFiles) {
-    assertMinSize(bm, 1 * 1024 * 1024);
-  }
+if (artifactPlatform === 'windows' && !isUnsigned) {
+  fail('windows packaged artifact validation currently requires ROX_RC_MODE=unsigned');
+}
 
+if (shouldValidateWindows) {
   for (const entry of WINDOWS_UNSIGNED_REQUIRED) {
     assertMinSize(entry.path, entry.minBytes);
   }
@@ -151,64 +179,102 @@ if (isUnsigned) {
 // Step 2 — validate latest-mac.yml structure
 // ---------------------------------------------------------------------------
 
-const latestMacPath = path.join(releaseDir, 'latest-mac.yml');
-const latestMac = yaml.load(readFileSync(latestMacPath, 'utf8')) as {
+type LatestYml = {
   files?: Array<{ url?: string; size?: number }>;
   path?: string;
 };
 
-const urls = new Set(
-  (latestMac.files ?? [])
-    .map((entry) => entry.url)
-    .filter((v): v is string => typeof v === 'string'),
-);
+let latestMac: LatestYml | undefined;
 
-if (!urls.has('ROX-ONE-arm64.zip')) {
-  fail('latest-mac.yml missing ROX-ONE-arm64.zip in files[]');
+function latestEntryOrFail(
+  latest: LatestYml,
+  url: string,
+  label: string,
+): { url?: string; size?: number } {
+  const entry = (latest.files ?? []).find((fileEntry) => fileEntry.url === url);
+  if (!entry) {
+    fail(`${label} missing ${url} in files[]`);
+  }
+  return entry;
 }
-if (!urls.has('ROX-ONE-arm64.dmg')) {
-  fail('latest-mac.yml missing ROX-ONE-arm64.dmg in files[]');
-}
-if (latestMac.path !== 'ROX-ONE-arm64.zip') {
-  fail(`latest-mac.yml path must reference ROX-ONE-arm64.zip, got: ${String(latestMac.path)}`);
+
+if (shouldValidateMac) {
+  const latestMacPath = path.join(releaseDir, 'latest-mac.yml');
+  latestMac = yaml.load(readFileSync(latestMacPath, 'utf8')) as LatestYml;
+
+  const urls = new Set(
+    (latestMac.files ?? [])
+      .map((entry) => entry.url)
+      .filter((v): v is string => typeof v === 'string'),
+  );
+  const macZip = `ROX-ONE-${macArch}.zip`;
+  const macDmg = `ROX-ONE-${macArch}.dmg`;
+
+  if (!urls.has(macZip)) {
+    fail(`latest-mac.yml missing ${macZip} in files[]`);
+  }
+  if (!urls.has(macDmg)) {
+    fail(`latest-mac.yml missing ${macDmg} in files[]`);
+  }
+  if (latestMac.path !== macZip) {
+    fail(`latest-mac.yml path must reference ${macZip}, got: ${String(latestMac.path)}`);
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Step 3 — validate latest.yml presence when in unsigned mode
 // ---------------------------------------------------------------------------
 
-if (isUnsigned) {
+if (shouldValidateWindows) {
   const latestYmlPath = path.join(releaseDir, 'latest.yml');
-  const latestYml = yaml.load(readFileSync(latestYmlPath, 'utf8')) as {
-    files?: Array<{ url?: string; size?: number }>;
-    path?: string;
-  };
+  const latestYml = yaml.load(readFileSync(latestYmlPath, 'utf8')) as LatestYml;
   const winUrls = new Set(
     (latestYml.files ?? [])
       .map((e) => e.url)
       .filter((v): v is string => typeof v === 'string'),
   );
-  if (winUrls.size === 0) {
-    fail('latest.yml has no files[] entries for Windows artifacts');
+  const installer = `ROX-ONE-${windowsArch}.exe`;
+  const blockmap = `${installer}.blockmap`;
+
+  if (latestYml.path !== installer) {
+    fail(`latest.yml path must reference ${installer}, got: ${String(latestYml.path)}`);
   }
+  if (!winUrls.has(installer)) fail(`latest.yml missing ${installer} in files[]`);
+  if (!winUrls.has(blockmap)) fail(`latest.yml missing ${blockmap} in files[]`);
+
+  const installerSize = statSync(path.join(releaseDir, installer)).size;
+  const blockmapSize = statSync(path.join(releaseDir, blockmap)).size;
+  const installerEntry = latestEntryOrFail(latestYml, installer, 'latest.yml');
+  const blockmapEntry = latestEntryOrFail(latestYml, blockmap, 'latest.yml');
+
+  if (installerEntry?.size !== installerSize) {
+    fail(`latest.yml size for ${installer} does not match artifact on disk`);
+  }
+  if (blockmapEntry?.size !== blockmapSize) {
+    fail(`latest.yml size for ${blockmap} does not match artifact on disk`);
+  }
+
+  console.log(`[packaged-artifacts] latest.yml size[installer]=${installerEntry.size} bytes`);
+  console.log(`[packaged-artifacts] latest.yml size[blockmap]=${blockmapEntry.size} bytes`);
+  console.log('[packaged-artifacts] latest.yml artifact references verified');
 }
 
 // ---------------------------------------------------------------------------
 // Step 4 — signed-mode only: runtime binary + code signature verification
 // ---------------------------------------------------------------------------
 
-const dmgPath = path.join(releaseDir, 'ROX-ONE-arm64.dmg');
-const zipPath = path.join(releaseDir, 'ROX-ONE-arm64.zip');
+const dmgPath = path.join(releaseDir, `ROX-ONE-${macArch}.dmg`);
+const zipPath = path.join(releaseDir, `ROX-ONE-${macArch}.zip`);
 
-if (!isUnsigned) {
+if (shouldValidateMac && !isUnsigned) {
   const packagedBunPath = path.join(
     releaseDir,
-    'mac-arm64/ROX.ONE.app/Contents/Resources/app/vendor/bun/bun',
+    `mac-${macArch}/ROX.ONE.app/Contents/Resources/app/vendor/bun/bun`,
   );
 
   if (!existsSync(packagedBunPath)) {
     fail(
-      'missing packaged runtime: apps/electron/release/mac-arm64/ROX.ONE.app/Contents/Resources/app/vendor/bun/bun',
+      `missing packaged runtime: apps/electron/release/mac-${macArch}/ROX.ONE.app/Contents/Resources/app/vendor/bun/bun`,
     );
   }
 
@@ -219,8 +285,8 @@ if (!isUnsigned) {
     );
   }
   const fileDescription = fileProbe.stdout.trim();
-  if (!fileDescription.includes('Mach-O 64-bit executable arm64')) {
-    fail(`packaged runtime must be macOS arm64 Mach-O, got: ${fileDescription}`);
+  if (!fileDescription.includes(`Mach-O 64-bit executable ${macArch}`)) {
+    fail(`packaged runtime must be macOS ${macArch} Mach-O, got: ${fileDescription}`);
   }
 
   const runtimeProbe = spawnSync(
@@ -234,8 +300,8 @@ if (!isUnsigned) {
     );
   }
   const runtimeTarget = runtimeProbe.stdout.trim();
-  if (runtimeTarget !== 'darwin arm64') {
-    fail(`packaged runtime target must be "darwin arm64", got: ${runtimeTarget}`);
+  if (runtimeTarget !== `darwin ${macArch}`) {
+    fail(`packaged runtime target must be "darwin ${macArch}", got: ${runtimeTarget}`);
   }
 
   // Validate latest-mac.yml size cross-references
@@ -243,14 +309,14 @@ if (!isUnsigned) {
   const zipStats = statSync(zipPath);
 
   if (
-    (latestMac.files ?? []).find((f) => f.url === 'ROX-ONE-arm64.dmg')?.size !== dmgStats.size
+    (latestMac?.files ?? []).find((f) => f.url === `ROX-ONE-${macArch}.dmg`)?.size !== dmgStats.size
   ) {
-    fail('latest-mac.yml size for ROX-ONE-arm64.dmg does not match artifact on disk');
+    fail(`latest-mac.yml size for ROX-ONE-${macArch}.dmg does not match artifact on disk`);
   }
   if (
-    (latestMac.files ?? []).find((f) => f.url === 'ROX-ONE-arm64.zip')?.size !== zipStats.size
+    (latestMac?.files ?? []).find((f) => f.url === `ROX-ONE-${macArch}.zip`)?.size !== zipStats.size
   ) {
-    fail('latest-mac.yml size for ROX-ONE-arm64.zip does not match artifact on disk');
+    fail(`latest-mac.yml size for ROX-ONE-${macArch}.zip does not match artifact on disk`);
   }
 
   console.log(
@@ -258,16 +324,19 @@ if (!isUnsigned) {
   );
   console.log(`[packaged-artifacts] packaged runtime probe=${runtimeTarget}`);
   console.log(
-    `[packaged-artifacts] latest-mac.yml size[dmg]=${(latestMac.files ?? []).find((f) => f.url === 'ROX-ONE-arm64.dmg')?.size ?? 'n/a'} bytes`,
+    `[packaged-artifacts] latest-mac.yml size[dmg]=${(latestMac?.files ?? []).find((f) => f.url === `ROX-ONE-${macArch}.dmg`)?.size ?? 'n/a'} bytes`,
   );
   console.log(
-    `[packaged-artifacts] latest-mac.yml size[zip]=${(latestMac.files ?? []).find((f) => f.url === 'ROX-ONE-arm64.zip')?.size ?? 'n/a'} bytes`,
+    `[packaged-artifacts] latest-mac.yml size[zip]=${(latestMac?.files ?? []).find((f) => f.url === `ROX-ONE-${macArch}.zip`)?.size ?? 'n/a'} bytes`,
   );
   console.log('[packaged-artifacts] latest-mac.yml artifact references verified');
-} else {
+} else if (shouldValidateMac && isUnsigned) {
   console.log(
     '[unsigned-beta] skipping code signature verification for mac (ROX_RC_MODE=unsigned)',
   );
+}
+
+if (shouldValidateWindows && isUnsigned) {
   console.log(
     '[unsigned-beta] skipping code signature verification for windows (ROX_RC_MODE=unsigned)',
   );
@@ -278,8 +347,9 @@ if (!isUnsigned) {
 // ---------------------------------------------------------------------------
 
 const allArtifacts: string[] = [
-  ...LINUX_REQUIRED.map((e) => e.path),
-  ...macRequired.map((e) => e.path),
+  ...(shouldValidateLinux ? LINUX_REQUIRED.map((e) => e.path) : []),
+  ...(shouldValidateMac ? macRequired.map((e) => e.path) : []),
+  ...(shouldValidateWindows ? WINDOWS_UNSIGNED_REQUIRED.map((e) => e.path) : []),
 ];
 
 console.log('[packaged-artifacts] required packaged artifacts present');
@@ -291,7 +361,14 @@ for (const relativePath of allArtifacts) {
     `- apps/electron/release/${relativePath} :: ${stats.size} bytes (${formatBytes(stats.size)})`,
   );
 }
-console.log(`[packaged-artifacts] SHA256 ROX-ONE-arm64.dmg ${sha256(dmgPath)}`);
-console.log(`[packaged-artifacts] SHA256 ROX-ONE-arm64.zip ${sha256(zipPath)}`);
-console.log(`[packaged-artifacts] latest-mac.yml path=${latestMac.path}`);
+if (shouldValidateMac) {
+  console.log(`[packaged-artifacts] SHA256 ROX-ONE-${macArch}.dmg ${sha256(dmgPath)}`);
+  console.log(`[packaged-artifacts] SHA256 ROX-ONE-${macArch}.zip ${sha256(zipPath)}`);
+  console.log(`[packaged-artifacts] latest-mac.yml path=${latestMac?.path}`);
+}
+if (shouldValidateWindows) {
+  const installer = `ROX-ONE-${windowsArch}.exe`;
+  console.log(`[packaged-artifacts] SHA256 ${installer} ${sha256(path.join(releaseDir, installer))}`);
+}
 console.log(`[packaged-artifacts] mode=${isUnsigned ? 'unsigned-beta' : 'signed'}`);
+console.log(`[packaged-artifacts] platform=${artifactPlatform}`);
