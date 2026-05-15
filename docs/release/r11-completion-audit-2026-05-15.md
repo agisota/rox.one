@@ -86,7 +86,10 @@ This checklist is not authorization for this active run.
 
 1. Clear or pause the active Codex `/goal` only when entering an
    operator-controlled destructive R.11 window.
-2. Accept or resolve the two-fork review state.
+2. Re-fetch and accept or resolve the two-fork review state. The current
+   report-only snapshot is
+   `docs/release/r11-fork-review-snapshot-2026-05-15.md`; it records both
+   visible forks as 0 commits ahead of `agisota/main`.
 3. Repoint `rebrand-v1` so the origin tag target is on `origin/main`.
 4. Create the backup tag, backup branch, and offline mirror only after the
    default pre-backup gate is green.
@@ -116,6 +119,28 @@ Current evidence artifacts:
 | History scan | `/tmp/r11-history-scan-post-pr225-20260515T025017Z.log` SHA `e61ea1799af5aebe9a4ebe1a057553a0ace7d7778427d2d4f0dfd4da13af12d2` | Red: 81 forbidden-token patch lines outside the legal-preserve allowlist |
 | Legal-preserve gate | `/tmp/r11-legal-preserve-post-pr225-20260515T025017Z.log` SHA `352f6a806d8835ef56da9aefa436dbbb39e5cc0f498a1ae7ddca7d94e2f48ab6` | Red: backup ref missing for `LICENSE`, `NOTICE`, `TRADEMARK.md`; Dockerfile attribution passes |
 
+## Fork Review Snapshot
+
+The current fork-review snapshot is
+`docs/release/r11-fork-review-snapshot-2026-05-15.md`, backed by
+`/tmp/r11-fork-review-post-pr226-20260515T032014Z.log` SHA
+`813e5bb68175a813d8d2016e9158b82e0b1402ada355479504cfcd556051cf72`.
+
+Current visible forks:
+
+| Fork | Ahead of `agisota/main` | Behind `agisota/main` | Disposition |
+| --- | --- | --- | --- |
+| `agisotadev/rox-one-terminal` | 0 | 33 | acceptable as reviewed fork count if unchanged |
+| `dofaromg/rox-one-terminal` | 0 | 86 | acceptable as reviewed fork count if unchanged |
+
+This does not make the strict default preflight pass. Before any destructive
+R.11 window, re-fetch the fork inventory and use the reviewed expected count
+only if the state is unchanged:
+
+```bash
+ROX_R11_NO_ACTIVE_GOAL=1 ROX_R11_EXPECTED_FORKS=2 bun run rebrand:r11-preflight
+```
+
 Remaining safe/report-only work:
 
 1. Keep `docs/release/r11-completion-audit-2026-05-15.md`,
@@ -132,8 +157,8 @@ Remaining operator-owned or destructive work, in required order:
 
 1. Clear or pause active Codex `/goal` state for the destructive R.11 window;
    the current active goal itself proves this gate is not yet truthfully clear.
-2. Resolve fork review policy: either reduce GitHub forks to the expected
-   count or intentionally set the reviewed expected count for the run.
+2. Re-fetch fork review policy and intentionally set
+   `ROX_R11_EXPECTED_FORKS=2` only if the T493 snapshot remains true.
 3. Repoint `rebrand-v1` so the origin tag target is on `origin/main` ancestry,
    and verify local and origin `rebrand-v1` still peel to the same commit.
 4. Run the default pre-backup gate and require green before creating backup
