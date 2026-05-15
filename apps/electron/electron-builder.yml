@@ -245,8 +245,9 @@ linux:
   desktop:
     entry:
       Name: rox-one
-      Exec: rox-one %U
       Categories: Office;Utility;Development;
+      # Exec field removed — electron-builder 26.x sources executable
+      # name from linux.executableName above (rox-one).
   # T253b: Add deb + rpm targets alongside AppImage for broad Linux
   # package-manager coverage. Both share the canonical category, synopsis,
   # and maintainer declared above.
