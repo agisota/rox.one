@@ -23,12 +23,12 @@ Related full inventory:
 
 ## Summary
 
-- Total origin heads: 151
-- Non-main/non-R.11-backup origin branches: 150
+- Total origin heads: 158
+- Non-main/non-R.11-backup origin branches: 157
 - Open PR branches: 0
-- Merged PR branch heads: 133
+- Merged PR branch heads: 139
 - Closed/unmerged PR branch heads: 9
-- No-visible-PR branch heads: 7
+- No-visible-PR branch heads: 8
 - Backup/protected branch heads: 1
 
 `R.11` is absent on origin at this snapshot. The required R.11 backup branch
@@ -40,9 +40,9 @@ created until the default pre-backup gate is green.
 | Bucket | Count | Operator decision required |
 | --- | ---: | --- |
 | Open PR branches | 0 | No merge-queue blocker remains |
-| Merged PR branch heads | 133 | Usually retirement candidates after verifying each PR merged and no active worktree still depends on the head |
+| Merged PR branch heads | 139 | Usually retirement candidates after verifying each PR merged and no active worktree still depends on the head |
 | Closed/unmerged PR branch heads | 9 | Review manually; preserve only if the closed PR still carries needed work |
-| No-visible-PR branch heads | 7 | Review manually because current GitHub PR metadata has no matching head |
+| No-visible-PR branch heads | 8 | Review manually because current GitHub PR metadata has no matching head |
 | Backup/protected branch heads | 1 | Preserve or explicitly account for before any R.11 destructive window |
 
 ## Manual Review Branches
@@ -67,17 +67,24 @@ No-visible-PR branch heads:
 - `feat/M6-sqlite-persistence-adapter`
 - `feat/audit-harness-spec`
 - `feat/f1-shiki-engine-swap`
+- `circleci-project-setup`
 - `mac/rox-production-ready-rc`
 
 Backup/protected branch head:
 
 - `backup/agent-workbench-t000-t012-2026-04-30`
 
-Merged PR heads that still exist on origin include the current M.16 branch:
+Merged PR heads that still exist on origin include recent closeout branches:
 
+- `chore/r11-t473-post-t470-audit-refresh` (#217)
+- `docs/m21-prep-checklist` (#220)
+- `fix/ci-ripgrep-github-token-auth` (#219)
+- `fix/post-218-validation-closeout` (#222)
+- `fix/t474-shiki-codeblock-timeout` (#218)
+- `fix/user-data-migration-self-copy-guard` (#221)
 - `feat/M16-T132e-shrink-main-chunk`
 
-The complete 150-row branch inventory is preserved in
+The complete 157-row branch inventory is preserved in
 `docs/release/r11-remote-branch-review-2026-05-14.md`.
 
 ## Dry-run review commands
