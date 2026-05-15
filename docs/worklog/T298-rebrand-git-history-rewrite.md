@@ -158,6 +158,9 @@ Representative report-only evidence anchors include:
 - T491 added the post-PR #225 current remaining-work list to the 2026-05-15
   audit, with fresh `f68e748d` evidence hashes and the ordered safe vs
   destructive R.11 action sequence.
+- T493 added the post-PR #226 fork review snapshot showing the two visible
+  forks are both 0 commits ahead of `agisota/main`, with a reviewed expected
+  fork count of 2 for the future destructive-window dry run if unchanged.
 
 This list is a set of stable anchors, not a live chronology. Later report-only
 audit-hygiene tickets carry their own fresh targeted validation evidence in
