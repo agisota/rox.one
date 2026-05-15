@@ -21,10 +21,10 @@ CLAUDE.md mandates: "Rate-limit all public APIs: per-IP and per-user limits, ret
 
 ## Key Findings
 
-- **20 handler files** with RPC channels audited (~92 channels total).
-- **6 handler files** have the T086d abuse-guard pattern (rateLimiter + budgetGuard).
+- **22 registered handler files** with RPC channels audited (218 `server.handle(...)` registrations).
+- **9 handler files** have the T086d abuse-guard pattern (rateLimiter + budgetGuard).
 - **3 handler files** are fully protected: `labels.ts`, `statuses.ts`, `skills.ts`.
-- **9 handler files** have no rate limiting: `oauth.ts`, `onboarding.ts`, `llm-connections.ts`, `settings.ts`, `files.ts`, `resources.ts`, `automations.ts`, `transfer.ts`, `system.ts`, `experience.ts`.
+- **12 handler files** have no rate limiting: `oauth.ts`, `onboarding.ts`, `llm-connections.ts`, `settings.ts`, `files.ts`, `resources.ts`, `automations.ts`, `transfer.ts`, `system.ts`, `experience.ts`, `server.ts`, `messaging.ts`.
 - **No handler** returns an HTTP 429 status or `Retry-After` header — the transport is WS-RPC; error is returned as `{error: 'rate-limited'}` JSON envelope. This is an architectural gap (see T520).
 
 ## Follow-Up Tickets
@@ -41,10 +41,11 @@ CLAUDE.md mandates: "Rate-limit all public APIs: per-IP and per-user limits, ret
 | T519 | Rate-limit `resources.ts` (import) | P3 |
 | T520 | 429 + Retry-After HTTP translation layer | P3 |
 | T521 | Close remaining partial-handler gaps | P3 |
+| T522 | Rate-limit provider/pairing/access mutations in `messaging.ts` and workspace creation in `server.ts` | P3 |
 
 ## Acceptance Criteria
 
-- [x] Audit table covers ≥80% of RPC handler files in the directory (100% covered)
+- [x] Audit table covers all registered RPC handler files in `index.ts` (22/22)
 - [x] Table renders correctly as Markdown
 - [x] `bun run validate:docs` passes (doc-only change, no source modifications)
 - [x] No source code modified

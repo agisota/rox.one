@@ -14,7 +14,7 @@ gate.
 ## Notes
 - Key ID: 249B47CB486E6AE9
 - Key expires: 2028-05-14 (2y from gen on 2026-05-15)
-- Passphrase saved to /tmp/rox-gpg-passphrase.txt on the orchestrator
-  host; operator must move to a vault before /tmp wipe.
+- Passphrase material must remain in the operator vault and GitHub Actions
+  secret store only; no fixed local passphrase path is an approved artifact.
 - When v1.0.x ships with rotated passphrase, follow the same procedure;
   update KEY_ID for re-issued key.

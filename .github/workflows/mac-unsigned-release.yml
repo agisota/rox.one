@@ -48,14 +48,12 @@ jobs:
       ROX_HEADLESS: "1"
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       # Tag-protection guard. The dispatch input is untrusted, so it is fed
       # via env (never inline) and pattern-validated before any later step
       # references it. This blocks `; rm -rf` style payloads in the tag and
       # also stops accidental runs against non-release refs.
       - name: Validate release tag pattern
+        id: release-tag
         shell: bash
         env:
           INPUT_TAG: ${{ inputs.tag }}
@@ -68,10 +66,15 @@ jobs:
             exit 1
           fi
           echo "RELEASE_TAG=${CANDIDATE}" >> "$GITHUB_ENV"
+          echo "release_tag=${CANDIDATE}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout validated release tag
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ steps.release-tag.outputs.release_tag }}
 
       # NOTE: "Verify signing secrets present" step is intentionally absent.
-      # This workflow skips all Apple signing/notarization. electron-builder
-      # automatically skips code-signing when CSC_LINK is unset.
+      # This workflow skips all Apple Developer signing/notarization secrets.
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -90,23 +93,39 @@ jobs:
       # Run the validator fixture suite ahead of electron-builder so any
       # boundary regression (entitlements, appId, buildVersion) is caught
       # before we burn build minutes.
+      - name: Validate mac-boundary fixtures
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:mac-boundary-fixtures 2>&1 | tee .ci-logs/mac-unsigned-release/validate-mac-boundary-fixtures.log
+
       - name: Build Electron app
         shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          ROX_DEV_RUNTIME: "1"
         run: |
           set -o pipefail
           bun run electron:build 2>&1 | tee .ci-logs/mac-unsigned-release/electron-build.log
 
-      # Run electron-builder for macOS without signing credentials.
-      # CSC_LINK is intentionally unset so electron-builder skips codesigning
-      # automatically. We pass --publish=never so the action never uploads to
-      # a release page; the workflow uploads the .dmg as a workflow artifact.
-      # Output artifact names match mac-signed-release.yml so the A4
-      # packaged-artifacts validator (unsigned-mode) accepts them.
+      # Run electron-builder for macOS without Apple signing credentials.
+      # The ROX_DEV_RUNTIME path lets the afterSign hook apply private ad-hoc
+      # hardened-runtime signing, while --publish=never keeps release uploads
+      # under this workflow's explicit artifact step.
       - name: Package macOS DMG (unsigned beta)
         shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          ROX_DEV_RUNTIME: "1"
         run: |
           set -o pipefail
           bunx electron-builder --mac --arm64 --publish=never 2>&1 | tee .ci-logs/mac-unsigned-release/electron-builder.log
+
+      - name: Validate private mac release trust boundary
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:mac-private-release-boundary 2>&1 | tee .ci-logs/mac-unsigned-release/validate-mac-private-release-boundary.log
 
       # NOTE: "Codesign verify signed bundle" step is intentionally absent.
       # NOTE: "Notarize + staple DMG" step is intentionally absent.
@@ -133,9 +152,6 @@ jobs:
           name: rox-one-unsigned-mac-arm64
           path: |
             apps/electron/release/ROX-ONE-arm64.dmg
-            apps/electron/release/ROX-ONE-arm64.zip
-            apps/electron/release/*.blockmap
-            apps/electron/release/latest-mac.yml
             .ci-logs/mac-unsigned-release/release-checksums.txt
           retention-days: 14
           if-no-files-found: error
