@@ -1,0 +1,164 @@
+name: Mac Unsigned Release (Beta)
+
+# UNSIGNED BETA WORKFLOW — NOT FOR PRODUCTION DISTRIBUTION
+#
+# This workflow is a near-mirror of mac-signed-release.yml with all Apple
+# Developer signing and notarization steps removed. It is intended solely
+# for v1.0.0-rc.2 beta distribution while the $99/yr Apple Developer
+# membership is not yet procured.
+#
+# DEPRECATION NOTE: Once Apple Developer credentials are available, configure
+# the five secrets required by mac-signed-release.yml (CSC_LINK,
+# CSC_KEY_PASSWORD, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID)
+# and dispatch that workflow instead. This unsigned variant should then be
+# deprecated and removed.
+#
+# Unsigned DMGs will trigger macOS Gatekeeper warnings on first open.
+# Users must right-click → Open to bypass the warning. This is expected
+# and documented in the v1.0.0-rc.2 release notes.
+#
+# Trigger model: workflow_dispatch only — same as mac-signed-release.yml.
+# We never auto-run on push or pull_request because this produces a
+# distributable artifact that should ship by intent, not by accident.
+#
+# Untrusted-input safety: `inputs.tag` is only ever fed to a shell via the
+# INPUT_TAG env var (never via inline GitHub expression interpolation), and
+# only after a strict regex check.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (required, must match v[0-9]+.[0-9]+.[0-9]+(-rc.[0-9]+)?)"
+        required: true
+        type: string
+
+concurrency:
+  group: mac-unsigned-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  mac-unsigned-release:
+    name: ROX ONE macOS unsigned beta DMG
+    runs-on: macos-15-xlarge
+    timeout-minutes: 75
+    env:
+      ROX_HEADLESS: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Tag-protection guard. The dispatch input is untrusted, so it is fed
+      # via env (never inline) and pattern-validated before any later step
+      # references it. This blocks `; rm -rf` style payloads in the tag and
+      # also stops accidental runs against non-release refs.
+      - name: Validate release tag pattern
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          CANDIDATE="${INPUT_TAG#refs/tags/}"
+          echo "Candidate release tag: ${CANDIDATE}"
+          if [[ ! "${CANDIDATE}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::release tag '${CANDIDATE}' does not match v[0-9]+.[0-9]+.[0-9]+(-rc.[0-9]+)?"
+            exit 1
+          fi
+          echo "RELEASE_TAG=${CANDIDATE}" >> "$GITHUB_ENV"
+
+      # NOTE: "Verify signing secrets present" step is intentionally absent.
+      # This workflow skips all Apple signing/notarization. electron-builder
+      # automatically skips code-signing when CSC_LINK is unset.
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Prepare unsigned-release logs
+        run: mkdir -p .ci-logs/mac-unsigned-release
+
+      # Run the validator fixture suite ahead of electron-builder so any
+      # boundary regression (entitlements, appId, buildVersion) is caught
+      # before we burn build minutes.
+      - name: Validate mac-boundary fixtures
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:mac-boundary-fixtures 2>&1 | tee .ci-logs/mac-unsigned-release/validate-mac-boundary-fixtures.log
+
+      - name: Validate private mac release trust boundary
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run validate:mac-private-release-boundary 2>&1 | tee .ci-logs/mac-unsigned-release/validate-mac-private-release-boundary.log
+
+      - name: Build Electron app
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run electron:build 2>&1 | tee .ci-logs/mac-unsigned-release/electron-build.log
+
+      # Run electron-builder for macOS without signing credentials.
+      # CSC_LINK is intentionally unset so electron-builder skips codesigning
+      # automatically. We pass --publish=never so the action never uploads to
+      # a release page; the workflow uploads the .dmg as a workflow artifact.
+      # Output artifact names match mac-signed-release.yml so the A4
+      # packaged-artifacts validator (unsigned-mode) accepts them.
+      - name: Package macOS DMG (unsigned beta)
+        shell: bash
+        run: |
+          set -o pipefail
+          bunx electron-builder --mac --arm64 --publish=never 2>&1 | tee .ci-logs/mac-unsigned-release/electron-builder.log
+
+      # NOTE: "Codesign verify signed bundle" step is intentionally absent.
+      # NOTE: "Notarize + staple DMG" step is intentionally absent.
+      # Both steps require Apple Developer credentials that are not procured
+      # for this beta distribution path.
+
+      - name: Compute unsigned artifact checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=".ci-logs/mac-unsigned-release/release-checksums.txt"
+          {
+            echo "# ROX.ONE unsigned beta release ${RELEASE_TAG} SHA-256 checksums"
+            echo "# generated at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "# WARNING: this artifact is NOT codesigned or notarized"
+          } > "${OUT}"
+          shasum -a 256 apps/electron/release/ROX-ONE-arm64.dmg >> "${OUT}"
+          cat "${OUT}"
+
+      - name: Upload unsigned DMG artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-unsigned-mac-arm64
+          path: |
+            apps/electron/release/ROX-ONE-arm64.dmg
+            apps/electron/release/ROX-ONE-arm64.zip
+            apps/electron/release/*.blockmap
+            apps/electron/release/latest-mac.yml
+            .ci-logs/mac-unsigned-release/release-checksums.txt
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload unsigned-release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-unsigned-release-evidence
+          path: |
+            .ci-logs/mac-unsigned-release/**/*.log
+            .ci-logs/mac-unsigned-release/release-checksums.txt
+          retention-days: 14
+          if-no-files-found: warn
