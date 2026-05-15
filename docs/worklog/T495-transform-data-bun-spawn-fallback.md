@@ -115,9 +115,11 @@ tracked generated resource changes for this handler update.
 
 ## 10. Remaining risks
 
-Fresh hosted CircleCI proof is still pending after this fix is pushed to PR
-#228. The local repair covers the observed EBADF class by fault injection, but
-the original failure only reproduces on the hosted CircleCI runner.
+The original failure only reproduced on the hosted CircleCI runner. PR #228
+later merged at `a93d6baebb13fb52979cf89819db9ede9aabc07b` with CircleCI
+`validate` green, so the hosted proof risk is now reconciled by T496. Residual
+risk is limited to future hosted Bun/Node spawn regressions outside the
+observed transient `EBADF` class.
 
 ## 11. Acceptance criteria matrix
 
