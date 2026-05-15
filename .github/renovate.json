@@ -3,6 +3,7 @@
   "extends": ["config:recommended"],
   "schedule": ["before 6am on monday"],
   "labels": ["dependencies"],
+  "dependencyDashboardApproval": true,
   "minimumReleaseAge": "7 days",
   "packageRules": [
     { "matchUpdateTypes": ["major"], "automerge": false, "labels": ["dependencies", "major"] },
