@@ -67,6 +67,8 @@ interface FixtureOptions {
   windows?: boolean;
   /** Provide Linux artifacts (deb, rpm, AppImage, .sig) */
   linux?: boolean;
+  /** Provide Linux AppImage signature sidecar (default true when linux=true) */
+  linuxSignature?: boolean;
   /** Override dmg size (default FIFTY_MB) */
   dmgSize?: number;
   /** Override zip size (default FIFTY_MB) */
@@ -92,6 +94,7 @@ function buildFixture(opts: FixtureOptions): string {
     mac = false,
     windows = false,
     linux = false,
+    linuxSignature = true,
     dmgSize = FIFTY_MB,
     zipSize = FIFTY_MB,
     exeSize = FIFTY_MB,
@@ -99,10 +102,12 @@ function buildFixture(opts: FixtureOptions): string {
   } = opts;
 
   if (linux) {
-    createFakeFile(join(releaseDir, 'ROX-ONE-x64.deb'), FIFTY_MB);
-    createFakeFile(join(releaseDir, 'ROX-ONE-x64.rpm'), FIFTY_MB);
-    createFakeFile(join(releaseDir, 'ROX-ONE-x64.AppImage'), FIFTY_MB);
-    writeFileSync(join(releaseDir, 'ROX-ONE-x64.AppImage.sig'), 'fake-gpg-sig\n');
+    createFakeFile(join(releaseDir, 'ROX-ONE-x86_64.deb'), FIFTY_MB);
+    createFakeFile(join(releaseDir, 'ROX-ONE-x86_64.rpm'), FIFTY_MB);
+    createFakeFile(join(releaseDir, 'ROX-ONE-x86_64.AppImage'), FIFTY_MB);
+    if (linuxSignature) {
+      writeFileSync(join(releaseDir, 'ROX-ONE-x86_64.AppImage.sig'), 'fake-gpg-sig\n');
+    }
   }
 
   if (mac) {
@@ -199,6 +204,32 @@ describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
     expect(combined).toContain('platform=windows');
   });
 
+  test('passes Windows validation with hosted-sized blockmaps below 128 KB', () => {
+    const cwd = fixture({ windows: true, blockmapSize: 116 * 1024 });
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'windows' });
+    const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    expect(result.status).toBe(0);
+    expect(combined).toContain('ROX-ONE-x64.exe.blockmap');
+    expect(combined).toContain('platform=windows');
+  });
+
+  test('passes unsigned Linux validation without AppImage signature sidecar', () => {
+    const cwd = fixture({ linux: true, linuxSignature: false });
+    const result = runValidator(cwd, {
+      ROX_RC_MODE: 'unsigned',
+      ROX_ARTIFACT_PLATFORM: 'linux',
+      ROX_LINUX_DEB_RPM: 'true',
+    });
+    const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    expect(result.status).toBe(0);
+    expect(combined).toContain('ROX-ONE-x86_64.deb');
+    expect(combined).toContain('ROX-ONE-x86_64.rpm');
+    expect(combined).toContain('ROX-ONE-x86_64.AppImage');
+    expect(combined).not.toContain('ROX-ONE-x86_64.AppImage.sig');
+    expect(combined).toContain('mode=unsigned-beta');
+    expect(combined).toContain('platform=linux');
+  });
+
   test('fails Windows validation when latest.yml installer size is stale', () => {
     const cwd = fixture({ windows: true });
     writeFileSync(
@@ -211,7 +242,7 @@ describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
     expect(combined).toContain('latest.yml size for ROX-ONE-x64.exe does not match artifact on disk');
   });
 
-  test('fails Windows validation when latest.yml is missing the matching blockmap entry', () => {
+  test('passes Windows validation when latest.yml omits the blockmap entry', () => {
     const cwd = fixture({ windows: true });
     writeFileSync(
       join(cwd, 'apps', 'electron', 'release', 'latest.yml'),
@@ -225,8 +256,21 @@ describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
     );
     const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'windows' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    expect(result.status).toBe(0);
+    expect(combined).toContain('latest.yml does not list ROX-ONE-x64.exe.blockmap');
+    expect(combined).toContain('platform=windows');
+  });
+
+  test('fails Windows validation when latest.yml blockmap size is stale', () => {
+    const cwd = fixture({ windows: true });
+    writeFileSync(
+      join(cwd, 'apps', 'electron', 'release', 'latest.yml'),
+      latestYml(FIFTY_MB, ONE_MB - 1),
+    );
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'windows' });
+    const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).not.toBe(0);
-    expect(combined).toContain('latest.yml missing ROX-ONE-x64.exe.blockmap in files[]');
+    expect(combined).toContain('latest.yml size for ROX-ONE-x64.exe.blockmap does not match artifact on disk');
   });
 
   test('fails when dmg is present but empty (0 bytes)', () => {
@@ -276,10 +320,18 @@ describe('signed mode (ROX_RC_MODE="" / default)', () => {
     const result = runValidator(cwd, { ROX_RC_MODE: '', ROX_ARTIFACT_PLATFORM: 'linux' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).toBe(0);
-    expect(combined).toContain('ROX-ONE-x64.deb');
-    expect(combined).toContain('ROX-ONE-x64.rpm');
-    expect(combined).toContain('ROX-ONE-x64.AppImage');
+    expect(combined).toContain('ROX-ONE-x86_64.AppImage');
+    expect(combined).toContain('ROX-ONE-x86_64.AppImage.sig');
     expect(combined).toContain('platform=linux');
+  });
+
+  test('fails signed Linux validation when AppImage signature is missing', () => {
+    const cwd = fixture({ linux: true, linuxSignature: false });
+    const result = runValidator(cwd, { ROX_RC_MODE: '', ROX_ARTIFACT_PLATFORM: 'linux' });
+    const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    expect(result.status).not.toBe(0);
+    expect(combined).toContain('missing required artifact');
+    expect(combined).toContain('ROX-ONE-x86_64.AppImage.sig');
   });
 
   test('fails when Linux artifacts are missing in signed Linux validation', () => {
@@ -288,7 +340,7 @@ describe('signed mode (ROX_RC_MODE="" / default)', () => {
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).not.toBe(0);
     expect(combined).toContain('missing required artifact');
-    expect(combined).toContain('ROX-ONE-x64.deb');
+    expect(combined).toContain('ROX-ONE-x86_64.AppImage');
   });
 
   test('fails when dmg size is below 50 MB threshold in signed mode', () => {
