@@ -592,12 +592,13 @@ describe('R.11 closeout worklog documentation', () => {
     expect(worklog).toContain('docs/release/r11-completion-audit-2026-05-14.md')
     expect(worklog).toContain('docs/release/rebrand-mapping-2026-05-13.md')
     expect(worklog).toContain(
-      'validate:roadmap OK — 46 phases, 110 tickets across detail files, 14 rebrand master-roadmap log rows',
+      'validate:roadmap OK — 46 phases, 110 tickets across detail files, 15 rebrand master-roadmap log rows',
     )
-    expect(worklog).toContain('BLOCKED - pending destructive rewrite closeout SHA')
+    expect(worklog).toContain('Post-rewrite R.11 closeout')
+    expect(worklog).not.toContain('BLOCKED - pending destructive rewrite closeout SHA')
     expect(worklog).not.toContain('The latest report-only evidence chain is')
-    expect(worklogHeader).toContain('Status: BLOCKED')
-    expect(worklogHeader).not.toContain('Status: DONE')
+    expect(worklogHeader).toContain('Status: DONE')
+    expect(worklogHeader).not.toContain('Status: BLOCKED')
   })
 
   test('keeps T298 history-scan wording aligned with the current unbounded evidence', () => {
@@ -606,8 +607,9 @@ describe('R.11 closeout worklog documentation', () => {
       'utf8',
     )
 
-    expect(worklog).toContain('docs/release/r11-history-scan-inventory-2026-05-14.md')
-    expect(worklog).toContain('81 forbidden-token patch lines')
+    expect(worklog).toContain('bun run rebrand:r11-history-scan')
+    expect(worklog).toContain('green - zero forbidden-token patch lines outside the allowlist')
+    expect(worklog).not.toContain('81 forbidden-token patch lines')
     expect(worklog).not.toContain('bounded finding output')
   })
 
@@ -632,8 +634,8 @@ describe('R.11 closeout worklog documentation', () => {
     }
 
     expect(ticket).toContain('current `main`')
-    expect(worklog).toContain('not emitted while the corresponding artifact is missing')
-    expect(worklogHeader).toContain('Status: BLOCKED')
-    expect(worklogHeader).not.toContain('Status: DONE')
+    expect(worklog).toContain('backup-tag-target')
+    expect(worklogHeader).toContain('Status: DONE')
+    expect(worklogHeader).not.toContain('Status: BLOCKED')
   })
 })

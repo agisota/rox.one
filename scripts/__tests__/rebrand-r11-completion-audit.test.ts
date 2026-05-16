@@ -227,19 +227,20 @@ describe('R.11 completion audit', () => {
     expect(currentMainValidation).toContain('This does not satisfy the final post-rewrite validation requirement')
   })
 
-  test('records post-T441 mapping roadmap evidence without unblocking R.11', () => {
+  test('keeps the historical T441 audit snapshot while current mapping records R.11 closeout', () => {
     const audit = readFileSync(auditPath, 'utf8')
     const currentMainValidation =
       audit.split('## Current Main Validation Matrix')[1]?.split('## Current Blockers')[0] ?? ''
     const mapping = readFileSync(rebrandMappingPath, 'utf8')
-    const currentRoadmapOutput =
-      'validate:roadmap OK — 46 phases, 110 tickets across detail files, 14 rebrand master-roadmap log rows'
-
-    expect(mapping).toContain(currentRoadmapOutput)
-    expect(mapping).toContain('| R.11 | T298 | `BLOCKED - pending destructive rewrite closeout SHA` |')
+    expect(mapping).toContain('validate:roadmap OK')
+    expect(mapping).toMatch(/\| R\.11 \| T298 \| `[0-9a-f]{7,40}` \|/)
+    expect(mapping).toContain('Post-rewrite R.11 closeout')
+    expect(mapping).not.toContain('BLOCKED - pending destructive rewrite closeout SHA')
     expect(currentMainValidation).toContain('T441')
     expect(currentMainValidation).toContain('docs/release/rebrand-mapping-2026-05-13.md')
-    expect(currentMainValidation).toContain(currentRoadmapOutput)
+    expect(currentMainValidation).toContain(
+      'validate:roadmap OK — 46 phases, 110 tickets across detail files, 14 rebrand master-roadmap log rows',
+    )
     expect(currentMainValidation).toContain('BLOCKED - pending destructive rewrite closeout SHA')
     expect(currentMainValidation).toContain(
       'This does not satisfy the final post-rewrite validation requirement',

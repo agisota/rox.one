@@ -6,6 +6,20 @@ ROX.ONE is a beautiful, document-centric workspace for AI agents. Multi-session 
 
 We build ROX.ONE with ROX.ONE.
 
+## After R.11 history rewrite
+
+**Visible coordination banner, keep until 2026-05-19 23:59 UTC.** Main history
+was rewritten for the R.11 rebrand cleanup. Existing clones must realign before
+new work:
+
+```bash
+git fetch origin --prune
+git switch main
+git reset --hard origin/main
+```
+
+Cherry-pick any local-only commits onto the new `main` after the reset.
+
 ## Install
 
 **macOS / Linux**

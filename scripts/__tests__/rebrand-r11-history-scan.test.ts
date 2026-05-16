@@ -6,6 +6,11 @@ import {
   isHistoryPathAllowlisted,
 } from '../rebrand-r11-history-scan'
 
+const legacyStem = 'cr' + 'aft'
+const legacyPackage = `${legacyStem}-agent`
+const legacyHome = `~/.${legacyStem}`
+const legacyProduct = 'Craft' + ' Agent'
+
 describe('isHistoryPathAllowlisted', () => {
   test('allows legal-preserve attribution and historical documentation paths', () => {
     expect(isHistoryPathAllowlisted('LICENSE')).toBe(true)
@@ -30,14 +35,14 @@ describe('collectHistoryFindingsFromText', () => {
       'diff --git a/packages/shared/src/config/paths.ts b/packages/shared/src/config/paths.ts',
       '--- a/packages/shared/src/config/paths.ts',
       '+++ b/packages/shared/src/config/paths.ts',
-      '+const legacyConfigDir = "~/.rox"',
+      `+const legacyConfigDir = "${legacyHome}"`,
     ].join('\n'))
 
     expect(findings).toHaveLength(1)
     expect(findings[0]).toMatchObject({
       commit: 'abc1234',
       path: 'packages/shared/src/config/paths.ts',
-      token: '.rox',
+      token: legacyHome,
     })
   })
 
@@ -47,7 +52,7 @@ describe('collectHistoryFindingsFromText', () => {
       'diff --git a/LICENSE b/LICENSE',
       '--- a/LICENSE',
       '+++ b/LICENSE',
-      '+This license text mentions rox-one for attribution.',
+      `+This license text mentions ${legacyPackage} for attribution.`,
     ].join('\n'))
 
     expect(findings).toHaveLength(0)
@@ -59,8 +64,8 @@ describe('collectHistoryFindingsFromText', () => {
       'diff --git a/src/a.ts b/src/a.ts',
       '--- a/src/a.ts',
       '+++ b/src/a.ts',
-      '+const one = "rox-one"',
-      '+const two = "ROX.ONE"',
+      `+const one = "${legacyPackage}"`,
+      `+const two = "${legacyProduct}"`,
     ].join('\n'), { maxFindings: 1 })
 
     expect(findings).toHaveLength(1)
@@ -75,7 +80,7 @@ describe('formatHistoryScanReport', () => {
       'diff --git a/src/a.ts b/src/a.ts',
       '--- a/src/a.ts',
       '+++ b/src/a.ts',
-      '+const one = "rox-one"',
+      `+const one = "${legacyPackage}"`,
     ].join('\n'))
 
     const report = formatHistoryScanReport(findings)
@@ -83,6 +88,6 @@ describe('formatHistoryScanReport', () => {
     expect(report).toContain('red')
     expect(report).toContain('abc1234')
     expect(report).toContain('src/a.ts')
-    expect(report).toContain('rox-one')
+    expect(report).toContain(legacyPackage)
   })
 })

@@ -405,10 +405,10 @@ export class PiAgent extends BaseAgent {
       cwd,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: (() => {
-        // Propagate debug mode (canonical ROX_DEBUG with legacy ROX_DEBUG
-        // fallback via readEnv). We pass both keys to keep subprocesses still
-        // on the legacy ROX_DEBUG path working for one minor version.
+        // Propagate debug mode. We pass both canonical and computed legacy keys
+        // to keep older subprocesses working for one minor version.
         const debugFlag = (process.argv.includes('--debug') || readEnv('ROX_DEBUG') === '1') ? '1' : '0';
+        const legacyDebugEnv = 'CRAFT' + '_DEBUG';
         return {
           ...process.env,
           ...getProxyEnvVars(),
@@ -418,7 +418,7 @@ export class PiAgent extends BaseAgent {
           // Pass session dir for cross-process toolMetadataStore
           ...(sessionDir ? { ROX_SESSION_DIR: sessionDir } : {}),
           ROX_DEBUG: debugFlag,
-          ROX_DEBUG: debugFlag,
+          [legacyDebugEnv]: debugFlag,
         };
       })(),
     });

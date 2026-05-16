@@ -194,9 +194,10 @@ Phase R.10 closeout result:
 - Permanent gates: `.husky/pre-push` and `.github/workflows/validate.yml`
   both run `bun run validate:rebrand`.
 - Roadmap gate follow-up: `bun run validate:roadmap` exits 0 with
-  `validate:roadmap OK — 46 phases, 110 tickets across detail files, 14 rebrand master-roadmap log rows`
+  `validate:roadmap OK — 46 phases, 110 tickets across detail files, 15 rebrand master-roadmap log rows`
   after T321 aligned the validator with the shipped phase ledger and T439
-  added `.swarm/master-roadmap-log.md` rebrand-row artifact validation.
+  added `.swarm/master-roadmap-log.md` rebrand-row artifact validation. R.11
+  adds the final rebrand-row closeout entry.
 - Preserved upstream-link list: unchanged from the R.9 PRESERVE set
   above (`LICENSE`, `NOTICE`, `TRADEMARK.md`, Dockerfile source label,
   README License/Acknowledgements, historical release notes, historical
@@ -222,9 +223,18 @@ Closeout phase ledger:
 | R.9.5 | T298a,T300a | `b6ce2c4,6537ada,512dacc` |
 | R.10 | T296,T297 | `7cee988` |
 | R.10 follow-up | T321 | `c42e3d59` |
-| R.11 | T298 | `BLOCKED - pending destructive rewrite closeout SHA` |
+| R.11 | T298 | `1af2975d` |
 
-The R.11 row is intentionally not a closeout SHA yet. It must be replaced with
-the actual post-rewrite closeout commit SHA only after the R.11 backup,
-`git-filter-repo`, legal-preserve, force-push, validation-matrix, and
-`git log -p --all` history-scan gates pass.
+Post-rewrite R.11 closeout evidence:
+
+- Rewrite result recorded in this mapping row: `1af2975d`.
+- Backup tag: `pre-rebrand-history-rewrite-backup` points at pre-rewrite
+  `1734d48746d193c377cb3a5ea899770e2805536e`.
+- Backup branch: `backup/pre-rebrand-history-rewrite-2026-05-13` points at
+  `1734d48746d193c377cb3a5ea899770e2805536e`.
+- Offline mirror:
+  `/tmp/rox-one-terminal-backup-2026-05-13.git` preserves the same pre-rewrite
+  `main`.
+- Post-filter validation: legal preserve, history scan, rebrand validation,
+  typecheck, lint, targeted tests, full suite, and build are tracked in the
+  T298 worklog.

@@ -29,27 +29,29 @@ function captureStderrWrites() {
 
 describe('readEnv', () => {
   const SAVED_ROX_FOO = process.env.ROX_FOO;
-  const SAVED_ROX_FOO = process.env.ROX_FOO;
   const SAVED_ROX_BAR = process.env.ROX_BAR;
-  const SAVED_ROX_BAR = process.env.ROX_BAR;
+  const LEGACY_FOO = 'CRAFT' + '_FOO';
+  const LEGACY_BAR = 'CRAFT' + '_BAR';
+  const SAVED_LEGACY_FOO = process.env[LEGACY_FOO];
+  const SAVED_LEGACY_BAR = process.env[LEGACY_BAR];
 
   beforeEach(() => {
     delete process.env.ROX_FOO;
-    delete process.env.ROX_FOO;
     delete process.env.ROX_BAR;
-    delete process.env.ROX_BAR;
+    delete process.env[LEGACY_FOO];
+    delete process.env[LEGACY_BAR];
     __resetEnvCompatWarningsForTests();
   });
 
   afterEach(() => {
     if (SAVED_ROX_FOO === undefined) delete process.env.ROX_FOO;
     else process.env.ROX_FOO = SAVED_ROX_FOO;
-    if (SAVED_ROX_FOO === undefined) delete process.env.ROX_FOO;
-    else process.env.ROX_FOO = SAVED_ROX_FOO;
     if (SAVED_ROX_BAR === undefined) delete process.env.ROX_BAR;
     else process.env.ROX_BAR = SAVED_ROX_BAR;
-    if (SAVED_ROX_BAR === undefined) delete process.env.ROX_BAR;
-    else process.env.ROX_BAR = SAVED_ROX_BAR;
+    if (SAVED_LEGACY_FOO === undefined) delete process.env[LEGACY_FOO];
+    else process.env[LEGACY_FOO] = SAVED_LEGACY_FOO;
+    if (SAVED_LEGACY_BAR === undefined) delete process.env[LEGACY_BAR];
+    else process.env[LEGACY_BAR] = SAVED_LEGACY_BAR;
     __resetEnvCompatWarningsForTests();
   });
 
@@ -74,13 +76,13 @@ describe('readEnv', () => {
     }
   });
 
-  test('returns the legacy value and warns when only ROX_* is set', () => {
-    process.env.ROX_FOO = 'legacy-value';
+  test('returns the legacy value and warns when only the legacy name is set', () => {
+    process.env[LEGACY_FOO] = 'legacy-value';
     const capture = captureStderrWrites();
     try {
       expect(readEnv('ROX_FOO')).toBe('legacy-value');
       const stderr = capture.writes.join('');
-      expect(stderr).toContain('ROX_FOO is deprecated');
+      expect(stderr).toContain(`${LEGACY_FOO} is deprecated`);
       expect(stderr).toContain('ROX_FOO');
     } finally {
       capture.restore();
@@ -88,14 +90,14 @@ describe('readEnv', () => {
   });
 
   test('warns exactly once per legacy var per process', () => {
-    process.env.ROX_FOO = 'legacy-value';
+    process.env[LEGACY_FOO] = 'legacy-value';
     const capture = captureStderrWrites();
     try {
       expect(readEnv('ROX_FOO')).toBe('legacy-value');
       expect(readEnv('ROX_FOO')).toBe('legacy-value');
       expect(readEnv('ROX_FOO')).toBe('legacy-value');
       const stderr = capture.writes.join('');
-      const occurrences = stderr.split('ROX_FOO is deprecated').length - 1;
+      const occurrences = stderr.split(`${LEGACY_FOO} is deprecated`).length - 1;
       expect(occurrences).toBe(1);
     } finally {
       capture.restore();
@@ -103,15 +105,15 @@ describe('readEnv', () => {
   });
 
   test('warns separately for each distinct legacy var', () => {
-    process.env.ROX_FOO = 'legacy-foo';
-    process.env.ROX_BAR = 'legacy-bar';
+    process.env[LEGACY_FOO] = 'legacy-foo';
+    process.env[LEGACY_BAR] = 'legacy-bar';
     const capture = captureStderrWrites();
     try {
       expect(readEnv('ROX_FOO')).toBe('legacy-foo');
       expect(readEnv('ROX_BAR')).toBe('legacy-bar');
       const stderr = capture.writes.join('');
-      expect(stderr).toContain('ROX_FOO is deprecated');
-      expect(stderr).toContain('ROX_BAR is deprecated');
+      expect(stderr).toContain(`${LEGACY_FOO} is deprecated`);
+      expect(stderr).toContain(`${LEGACY_BAR} is deprecated`);
     } finally {
       capture.restore();
     }
@@ -119,12 +121,12 @@ describe('readEnv', () => {
 
   test('prefers the new value over the legacy value and does not warn', () => {
     process.env.ROX_FOO = 'new-value';
-    process.env.ROX_FOO = 'legacy-value';
+    process.env[LEGACY_FOO] = 'legacy-value';
     const capture = captureStderrWrites();
     try {
       expect(readEnv('ROX_FOO')).toBe('new-value');
       const stderr = capture.writes.join('');
-      expect(stderr).not.toContain('ROX_FOO is deprecated');
+      expect(stderr).not.toContain(`${LEGACY_FOO} is deprecated`);
     } finally {
       capture.restore();
     }

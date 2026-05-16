@@ -13,6 +13,7 @@ rebrand-R.8-user-data-migration | 3f9ea58,efdf1bc,f39d087 | T292,T293,T294 | 202
 rebrand-R.9-community-link-audit | 17990c4 | T295 | 2026-05-13T17:54:46Z
 rebrand-R.9.5-allowlist-and-final-text | b8d6abd | T298a,T300a | 2026-05-13T18:09:00Z
 rebrand-R.10-final-sweep-and-gate | b287c4e | T296,T297 | 2026-05-13T21:50:00Z
+rebrand-R.11-history-rewrite | 1af2975d | T298 | 2026-05-16T23:59:00Z
 M.2-foundation | 89e3423,375e89a | T224,T225 | 2026-05-13T18:57:16Z
 M.2-T226-rbac-resolver | cad0550 | T226 | 2026-05-13T19:08:05Z
 M.2-T227-foundation | 7e76711 | T227-part1 | 2026-05-13T19:16:40Z

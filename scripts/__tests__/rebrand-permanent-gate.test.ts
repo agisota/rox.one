@@ -92,6 +92,8 @@ describe("R.10 permanent validate:rebrand gate", () => {
     expect(mapping).toContain(roadmapOutput);
     expect(mapping).toContain("T439");
     expect(mapping).not.toContain("46 phases, 111 tickets across detail files");
-    expect(mapping).toContain("| R.11 | T298 | `BLOCKED - pending destructive rewrite closeout SHA` |");
+    expect(mapping).toMatch(/\| R\.11 \| T298 \| `[0-9a-f]{7,40}` \|/);
+    expect(mapping).toContain("Post-rewrite R.11 closeout");
+    expect(mapping).not.toContain("BLOCKED - pending destructive rewrite closeout SHA");
   });
 });

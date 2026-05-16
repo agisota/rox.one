@@ -11,6 +11,7 @@ const legacyProductPlural = `${legacyProduct}s`;
 const legacyAgentClass = "Rox" + "Agent";
 const legacyPackageScope = `@${legacyStem}-agent`;
 const upstreamRepoUrl = `https://github.com/lukilabs/${legacyRepo}`;
+const rewrittenUpstreamRepoUrl = "https://github.com/lukilabs/rox-agents-oss";
 const spokenWordmark = ["ROX", "ONE"].join(" ");
 
 function readText(path: string): string {
@@ -34,7 +35,7 @@ describe("R.4 documentation rebrand cleanup", () => {
     expect(readme).not.toContain(`cd ${legacyRepo}`);
 
     const acknowledgements = section(readme, "Acknowledgements");
-    expect(acknowledgements).toContain(upstreamRepoUrl);
+    expect(acknowledgements).toContain(rewrittenUpstreamRepoUrl);
 
     expect(readme).toContain('alias rox-cli="bun run $(pwd)/apps/cli/src/index.ts"');
     expect(readme).not.toContain(`alias ${legacyCli}=`);
@@ -82,7 +83,7 @@ describe("R.4 documentation rebrand cleanup", () => {
     expect(snapshot).not.toContain(spokenWordmark);
     expect(snapshot).not.toContain(`structurally ${legacyProductPlural}`);
     expect(snapshot).not.toContain("Rox" + " permission modes");
-    expect(snapshot).toContain(upstreamRepoUrl);
+    expect(snapshot).toContain(rewrittenUpstreamRepoUrl);
   });
 
   test("rewrites Electron README paths and ADR index rebrand references", () => {
