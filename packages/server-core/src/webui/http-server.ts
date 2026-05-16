@@ -25,6 +25,7 @@ import {
 } from './auth'
 import { maskEmail } from './logging-helpers'
 import { generateCallbackPage } from '@rox-one/shared/auth'
+import { ROX_SIGNUP_BONUS_UNITS, isValidRoxUsername, normalizeRoxUsername, roxUsernameToEmail } from '@rox-one/shared/account'
 import type { PlatformServices } from '../runtime/platform'
 import type { AccountStore, PublicUser, SessionIdentity } from '../accounts'
 import { AccountAuthError, AccountConflictError } from '../accounts'
@@ -735,14 +736,22 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
         return Response.json({ error: 'Too many attempts. Try again later.' }, { status: 429 })
       }
 
-      let body: { email?: string; password?: string; displayName?: string | null }
+      let body: { email?: string; username?: string; password?: string; displayName?: string | null }
       try {
-        body = await req.json() as { email?: string; password?: string; displayName?: string | null }
+        body = await req.json() as { email?: string; username?: string; password?: string; displayName?: string | null }
       } catch {
         return Response.json({ error: 'Invalid request body' }, { status: 400 })
       }
 
-      if (!isEmail(body.email)) {
+      const requestedUsername = typeof body.username === 'string' ? normalizeRoxUsername(body.username) : ''
+      const registrationEmail = requestedUsername
+        ? roxUsernameToEmail(requestedUsername)
+        : typeof body.email === 'string' ? body.email.trim() : ''
+
+      if (requestedUsername && !isValidRoxUsername(requestedUsername)) {
+        return Response.json({ error: 'Valid username is required' }, { status: 400 })
+      }
+      if (!isEmail(registrationEmail)) {
         return Response.json({ error: 'Valid email is required' }, { status: 400 })
       }
       if (!isStrongEnoughPassword(body.password)) {
@@ -751,16 +760,48 @@ export function createWebuiHandler(options: WebuiHandlerOptions): WebuiHandler {
 
       try {
         const user = await accountStore.createUser({
-          email: body.email,
+          email: registrationEmail,
           password: body.password,
           displayName: typeof body.displayName === 'string' ? body.displayName : null,
         })
         await options.bootstrapAccount?.(user)
+        const signupBonus = options.accountUsageLedger
+          ? await options.accountUsageLedger.recordCredit({
+              userId: user.id,
+              amountUnits: ROX_SIGNUP_BONUS_UNITS,
+              reason: 'signup_bonus',
+              idempotencyKey: 'signup-bonus-v1',
+              metadata: {
+                source: 'account_registration',
+              },
+            })
+          : null
+        if (signupBonus && options.accountEventHistory) {
+          await options.accountEventHistory.append({
+            userId: user.id,
+            type: 'billing.credit',
+            action: 'signup_bonus',
+            actor: { type: 'system' },
+            target: { type: 'account', id: user.id },
+            title: 'Signup bonus credited',
+            details: {
+              amountUnits: signupBonus.amountUnits,
+              currency: signupBonus.currency,
+              reason: signupBonus.reason,
+            },
+          })
+        }
         await sendVerificationEmail(user, req)
         logger.info(`[webui] Registered account user=${user.id} (${maskEmail(user.email)}) from ${ip}`)
         return Response.json({
           ok: true,
           verificationRequired: true,
+          ...(signupBonus ? {
+            bonus: {
+              amountUnits: signupBonus.amountUnits,
+              currency: signupBonus.currency,
+            },
+          } : {}),
           user: {
             email: user.email,
             displayName: user.displayName,
