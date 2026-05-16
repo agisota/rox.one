@@ -1,7 +1,7 @@
 /**
  * T503 — bun:test coverage for validate-packaged-artifacts.ts
  *
- * Tests both signed (default) and unsigned (ROX_RC_MODE=unsigned) modes.
+ * Tests platform-scoped signed/unsigned validation.
  * Uses a temporary fixture directory populated with synthetic files so
  * no real Apple/Windows signing infrastructure is required.
  *
@@ -27,7 +27,7 @@ const validatorPath = join(repoRoot, 'scripts/validate-packaged-artifacts.ts');
 
 /** Bytes representing a "real" artifact (>= 50 MB) */
 const FIFTY_MB = 50 * 1024 * 1024;
-/** Bytes representing a "real" blockmap (>= 1 MB) */
+/** Bytes representing a generously sized synthetic blockmap fixture. */
 const ONE_MB = 1 * 1024 * 1024;
 
 function createFakeFile(filePath: string, size: number): void {
@@ -48,13 +48,15 @@ function latestMacYml(dmgSize: number, zipSize: number): string {
 }
 
 /** Minimal latest.yml content for Windows. */
-function latestYml(exeSize: number): string {
+function latestYml(exeSize: number, blockmapSize: number = ONE_MB): string {
   return [
     'version: 1.2.3',
-    'path: ROX-ONE-Setup-1.2.3.exe',
+    'path: ROX-ONE-x64.exe',
     'files:',
-    `  - url: ROX-ONE-Setup-1.2.3.exe`,
+    `  - url: ROX-ONE-x64.exe`,
     `    size: ${exeSize}`,
+    `  - url: ROX-ONE-x64.exe.blockmap`,
+    `    size: ${blockmapSize}`,
   ].join('\n');
 }
 
@@ -97,10 +99,10 @@ function buildFixture(opts: FixtureOptions): string {
   } = opts;
 
   if (linux) {
-    createFakeFile(join(releaseDir, 'ROX-ONE-arm64.deb'), FIFTY_MB);
-    createFakeFile(join(releaseDir, 'ROX-ONE-arm64.rpm'), FIFTY_MB);
-    createFakeFile(join(releaseDir, 'ROX-ONE-arm64.AppImage'), FIFTY_MB);
-    writeFileSync(join(releaseDir, 'ROX-ONE-arm64.AppImage.sig'), 'fake-gpg-sig\n');
+    createFakeFile(join(releaseDir, 'ROX-ONE-x64.deb'), FIFTY_MB);
+    createFakeFile(join(releaseDir, 'ROX-ONE-x64.rpm'), FIFTY_MB);
+    createFakeFile(join(releaseDir, 'ROX-ONE-x64.AppImage'), FIFTY_MB);
+    writeFileSync(join(releaseDir, 'ROX-ONE-x64.AppImage.sig'), 'fake-gpg-sig\n');
   }
 
   if (mac) {
@@ -115,9 +117,9 @@ function buildFixture(opts: FixtureOptions): string {
   }
 
   if (windows) {
-    createFakeFile(join(releaseDir, 'ROX-ONE-Setup-1.2.3.exe'), exeSize);
-    createFakeFile(join(releaseDir, 'ROX-ONE-Setup-1.2.3.exe.blockmap'), blockmapSize);
-    writeFileSync(join(releaseDir, 'latest.yml'), latestYml(exeSize));
+    createFakeFile(join(releaseDir, 'ROX-ONE-x64.exe'), exeSize);
+    createFakeFile(join(releaseDir, 'ROX-ONE-x64.exe.blockmap'), blockmapSize);
+    writeFileSync(join(releaseDir, 'latest.yml'), latestYml(exeSize, blockmapSize));
   }
 
   return base;
@@ -159,47 +161,78 @@ function fixture(opts: FixtureOptions): string {
 // ---------------------------------------------------------------------------
 
 describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
-  test('passes when all required unsigned artifacts are present with correct sizes', () => {
-    const cwd = fixture({ linux: true, mac: true, windows: true });
-    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned' });
+  test('passes Mac validation with hosted-sized blockmaps below 1 MB', () => {
+    const cwd = fixture({ mac: true, blockmapSize: 235 * 1024 });
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'mac' });
+    const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    expect(result.status).toBe(0);
+    expect(combined).toContain('ROX-ONE-arm64.dmg.blockmap');
+    expect(combined).toContain('platform=mac');
+  });
+
+  test('passes Mac validation with only Mac artifacts', () => {
+    const cwd = fixture({ mac: true });
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'mac' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).toBe(0);
     expect(combined).toContain('[unsigned-beta] skipping code signature verification for mac');
-    expect(combined).toContain('[unsigned-beta] skipping code signature verification for windows');
     expect(combined).toContain('mode=unsigned-beta');
+    expect(combined).toContain('platform=mac');
   });
 
-  test('fails when Mac dmg is missing', () => {
-    const cwd = fixture({ linux: true, windows: true }); // no mac
-    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned' });
+  test('fails Mac validation when Mac dmg is missing', () => {
+    const cwd = fixture({ windows: true }); // no mac
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'mac' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).not.toBe(0);
     expect(combined).toContain('missing required artifact');
     expect(combined).toContain('ROX-ONE-arm64');
   });
 
-  test('fails when Windows exe is missing', () => {
-    const cwd = fixture({ linux: true, mac: true }); // no windows
-    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned' });
+  test('passes Windows validation with only ROX-ONE-x64.exe artifacts', () => {
+    const cwd = fixture({ windows: true });
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'windows' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
-    expect(result.status).not.toBe(0);
-    expect(combined).toContain('missing required artifact');
-    expect(combined).toContain('ROX-ONE-Setup-');
+    expect(result.status).toBe(0);
+    expect(combined).toContain('ROX-ONE-x64.exe');
+    expect(combined).toContain('latest.yml artifact references verified');
+    expect(combined).toContain('platform=windows');
   });
 
-  test('fails when Linux deb is missing', () => {
-    const cwd = fixture({ mac: true, windows: true }); // no linux
-    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned' });
+  test('fails Windows validation when latest.yml installer size is stale', () => {
+    const cwd = fixture({ windows: true });
+    writeFileSync(
+      join(cwd, 'apps', 'electron', 'release', 'latest.yml'),
+      latestYml(FIFTY_MB - 1, ONE_MB),
+    );
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'windows' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).not.toBe(0);
-    expect(combined).toContain('missing required artifact');
-    expect(combined).toContain('ROX-ONE-arm64.deb');
+    expect(combined).toContain('latest.yml size for ROX-ONE-x64.exe does not match artifact on disk');
+  });
+
+  test('fails Windows validation when latest.yml is missing the matching blockmap entry', () => {
+    const cwd = fixture({ windows: true });
+    writeFileSync(
+      join(cwd, 'apps', 'electron', 'release', 'latest.yml'),
+      [
+        'version: 1.2.3',
+        'path: ROX-ONE-x64.exe',
+        'files:',
+        '  - url: ROX-ONE-x64.exe',
+        `    size: ${FIFTY_MB}`,
+      ].join('\n'),
+    );
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'windows' });
+    const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    expect(result.status).not.toBe(0);
+    expect(combined).toContain('latest.yml missing ROX-ONE-x64.exe.blockmap in files[]');
   });
 
   test('fails when dmg is present but empty (0 bytes)', () => {
     // Build full fixture then replace dmg with 0-byte file
-    const cwd = fixture({ linux: true, mac: true, windows: true, dmgSize: 0 });
-    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned' });
+    const cwd = fixture({ mac: true, dmgSize: 0 });
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'mac' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).not.toBe(0);
     expect(combined).toContain('artifact too small');
@@ -207,17 +240,17 @@ describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
   });
 
   test('fails when exe is present but empty (0 bytes)', () => {
-    const cwd = fixture({ linux: true, mac: true, windows: true, exeSize: 0 });
-    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned' });
+    const cwd = fixture({ windows: true, exeSize: 0 });
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'windows' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).not.toBe(0);
     expect(combined).toContain('artifact too small');
-    expect(combined).toContain('ROX-ONE-Setup-');
+    expect(combined).toContain('ROX-ONE-x64.exe');
   });
 
   test('fails when blockmap is present but empty (0 bytes)', () => {
-    const cwd = fixture({ linux: true, mac: true, windows: true, blockmapSize: 0 });
-    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned' });
+    const cwd = fixture({ windows: true, blockmapSize: 0 });
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'windows' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).not.toBe(0);
     expect(combined).toContain('artifact too small');
@@ -232,24 +265,35 @@ describe('signed mode (ROX_RC_MODE="" / default)', () => {
   test('fails immediately when mac artifacts are missing (no packaged runtime lookup)', () => {
     // Signed mode requires Mac artifacts — empty release dir should fail fast
     const cwd = fixture({ linux: true }); // no mac artifacts
-    const result = runValidator(cwd, { ROX_RC_MODE: '' });
+    const result = runValidator(cwd, { ROX_RC_MODE: '', ROX_ARTIFACT_PLATFORM: 'mac' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).not.toBe(0);
     expect(combined).toContain('missing required artifact');
   });
 
-  test('fails when Linux artifacts are missing in signed mode', () => {
+  test('passes Linux signed artifact checks with x64 builder output only', () => {
+    const cwd = fixture({ linux: true });
+    const result = runValidator(cwd, { ROX_RC_MODE: '', ROX_ARTIFACT_PLATFORM: 'linux' });
+    const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    expect(result.status).toBe(0);
+    expect(combined).toContain('ROX-ONE-x64.deb');
+    expect(combined).toContain('ROX-ONE-x64.rpm');
+    expect(combined).toContain('ROX-ONE-x64.AppImage');
+    expect(combined).toContain('platform=linux');
+  });
+
+  test('fails when Linux artifacts are missing in signed Linux validation', () => {
     const cwd = fixture({ mac: true }); // linux missing
-    const result = runValidator(cwd, { ROX_RC_MODE: '' });
+    const result = runValidator(cwd, { ROX_RC_MODE: '', ROX_ARTIFACT_PLATFORM: 'linux' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).not.toBe(0);
     expect(combined).toContain('missing required artifact');
-    expect(combined).toContain('ROX-ONE-arm64.deb');
+    expect(combined).toContain('ROX-ONE-x64.deb');
   });
 
   test('fails when dmg size is below 50 MB threshold in signed mode', () => {
-    const cwd = fixture({ linux: true, mac: true, dmgSize: 1024 });
-    const result = runValidator(cwd, { ROX_RC_MODE: '' });
+    const cwd = fixture({ mac: true, dmgSize: 1024 });
+    const result = runValidator(cwd, { ROX_RC_MODE: '', ROX_ARTIFACT_PLATFORM: 'mac' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).not.toBe(0);
     expect(combined).toContain('artifact too small');
@@ -259,8 +303,8 @@ describe('signed mode (ROX_RC_MODE="" / default)', () => {
   test('does NOT log unsigned-beta skip message in signed mode', () => {
     // Even when mac+linux are present, if it gets past size checks it will fail
     // on runtime binary — but it must never log the unsigned-beta skip.
-    const cwd = fixture({ linux: true, mac: true });
-    const result = runValidator(cwd, { ROX_RC_MODE: '' });
+    const cwd = fixture({ mac: true });
+    const result = runValidator(cwd, { ROX_RC_MODE: '', ROX_ARTIFACT_PLATFORM: 'mac' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(combined).not.toContain('[unsigned-beta]');
   });
@@ -273,14 +317,14 @@ describe('signed mode (ROX_RC_MODE="" / default)', () => {
 describe('mode-invariant behavior', () => {
   test('empty release directory fails in signed mode', () => {
     const cwd = fixture({});
-    const result = runValidator(cwd, { ROX_RC_MODE: '' });
+    const result = runValidator(cwd, { ROX_RC_MODE: '', ROX_ARTIFACT_PLATFORM: 'mac' });
     expect(result.status).not.toBe(0);
     expect(`${result.stdout ?? ''}${result.stderr ?? ''}`).toContain('missing required artifact');
   });
 
   test('empty release directory fails in unsigned mode', () => {
     const cwd = fixture({});
-    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned' });
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'windows' });
     expect(result.status).not.toBe(0);
     expect(`${result.stdout ?? ''}${result.stderr ?? ''}`).toContain('missing required artifact');
   });
