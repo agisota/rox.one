@@ -223,11 +223,13 @@ Closeout phase ledger:
 | R.9.5 | T298a,T300a | `b6ce2c4,6537ada,512dacc` |
 | R.10 | T296,T297 | `7cee988` |
 | R.10 follow-up | T321 | `c42e3d59` |
-| R.11 | T298 | `1af2975d` |
+| R.11 | T298 | `c0cc869d` |
 
 Post-rewrite R.11 closeout evidence:
 
-- Rewrite result recorded in this mapping row: `1af2975d`.
+- Closeout commit force-pushed to `origin/main`: `c0cc869d`.
+- Post-filter rewrite base before closeout documentation: `1af2975d`.
+- `rebrand-v1` peeled remote target after retag: `c0cc869d`.
 - Backup tag: `pre-rebrand-history-rewrite-backup` points at pre-rewrite
   `1734d48746d193c377cb3a5ea899770e2805536e`.
 - Backup branch: `backup/pre-rebrand-history-rewrite-2026-05-13` points at

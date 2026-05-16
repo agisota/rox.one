@@ -90,6 +90,13 @@ historical report-only evidence.
 - Re-added `origin` after filter-repo removed remotes.
 - Produced post-filter rewrite head `1af2975d265446f06a97a3f734f009ee3d1092d4`;
   `git rev-list --count main` stayed at `933`.
+- Created closeout commit `c0cc869d4224a25811c612090a904671333776e4`, which
+  brought rewritten `main` to `934` commits.
+- Force-pushed `main` from pre-rewrite
+  `1734d48746d193c377cb3a5ea899770e2805536e` to
+  `c0cc869d4224a25811c612090a904671333776e4` with an explicit lease.
+- Retagged and force-pushed `rebrand-v1`; the remote annotated tag peels to
+  `c0cc869d4224a25811c612090a904671333776e4`.
 - Preserved `LICENSE`, `NOTICE`, and `TRADEMARK.md` byte-for-byte against the
   offline mirror; Dockerfile source attribution still points at
   `https://github.com/lukilabs/rox-agents-oss`.
@@ -119,6 +126,9 @@ historical report-only evidence.
 - `bun test`
 - `bun run build`
 - `git diff --check`
+- `git ls-remote --heads origin main backup/pre-rebrand-history-rewrite-2026-05-13`
+- `git ls-remote --tags origin rebrand-v1 pre-rebrand-history-rewrite-backup`
+- `git ls-remote origin 'refs/tags/rebrand-v1^{}' 'refs/tags/pre-rebrand-history-rewrite-backup^{}'`
 
 ## 8. Passing test output summary
 
@@ -165,6 +175,25 @@ git diff --check
 exit 0
 ```
 
+Post-push ref evidence:
+
+```text
+origin/main
+c0cc869d4224a25811c612090a904671333776e4
+
+origin backup/pre-rebrand-history-rewrite-2026-05-13
+1734d48746d193c377cb3a5ea899770e2805536e
+
+origin rebrand-v1^{}
+c0cc869d4224a25811c612090a904671333776e4
+
+origin pre-rebrand-history-rewrite-backup^{}
+1734d48746d193c377cb3a5ea899770e2805536e
+
+offline mirror main
+1734d48746d193c377cb3a5ea899770e2805536e
+```
+
 The final post-push evidence update re-runs the relevant documentation,
 rebrand, and ref-integrity gates before goal completion. Any new failure
 reopens this ticket.
@@ -178,10 +207,6 @@ chunk warnings, but the command exited 0.
 
 ## 10. Remaining risks
 
-- The mapping row records `1af2975d`, the post-filter rewrite head before the
-  closeout documentation commit. A later closeout commit may record the
-  destructive push result, but the immutable mapping row cannot self-reference
-  the commit that contains itself.
 - Third-party forks observed earlier may need coordination after the force-push.
 - Historical report-only audit files remain as snapshots and still describe
   their original blocked state; current truth is T298 plus the mapping report.
@@ -198,10 +223,10 @@ chunk warnings, but the command exited 0.
 | Remote branches reviewed before rewrite | Green | Origin exposed only `main` and the R.11 backup branch before filter-repo |
 | `git filter-repo` command history is recorded | Green | Replacement-map and path-rename command recorded in this worklog |
 | Legal-preserve runner passes | Green | `bun run rebrand:r11-legal-preserve` plus offline mirror byte compares passed |
-| Force-push completes with lease | Green | Destructive push uses `git push --force-with-lease=refs/heads/main:1734d48746d193c377cb3a5ea899770e2805536e origin main`; post-push ref checks verify the result before goal completion |
+| Force-push completes with lease | Green | `origin/main` moved from `1734d48746d193c377cb3a5ea899770e2805536e` to `c0cc869d4224a25811c612090a904671333776e4` |
 | Post-rewrite validation matrix is green | Green | Typecheck, lint, tests, build, docs, rebrand, legal, and history scan gates passed before push |
 | README coordination banner is handled if required | Green | `README.md` contains `After R.11 history rewrite` and 72-hour reset instructions |
-| Mapping report records R.11 closeout SHA | Green | `docs/release/rebrand-mapping-2026-05-13.md` records `1af2975d` |
+| Mapping report records R.11 closeout SHA | Green | `docs/release/rebrand-mapping-2026-05-13.md` records `c0cc869d` |
 | `git log -p --all` history scan is clean | Green | `bun run rebrand:r11-history-scan` passed |
-| Worklog is complete with command evidence | Green | This 11-section worklog records backups, rewrite, validation, and push plan |
-| Commit or force-push result is recorded | Green | Rewrite head `1af2975d` and pre-rewrite backup SHA `1734d48746d193c377cb3a5ea899770e2805536e` are recorded |
+| Worklog is complete with command evidence | Green | This 11-section worklog records backups, rewrite, validation, and push result |
+| Commit or force-push result is recorded | Green | Closeout commit `c0cc869d4224a25811c612090a904671333776e4`, `rebrand-v1^{}` target, and pre-rewrite backup SHA `1734d48746d193c377cb3a5ea899770e2805536e` are recorded |
