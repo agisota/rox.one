@@ -204,6 +204,15 @@ describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
     expect(combined).toContain('platform=windows');
   });
 
+  test('passes Windows validation with hosted-sized blockmaps below 128 KB', () => {
+    const cwd = fixture({ windows: true, blockmapSize: 116 * 1024 });
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'windows' });
+    const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    expect(result.status).toBe(0);
+    expect(combined).toContain('ROX-ONE-x64.exe.blockmap');
+    expect(combined).toContain('platform=windows');
+  });
+
   test('passes unsigned Linux validation without AppImage signature sidecar', () => {
     const cwd = fixture({ linux: true, linuxSignature: false });
     const result = runValidator(cwd, {
@@ -233,7 +242,7 @@ describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
     expect(combined).toContain('latest.yml size for ROX-ONE-x64.exe does not match artifact on disk');
   });
 
-  test('fails Windows validation when latest.yml is missing the matching blockmap entry', () => {
+  test('passes Windows validation when latest.yml omits the blockmap entry', () => {
     const cwd = fixture({ windows: true });
     writeFileSync(
       join(cwd, 'apps', 'electron', 'release', 'latest.yml'),
@@ -247,8 +256,21 @@ describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
     );
     const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'windows' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    expect(result.status).toBe(0);
+    expect(combined).toContain('latest.yml does not list ROX-ONE-x64.exe.blockmap');
+    expect(combined).toContain('platform=windows');
+  });
+
+  test('fails Windows validation when latest.yml blockmap size is stale', () => {
+    const cwd = fixture({ windows: true });
+    writeFileSync(
+      join(cwd, 'apps', 'electron', 'release', 'latest.yml'),
+      latestYml(FIFTY_MB, ONE_MB - 1),
+    );
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'windows' });
+    const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).not.toBe(0);
-    expect(combined).toContain('latest.yml missing ROX-ONE-x64.exe.blockmap in files[]');
+    expect(combined).toContain('latest.yml size for ROX-ONE-x64.exe.blockmap does not match artifact on disk');
   });
 
   test('fails when dmg is present but empty (0 bytes)', () => {

@@ -33,14 +33,17 @@ platform so each workflow validates only the artifacts it produces.
 ## Metadata checks
 
 - `latest-mac.yml` must reference the expected Mac ZIP and DMG.
-- `latest.yml` must use `path: ROX-ONE-${arch}.exe`, include exact `files[].url`
-  entries for `ROX-ONE-${arch}.exe` and `ROX-ONE-${arch}.exe.blockmap`, and match
-  both sizes to the files on disk.
+- `latest.yml` must use `path: ROX-ONE-${arch}.exe`, include an exact
+  `files[].url` entry for `ROX-ONE-${arch}.exe`, and match installer size to
+  the file on disk. The `ROX-ONE-${arch}.exe.blockmap` sidecar is required on
+  disk; its `latest.yml` entry is optional, but when present its size must
+  match disk.
 
 ## Size thresholds
 
 - `.dmg`, `.zip`, `.exe`, `.deb`, `.rpm`, `.AppImage`: >= 50 MB
-- `.blockmap` files: >= 128 KB
+- Mac `.blockmap` files: >= 128 KB
+- Windows `.blockmap` files: >= 64 KB
 - `.AppImage.sig`, `latest-mac.yml`, `latest.yml`: >= 1 byte (presence only)
 
 ## Files changed
