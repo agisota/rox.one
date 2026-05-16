@@ -11,6 +11,7 @@ This file accumulates release notes for the next unreleased version. PRs that ad
 - **ROX.ONE surface copy polish** — Remaining active Electron/WebUI surface text now uses the dotted ROX.ONE wordmark in app titles, onboarding labels, menu accessibility copy, bundled automation docs, and messaging playground previews.
 - **Compact Russian What's New summaries** — The in-app release-notes surface now prefers companion Russian bullet summaries for recent releases while preserving the long-form English release files as source material. The unreleased `next.md` scratch file is excluded from the released What's New list.
 - **Zed-inspired bundled themes** — Appearance settings now include four additional bundled presets inspired by prominent Zed marketplace theme families: Kanagawa Wave, macOS Classic, Snazzy, and VSCode Dark Modern. The matching syntax-highlighting themes are preloaded so code blocks stay visually aligned with the selected preset.
+- **Starter skill marketplace foundation** — New Agent Workbench workspaces now seed 20 starter skill templates, and the shared skills module exposes a marketplace catalog with installed, available, and account-limited states for future one-click installation UI.
 
 ## Bug Fixes
 

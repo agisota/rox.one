@@ -56,7 +56,13 @@ describe('default Agent Workbench workspace bundle', () => {
     expect(manifest.statuses.map((status) => status.id)).toEqual([...WORKBENCH_REQUIRED_STATUS_IDS]);
     expect(manifest.labelEntries).toEqual([...WORKBENCH_REQUIRED_LABEL_ENTRIES]);
     expect(manifest.sourcePresets.map((source) => source.config.slug)).toEqual([...WORKBENCH_MCP_SOURCE_PRESET_SLUGS]);
-    expect(manifest.skills).toHaveLength(10);
+    expect(manifest.skills).toHaveLength(20);
+    expect(manifest.skills.map((skill) => skill.slug)).toEqual(expect.arrayContaining([
+      'code-review-agent-pack',
+      'debugger-agent-pack',
+      'artifact-editor-pack',
+      'automation-builder-pack',
+    ]));
     expect(manifest.sourcePresets).toHaveLength(6);
     expect(manifest.sourcePresets.map((source) => source.config.slug as string)).not.toContain('filesystem');
 
@@ -78,7 +84,7 @@ describe('default Agent Workbench workspace bundle', () => {
     expect(result.skippedExistingSourceSlugs).toEqual([]);
     expect(result.createdStatusIds).toEqual([...WORKBENCH_STATUSES_MISSING_FROM_REPO_DEFAULTS]);
     expect(result.createdLabelIds).toEqual(['mode', 'priority', 'artifact', 'validation', 'scope']);
-    expect(skillCount()).toBe(10);
+    expect(skillCount()).toBe(20);
 
     const skills = loadWorkspaceSkills(workspaceRoot);
     expect(skills.map((skill) => skill.slug).sort()).toEqual([...WORKBENCH_BUNDLE_SKILL_SLUGS].sort());
@@ -114,7 +120,7 @@ describe('default Agent Workbench workspace bundle', () => {
     expect(secondResult.skippedExistingSourceSlugs).toEqual([...WORKBENCH_MCP_SOURCE_PRESET_SLUGS]);
     expect(secondResult.createdStatusIds).toEqual([]);
     expect(secondResult.createdLabelIds).toEqual([]);
-    expect(skillCount()).toBe(10);
+    expect(skillCount()).toBe(20);
 
     const statusIds = loadStatusConfig(workspaceRoot).statuses.map((status) => status.id);
     expect(new Set(statusIds).size).toBe(statusIds.length);
@@ -186,7 +192,7 @@ Legacy generated content.
   it('seeds the bundle during workspace creation', () => {
     createWorkspaceAtPath(workspaceRoot, 'Bundled Workspace');
 
-    expect(skillCount()).toBe(10);
+    expect(skillCount()).toBe(20);
     expect(WORKBENCH_REQUIRED_STATUS_IDS.every((statusId) => loadStatusConfig(workspaceRoot).statuses.some((status) => status.id === statusId))).toBe(true);
     expect(loadLabelConfig(workspaceRoot).labels.some((label) => label.id === 'mode' && label.valueType === 'string')).toBe(true);
     expect(loadWorkspaceSources(workspaceRoot).map((source) => source.config.slug).sort()).toEqual([...WORKBENCH_MCP_SOURCE_PRESET_SLUGS].sort());

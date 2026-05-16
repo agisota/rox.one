@@ -19,3 +19,4 @@ export {
   skillNeedsIconDownload,
   downloadSkillIcon,
 } from './storage.ts';
+export * from './marketplace.ts';
