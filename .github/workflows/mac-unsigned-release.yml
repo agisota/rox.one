@@ -87,6 +87,25 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # T512 workaround: bun's hoisted node_modules layout breaks
+      # electron-builder's traversalNodeModulesCollector for transitive
+      # deps like @anthropic-ai/claude-agent-sdk -> @anthropic-ai/sdk.
+      # Create the nested symlink electron-builder expects. Proper fix
+      # via pnpm or node-linker config tracked as v1.0.x ticket.
+      - name: Patch nested dep symlink for electron-builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          NESTED_DIR=node_modules/@anthropic-ai/claude-agent-sdk/node_modules/@anthropic-ai
+          mkdir -p "$NESTED_DIR"
+          if [ ! -e "$NESTED_DIR/sdk" ]; then
+            ln -sf ../../../../@anthropic-ai/sdk "$NESTED_DIR/sdk"
+            echo "Created symlink: $NESTED_DIR/sdk -> ../../../../@anthropic-ai/sdk"
+          else
+            echo "Symlink already exists at $NESTED_DIR/sdk"
+          fi
+          ls -la "$NESTED_DIR/"
+
       - name: Prepare unsigned-release logs
         run: mkdir -p .ci-logs/mac-unsigned-release
 
