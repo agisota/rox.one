@@ -2,14 +2,20 @@
  * Report-only R.11 history scan.
  *
  * Streams `git log -p --all` and reports legacy rebrand tokens that still
- * appear in patch lines outside the legal-preserve path allowlist. It never
- * mutates refs or history.
+ * appear in patch lines outside the legal-preserve path allowlist. R.11
+ * rollback refs are excluded because they intentionally preserve pre-rewrite
+ * history. This runner never mutates refs or history.
  */
 
 import { join } from 'node:path'
 
 const DEFAULT_REPO_ROOT = join(import.meta.dir, '..')
 const DEFAULT_MAX_FINDINGS = 80
+export const R11_ROLLBACK_REF_EXCLUDES = [
+  'refs/heads/backup/*',
+  'refs/remotes/origin/backup/*',
+  'refs/tags/pre-rebrand-history-rewrite-backup',
+]
 
 const legacyStem = 'craft'
 const legacyPackage = `${legacyStem}-agent`
@@ -48,6 +54,17 @@ export interface HistoryScanOptions {
 export interface HistoryFindings extends Array<HistoryFinding> {
   truncated: boolean
   totalMatchesSeen: number
+}
+
+export function buildHistoryScanGitArgs(): string[] {
+  return [
+    'log',
+    ...R11_ROLLBACK_REF_EXCLUDES.flatMap((refGlob) => [`--exclude=${refGlob}`]),
+    '--all',
+    '--no-color',
+    '--no-ext-diff',
+    '-p',
+  ]
 }
 
 function createHistoryFindings(): HistoryFindings {
@@ -185,7 +202,7 @@ export async function runHistoryScan(
 ): Promise<HistoryFindings> {
   const collector = new HistoryScanCollector(options)
   const proc = Bun.spawn({
-    cmd: ['git', 'log', '--all', '--no-color', '--no-ext-diff', '-p'],
+    cmd: ['git', ...buildHistoryScanGitArgs()],
     cwd: repoRoot,
     stdout: 'pipe',
     stderr: 'pipe',
@@ -230,11 +247,11 @@ export async function runHistoryScan(
 
 export function formatHistoryScanReport(findings: HistoryFindings): string {
   if (findings.totalMatchesSeen === 0) {
-    return 'green - git log -p --all history scan found zero forbidden-token patch lines outside the legal-preserve allowlist'
+    return 'green - git log -p --all history scan found zero forbidden-token patch lines outside the legal-preserve allowlist (R.11 rollback refs excluded)'
   }
 
   const lines = [
-    `red - git log -p --all history scan found ${findings.totalMatchesSeen} forbidden-token patch line(s) outside the legal-preserve allowlist`,
+    `red - git log -p --all history scan found ${findings.totalMatchesSeen} forbidden-token patch line(s) outside the legal-preserve allowlist (R.11 rollback refs excluded)`,
     'commit  path  token  line',
     '------  ----  -----  ----',
   ]

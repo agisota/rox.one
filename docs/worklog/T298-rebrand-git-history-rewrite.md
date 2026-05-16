@@ -147,7 +147,7 @@ Post-filter evidence already collected before this closeout update:
 
 ```text
 bun run rebrand:r11-history-scan
-green - git log -p --all history scan found zero forbidden-token patch lines outside the legal-preserve allowlist
+green - git log -p --all history scan found zero forbidden-token patch lines outside the legal-preserve allowlist (R.11 rollback refs excluded)
 green - zero forbidden-token patch lines outside the allowlist
 
 bun run validate:rebrand
@@ -227,6 +227,6 @@ chunk warnings, but the command exited 0.
 | Post-rewrite validation matrix is green | Green | Typecheck, lint, tests, build, docs, rebrand, legal, and history scan gates passed before push |
 | README coordination banner is handled if required | Green | `README.md` contains `After R.11 history rewrite` and 72-hour reset instructions |
 | Mapping report records R.11 closeout SHA | Green | `docs/release/rebrand-mapping-2026-05-13.md` records `c0cc869d` |
-| `git log -p --all` history scan is clean | Green | `bun run rebrand:r11-history-scan` passed |
+| `git log -p --all` history scan is clean | Green | `bun run rebrand:r11-history-scan` passed with the intentional R.11 rollback refs excluded |
 | Worklog is complete with command evidence | Green | This 11-section worklog records backups, rewrite, validation, and push result |
 | Commit or force-push result is recorded | Green | Closeout commit `c0cc869d4224a25811c612090a904671333776e4`, `rebrand-v1^{}` target, and pre-rewrite backup SHA `1734d48746d193c377cb3a5ea899770e2805536e` are recorded |

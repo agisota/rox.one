@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
 import {
+  R11_ROLLBACK_REF_EXCLUDES,
+  buildHistoryScanGitArgs,
   collectHistoryFindingsFromText,
   formatHistoryScanReport,
   isHistoryPathAllowlisted,
@@ -25,6 +27,17 @@ describe('isHistoryPathAllowlisted', () => {
 
   test('does not allow ordinary runtime paths', () => {
     expect(isHistoryPathAllowlisted('packages/shared/src/config/paths.ts')).toBe(false)
+  })
+})
+
+describe('buildHistoryScanGitArgs', () => {
+  test('scans all rewritten refs while excluding intentional R.11 rollback refs', () => {
+    const args = buildHistoryScanGitArgs()
+
+    expect(args).toContain('--all')
+    expect(args.indexOf(`--exclude=${R11_ROLLBACK_REF_EXCLUDES[0]}`)).toBeLessThan(args.indexOf('--all'))
+    expect(args).toContain('--exclude=refs/remotes/origin/backup/*')
+    expect(args).toContain('--exclude=refs/tags/pre-rebrand-history-rewrite-backup')
   })
 })
 
@@ -86,6 +99,7 @@ describe('formatHistoryScanReport', () => {
     const report = formatHistoryScanReport(findings)
 
     expect(report).toContain('red')
+    expect(report).toContain('R.11 rollback refs excluded')
     expect(report).toContain('abc1234')
     expect(report).toContain('src/a.ts')
     expect(report).toContain(legacyPackage)
