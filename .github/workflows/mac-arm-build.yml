@@ -74,6 +74,8 @@ jobs:
         run: bun run electron:smoke
 
       - name: Validate packaged artifact metadata
+        env:
+          ROX_ARTIFACT_PLATFORM: mac
         run: bun run validate:packaged-artifacts
 
       - name: Validate private mac release trust boundary

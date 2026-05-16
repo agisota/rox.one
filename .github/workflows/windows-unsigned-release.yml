@@ -55,6 +55,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # Tag-protection guard. The dispatch input is untrusted, so it is fed
       # via env (never inline) and pattern-validated before any later step
@@ -74,6 +76,18 @@ jobs:
           }
           "RELEASE_TAG=$candidate" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Checkout validated release tag
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git fetch --force --tags origin "refs/tags/$env:RELEASE_TAG"
+          git checkout --force "refs/tags/$env:RELEASE_TAG"
+          $actual = git describe --tags --exact-match HEAD
+          if ($actual -ne $env:RELEASE_TAG) {
+            Write-Error "checked out tag '$actual' does not match validated release tag '$env:RELEASE_TAG'"
+            exit 1
+          }
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -91,6 +105,12 @@ jobs:
       - name: Prepare unsigned-release logs
         run: New-Item -ItemType Directory -Force -Path .ci-logs\windows-unsigned-release | Out-Null
         shell: pwsh
+
+      - name: Validate Windows boundary fixtures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun run validate:windows-boundary-fixtures *>&1 | Tee-Object -FilePath .ci-logs\windows-unsigned-release\windows-boundary-fixtures.log
 
       # Build renderer + main using the Windows-specific build script which
       # omits the macOS .env source that is unavailable on Windows runners.
@@ -115,12 +135,16 @@ jobs:
           $ErrorActionPreference = 'Stop'
           bunx electron-builder --win --x64 --publish=never *>&1 | Tee-Object -FilePath ..\..\.ci-logs\windows-unsigned-release\electron-builder.log
 
+      - name: Validate Windows unsigned-release boundary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun run validate:windows-private-release-boundary *>&1 | Tee-Object -FilePath .ci-logs\windows-unsigned-release\windows-private-release-boundary.log
+
       # Compute SHA-256 checksums using PowerShell Get-FileHash (no coreutils
       # dependency; standard on all Windows runners).
       - name: Compute artifact checksums (SHA-256)
         shell: pwsh
-        env:
-          RELEASE_TAG: ${{ env.RELEASE_TAG }}
         run: |
           $ErrorActionPreference = 'Stop'
           $outFile = '.ci-logs\windows-unsigned-release\release-checksums.txt'
@@ -128,12 +152,19 @@ jobs:
           $lines += "# ROX.ONE Windows unsigned release $env:RELEASE_TAG SHA-256 checksums"
           $lines += "# generated at $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ' -AsUTC)"
           $releaseDir = 'apps\electron\release'
-          foreach ($pat in @('*.exe', '*.yml', '*.blockmap')) {
-            $files = Get-ChildItem -Path $releaseDir -Filter $pat -ErrorAction SilentlyContinue
-            foreach ($f in $files) {
-              $hash = (Get-FileHash -Algorithm SHA256 -Path $f.FullName).Hash.ToLower()
-              $lines += "$hash  $($f.Name)"
+          $required = @(
+            'ROX-ONE-x64.exe',
+            'ROX-ONE-x64.exe.blockmap',
+            'latest.yml'
+          )
+          foreach ($name in $required) {
+            $path = Join-Path $releaseDir $name
+            if (-not (Test-Path -LiteralPath $path)) {
+              Write-Error "missing required Windows release artifact: $path"
+              exit 1
             }
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash.ToLower()
+            $lines += "$hash  $name"
           }
           $lines | Out-File -FilePath $outFile -Encoding utf8
           Get-Content $outFile
@@ -144,9 +175,9 @@ jobs:
         with:
           name: rox-one-unsigned-win-x64
           path: |
-            apps/electron/release/*.exe
-            apps/electron/release/*.yml
-            apps/electron/release/*.blockmap
+            apps/electron/release/ROX-ONE-x64.exe
+            apps/electron/release/ROX-ONE-x64.exe.blockmap
+            apps/electron/release/latest.yml
             .ci-logs/windows-unsigned-release/release-checksums.txt
           retention-days: 14
           if-no-files-found: error
