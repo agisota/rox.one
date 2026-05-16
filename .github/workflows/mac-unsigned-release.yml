@@ -109,15 +109,10 @@ jobs:
       - name: Prepare unsigned-release logs
         run: mkdir -p .ci-logs/mac-unsigned-release
 
-      # Run the validator fixture suite ahead of electron-builder so any
-      # boundary regression (entitlements, appId, buildVersion) is caught
-      # before we burn build minutes.
-      - name: Validate mac-boundary fixtures
-        shell: bash
-        run: |
-          set -o pipefail
-          bun run validate:mac-boundary-fixtures 2>&1 | tee .ci-logs/mac-unsigned-release/validate-mac-boundary-fixtures.log
-
+      # Validation note: mac-boundary-fixtures runs AFTER Build Electron
+      # app because the validator requires the packaged .app to exist.
+      # Pre-build run was a copy-paste from signed pipeline; bug auto-
+      # reverted by PR #247 — guard removed here once and for all.
       - name: Build Electron app
         shell: bash
         env:
