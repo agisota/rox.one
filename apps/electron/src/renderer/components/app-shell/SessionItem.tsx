@@ -11,6 +11,8 @@ import { SessionMenu } from "./SessionMenu"
 import { BatchSessionMenu } from "./BatchSessionMenu"
 import { SessionStatusIcon } from "./SessionStatusIcon"
 import { SessionBadges } from "./SessionBadges"
+import { SessionInlineTitle } from "./SessionInlineTitle"
+import { SessionQuickLabels } from "./SessionQuickLabels"
 import { getSessionTitle, getSessionPreviewText, highlightMatch, hasUnreadMeta, shortTimeLocale } from "@/utils/session"
 import { useSessionListContext } from "@/context/SessionListContext"
 import { useAppShellContext } from "@/context/AppShellContext"
@@ -74,6 +76,13 @@ export function SessionItem({
   const messagingBindingsBySession = useAtomValue(messagingBindingsBySessionAtom)
   const sessionBindings = messagingBindingsBySession.get(item.id) ?? []
   const hasMessagingBinding = sessionBindings.length > 0
+  const quickLabels = ctx.onLabelsChange && ctx.labels.length > 0 ? (
+    <SessionQuickLabels
+      labels={ctx.labels}
+      sessionLabels={item.labels || []}
+      onLabelsChange={(updated) => ctx.onLabelsChange?.(item.id, updated)}
+    />
+  ) : null
 
   const handleClick = (e: React.MouseEvent) => {
     ctx.onFocusZone()
@@ -167,26 +176,33 @@ export function SessionItem({
           </div>
         </>
       }
-      title={ctx.searchQuery ? highlightMatch(title, ctx.searchQuery) : title}
+      title={
+        <SessionInlineTitle
+          title={title}
+          displayTitle={ctx.searchQuery ? highlightMatch(title, ctx.searchQuery) : title}
+          onRename={(name) => ctx.onRenameDirect(item.id, name)}
+        />
+      }
       titleClassName={cn("text-[13px]", item.isAsyncOperationOngoing && "animate-shimmer-text")}
       subtitle={previewText}
       titleSuffix={
-        hasMessagingBinding ? (
-          <div className="flex items-center gap-1">
-            {sessionBindings.map((binding) => {
-              const pill = PLATFORM_PILL[binding.platform as 'telegram' | 'whatsapp']
-              if (!pill) return null
-              return (
-                <EntityListBadge
-                  key={binding.id}
-                  variant="text"
-                  colorClass={pill.colorClass}
-                  tooltip={`Connected to ${pill.label}`}
-                >
-                  {pill.label}
-                </EntityListBadge>
-              )
-            })}
+        hasMessagingBinding || quickLabels ? (
+          <div className="flex min-w-0 items-center gap-1">
+            {hasMessagingBinding && sessionBindings.map((binding) => {
+                const pill = PLATFORM_PILL[binding.platform as 'telegram' | 'whatsapp']
+                if (!pill) return null
+                return (
+                  <EntityListBadge
+                    key={binding.id}
+                    variant="text"
+                    colorClass={pill.colorClass}
+                    tooltip={`Connected to ${pill.label}`}
+                  >
+                    {pill.label}
+                  </EntityListBadge>
+                )
+              })}
+            {quickLabels}
           </div>
         ) : undefined
       }

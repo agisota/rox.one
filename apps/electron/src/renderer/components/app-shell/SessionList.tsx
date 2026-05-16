@@ -618,6 +618,7 @@ export function SessionList({
 
   const listContext = useMemo((): SessionListContextValue => ({
     onRenameClick: handleRenameClick,
+    onRenameDirect: onRename,
     onSessionStatusChange,
     onFlag: onFlag ? handleFlagWithToast : undefined,
     onUnflag: onUnflag ? handleUnflagWithToast : undefined,
@@ -644,7 +645,7 @@ export function SessionList({
     activeChatMatchInfo,
     hasPendingPrompt,
   }), [
-    handleRenameClick, onSessionStatusChange,
+    handleRenameClick, onRename, onSessionStatusChange,
     onFlag, handleFlagWithToast, onUnflag, handleUnflagWithToast,
     onPin, onUnpin, onArchive, handleArchiveWithToast, onUnarchive, handleUnarchiveWithToast,
     onMarkUnread, handleDeleteWithToast, onLabelsChange,
