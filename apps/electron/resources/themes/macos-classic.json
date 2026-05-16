@@ -1,0 +1,36 @@
+{
+  "name": "macOS Classic",
+  "description": "Native macOS-style neutral surfaces inspired by Zed marketplace themes",
+  "author": "ROX",
+  "license": "MIT",
+  "source": "https://zed.dev/extensions",
+  "supportedModes": ["light", "dark"],
+  "shikiTheme": {
+    "light": "github-light",
+    "dark": "github-dark"
+  },
+  "background": "#f5f5f7",
+  "foreground": "#1d1d1f",
+  "accent": "#007aff",
+  "info": "#ff9500",
+  "success": "#34c759",
+  "destructive": "#ff3b30",
+  "paper": "#ffffff",
+  "navigator": "#ececf0",
+  "input": "#ffffff",
+  "popover": "#ffffff",
+  "popoverSolid": "#ffffff",
+  "dark": {
+    "background": "#1c1c1e",
+    "foreground": "#f5f5f7",
+    "accent": "#0a84ff",
+    "info": "#ff9f0a",
+    "success": "#32d74b",
+    "destructive": "#ff453a",
+    "paper": "#2c2c2e",
+    "navigator": "#161618",
+    "input": "#2c2c2e",
+    "popover": "#2c2c2e",
+    "popoverSolid": "#2c2c2e"
+  }
+}

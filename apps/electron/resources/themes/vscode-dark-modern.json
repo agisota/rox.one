@@ -1,0 +1,36 @@
+{
+  "name": "VSCode Dark Modern",
+  "description": "Quiet workbench palette inspired by VSCode Dark Modern themes on Zed",
+  "author": "ROX",
+  "license": "MIT",
+  "source": "https://zed.dev/extensions",
+  "supportedModes": ["dark"],
+  "shikiTheme": {
+    "light": "github-light",
+    "dark": "dark-plus"
+  },
+  "background": "#1f1f1f",
+  "foreground": "#cccccc",
+  "accent": "#0078d4",
+  "info": "#cca700",
+  "success": "#89d185",
+  "destructive": "#f85149",
+  "paper": "#252526",
+  "navigator": "#181818",
+  "input": "#313131",
+  "popover": "#252526",
+  "popoverSolid": "#252526",
+  "dark": {
+    "background": "#1f1f1f",
+    "foreground": "#cccccc",
+    "accent": "#0078d4",
+    "info": "#cca700",
+    "success": "#89d185",
+    "destructive": "#f85149",
+    "paper": "#252526",
+    "navigator": "#181818",
+    "input": "#313131",
+    "popover": "#252526",
+    "popoverSolid": "#252526"
+  }
+}

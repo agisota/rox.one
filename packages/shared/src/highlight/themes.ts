@@ -1,8 +1,7 @@
 /**
  * Curated set of preloaded Shiki themes.
  *
- * Each entry maps to a theme JSON bundled at build time. The set covers the
- * 15 user-pickable presets in `apps/electron/resources/themes/`.
+ * Each entry maps to one or more theme JSON files bundled at build time.
  *
  * See ADR 0010 for the rationale.
  */
@@ -10,9 +9,11 @@
 export const PRELOADED_THEMES = [
   'github-light',
   'github-dark',
+  'dark-plus',
   'catppuccin-latte',
   'catppuccin-mocha',
   'dracula',
+  'kanagawa-wave',
   'vitesse-dark',
   'vitesse-light',
   'night-owl',
