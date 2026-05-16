@@ -9,6 +9,7 @@ This file accumulates release notes for the next unreleased version. PRs that ad
 ## Improvements
 
 - **ROX.ONE surface copy polish** — Remaining active Electron/WebUI surface text now uses the dotted ROX.ONE wordmark in app titles, onboarding labels, menu accessibility copy, bundled automation docs, and messaging playground previews.
+- **Compact Russian What's New summaries** — The in-app release-notes surface now prefers companion Russian bullet summaries for recent releases while preserving the long-form English release files as source material. The unreleased `next.md` scratch file is excluded from the released What's New list.
 
 ## Bug Fixes
 
