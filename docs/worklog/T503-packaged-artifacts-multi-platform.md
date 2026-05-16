@@ -109,3 +109,9 @@ workflow metadata, tests, and documentation.
 | `latest.yml` validates installer and blockmap metadata | PASS | Negative tests cover stale installer size and missing blockmap entry. |
 | Hosted Mac blockmaps below 1 MB pass | PASS | T512 regression covers 235 KB Mac blockmaps while zero-byte blockmaps still fail. |
 | Required T503 worklog exists | PASS | This worklog matches the DONE ticket. |
+
+## T524 follow-up note
+
+T524 extended the validator contract for the unified all-platforms unsigned
+release workflow: unsigned Linux validation can now omit `.AppImage.sig`, while
+signed Linux validation still requires the detached signature sidecar.

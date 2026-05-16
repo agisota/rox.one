@@ -106,18 +106,21 @@ function assertMinSize(relativePath: string, minBytes: number): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Linux artifacts are always required regardless of mode.
- * The linux-signed-release.yml workflow GPG-signs them in every RC.
+ * Linux signed artifacts require a detached AppImage signature. The unified
+ * all-platforms RC workflow can run in unsigned mode and intentionally omits
+ * that sidecar.
  */
-// Linux required artifacts. AppImage + GPG sig are always required for
-// signed Linux releases. deb + rpm are gated on ROX_LINUX_DEB_RPM=true
-// because the linux-signed-release workflow currently builds AppImage
-// only; T253b deb/rpm targets ship in v1.0.x once electron-builder
-// config + workflow extensions land.
-const LINUX_REQUIRED: Array<{ path: string; minBytes: number }> = [
+const LINUX_SIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
   { path: `ROX-ONE-${linuxArch}.AppImage`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
   { path: `ROX-ONE-${linuxArch}.AppImage.sig`, minBytes: PRESENCE_MIN_BYTES },
 ];
+const LINUX_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
+  { path: `ROX-ONE-${linuxArch}.AppImage`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+];
+
+const LINUX_REQUIRED: Array<{ path: string; minBytes: number }> = isUnsigned
+  ? LINUX_UNSIGNED_REQUIRED
+  : LINUX_SIGNED_REQUIRED;
 if (process.env.ROX_LINUX_DEB_RPM === 'true') {
   LINUX_REQUIRED.push(
     { path: `ROX-ONE-${linuxArch}.deb`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
@@ -351,6 +354,11 @@ if (shouldValidateMac && !isUnsigned) {
 if (shouldValidateWindows && isUnsigned) {
   console.log(
     '[unsigned-beta] skipping code signature verification for windows (ROX_RC_MODE=unsigned)',
+  );
+}
+if (shouldValidateLinux && isUnsigned) {
+  console.log(
+    '[unsigned-beta] skipping AppImage signature verification for linux (ROX_RC_MODE=unsigned)',
   );
 }
 

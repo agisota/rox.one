@@ -26,7 +26,7 @@ platform so each workflow validates only the artifacts it produces.
 
 | Platform | Signed mode | Unsigned mode |
 |---|---|---|
-| Linux | ROX-ONE-x64.deb + .rpm + .AppImage + .AppImage.sig (GPG) | same when `ROX_ARTIFACT_PLATFORM=linux` or `all` |
+| Linux | ROX-ONE-x86_64.AppImage + .AppImage.sig (GPG); `.deb` + `.rpm` when `ROX_LINUX_DEB_RPM=true` | ROX-ONE-x86_64.AppImage without `.sig`; `.deb` + `.rpm` when `ROX_LINUX_DEB_RPM=true` |
 | Mac | ROX-ONE-arm64.dmg + .zip + blockmaps + latest-mac.yml + embedded code sig + runtime binary | same artifacts, NO code sig check |
 | Windows | not checked | ROX-ONE-x64.exe + .exe.blockmap + latest.yml when `ROX_ARTIFACT_PLATFORM=windows` or `all` |
 
