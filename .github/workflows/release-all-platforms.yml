@@ -114,6 +114,7 @@ jobs:
           # always reflects the exact tagged commit.
           ref: ${{ steps.resolve-tag.outputs.tag }}
           fetch-depth: 0
+          persist-credentials: false
 
       # -----------------------------------------------------------------------
       # 3. Toolchain setup (common across all three platforms)
@@ -169,7 +170,7 @@ jobs:
         working-directory: apps/electron
         run: |
           $ErrorActionPreference = 'Stop'
-          bun run typecheck *>&1 | Tee-Object -FilePath "..\..\..\.ci-logs\release-all-platforms\windows-x64\typecheck.log"
+          bun run typecheck *>&1 | Tee-Object -FilePath "..\..\.ci-logs\release-all-platforms\windows-x64\typecheck.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # -----------------------------------------------------------------------
@@ -209,7 +210,7 @@ jobs:
         working-directory: apps/electron
         run: |
           $ErrorActionPreference = 'Stop'
-          bun run build:win *>&1 | Tee-Object -FilePath "..\..\..\.ci-logs\release-all-platforms\windows-x64\electron-build.log"
+          bun run build:win *>&1 | Tee-Object -FilePath "..\..\.ci-logs\release-all-platforms\windows-x64\electron-build.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # -----------------------------------------------------------------------
@@ -249,7 +250,7 @@ jobs:
         working-directory: apps/electron
         run: |
           $ErrorActionPreference = 'Stop'
-          bunx electron-builder --win --x64 --publish=never *>&1 | Tee-Object -FilePath "..\..\..\.ci-logs\release-all-platforms\windows-x64\electron-builder.log"
+          bunx electron-builder --win --x64 --publish=never *>&1 | Tee-Object -FilePath "..\..\.ci-logs\release-all-platforms\windows-x64\electron-builder.log"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # -----------------------------------------------------------------------
@@ -270,27 +271,40 @@ jobs:
           set -o pipefail
           bun run electron:smoke 2>&1 | tee .ci-logs/release-all-platforms/mac-arm64/smoke-startup.log
 
-      # TODO: re-enable once scripts/validate-packaged-artifacts.ts is fixed
-      # to scope its required-artifact list to the current platform's RELEASE_PLATFORM
-      # env var (see branch f08f9d78 on main — not yet merged). Without that fix,
-      # the validator requires Linux GPG-signed AppImage on every platform and
-      # fails the workflow before it can publish.
-      # - name: Validate packaged artifact metadata (Mac / Linux)
-      #   if: matrix.platform == 'mac-arm64' || matrix.platform == 'linux-x64'
-      #   shell: bash
-      #   env:
-      #     PLATFORM: ${{ matrix.platform }}
-      #   run: |
-      #     set -o pipefail
-      #     bun run validate:packaged-artifacts 2>&1 | tee ".ci-logs/release-all-platforms/${PLATFORM}/validate-packaged-artifacts.log"
-      #
-      # - name: Validate packaged artifact metadata (Windows)
-      #   if: matrix.platform == 'windows-x64'
-      #   shell: pwsh
-      #   run: |
-      #     $ErrorActionPreference = 'Stop'
-      #     bun run validate:packaged-artifacts *>&1 | Tee-Object -FilePath ".ci-logs\release-all-platforms\windows-x64\validate-packaged-artifacts.log"
-      #     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Validate packaged artifact metadata (Mac)
+        if: matrix.platform == 'mac-arm64'
+        shell: bash
+        env:
+          ROX_RC_MODE: "unsigned"
+          ROX_ARTIFACT_PLATFORM: "mac"
+          ROX_ARTIFACT_ARCH: "arm64"
+        run: |
+          set -o pipefail
+          bun run validate:packaged-artifacts 2>&1 | tee .ci-logs/release-all-platforms/mac-arm64/validate-packaged-artifacts.log
+
+      - name: Validate packaged artifact metadata (Linux)
+        if: matrix.platform == 'linux-x64'
+        shell: bash
+        env:
+          ROX_RC_MODE: "unsigned"
+          ROX_ARTIFACT_PLATFORM: "linux"
+          ROX_LINUX_ARCH: "x86_64"
+          ROX_LINUX_DEB_RPM: "true"
+        run: |
+          set -o pipefail
+          bun run validate:packaged-artifacts 2>&1 | tee .ci-logs/release-all-platforms/linux-x64/validate-packaged-artifacts.log
+
+      - name: Validate packaged artifact metadata (Windows)
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        env:
+          ROX_RC_MODE: "unsigned"
+          ROX_ARTIFACT_PLATFORM: "windows"
+          ROX_ARTIFACT_ARCH: "x64"
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun run validate:packaged-artifacts *>&1 | Tee-Object -FilePath ".ci-logs\release-all-platforms\windows-x64\validate-packaged-artifacts.log"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Validate Mac private release trust boundary
         if: matrix.platform == 'mac-arm64'
