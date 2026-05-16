@@ -452,7 +452,6 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             apps/electron/release/*.AppImage
-            apps/electron/release/*.AppImage.sig
             apps/electron/release/*.deb
             apps/electron/release/*.rpm
 
