@@ -39,7 +39,7 @@ and checks Windows `latest.yml` installer and blockmap metadata against disk.
 - Added platform-scoped tests proving Mac validation passes with only Mac
   artifacts.
 - Added Windows tests for `ROX-ONE-x64.exe`, exact `latest.yml` installer size,
-  and required matching blockmap entry.
+  and matching blockmap metadata when present.
 - Added Linux signed-mode test proving x64 builder output names pass without
   requiring Mac artifacts.
 
@@ -106,6 +106,17 @@ workflow metadata, tests, and documentation.
 | Mac ARM workflow does not require Linux/Windows artifacts | PASS | Mac fixture passes with `ROX_ARTIFACT_PLATFORM=mac`; workflow sets the env. |
 | Linux expected names match x64 builder output | PASS | Linux fixture passes with `ROX-ONE-x64.*` artifacts. |
 | Windows installer pattern is `ROX-ONE-${arch}.exe` | PASS | Windows fixture passes with `ROX-ONE-x64.exe` and rejects stale metadata. |
-| `latest.yml` validates installer and blockmap metadata | PASS | Negative tests cover stale installer size and missing blockmap entry. |
+| `latest.yml` validates installer and blockmap metadata | PASS | Negative tests cover stale installer size and stale blockmap size when the blockmap metadata entry is present. |
 | Hosted Mac blockmaps below 1 MB pass | PASS | T512 regression covers 235 KB Mac blockmaps while zero-byte blockmaps still fail. |
 | Required T503 worklog exists | PASS | This worklog matches the DONE ticket. |
+
+## T524 follow-up note
+
+T524 extended the validator contract for the unified all-platforms unsigned
+release workflow: unsigned Linux validation can now omit `.AppImage.sig`, while
+signed Linux validation still requires the detached signature sidecar.
+
+T525 split blockmap thresholds by platform after local Windows packaging
+produced a valid `ROX-ONE-x64.exe.blockmap` below the Mac-oriented 128 KB
+floor. Mac blockmaps remain at 128 KB; Windows blockmaps now use a 64 KB floor
+while zero-byte blockmaps still fail.

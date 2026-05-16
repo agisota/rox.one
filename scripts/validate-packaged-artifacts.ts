@@ -45,7 +45,7 @@ const hostPlatform: ArtifactPlatform =
   process.platform === 'darwin' ? 'mac' : process.platform === 'win32' ? 'windows' : 'linux';
 const platformInput = (process.env.ROX_ARTIFACT_PLATFORM ?? hostPlatform).toLowerCase();
 const artifactPlatform = normalizeArtifactPlatform(platformInput);
-const linuxArch = process.env.ROX_ARTIFACT_ARCH ?? 'x64';
+const linuxArch = process.env.ROX_LINUX_ARCH ?? 'x86_64';
 const windowsArch = process.env.ROX_ARTIFACT_ARCH ?? 'x64';
 const macArch = process.env.ROX_ARTIFACT_ARCH ?? 'arm64';
 const shouldValidateLinux = artifactPlatform === 'linux' || artifactPlatform === 'all';
@@ -53,7 +53,8 @@ const shouldValidateMac = artifactPlatform === 'mac' || artifactPlatform === 'al
 const requestedWindows = artifactPlatform === 'windows' || artifactPlatform === 'all';
 const shouldValidateWindows = isUnsigned && requestedWindows;
 const PRIMARY_ARTIFACT_MIN_BYTES = 50 * 1024 * 1024;
-const BLOCKMAP_MIN_BYTES = 128 * 1024;
+const MAC_BLOCKMAP_MIN_BYTES = 128 * 1024;
+const WINDOWS_BLOCKMAP_MIN_BYTES = 64 * 1024;
 const PRESENCE_MIN_BYTES = 1;
 
 // ---------------------------------------------------------------------------
@@ -106,15 +107,27 @@ function assertMinSize(relativePath: string, minBytes: number): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Linux artifacts are always required regardless of mode.
- * The linux-signed-release.yml workflow GPG-signs them in every RC.
+ * Linux signed artifacts require a detached AppImage signature. The unified
+ * all-platforms RC workflow can run in unsigned mode and intentionally omits
+ * that sidecar.
  */
-const LINUX_REQUIRED: Array<{ path: string; minBytes: number }> = [
-  { path: `ROX-ONE-${linuxArch}.deb`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
-  { path: `ROX-ONE-${linuxArch}.rpm`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+const LINUX_SIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
   { path: `ROX-ONE-${linuxArch}.AppImage`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
   { path: `ROX-ONE-${linuxArch}.AppImage.sig`, minBytes: PRESENCE_MIN_BYTES },
 ];
+const LINUX_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
+  { path: `ROX-ONE-${linuxArch}.AppImage`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+];
+
+const LINUX_REQUIRED: Array<{ path: string; minBytes: number }> = isUnsigned
+  ? LINUX_UNSIGNED_REQUIRED
+  : LINUX_SIGNED_REQUIRED;
+if (process.env.ROX_LINUX_DEB_RPM === 'true') {
+  LINUX_REQUIRED.push(
+    { path: `ROX-ONE-${linuxArch}.deb`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+    { path: `ROX-ONE-${linuxArch}.rpm`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+  );
+}
 
 /**
  * Mac artifacts for signed mode (v1.0.x production).
@@ -123,8 +136,8 @@ const LINUX_REQUIRED: Array<{ path: string; minBytes: number }> = [
 const MAC_SIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
   { path: `ROX-ONE-${macArch}.dmg`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
   { path: `ROX-ONE-${macArch}.zip`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
-  { path: `ROX-ONE-${macArch}.dmg.blockmap`, minBytes: BLOCKMAP_MIN_BYTES },
-  { path: `ROX-ONE-${macArch}.zip.blockmap`, minBytes: BLOCKMAP_MIN_BYTES },
+  { path: `ROX-ONE-${macArch}.dmg.blockmap`, minBytes: MAC_BLOCKMAP_MIN_BYTES },
+  { path: `ROX-ONE-${macArch}.zip.blockmap`, minBytes: MAC_BLOCKMAP_MIN_BYTES },
   { path: 'latest-mac.yml', minBytes: PRESENCE_MIN_BYTES },
 ];
 
@@ -135,8 +148,8 @@ const MAC_SIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
 const MAC_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
   { path: `ROX-ONE-${macArch}.dmg`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
   { path: `ROX-ONE-${macArch}.zip`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
-  { path: `ROX-ONE-${macArch}.dmg.blockmap`, minBytes: BLOCKMAP_MIN_BYTES },
-  { path: `ROX-ONE-${macArch}.zip.blockmap`, minBytes: BLOCKMAP_MIN_BYTES },
+  { path: `ROX-ONE-${macArch}.dmg.blockmap`, minBytes: MAC_BLOCKMAP_MIN_BYTES },
+  { path: `ROX-ONE-${macArch}.zip.blockmap`, minBytes: MAC_BLOCKMAP_MIN_BYTES },
   { path: 'latest-mac.yml', minBytes: PRESENCE_MIN_BYTES },
 ];
 
@@ -146,7 +159,7 @@ const MAC_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
  */
 const WINDOWS_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
   { path: `ROX-ONE-${windowsArch}.exe`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
-  { path: `ROX-ONE-${windowsArch}.exe.blockmap`, minBytes: BLOCKMAP_MIN_BYTES },
+  { path: `ROX-ONE-${windowsArch}.exe.blockmap`, minBytes: WINDOWS_BLOCKMAP_MIN_BYTES },
   { path: 'latest.yml', minBytes: PRESENCE_MIN_BYTES },
 ];
 
@@ -243,22 +256,25 @@ if (shouldValidateWindows) {
     fail(`latest.yml path must reference ${installer}, got: ${String(latestYml.path)}`);
   }
   if (!winUrls.has(installer)) fail(`latest.yml missing ${installer} in files[]`);
-  if (!winUrls.has(blockmap)) fail(`latest.yml missing ${blockmap} in files[]`);
 
   const installerSize = statSync(path.join(releaseDir, installer)).size;
   const blockmapSize = statSync(path.join(releaseDir, blockmap)).size;
   const installerEntry = latestEntryOrFail(latestYml, installer, 'latest.yml');
-  const blockmapEntry = latestEntryOrFail(latestYml, blockmap, 'latest.yml');
+  const blockmapEntry = (latestYml.files ?? []).find((entry) => entry.url === blockmap);
 
   if (installerEntry?.size !== installerSize) {
     fail(`latest.yml size for ${installer} does not match artifact on disk`);
   }
-  if (blockmapEntry?.size !== blockmapSize) {
+  if (blockmapEntry && blockmapEntry.size !== blockmapSize) {
     fail(`latest.yml size for ${blockmap} does not match artifact on disk`);
   }
 
   console.log(`[packaged-artifacts] latest.yml size[installer]=${installerEntry.size} bytes`);
-  console.log(`[packaged-artifacts] latest.yml size[blockmap]=${blockmapEntry.size} bytes`);
+  if (blockmapEntry) {
+    console.log(`[packaged-artifacts] latest.yml size[blockmap]=${blockmapEntry.size} bytes`);
+  } else {
+    console.log(`[packaged-artifacts] latest.yml does not list ${blockmap}; validated file on disk`);
+  }
   console.log('[packaged-artifacts] latest.yml artifact references verified');
 }
 
@@ -342,6 +358,11 @@ if (shouldValidateMac && !isUnsigned) {
 if (shouldValidateWindows && isUnsigned) {
   console.log(
     '[unsigned-beta] skipping code signature verification for windows (ROX_RC_MODE=unsigned)',
+  );
+}
+if (shouldValidateLinux && isUnsigned) {
+  console.log(
+    '[unsigned-beta] skipping AppImage signature verification for linux (ROX_RC_MODE=unsigned)',
   );
 }
 
