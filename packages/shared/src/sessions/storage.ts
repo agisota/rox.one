@@ -528,6 +528,7 @@ export async function updateSessionMetadata(
     | 'isFlagged'
     | 'name'
     | 'sessionStatus'
+    | 'pinnedAt'
     | 'labels'
     | 'lastReadMessageId'
     | 'hasUnread'
@@ -549,6 +550,7 @@ export async function updateSessionMetadata(
   if (updates.isFlagged !== undefined) session.isFlagged = updates.isFlagged;
   if (updates.name !== undefined) session.name = updates.name;
   if (updates.sessionStatus !== undefined) session.sessionStatus = updates.sessionStatus;
+  if ('pinnedAt' in updates) session.pinnedAt = updates.pinnedAt;
   if (updates.labels !== undefined) session.labels = updates.labels;
   if (updates.enabledSourceSlugs !== undefined) session.enabledSourceSlugs = updates.enabledSourceSlugs;
   if (updates.workingDirectory !== undefined) session.workingDirectory = updates.workingDirectory;

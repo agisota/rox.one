@@ -631,6 +631,8 @@ export interface ManagedSession {
   // Session name (user-defined or AI-generated)
   name?: string
   isFlagged: boolean
+  /** Timestamp when the user pinned this session. */
+  pinnedAt?: number
   /** Whether this session is archived */
   isArchived?: boolean
   /** Timestamp when session was archived (for retention policy) */

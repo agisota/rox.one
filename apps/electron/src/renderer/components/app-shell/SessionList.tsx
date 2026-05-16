@@ -21,6 +21,7 @@ import { SessionItem } from "./SessionItem"
 import { SessionListProvider, type SessionListContextValue } from "@/context/SessionListContext"
 import { useSessionSelection, useSessionSelectionStore } from "@/hooks/useSession"
 import { useSessionSearch, type FilterMode } from "@/hooks/useSessionSearch"
+import { compareSessionsForList } from "@rox-one/shared/sessions/sorting"
 import { useSessionActions } from "@/hooks/useSessionActions"
 import { useEntityListInteractions } from "@/hooks/useEntityListInteractions"
 import { useFocusZone } from "@/hooks/keyboard"
@@ -44,6 +45,8 @@ interface SessionListProps {
   onDelete: (sessionId: string, skipConfirmation?: boolean) => Promise<boolean>
   onFlag?: (sessionId: string) => void
   onUnflag?: (sessionId: string) => void
+  onPin?: (sessionId: string) => void
+  onUnpin?: (sessionId: string) => void
   onArchive?: (sessionId: string) => void
   onUnarchive?: (sessionId: string) => void
   onMarkUnread: (sessionId: string) => void
@@ -117,6 +120,8 @@ export function SessionList({
   onDelete,
   onFlag,
   onUnflag,
+  onPin,
+  onUnpin,
   onArchive,
   onUnarchive,
   onMarkUnread,
@@ -292,8 +297,8 @@ export function SessionList({
         if (row.item.hasUnread) unreadRows.push(row)
         else readRows.push(row)
       }
-      unreadRows.sort((a, b) => (b.item.lastMessageAt || 0) - (a.item.lastMessageAt || 0))
-      readRows.sort((a, b) => (b.item.lastMessageAt || 0) - (a.item.lastMessageAt || 0))
+      unreadRows.sort((a, b) => compareSessionsForList(a.item, b.item))
+      readRows.sort((a, b) => compareSessionsForList(a.item, b.item))
 
       const collapsedUnread = collapsedGroupsMeta.find(m => m.key === 'unread-yes')
       const collapsedRead = collapsedGroupsMeta.find(m => m.key === 'unread-no')
@@ -352,7 +357,7 @@ export function SessionList({
       for (const [key, { rows: groupRows, statusId }] of groupsByKey) {
         const state = sessionStatuses.find(s => s.id === statusId)
         if (!state) continue
-        groupRows.sort((a, b) => (b.item.lastMessageAt || 0) - (a.item.lastMessageAt || 0))
+        groupRows.sort((a, b) => compareSessionsForList(a.item, b.item))
         const collapsedMeta = collapsedGroupsMeta.find(m => m.key === key)
         orderedGroups.push({
           key,
@@ -616,6 +621,8 @@ export function SessionList({
     onSessionStatusChange,
     onFlag: onFlag ? handleFlagWithToast : undefined,
     onUnflag: onUnflag ? handleUnflagWithToast : undefined,
+    onPin,
+    onUnpin,
     onArchive: onArchive ? handleArchiveWithToast : undefined,
     onUnarchive: onUnarchive ? handleUnarchiveWithToast : undefined,
     onMarkUnread,
@@ -639,7 +646,7 @@ export function SessionList({
   }), [
     handleRenameClick, onSessionStatusChange,
     onFlag, handleFlagWithToast, onUnflag, handleUnflagWithToast,
-    onArchive, handleArchiveWithToast, onUnarchive, handleUnarchiveWithToast,
+    onPin, onUnpin, onArchive, handleArchiveWithToast, onUnarchive, handleUnarchiveWithToast,
     onMarkUnread, handleDeleteWithToast, onLabelsChange,
     handleSelectSessionById, handleOpenInNewWindow, setSendToWorkspace, handleFocusZone, handleKeyDown,
     sessionStatuses, flatLabels, labels, resolvedSearchQuery,

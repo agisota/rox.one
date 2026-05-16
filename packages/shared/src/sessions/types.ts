@@ -27,7 +27,7 @@ export const SESSION_PERSISTENT_FIELDS = [
   // Identity
   'id', 'workspaceRootPath', 'sdkSessionId', 'sdkCwd',
   // Timestamps
-  'createdAt', 'lastUsedAt', 'lastMessageAt',
+  'createdAt', 'lastUsedAt', 'lastMessageAt', 'pinnedAt',
   // Display
   'name', 'isFlagged', 'sessionStatus', 'labels', 'hidden',
   // Read tracking
@@ -109,6 +109,8 @@ export interface SessionConfig {
   /** Timestamp of last meaningful message (user or final assistant). Used for date grouping in session list.
    *  Separate from lastUsedAt which tracks any session access (auto-save, open to read, etc.). */
   lastMessageAt?: number;
+  /** Timestamp when the user pinned this session. Pinned sessions sort before unpinned sessions. */
+  pinnedAt?: number;
   /** Whether this session is flagged */
   isFlagged?: boolean;
   /** Permission mode for this session ('safe', 'ask', 'allow-all') */
@@ -225,6 +227,8 @@ export interface SessionHeader {
   lastUsedAt: number;
   /** Timestamp of last meaningful message — persisted separately from lastUsedAt for stable date grouping across restarts. */
   lastMessageAt?: number;
+  /** Timestamp when the user pinned this session. */
+  pinnedAt?: number;
   /** Whether this session is flagged */
   isFlagged?: boolean;
   /** Permission mode for this session ('safe', 'ask', 'allow-all') */
@@ -312,6 +316,8 @@ export interface SessionMetadata {
   lastUsedAt: number;
   /** Timestamp of last meaningful message — used for date grouping. Falls back to lastUsedAt for pre-fix sessions. */
   lastMessageAt?: number;
+  /** Timestamp when the user pinned this session. */
+  pinnedAt?: number;
   messageCount: number;
   /** Preview of first user message */
   preview?: string;

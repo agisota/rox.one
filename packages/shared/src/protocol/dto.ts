@@ -51,6 +51,8 @@ export interface Session {
   /** Preview of first user message (from JSONL header, for lazy-loaded sessions) */
   preview?: string
   lastMessageAt: number
+  /** Timestamp when the user pinned this session. Pinned sessions sort before unpinned sessions. */
+  pinnedAt?: number
   messages: Message[]
   isProcessing: boolean
   isFlagged?: boolean
@@ -194,6 +196,8 @@ export type SessionEvent =
   | { type: 'user_message'; sessionId: string; message: Message; status: 'accepted' | 'queued' | 'processing'; optimisticMessageId?: string }
   | { type: 'session_flagged'; sessionId: string }
   | { type: 'session_unflagged'; sessionId: string }
+  | { type: 'session_pinned'; sessionId: string; pinnedAt: number }
+  | { type: 'session_unpinned'; sessionId: string }
   | { type: 'session_archived'; sessionId: string }
   | { type: 'session_unarchived'; sessionId: string }
   | { type: 'name_changed'; sessionId: string; name?: string }
@@ -223,6 +227,8 @@ export interface SendMessageOptions {
 export type SessionCommand =
   | { type: 'flag' }
   | { type: 'unflag' }
+  | { type: 'pin' }
+  | { type: 'unpin' }
   | { type: 'archive' }
   | { type: 'unarchive' }
   | { type: 'rename'; name: string }

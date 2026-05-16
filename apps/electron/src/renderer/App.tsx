@@ -783,7 +783,7 @@ export default function App() {
     // Handoff events signal end of streaming - need to sync back to React state
     // Also includes todo_state_changed so status updates immediately reflect in sidebar
     // async_operation included so shimmer effect on session titles updates in real-time
-    const handoffEventTypes = new Set(['complete', 'error', 'interrupted', 'typed_error', 'session_status_changed', 'session_flagged', 'session_unflagged', 'name_changed', 'labels_changed', 'title_generated', 'async_operation'])
+    const handoffEventTypes = new Set(['complete', 'error', 'interrupted', 'typed_error', 'session_status_changed', 'session_flagged', 'session_unflagged', 'session_pinned', 'session_unpinned', 'name_changed', 'labels_changed', 'title_generated', 'async_operation'])
 
     // Helper to handle side effects (same logic for both paths)
     const handleEffects = (effects: Effect[], sessionId: string, eventType: string) => {
@@ -1153,6 +1153,16 @@ export default function App() {
   const handleUnflagSession = useCallback((sessionId: string) => {
     updateSessionById(sessionId, { isFlagged: false })
     window.electronAPI.sessionCommand(sessionId, { type: 'unflag' })
+  }, [updateSessionById])
+
+  const handlePinSession = useCallback((sessionId: string) => {
+    updateSessionById(sessionId, { pinnedAt: Date.now() })
+    window.electronAPI.sessionCommand(sessionId, { type: 'pin' })
+  }, [updateSessionById])
+
+  const handleUnpinSession = useCallback((sessionId: string) => {
+    updateSessionById(sessionId, { pinnedAt: undefined })
+    window.electronAPI.sessionCommand(sessionId, { type: 'unpin' })
   }, [updateSessionById])
 
   const handleArchiveSession = useCallback((sessionId: string) => {
@@ -1800,6 +1810,8 @@ export default function App() {
     onRenameSession: handleRenameSession,
     onFlagSession: handleFlagSession,
     onUnflagSession: handleUnflagSession,
+    onPinSession: handlePinSession,
+    onUnpinSession: handleUnpinSession,
     onArchiveSession: handleArchiveSession,
     onUnarchiveSession: handleUnarchiveSession,
     onMarkSessionRead: handleMarkSessionRead,
@@ -1845,6 +1857,8 @@ export default function App() {
     handleRenameSession,
     handleFlagSession,
     handleUnflagSession,
+    handlePinSession,
+    handleUnpinSession,
     handleArchiveSession,
     handleUnarchiveSession,
     handleMarkSessionRead,

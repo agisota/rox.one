@@ -28,6 +28,8 @@ import {
   Pencil,
   Flag,
   FlagOff,
+  Pin,
+  PinOff,
   MailOpen,
   FolderOpen,
   Copy,
@@ -68,6 +70,8 @@ export interface SessionMenuProps {
   onRename: () => void
   onFlag: () => void
   onUnflag: () => void
+  onPin?: () => void
+  onUnpin?: () => void
   onArchive: () => void
   onUnarchive: () => void
   onMarkUnread: () => void
@@ -89,6 +93,8 @@ export function SessionMenu({
   onRename,
   onFlag,
   onUnflag,
+  onPin,
+  onUnpin,
   onArchive,
   onUnarchive,
   onMarkUnread,
@@ -103,6 +109,7 @@ export function SessionMenu({
   // Derive display state from item
   const sessionId = item.id
   const isFlagged = item.isFlagged ?? false
+  const isPinned = !!item.pinnedAt
   const isArchived = item.isArchived ?? false
   const sharedUrl = item.sharedUrl
   const currentSessionStatus = getSessionStatus(item)
@@ -271,6 +278,20 @@ export function SessionMenu({
       )}
 
       {/* Flag/Unflag */}
+      {onPin && onUnpin && (
+        !isPinned ? (
+          <MenuItem onClick={onPin}>
+            <Pin className="h-3.5 w-3.5 text-info" />
+            <span className="flex-1">{t("sessionMenu.pin")}</span>
+          </MenuItem>
+        ) : (
+          <MenuItem onClick={onUnpin}>
+            <PinOff className="h-3.5 w-3.5" />
+            <span className="flex-1">{t("sessionMenu.unpin")}</span>
+          </MenuItem>
+        )
+      )}
+
       {!isFlagged ? (
         <MenuItem onClick={onFlag}>
           <Flag className="h-3.5 w-3.5 text-info" />
