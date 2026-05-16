@@ -45,7 +45,7 @@ const hostPlatform: ArtifactPlatform =
   process.platform === 'darwin' ? 'mac' : process.platform === 'win32' ? 'windows' : 'linux';
 const platformInput = (process.env.ROX_ARTIFACT_PLATFORM ?? hostPlatform).toLowerCase();
 const artifactPlatform = normalizeArtifactPlatform(platformInput);
-const linuxArch = process.env.ROX_ARTIFACT_ARCH ?? 'x64';
+const linuxArch = process.env.ROX_LINUX_ARCH ?? 'x86_64';
 const windowsArch = process.env.ROX_ARTIFACT_ARCH ?? 'x64';
 const macArch = process.env.ROX_ARTIFACT_ARCH ?? 'arm64';
 const shouldValidateLinux = artifactPlatform === 'linux' || artifactPlatform === 'all';
@@ -109,12 +109,21 @@ function assertMinSize(relativePath: string, minBytes: number): void {
  * Linux artifacts are always required regardless of mode.
  * The linux-signed-release.yml workflow GPG-signs them in every RC.
  */
+// Linux required artifacts. AppImage + GPG sig are always required for
+// signed Linux releases. deb + rpm are gated on ROX_LINUX_DEB_RPM=true
+// because the linux-signed-release workflow currently builds AppImage
+// only; T253b deb/rpm targets ship in v1.0.x once electron-builder
+// config + workflow extensions land.
 const LINUX_REQUIRED: Array<{ path: string; minBytes: number }> = [
-  { path: `ROX-ONE-${linuxArch}.deb`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
-  { path: `ROX-ONE-${linuxArch}.rpm`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
   { path: `ROX-ONE-${linuxArch}.AppImage`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
   { path: `ROX-ONE-${linuxArch}.AppImage.sig`, minBytes: PRESENCE_MIN_BYTES },
 ];
+if (process.env.ROX_LINUX_DEB_RPM === 'true') {
+  LINUX_REQUIRED.push(
+    { path: `ROX-ONE-${linuxArch}.deb`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+    { path: `ROX-ONE-${linuxArch}.rpm`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+  );
+}
 
 /**
  * Mac artifacts for signed mode (v1.0.x production).
