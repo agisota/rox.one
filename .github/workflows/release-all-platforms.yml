@@ -375,7 +375,66 @@ jobs:
           Get-Content $outFile
 
       # -----------------------------------------------------------------------
-      # 11. Upload workflow artifacts (forensic trail — kept separate from release)
+      # 11. Generate and upload CycloneDX SBOM (T508)
+      #
+      # cdxgen -t bun resolves the bun.lock dependency graph. The pinned
+      # transient npx install avoids @latest drift without adding a production
+      # dependency. Mac and Linux use bash; Windows uses bash (Git Bash / MSYS2
+      # is available on windows-latest and npx is on PATH after setup-bun).
+      # Each platform uploads its own named SBOM artifact (retention: 90 days).
+      # -----------------------------------------------------------------------
+
+      - name: Generate CycloneDX SBOM (Mac / Linux)
+        if: matrix.platform == 'mac-arm64' || matrix.platform == 'linux-x64'
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          SBOM_FILE="sbom-${PLATFORM}.json"
+          npx -y @cyclonedx/cdxgen@12.4.0 -t bun -o "${SBOM_FILE}"
+          bun run scripts/validate-sbom.ts "${SBOM_FILE}"
+          echo "SBOM generated: $(wc -c < "${SBOM_FILE}") bytes"
+          echo "SBOM_FILE=${SBOM_FILE}" >> "$GITHUB_ENV"
+
+      - name: Generate CycloneDX SBOM (Windows)
+        if: matrix.platform == 'windows-x64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx -y @cyclonedx/cdxgen@12.4.0 -t bun -o sbom-windows-x64.json
+          bun run scripts/validate-sbom.ts sbom-windows-x64.json
+          echo "SBOM generated: $(wc -c < sbom-windows-x64.json) bytes"
+
+      - name: Upload SBOM artifact (Mac ARM64)
+        if: matrix.platform == 'mac-arm64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-mac-arm64-${{ env.RELEASE_TAG }}
+          path: sbom-mac-arm64.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload SBOM artifact (Linux x64)
+        if: matrix.platform == 'linux-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-linux-x64-${{ env.RELEASE_TAG }}
+          path: sbom-linux-x64.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload SBOM artifact (Windows x64)
+        if: matrix.platform == 'windows-x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-windows-x64-${{ env.RELEASE_TAG }}
+          path: sbom-windows-x64.json
+          if-no-files-found: error
+          retention-days: 90
+
+      # -----------------------------------------------------------------------
+      # 12. Upload workflow artifacts (forensic trail — kept separate from release)
       # -----------------------------------------------------------------------
 
       - name: Upload Mac ARM64 workflow artifacts
@@ -431,7 +490,7 @@ jobs:
           if-no-files-found: warn
 
       # -----------------------------------------------------------------------
-      # 12. Publish to GitHub Release
+      # 13. Publish to GitHub Release
       #
       # softprops/action-gh-release is idempotent on tag_name:
       #   - First matrix job to finish creates the draft release.
