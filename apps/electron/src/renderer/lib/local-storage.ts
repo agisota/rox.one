@@ -23,6 +23,7 @@ export const KEYS = {
   collapsedSidebarItems: 'collapsed-sidebar-items',
   chatGroupingMode: 'chat-grouping-mode', // How to group chats: 'date' | 'status'
   collapsedSessionGroups: 'collapsed-session-groups', // Collapsed group keys in session list
+  sessionMonitorViewMode: 'session-monitor-view-mode', // Session monitor layout: list | kanban
 
   // Focus mode
   focusModeEnabled: 'focus-mode-enabled',
