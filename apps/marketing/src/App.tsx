@@ -46,12 +46,14 @@ const proofs = [
   'Локальный контроль, self-host сценарии и корпоративные контуры',
 ]
 
-const liveSignals = [
-  { label: 'Desktop feed', value: 'v0.9.2 live' },
-  { label: 'Download host', value: 'app.rox.one' },
-  { label: 'Runtime language', value: 'RU first' },
-  { label: 'Distribution', value: 'Cloudflare' },
-]
+function buildLiveSignals(version: string): Array<{ label: string; value: string }> {
+  return [
+    { label: 'Desktop feed', value: `v${version} live` },
+    { label: 'Download host', value: 'app.rox.one' },
+    { label: 'Runtime language', value: 'RU first' },
+    { label: 'Distribution', value: 'Cloudflare' },
+  ]
+}
 
 const productPillars = [
   {
@@ -233,6 +235,28 @@ function actionLabelForFile(fileName: string): string {
   }
 }
 
+const SHA256_PATTERN = /^[a-f0-9]{64}$/i
+const SAFE_FILENAME_PATTERN = /^[A-Za-z0-9._-]+$/
+
+function isHttpUrl(value: string): boolean {
+  // URL constructor + protocol allowlist; rejects javascript:, data:, file:, etc.
+  try {
+    const parsed = new URL(value)
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
+  } catch {
+    return false
+  }
+}
+
+function isValidBinary(binary: ManifestBinary): binary is Required<Pick<ManifestBinary, 'filename' | 'sha256'>> &
+  ManifestBinary {
+  if (typeof binary.filename !== 'string' || !SAFE_FILENAME_PATTERN.test(binary.filename)) return false
+  if (typeof binary.sha256 !== 'string' || !SHA256_PATTERN.test(binary.sha256)) return false
+  if (binary.size !== undefined && (!Number.isFinite(binary.size) || binary.size <= 0)) return false
+  if (binary.url !== undefined && !isHttpUrl(binary.url)) return false
+  return true
+}
+
 function manifestToDownloads(manifest: ManifestPayload): TerminalDownload[] {
   const binaries = manifest.binaries ?? {}
   const seen = new Set<string>()
@@ -250,7 +274,7 @@ function manifestToDownloads(manifest: ManifestPayload): TerminalDownload[] {
   const downloads: TerminalDownload[] = []
   for (const key of ordered) {
     const binary = binaries[key]
-    if (!binary || !binary.filename || !binary.sha256) continue
+    if (!binary || !isValidBinary(binary)) continue
     const label = platformLabels[key] ?? { title: key, subtitle: 'Сборка из release feed' }
     const fileUrl = binary.url ?? `${RELEASE_FEED_BASE_URL}/${binary.filename}`
     downloads.push({
@@ -271,13 +295,19 @@ function useTerminalRelease(): { release: TerminalRelease; downloads: TerminalDo
   const [downloads, setDownloads] = useState<TerminalDownload[]>(fallbackTerminalDownloads)
 
   useEffect(() => {
-    let cancelled = false
+    const controller = new AbortController()
     void (async () => {
       try {
-        const response = await fetch(RELEASE_FEED_MANIFEST_URL, { cache: 'no-cache' })
+        // Trust the worker's Cache-Control: public, max-age=60 — the page
+        // already shows fallback data instantly, and a 1-minute stale
+        // manifest is fine for marketing copy. Browser cache short-circuits
+        // a network call on every page load.
+        const response = await fetch(RELEASE_FEED_MANIFEST_URL, {
+          signal: controller.signal,
+        })
         if (!response.ok) return
         const payload = (await response.json()) as ManifestPayload
-        if (cancelled) return
+        if (controller.signal.aborted) return
         const liveDownloads = manifestToDownloads(payload)
         if (liveDownloads.length === 0) return
         setDownloads(liveDownloads)
@@ -287,13 +317,15 @@ function useTerminalRelease(): { release: TerminalRelease; downloads: TerminalDo
             manifestUrl: RELEASE_FEED_MANIFEST_URL,
           })
         }
-      } catch {
-        // Network or parse failure — leave fallback in place. Intentional silent
-        // catch: the marketing page must render even when app.rox.one is down.
+      } catch (err) {
+        // Aborts (unmount, StrictMode double-invoke) are expected and silent.
+        // Other failures (network, JSON parse) also fall through silently —
+        // the fallback constants keep the page usable when app.rox.one is down.
+        if ((err as { name?: string })?.name === 'AbortError') return
       }
     })()
     return () => {
-      cancelled = true
+      controller.abort()
     }
   }, [])
 
@@ -408,6 +440,7 @@ function ProductDemo() {
 
 export function App() {
   const { release: terminalRelease, downloads: terminalDownloads } = useTerminalRelease()
+  const liveSignals = buildLiveSignals(terminalRelease.version)
   const releaseFacts = [
     'Публичный feed: app.rox.one/electron/latest',
     `Актуальная версия: v${terminalRelease.version}`,
