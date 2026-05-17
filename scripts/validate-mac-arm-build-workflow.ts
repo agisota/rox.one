@@ -88,7 +88,13 @@ requireText(workflow, 'bun run electron:smoke', 'launch smoke gate');
 requireText(workflow, 'ROX-ONE-arm64.dmg', 'DMG artifact path');
 requireText(workflow, 'ROX-ONE-arm64.zip', 'ZIP artifact path');
 requireText(workflow, 'mac-arm64/ROX.ONE.app', 'packaged app artifact path');
-requireText(workflow, 'actions/upload-artifact@v4', 'artifact upload');
+// Match either the floating-tag form (legacy) or the SHA-pinned form. The
+// SHA pin pattern is `actions/upload-artifact@<40-hex> # v4...`; the # comment
+// is preserved by Renovate. validate:workflow-pins enforces the pinned form
+// repo-wide separately.
+if (!/actions\/upload-artifact@(v4|[0-9a-f]{40}\s*#\s*v4)/.test(workflow)) {
+  fail('workflow missing actions/upload-artifact@v4 or SHA-pinned equivalent');
+}
 requireText(workflow, 'if-no-files-found: error', 'hard artifact upload failure');
 
 requireText(scripts['electron:dist:dev:mac:arm64'], 'scripts/electron-dist-dev-mac-arm64.ts', 'arm64 dist wrapper');

@@ -101,7 +101,8 @@ for (const [expected, description] of [
   ['tag:', 'manual tag input'],
   ['permissions:', 'explicit permissions block'],
   ['contents: read', 'read-only contents permission'],
-  ['actions/upload-artifact@v4', 'private artifact upload action'],
+  // SHA pin tolerant — exact form enforced by validate:workflow-pins.
+  ['actions/upload-artifact@', 'private artifact upload action'],
   ['if-no-files-found: error', 'hard artifact upload failure'],
   ['retention-days: 14', 'private artifact retention'],
   ['bun install --frozen-lockfile', 'frozen install'],
@@ -179,7 +180,8 @@ for (const requiredText of [
   'bun run electron:dist:dev:mac:arm64',
   'bun run validate:packaged-artifacts',
   'bun run validate:mac-private-release-boundary',
-  'actions/upload-artifact@v4',
+  // SHA pin tolerant — exact form enforced by validate:workflow-pins.
+  'actions/upload-artifact@',
   'if-no-files-found: error',
 ]) {
   requireText(macArmWorkflow, requiredText, 'Mac ARM workflow release gate');
