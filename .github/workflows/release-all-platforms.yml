@@ -501,6 +501,13 @@ jobs:
       # and manually publish when ready. Set draft: false to auto-publish.
       # -----------------------------------------------------------------------
 
+      # fail_on_unmatched_files is intentionally false on the per-platform
+      # publishes: latest-mac.yml / latest.yml are only emitted by
+      # electron-builder in signed-publish mode. The unsigned-RC baseline
+      # doesn't produce them, and we want the publish step to succeed
+      # regardless. The aggregate manifest.json attached by the
+      # publish-manifest job carries equivalent metadata in unified form.
+
       - name: Publish Mac ARM64 artifacts to GitHub Release
         if: matrix.platform == 'mac-arm64' && success()
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
@@ -508,7 +515,7 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           draft: true
           generate_release_notes: true
-          fail_on_unmatched_files: true
+          fail_on_unmatched_files: false
           files: |
             apps/electron/release/*.dmg
             apps/electron/release/*.zip
@@ -522,7 +529,7 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           draft: true
           generate_release_notes: true
-          fail_on_unmatched_files: true
+          fail_on_unmatched_files: false
           files: |
             apps/electron/release/*.AppImage
             apps/electron/release/*.deb
@@ -535,7 +542,7 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           draft: true
           generate_release_notes: true
-          fail_on_unmatched_files: true
+          fail_on_unmatched_files: false
           files: |
             apps/electron/release/*.exe
             apps/electron/release/latest.yml
