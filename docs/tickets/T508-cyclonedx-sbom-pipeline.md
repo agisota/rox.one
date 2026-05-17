@@ -1,6 +1,6 @@
 # T508-cyclonedx-sbom-pipeline
 
-Status: IN PROGRESS
+Status: DONE
 
 ## Summary
 
@@ -18,8 +18,8 @@ not add `cdxgen` as a production dependency.
 | Platform | Status | Notes |
 |----------|--------|-------|
 | Linux    | DONE   | `linux-signed-release.yml` — initial slice |
-| Mac      | PENDING | Lands via orchestrator rebase after A2 merges `mac-unsigned-release.yml` |
-| Windows  | PENDING | Lands via orchestrator rebase after A3 merges `windows-unsigned-release.yml` |
+| Mac      | DONE    | `mac-unsigned-release.yml` — after `Compute unsigned artifact checksum` |
+| Windows  | DONE    | `windows-unsigned-release.yml` — after `Compute artifact checksums (SHA-256)` |
 
 ## Changes (initial PR)
 
@@ -36,6 +36,27 @@ not add `cdxgen` as a production dependency.
   - `specVersion >= 1.5`
   - at least 100 components listed
   - Usage: `bun run scripts/validate-sbom.ts <path-to-sbom.json>`
+
+## Changes (Mac + Windows + release-all-platforms, final slice)
+
+- `.github/workflows/mac-unsigned-release.yml`: Added two steps after
+  `Compute unsigned artifact checksum`, before `Upload unsigned DMG artifact`:
+  1. `Generate CycloneDX SBOM` — runs `npx -y @cyclonedx/cdxgen@12.4.0 -t bun -o sbom-mac.json`,
+     then `bun run scripts/validate-sbom.ts sbom-mac.json`
+  2. `Upload SBOM artifact` — uploads `sbom-mac.json` as `sbom-mac` artifact,
+     `if-no-files-found: error`, `retention-days: 90`
+
+- `.github/workflows/windows-unsigned-release.yml`: Added two steps after
+  `Compute artifact checksums (SHA-256)`, before `Upload Windows installer artifact`:
+  1. `Generate CycloneDX SBOM` — runs `npx -y @cyclonedx/cdxgen@12.4.0 -t bun -o sbom-windows.json`,
+     then `bun run scripts/validate-sbom.ts sbom-windows.json`
+  2. `Upload SBOM artifact` — uploads `sbom-windows.json` as `sbom-windows` artifact,
+     `if-no-files-found: error`, `retention-days: 90`
+
+- `.github/workflows/release-all-platforms.yml`: Added new section 11 (SBOM generation)
+  before the existing workflow artifact uploads. Platform-conditional steps produce
+  `sbom-{platform}.json` and upload named artifacts `sbom-{platform}-{tag}` with
+  `retention-days: 90`.
 
 ## Not in scope
 
