@@ -114,8 +114,8 @@ curl -s https://app.rox.one/electron/latest/manifest.json | jq '.version, .binar
 curl -sI https://app.rox.one/electron/latest/ROX-ONE-arm64.dmg \
   | grep -E '^(HTTP|content-type|content-disposition):'
 
-# Pinned-version path resolves:
-curl -s https://app.rox.one/electron/0.9.2/manifest.json | jq '.version'
+# Pinned-version path resolves (works for any tag with an attached manifest.json):
+curl -s https://app.rox.one/electron/v1.0.0-rc.7/manifest.json | jq '.version'
 
 # Install scripts proxy:
 curl -sI https://app.rox.one/install-app.sh | grep -i content-type

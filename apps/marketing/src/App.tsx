@@ -169,30 +169,39 @@ type ManifestPayload = {
 
 // Fallback data — rendered while the live manifest is fetching, or if the
 // fetch fails. Mirrors the last shipped release so the page never appears
-// broken even if app.rox.one is unreachable.
+// broken even if app.rox.one is unreachable. Refresh on each release bump.
 const fallbackTerminalRelease: TerminalRelease = {
-  version: '0.9.2',
+  version: '1.0.0-rc.7',
   manifestUrl: RELEASE_FEED_MANIFEST_URL,
 }
 
 const fallbackTerminalDownloads: TerminalDownload[] = [
   {
-    title: 'macOS Apple Silicon DMG',
+    title: 'macOS Apple Silicon',
     subtitle: 'Для Mac на M1, M2, M3 и M4',
-    url: `${RELEASE_FEED_BASE_URL}/ROX-ONE-arm64.dmg`,
-    fileName: 'ROX-ONE-arm64.dmg',
-    size: '320.1 MB',
-    sha256: '687376ea2c29710c7006956fe6f12934df3860fc5c6628b64955a37bf93a144c',
-    action: 'Скачать DMG',
-  },
-  {
-    title: 'macOS Apple Silicon ZIP',
-    subtitle: 'Для auto-update feed и ручной распаковки',
     url: `${RELEASE_FEED_BASE_URL}/ROX-ONE-arm64.zip`,
     fileName: 'ROX-ONE-arm64.zip',
-    size: '309.4 MB',
-    sha256: '8050c770eaaeaf5eb93ac4099e84eda71d885d55cf48d5829469a5846296b25f',
+    size: '212.8 MB',
+    sha256: 'efd684274cafa4d872f9df32d9244d64ad1980a70ac99fd67c55d77499599390',
     action: 'Скачать ZIP',
+  },
+  {
+    title: 'Linux x64',
+    subtitle: 'AppImage для большинства дистрибутивов',
+    url: `${RELEASE_FEED_BASE_URL}/ROX-ONE-x86_64.AppImage`,
+    fileName: 'ROX-ONE-x86_64.AppImage',
+    size: '210.7 MB',
+    sha256: '8e38449ca82eddd998b23041c0a76037d0918d5f6b356c154d5b4661a7565524',
+    action: 'Скачать AppImage',
+  },
+  {
+    title: 'Windows x64',
+    subtitle: 'Установщик NSIS для Windows 10 / 11',
+    url: `${RELEASE_FEED_BASE_URL}/ROX-ONE-x64.exe`,
+    fileName: 'ROX-ONE-x64.exe',
+    size: '108.5 MB',
+    sha256: '0750a82eda6ec5fb5409aa9095b680b662cf9cde0029aff93b8b8a6287d9d9a6',
+    action: 'Скачать EXE',
   },
 ]
 
