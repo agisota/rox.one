@@ -131,6 +131,14 @@ jobs:
         uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
 
       - name: Install dependencies
+        # GITHUB_TOKEN is required by the @vscode/ripgrep postinstall script,
+        # which fetches a prebuilt binary from api.github.com. Without auth,
+        # the request hits the IP-shared 60/hr unauthenticated rate limit
+        # and returns 403, breaking install on tag-storm runs (we saw this
+        # at rc.6 after 3 tag pushes inside 30 minutes). Authenticated quota
+        # is 5000/hr per token.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun install --frozen-lockfile
 
       # -----------------------------------------------------------------------
