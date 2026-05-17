@@ -1,6 +1,13 @@
 # R.11 Completion Audit - 2026-05-15
 
-Status: NOT ACHIEVED
+> **Historical context (added 2026-05-16):** This audit was authored before
+> the R.11 destructive rewrite landed. The rewrite landed at commit
+> `c0cc869d` (2026-05-16). The current achievement evidence lives in
+> `r11-completion-audit-2026-05-14.md` (refreshed at `99502fa7`). The
+> "Blocked" rows below were accurate at the time of writing; do not treat
+> them as current state.
+
+Status: HISTORICAL — superseded by 2026-05-14 audit after rewrite landed at c0cc869d
 
 This audit checks the active objective:
 
