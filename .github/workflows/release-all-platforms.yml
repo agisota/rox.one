@@ -250,6 +250,27 @@ jobs:
           cd apps/electron
           bunx electron-builder --linux --publish=never 2>&1 | tee ../../.ci-logs/release-all-platforms/linux-x64/electron-builder.log
 
+      # electron-builder names the AppImage with the Linux-canonical
+      # architecture (x86_64), but downstream consumers (the rox.one
+      # marketing site at the time of v1.0.0-rc.7) link to it as `x64` to
+      # stay consistent with mac/win arch labels. Duplicate the AppImage
+      # under both names so existing buttons + canonical naming both
+      # resolve to the same bytes. Cheap: it's a copy of a single file.
+      - name: Alias Linux AppImage as ROX-ONE-x64.AppImage
+        if: matrix.platform == 'linux-x64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          src=apps/electron/release/ROX-ONE-x86_64.AppImage
+          dst=apps/electron/release/ROX-ONE-x64.AppImage
+          if [ ! -f "$src" ]; then
+            echo "::error::expected $src after electron-builder; aborting"
+            exit 1
+          fi
+          cp "$src" "$dst"
+          echo "Aliased AppImage: $(basename "$dst") = $(basename "$src")"
+          ls -la apps/electron/release/ROX-ONE-*.AppImage
+
       # Windows x64: run electron-builder from apps/electron working-directory.
       # No signing env vars are set — intentionally unsigned for rc.2 baseline.
       - name: Package Windows x64 NSIS installer (unsigned)
@@ -645,7 +666,14 @@ jobs:
           }
 
           MAC_FILE=$(pick_one   .manifest-bin/mac-arm64   'ROX-ONE-*.zip')
-          LINUX_FILE=$(pick_one .manifest-bin/linux-x64   'ROX-ONE-*.AppImage')
+          # Prefer the canonical x86_64 name over the x64 alias the linux
+          # job duplicates for backward-compat with downstream consumers.
+          # Both files are byte-identical; manifest.json should point at
+          # the canonical name to avoid confusion.
+          LINUX_FILE=$(pick_one .manifest-bin/linux-x64   'ROX-ONE-x86_64.AppImage')
+          if [ -z "$LINUX_FILE" ]; then
+            LINUX_FILE=$(pick_one .manifest-bin/linux-x64 'ROX-ONE-*.AppImage')
+          fi
           WIN_FILE=$(pick_one   .manifest-bin/windows-x64 'ROX-ONE-*.exe')
 
           if [ -z "$MAC_FILE" ];   then echo "::error::no ROX-ONE-*.zip in mac-arm64 artifact";        exit 1; fi
