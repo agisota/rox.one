@@ -262,12 +262,23 @@ if (!existsSync(winExePath)) {
 }
 
 // Live signtool verify against the unpacked exe. Local/private RC is
-// intentionally unsigned so a non-zero status is fine here; CI signing
-// builds (T254) swap in a stricter contract.
-const signtool = run('signtool', ['verify', '/pa', '/v', winExePath]);
-if (signtool.status === 0) {
+// intentionally unsigned so:
+//   - a non-zero status is fine (boundary contract permits unsigned)
+//   - signtool not being on PATH is fine too (the CI runner doesn't put
+//     it on PATH by default; it's at C:\Program Files (x86)\Windows
+//     Kits\10\bin\<ver>\x64\). Treat ENOENT the same as a non-zero
+//     verify result. CI signing builds (T254) swap in a stricter
+//     contract that requires signtool + signed token presence.
+const signtool = spawnSync('signtool', ['verify', '/pa', '/v', winExePath], {
+  cwd: root,
+  encoding: 'utf8',
+});
+if (signtool.error && (signtool.error as NodeJS.ErrnoException).code === 'ENOENT') {
+  console.warn('[windows-private-release-boundary] signtool not on PATH; skipping live signature check (unsigned posture)');
+} else if (signtool.status === 0) {
+  const output = `${signtool.stdout ?? ''}${signtool.stderr ?? ''}`.trim();
   for (const token of REQUIRED_SIGNING_TOKENS) {
-    requireText(signtool.output, token, `required signtool token: ${token}`);
+    requireText(output, token, `required signtool token: ${token}`);
   }
 }
 
