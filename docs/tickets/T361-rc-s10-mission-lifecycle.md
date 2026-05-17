@@ -1,6 +1,16 @@
 # T361 - RC S10 Mission Lifecycle Smoke Harness
 
-Status: OPEN
+Status: DONE
+
+## Resolution
+
+`scripts/rc-smoke/s10-mission-lifecycle.ts` exists and runs cleanly on Linux:
+`bun run scripts/rc-smoke/s10-mission-lifecycle.ts` → **183 pass / 0 fail**
+across 13 test files (mission id/store/state/transitions, scheduler, host,
+mission RPC, mission rate-limit, scheduler audit, audit event/producer/store,
+workbench mission lifecycle). Acceptance criteria already checked. Worklog
+populated. Ticket left in `Status: OPEN` after the work landed; closing now
+with the verification re-run on `ab345880` (2026-05-17).
 
 ## Context
 
