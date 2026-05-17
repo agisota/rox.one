@@ -83,8 +83,9 @@ const sampleSessions: SessionMeta[] = [
 ]
 
 function createMockContext(overrides: Partial<SessionListContextValue> = {}): SessionListContextValue {
-  return {
+  const baseContext: SessionListContextValue = {
     onRenameClick: () => {},
+    onRenameDirect: () => {},
     onSessionStatusChange: () => {},
     onMarkUnread: () => {},
     onDelete: async () => true,
@@ -98,6 +99,11 @@ function createMockContext(overrides: Partial<SessionListContextValue> = {}): Se
     isMultiSelectActive: false,
     contentSearchResults: new Map(),
     ...overrides,
+  }
+
+  return {
+    ...baseContext,
+    onRenameDirect: overrides.onRenameDirect ?? baseContext.onRenameDirect,
   }
 }
 

@@ -89,11 +89,21 @@ export function initializeReleaseNotes(): void {
   debug(`[release-notes] Synced ${Object.keys(bundledNotes).length} release notes`);
 }
 
+const RELEASE_NOTE_SOURCE_RE = /^(\d+\.\d+\.\d+)\.md$/;
+
 /**
- * Parse version from filename (e.g., "0.4.1.md" → "0.4.1").
+ * Parse version from a released source filename (e.g., "0.4.1.md" → "0.4.1").
  */
 function parseVersion(filename: string): string {
   return filename.replace(/\.md$/, '');
+}
+
+function isReleaseNoteSource(filename: string): boolean {
+  return RELEASE_NOTE_SOURCE_RE.test(filename);
+}
+
+function summaryFilenameForVersion(version: string): string {
+  return `${version}.ru.md`;
 }
 
 /**
@@ -117,17 +127,33 @@ export interface ReleaseNote {
 }
 
 /**
+ * Build display release notes from a filename → content map.
+ *
+ * Historical `{version}.md` files remain the release source of truth. Optional
+ * `{version}.ru.md` companion files are display summaries for the same release,
+ * not separate versions.
+ */
+export function buildReleaseNotesListFromFiles(notes: Record<string, string>): ReleaseNote[] {
+  return Object.entries(notes)
+    .filter(([filename]) => isReleaseNoteSource(filename))
+    .map(([filename, sourceContent]) => {
+      const version = parseVersion(filename);
+      const summaryContent = notes[summaryFilenameForVersion(version)];
+      return {
+        version,
+        content: summaryContent?.trim() ? summaryContent : sourceContent,
+      };
+    })
+    .sort((a, b) => compareSemver(a.version, b.version))
+    .slice(0, MAX_DISPLAY_NOTES);
+}
+
+/**
  * Get release notes sorted newest-first, limited to the most recent 10.
  */
 export function getReleaseNotesList(): ReleaseNote[] {
   const notes = getBundledReleaseNotes();
-  return Object.entries(notes)
-    .map(([filename, content]) => ({
-      version: parseVersion(filename),
-      content,
-    }))
-    .sort((a, b) => compareSemver(a.version, b.version))
-    .slice(0, MAX_DISPLAY_NOTES);
+  return buildReleaseNotesListFromFiles(notes);
 }
 
 /**
@@ -143,7 +169,11 @@ export function getLatestReleaseVersion(): string | undefined {
  * Each version is separated by a horizontal rule.
  */
 export function getCombinedReleaseNotes(): string {
-  const list = getReleaseNotesList();
+  return getCombinedReleaseNotesFromFiles(getBundledReleaseNotes());
+}
+
+export function getCombinedReleaseNotesFromFiles(notes: Record<string, string>): string {
+  const list = buildReleaseNotesListFromFiles(notes);
   return list.map(n => {
     // Auto-inject version header if the content doesn't start with one
     if (!n.content.trimStart().startsWith('# ')) {

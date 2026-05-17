@@ -12,6 +12,7 @@ import { atom } from 'jotai'
 import type { Getter, Setter } from 'jotai/vanilla'
 import { atomFamily } from 'jotai-family'
 import type { Session, Message } from '../../shared/types'
+import { sortSessionsForList } from '@rox-one/shared/sessions/sorting'
 
 /**
  * Session metadata for list display (lightweight, no messages)
@@ -24,6 +25,8 @@ export interface SessionMeta {
   preview?: string
   workspaceId: string
   lastMessageAt?: number
+  /** Timestamp when the user pinned this session. Pinned sessions sort first. */
+  pinnedAt?: number
   isProcessing?: boolean
   isFlagged?: boolean
   lastReadMessageId?: string
@@ -181,6 +184,7 @@ export const updateSessionAtom = atom(
       const newMetaMap = new Map(metaMap)
       newMetaMap.set(sessionId, extractSessionMeta(newSession))
       set(sessionMetaMapAtom, newMetaMap)
+      set(sessionIdsAtom, sortSessionsForList(Array.from(newMetaMap.values())).map(s => s.id))
     }
   }
 )
@@ -198,6 +202,7 @@ export const updateSessionMetaAtom = atom(
       const newMetaMap = new Map(metaMap)
       newMetaMap.set(sessionId, { ...existing, ...updates })
       set(sessionMetaMapAtom, newMetaMap)
+      set(sessionIdsAtom, sortSessionsForList(Array.from(newMetaMap.values())).map(s => s.id))
     }
   }
 )
@@ -308,9 +313,8 @@ export const initializeSessionsAtom = atom(
     }
     set(sessionMetaMapAtom, metaMap)
 
-    // Set ordered IDs (sorted by lastMessageAt desc)
-    const ids = sessions
-      .sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0))
+    // Set ordered IDs (pinned first, then recency)
+    const ids = sortSessionsForList(sessions)
       .map(s => s.id)
     set(sessionIdsAtom, ids)
 
@@ -391,8 +395,7 @@ export const refreshSessionsMetadataAtom = atom(
     set(sessionMetaMapAtom, nextMetaMap)
 
     // Set ordered IDs from the metadata map we actually exposed to the UI.
-    const nextIds = Array.from(nextMetaMap.values())
-      .sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0))
+    const nextIds = sortSessionsForList(Array.from(nextMetaMap.values()))
       .map(s => s.id)
     set(sessionIdsAtom, nextIds)
 
@@ -415,9 +418,8 @@ export const addSessionAtom = atom(
     newMetaMap.set(session.id, extractSessionMeta(session))
     set(sessionMetaMapAtom, newMetaMap)
 
-    // Add to beginning of IDs list
-    const ids = get(sessionIdsAtom)
-    set(sessionIdsAtom, [session.id, ...ids])
+    // Keep list order consistent with pinned-first sorting.
+    set(sessionIdsAtom, sortSessionsForList(Array.from(newMetaMap.values())).map(s => s.id))
 
     // Mark as loaded (new sessions are complete - no lazy loading needed)
     const loadedSessions = get(loadedSessionsAtom)

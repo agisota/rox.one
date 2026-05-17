@@ -70,6 +70,7 @@ import {
   type SessionStatus,
   type SessionHeader,
   pickSessionFields,
+  sortSessionsForList,
 } from '@rox-one/shared/sessions'
 import { loadWorkspaceSources, loadAllSources, getSourcesBySlugs, isSourceUsable, type LoadedSource, type McpServerConfig, getSourcesNeedingAuth, getSourceCredentialManager, getSourceServerBuilder, type SourceWithCredential, isApiOAuthProvider, hasRenewEndpoint, SERVER_BUILD_ERRORS, TokenRefreshManager, createTokenGetter } from '@rox-one/shared/sources'
 import { ConfigWatcher, type ConfigWatcherCallbacks } from '@rox-one/shared/config'
@@ -376,6 +377,18 @@ export class SessionManager implements ISessionManager {
       managed.isFlagged = header.isFlagged ?? false
       this.ipc.sendEvent(
         { type: header.isFlagged ? 'session_flagged' : 'session_unflagged', sessionId },
+        managed.workspace.id
+      )
+      changed = true
+    }
+
+    // Pinned
+    if ((managed.pinnedAt ?? undefined) !== (header.pinnedAt ?? undefined)) {
+      managed.pinnedAt = header.pinnedAt
+      this.ipc.sendEvent(
+        header.pinnedAt
+          ? { type: 'session_pinned', sessionId, pinnedAt: header.pinnedAt }
+          : { type: 'session_unpinned', sessionId },
         managed.workspace.id
       )
       changed = true
@@ -849,9 +862,7 @@ export class SessionManager implements ISessionManager {
       sessions = sessions.filter(m => m.workspace.id === workspaceId)
     }
 
-    return sessions
-      .map(m => managedToSession(m))
-      .sort((a, b) => (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0))
+    return sortSessionsForList(sessions.map(m => managedToSession(m)))
   }
 
   /**
@@ -2724,6 +2735,30 @@ export class SessionManager implements ISessionManager {
       // Workaround: Bun's fs.watch({ recursive: true }) on Linux doesn't track
       // directories created after the watcher started.
       // https://github.com/oven-sh/bun/issues/15939
+      const watcher = this.configWatchers.get(managed.workspace.rootPath)
+      watcher?.notifyFileChange(`sessions/${sessionId}/session.jsonl`)
+    }
+  }
+
+  async pinSession(sessionId: string, pinnedAt = this.monotonic()): Promise<void> {
+    const managed = this.sessions.get(sessionId)
+    if (managed) {
+      managed.pinnedAt = pinnedAt
+      this.persistence.persistSession(managed)
+      await this.flushSession(managed.id)
+      this.ipc.sendEvent({ type: 'session_pinned', sessionId, pinnedAt }, managed.workspace.id)
+      const watcher = this.configWatchers.get(managed.workspace.rootPath)
+      watcher?.notifyFileChange(`sessions/${sessionId}/session.jsonl`)
+    }
+  }
+
+  async unpinSession(sessionId: string): Promise<void> {
+    const managed = this.sessions.get(sessionId)
+    if (managed) {
+      managed.pinnedAt = undefined
+      this.persistence.persistSession(managed)
+      await this.flushSession(managed.id)
+      this.ipc.sendEvent({ type: 'session_unpinned', sessionId }, managed.workspace.id)
       const watcher = this.configWatchers.get(managed.workspace.rootPath)
       watcher?.notifyFileChange(`sessions/${sessionId}/session.jsonl`)
     }

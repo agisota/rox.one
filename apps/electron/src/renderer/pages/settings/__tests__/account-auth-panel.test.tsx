@@ -40,14 +40,15 @@ describe('AccountAuthPanel', () => {
 
     expect(createNativeAccountAuthRequest('register', {
       displayName: 'ROX User',
-      email: 'new@example.com',
+      username: '  Release_User  ',
       password: 'correct horse battery staple',
     })).toEqual({
       path: '/api/auth/register',
       method: 'POST',
       body: {
+        username: 'release_user',
+        email: 'release_user@rox.one',
         displayName: 'ROX User',
-        email: 'new@example.com',
         password: 'correct horse battery staple',
       },
     });

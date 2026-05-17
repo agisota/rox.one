@@ -53,6 +53,8 @@ export interface ISessionManager {
 
   flagSession(sessionId: string): Promise<void>
   unflagSession(sessionId: string): Promise<void>
+  pinSession(sessionId: string, pinnedAt?: number): Promise<void>
+  unpinSession(sessionId: string): Promise<void>
   archiveSession(sessionId: string): Promise<void>
   unarchiveSession(sessionId: string): Promise<void>
   renameSession(sessionId: string, name: string): Promise<void>

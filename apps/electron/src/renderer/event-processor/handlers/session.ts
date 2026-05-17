@@ -16,6 +16,8 @@ import type {
   SessionStatusChangedEvent,
   SessionFlaggedEvent,
   SessionUnflaggedEvent,
+  SessionPinnedEvent,
+  SessionUnpinnedEvent,
   SessionArchivedEvent,
   SessionUnarchivedEvent,
   NameChangedEvent,
@@ -705,6 +707,40 @@ export function handleSessionUnflagged(
 }
 
 /**
+ * Handle session_pinned - set the pin timestamp.
+ */
+export function handleSessionPinned(
+  state: SessionState,
+  event: SessionPinnedEvent
+): ProcessResult {
+  const { session, streaming } = state
+  return {
+    state: {
+      session: { ...session, pinnedAt: event.pinnedAt },
+      streaming,
+    },
+    effects: [],
+  }
+}
+
+/**
+ * Handle session_unpinned - clear the pin timestamp.
+ */
+export function handleSessionUnpinned(
+  state: SessionState,
+  _event: SessionUnpinnedEvent
+): ProcessResult {
+  const { session, streaming } = state
+  return {
+    state: {
+      session: { ...session, pinnedAt: undefined },
+      streaming,
+    },
+    effects: [],
+  }
+}
+
+/**
  * Handle session_archived - mark session as archived
  */
 export function handleSessionArchived(
@@ -946,4 +982,3 @@ export function handleUsageUpdate(
     effects: [],
   }
 }
-

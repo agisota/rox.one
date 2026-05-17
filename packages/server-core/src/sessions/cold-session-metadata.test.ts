@@ -55,6 +55,7 @@ describe('cold-session metadata persistence', () => {
       name?: string
       sessionStatus?: string
       labels?: string[]
+      pinnedAt?: number
       messages?: StoredMessage[]
     } = {},
   ) {
@@ -66,6 +67,7 @@ describe('cold-session metadata persistence', () => {
       name: opts.name ?? 'cold session',
       sessionStatus: opts.sessionStatus ?? 'todo',
       labels: opts.labels ?? [],
+      pinnedAt: opts.pinnedAt,
       createdAt: Date.now(),
       lastUsedAt: Date.now(),
       messages: opts.messages ?? [],
@@ -78,6 +80,7 @@ describe('cold-session metadata persistence', () => {
         name: stored.name,
         sessionStatus: stored.sessionStatus,
         labels: stored.labels,
+        pinnedAt: stored.pinnedAt,
         createdAt: stored.createdAt,
       },
       buildWorkspace(),
@@ -143,6 +146,23 @@ describe('cold-session metadata persistence', () => {
 
     const header = readDiskHeader(sessionId)
     expect(header.name).toBe('new name')
+  })
+
+  it('pinSession and unpinSession on a cold session persist pinnedAt', async () => {
+    const sessionId = 'cold-pin'
+    seedColdSession(sessionId)
+
+    await sm.pinSession(sessionId, 1234)
+
+    let header = readDiskHeader(sessionId)
+    expect(header.pinnedAt).toBe(1234)
+    expect(loadSession(tmpRoot, sessionId)?.pinnedAt).toBe(1234)
+
+    await sm.unpinSession(sessionId)
+
+    header = readDiskHeader(sessionId)
+    expect(header.pinnedAt).toBeUndefined()
+    expect(loadSession(tmpRoot, sessionId)?.pinnedAt).toBeUndefined()
   })
 
   it('cold-session persist preserves existing messages on disk', async () => {

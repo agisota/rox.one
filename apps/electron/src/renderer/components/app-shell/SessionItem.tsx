@@ -1,6 +1,6 @@
 import { formatDistanceToNowStrict } from "date-fns"
 import type { Locale } from "date-fns"
-import { Flag, ShieldAlert } from "lucide-react"
+import { Flag, Pin, ShieldAlert } from "lucide-react"
 import { useActionLabel } from "@/actions"
 import { cn } from "@/lib/utils"
 import { rendererPerf } from "@/lib/perf"
@@ -11,6 +11,8 @@ import { SessionMenu } from "./SessionMenu"
 import { BatchSessionMenu } from "./BatchSessionMenu"
 import { SessionStatusIcon } from "./SessionStatusIcon"
 import { SessionBadges } from "./SessionBadges"
+import { SessionInlineTitle } from "./SessionInlineTitle"
+import { SessionQuickLabels } from "./SessionQuickLabels"
 import { getSessionTitle, getSessionPreviewText, highlightMatch, hasUnreadMeta, shortTimeLocale } from "@/utils/session"
 import { useSessionListContext } from "@/context/SessionListContext"
 import { useAppShellContext } from "@/context/AppShellContext"
@@ -74,6 +76,13 @@ export function SessionItem({
   const messagingBindingsBySession = useAtomValue(messagingBindingsBySessionAtom)
   const sessionBindings = messagingBindingsBySession.get(item.id) ?? []
   const hasMessagingBinding = sessionBindings.length > 0
+  const quickLabels = ctx.onLabelsChange && ctx.labels.length > 0 ? (
+    <SessionQuickLabels
+      labels={ctx.labels}
+      sessionLabels={item.labels || []}
+      onLabelsChange={(updated) => ctx.onLabelsChange?.(item.id, updated)}
+    />
+  ) : null
 
   const handleClick = (e: React.MouseEvent) => {
     ctx.onFocusZone()
@@ -127,6 +136,8 @@ export function SessionItem({
           onRename={() => ctx.onRenameClick(item.id, title)}
           onFlag={() => ctx.onFlag?.(item.id)}
           onUnflag={() => ctx.onUnflag?.(item.id)}
+          onPin={ctx.onPin ? () => ctx.onPin!(item.id) : undefined}
+          onUnpin={ctx.onUnpin ? () => ctx.onUnpin!(item.id) : undefined}
           onArchive={() => ctx.onArchive?.(item.id)}
           onUnarchive={() => ctx.onUnarchive?.(item.id)}
           onMarkUnread={() => ctx.onMarkUnread(item.id)}
@@ -165,26 +176,33 @@ export function SessionItem({
           </div>
         </>
       }
-      title={ctx.searchQuery ? highlightMatch(title, ctx.searchQuery) : title}
+      title={
+        <SessionInlineTitle
+          title={title}
+          displayTitle={ctx.searchQuery ? highlightMatch(title, ctx.searchQuery) : title}
+          onRename={(name) => ctx.onRenameDirect(item.id, name)}
+        />
+      }
       titleClassName={cn("text-[13px]", item.isAsyncOperationOngoing && "animate-shimmer-text")}
       subtitle={previewText}
       titleSuffix={
-        hasMessagingBinding ? (
-          <div className="flex items-center gap-1">
-            {sessionBindings.map((binding) => {
-              const pill = PLATFORM_PILL[binding.platform as 'telegram' | 'whatsapp']
-              if (!pill) return null
-              return (
-                <EntityListBadge
-                  key={binding.id}
-                  variant="text"
-                  colorClass={pill.colorClass}
-                  tooltip={`Connected to ${pill.label}`}
-                >
-                  {pill.label}
-                </EntityListBadge>
-              )
-            })}
+        hasMessagingBinding || quickLabels ? (
+          <div className="flex min-w-0 items-center gap-1">
+            {hasMessagingBinding && sessionBindings.map((binding) => {
+                const pill = PLATFORM_PILL[binding.platform as 'telegram' | 'whatsapp']
+                if (!pill) return null
+                return (
+                  <EntityListBadge
+                    key={binding.id}
+                    variant="text"
+                    colorClass={pill.colorClass}
+                    tooltip={`Connected to ${pill.label}`}
+                  >
+                    {pill.label}
+                  </EntityListBadge>
+                )
+              })}
+            {quickLabels}
           </div>
         ) : undefined
       }
@@ -203,6 +221,10 @@ export function SessionItem({
         >
           {chatMatchCount}
         </span>
+      ) : item.pinnedAt ? (
+        <div className="p-1 flex items-center justify-center">
+          <Pin className="h-3.5 w-3.5 text-info" />
+        </div>
       ) : item.isFlagged ? (
         <div className="p-1 flex items-center justify-center">
           <Flag className="h-3.5 w-3.5 text-info" />

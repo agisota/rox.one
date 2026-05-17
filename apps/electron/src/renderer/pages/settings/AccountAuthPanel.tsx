@@ -3,12 +3,14 @@ import { MailCheck, ShieldCheck, Sparkles, Trophy, Users, WalletCards } from 'lu
 import { Button } from '@/components/ui/button'
 import { SettingsCard, SettingsInput } from '@/components/settings'
 import { cn } from '@/lib/utils'
+import { isValidRoxUsername, normalizeRoxUsername, roxUsernameToEmail } from '@rox-one/shared/account'
 
 export type AccountAuthTab = 'sign-in' | 'register' | 'reset'
 
 export interface NativeAccountAuthFields {
   displayName?: string
-  email: string
+  email?: string
+  username?: string
   password?: string
 }
 
@@ -40,7 +42,9 @@ const ROX_ID_FEATURES = [
 ]
 
 export function createNativeAccountAuthRequest(tab: AccountAuthTab, fields: NativeAccountAuthFields): NativeAccountAuthRequest {
-  const email = fields.email.trim()
+  const username = normalizeRoxUsername(fields.username ?? '')
+  const usernameEmail = username ? roxUsernameToEmail(username) : null
+  const email = (tab === 'register' && usernameEmail ? usernameEmail : fields.email?.trim()) ?? ''
   const password = fields.password?.trim() ?? ''
   const displayName = fields.displayName?.trim() ?? ''
 
@@ -48,7 +52,12 @@ export function createNativeAccountAuthRequest(tab: AccountAuthTab, fields: Nati
     return {
       path: '/api/auth/register',
       method: 'POST',
-      body: { displayName, email, password },
+      body: {
+        ...(username ? { username } : {}),
+        displayName,
+        email,
+        password,
+      },
     }
   }
 
@@ -80,16 +89,21 @@ export function isAllowedAccountExternalUrl(value?: string | null): boolean {
 export function AccountAuthPanel({ error, success, saving = false, onSubmit, onRefresh }: AccountAuthPanelProps) {
   const [activeTab, setActiveTab] = React.useState<AccountAuthTab>('sign-in')
   const [displayName, setDisplayName] = React.useState('')
+  const [username, setUsername] = React.useState('')
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
 
   const requiresPassword = activeTab !== 'reset'
-  const canSubmit = email.trim().length > 3 && (!requiresPassword || password.trim().length >= 8)
+  const normalizedUsername = normalizeRoxUsername(username)
+  const usernameEmailPreview = normalizedUsername ? roxUsernameToEmail(normalizedUsername) : null
+  const canSubmit = activeTab === 'register'
+    ? isValidRoxUsername(username) && password.trim().length >= 8
+    : email.trim().length > 3 && (!requiresPassword || password.trim().length >= 8)
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!canSubmit || saving) return
-    void onSubmit(activeTab, createNativeAccountAuthRequest(activeTab, { displayName, email, password }))
+    void onSubmit(activeTab, createNativeAccountAuthRequest(activeTab, { displayName, email, username, password }))
   }
 
   const currentTabLabel = ACCOUNT_AUTH_TABS.find(tab => tab.id === activeTab)?.label ?? 'Вход'
@@ -175,9 +189,21 @@ export function AccountAuthPanel({ error, success, saving = false, onSubmit, onR
 
           <div className="mt-5 space-y-3">
             {activeTab === 'register' && (
-              <SettingsInput label="Имя в профиле" value={displayName} onChange={setDisplayName} placeholder="ROX User" disabled={saving} />
+              <>
+                <SettingsInput label="Имя в профиле" value={displayName} onChange={setDisplayName} placeholder="ROX User" disabled={saving} />
+                <SettingsInput
+                  label="Юзернейм"
+                  value={username}
+                  onChange={setUsername}
+                  placeholder="username"
+                  description={`Адрес: ${usernameEmailPreview ?? 'username@rox.one'}`}
+                  disabled={saving}
+                />
+              </>
             )}
-            <SettingsInput label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" disabled={saving} />
+            {activeTab !== 'register' && (
+              <SettingsInput label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" disabled={saving} />
+            )}
             {requiresPassword && (
               <SettingsInput label="Пароль" type="password" value={password} onChange={setPassword} placeholder="Минимум 8 символов" disabled={saving} />
             )}

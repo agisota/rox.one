@@ -214,6 +214,41 @@ describe('refreshSessionsMetadataAtom', () => {
     expect(store.get(sessionAtomFamily('s2'))?.name).toBe('Second')
   })
 
+  it('orders pinned sessions before recent unpinned sessions on initialize and refresh', () => {
+    const store = createStore()
+
+    store.set(initializeSessionsAtom, [
+      makeSession({ id: 'recent-unpinned', name: 'Recent', lastMessageAt: 300 }),
+      makeSession({ id: 'older-pin', name: 'Older pin', pinnedAt: 100, lastMessageAt: 1 }),
+      makeSession({ id: 'newer-pin', name: 'Newer pin', pinnedAt: 200, lastMessageAt: 2 }),
+      makeSession({ id: 'older-unpinned', name: 'Older', lastMessageAt: 100 }),
+    ])
+
+    expect(store.get(sessionIdsAtom)).toEqual([
+      'newer-pin',
+      'older-pin',
+      'recent-unpinned',
+      'older-unpinned',
+    ])
+
+    store.set(refreshSessionsMetadataAtom, {
+      sessions: [
+        makeSession({ id: 'recent-unpinned', name: 'Recent', pinnedAt: 400, lastMessageAt: 300 }),
+        makeSession({ id: 'older-pin', name: 'Older pin', pinnedAt: 100, lastMessageAt: 1 }),
+        makeSession({ id: 'newer-pin', name: 'Newer pin', pinnedAt: 200, lastMessageAt: 2 }),
+        makeSession({ id: 'older-unpinned', name: 'Older', lastMessageAt: 100 }),
+      ],
+      loadedSessionIds: new Set<string>(),
+    })
+
+    expect(store.get(sessionIdsAtom)).toEqual([
+      'recent-unpinned',
+      'newer-pin',
+      'older-pin',
+      'older-unpinned',
+    ])
+  })
+
   it('non-destructive refresh still preserves loaded messages for returned sessions', () => {
     const store = createStore()
     const existingMessages = [msg('m1'), msg('m2', 'assistant')]

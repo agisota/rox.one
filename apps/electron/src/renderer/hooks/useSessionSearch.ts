@@ -4,6 +4,7 @@ import { isToday, isYesterday, format, startOfDay } from "date-fns"
 import { searchLog } from "@/lib/logger"
 import { parseLabelEntry } from "@rox-one/shared/labels"
 import { fuzzyScore } from "@rox-one/shared/search"
+import { sortSessionsForList as sortSessionListItems } from "@rox-one/shared/sessions/sorting"
 import { getSessionTitle, getSessionStatus } from "@/utils/session"
 import type { SessionMeta } from "@/atoms/sessions"
 import type { ViewConfig } from "@rox-one/shared/views"
@@ -16,6 +17,8 @@ import type { SessionFilter } from "@/contexts/NavigationContext"
 const INITIAL_DISPLAY_LIMIT = 50
 const BATCH_SIZE = 50
 const MAX_SEARCH_RESULTS = 100
+
+export const sortSessionsForList = sortSessionListItems
 
 // ---------------------------------------------------------------------------
 // Types
@@ -385,9 +388,9 @@ export function useSessionSearch({
   // Filter out hidden sessions before any processing
   const visibleItems = useMemo(() => items.filter(item => !item.hidden), [items])
 
-  // Sort by most recent activity first
+  // Sort by pinned state first, then recent activity
   const sortedItems = useMemo(() =>
-    [...visibleItems].sort((a, b) => (b.lastMessageAt || 0) - (a.lastMessageAt || 0)),
+    sortSessionsForList(visibleItems),
     [visibleItems]
   )
 

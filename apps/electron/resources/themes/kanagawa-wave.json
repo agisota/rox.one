@@ -1,0 +1,36 @@
+{
+  "name": "Kanagawa Wave",
+  "description": "Ink-wash dark palette inspired by Kanagawa-style Zed themes",
+  "author": "ROX, inspired by rebelot's Kanagawa palette",
+  "license": "MIT",
+  "source": "https://zed.dev/extensions",
+  "supportedModes": ["dark"],
+  "shikiTheme": {
+    "light": "github-light",
+    "dark": "kanagawa-wave"
+  },
+  "background": "#1f1f28",
+  "foreground": "#dcd7ba",
+  "accent": "#7e9cd8",
+  "info": "#e6c384",
+  "success": "#98bb6c",
+  "destructive": "#e82424",
+  "paper": "#252535",
+  "navigator": "#181820",
+  "input": "#2a2a37",
+  "popover": "#252535",
+  "popoverSolid": "#252535",
+  "dark": {
+    "background": "#1f1f28",
+    "foreground": "#dcd7ba",
+    "accent": "#7e9cd8",
+    "info": "#e6c384",
+    "success": "#98bb6c",
+    "destructive": "#e82424",
+    "paper": "#252535",
+    "navigator": "#181820",
+    "input": "#2a2a37",
+    "popover": "#252535",
+    "popoverSolid": "#252535"
+  }
+}

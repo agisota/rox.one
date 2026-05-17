@@ -481,3 +481,165 @@ jobs:
             apps/electron/release/*.exe
             apps/electron/release/latest.yml
             apps/electron/release/*.blockmap
+
+  # ---------------------------------------------------------------------------
+  # Aggregate manifest job
+  #
+  # Runs after all three matrix legs succeed. Downloads each platform's
+  # workflow artifacts, computes SHA-256 over canonical bytes, and writes a
+  # single manifest.json keyed by platform (darwin-arm64, linux-x64, win32-x64)
+  # that mirrors the shape produced by scripts/upload.ts. The manifest is
+  # attached to the same GitHub release as a normal asset, so the Cloudflare
+  # release-feed worker can proxy it without per-tag redeploys.
+  #
+  # Selection rules (mirroring scripts/upload.ts:inferBinaryEntry):
+  #   - darwin: prefer .zip over .dmg (zip is what electron-updater consumes)
+  #   - linux:  pick the .AppImage (deb/rpm ignored from "latest" pointer)
+  #   - win:    pick the .exe
+  #
+  # Skips if any platform job failed — partial manifests are worse than no
+  # manifest (the Cloudflare worker falls back to whatever it served before).
+  # ---------------------------------------------------------------------------
+  publish-manifest:
+    name: Publish aggregate manifest
+    needs: build-and-release
+    if: success()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Resolve release tag
+        id: resolve-tag
+        shell: bash
+        env:
+          DISPATCH_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ -n "${DISPATCH_TAG}" ]; then
+            CANDIDATE="${DISPATCH_TAG#refs/tags/}"
+          else
+            CANDIDATE="${REF_NAME#refs/tags/}"
+          fi
+          if [[ ! "${CANDIDATE}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::release tag '${CANDIDATE}' does not match v[0-9]+.[0-9]+.[0-9]+(-rc.[0-9]+)?"
+            exit 1
+          fi
+          echo "RELEASE_TAG=${CANDIDATE}" >> "$GITHUB_ENV"
+          echo "tag=${CANDIDATE}" >> "$GITHUB_OUTPUT"
+
+      - name: Download Mac ARM64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: rox-one-release-mac-arm64-${{ env.RELEASE_TAG }}
+          path: .manifest-bin/mac-arm64
+
+      - name: Download Linux x64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: rox-one-release-linux-x64-${{ env.RELEASE_TAG }}
+          path: .manifest-bin/linux-x64
+
+      - name: Download Windows x64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: rox-one-release-windows-x64-${{ env.RELEASE_TAG }}
+          path: .manifest-bin/windows-x64
+
+      - name: Build aggregate manifest.json
+        shell: bash
+        env:
+          PUBLIC_VERSIONS_URL: https://app.rox.one/electron
+        run: |
+          set -euo pipefail
+
+          VERSION="${RELEASE_TAG#v}"
+
+          # actions/upload-artifact@v4 preserves repo-relative paths inside the
+          # archive (e.g. apps/electron/release/ROX-ONE-arm64.zip), so files
+          # land at .manifest-bin/<plat>/apps/electron/release/* after download.
+          # Use `find` rather than shell globs to be robust to that depth.
+          # Sort output for deterministic selection across filesystems and
+          # exclude blockmap/checksum sidecars that might share an extension.
+          pick_one() {
+            local dir="$1" pattern="$2"
+            find "$dir" -type f -name "$pattern" \
+              ! -name "*.blockmap" \
+              -print | LC_ALL=C sort | head -n 1
+          }
+
+          MAC_FILE=$(pick_one   .manifest-bin/mac-arm64   'ROX-ONE-*.zip')
+          LINUX_FILE=$(pick_one .manifest-bin/linux-x64   'ROX-ONE-*.AppImage')
+          WIN_FILE=$(pick_one   .manifest-bin/windows-x64 'ROX-ONE-*.exe')
+
+          if [ -z "$MAC_FILE" ];   then echo "::error::no ROX-ONE-*.zip in mac-arm64 artifact";        exit 1; fi
+          if [ -z "$LINUX_FILE" ]; then echo "::error::no ROX-ONE-*.AppImage in linux-x64 artifact";   exit 1; fi
+          if [ -z "$WIN_FILE" ];   then echo "::error::no ROX-ONE-*.exe in windows-x64 artifact";      exit 1; fi
+
+          mac_name=$(basename "$MAC_FILE")
+          linux_name=$(basename "$LINUX_FILE")
+          win_name=$(basename "$WIN_FILE")
+
+          mac_sha=$(sha256sum "$MAC_FILE"     | awk '{print $1}')
+          linux_sha=$(sha256sum "$LINUX_FILE" | awk '{print $1}')
+          win_sha=$(sha256sum "$WIN_FILE"     | awk '{print $1}')
+
+          mac_size=$(stat -c%s "$MAC_FILE")
+          linux_size=$(stat -c%s "$LINUX_FILE")
+          win_size=$(stat -c%s "$WIN_FILE")
+
+          # Avoid GNU-only date %3N: emit second precision in the ISO string
+          # and millisecond precision in the timestamp via python (portable).
+          build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          build_ts=$(python3 -c 'import time; print(int(time.time()*1000))')
+
+          # Build JSON with jq so filenames containing quotes, backslashes, or
+          # other JSON-meaningful characters are correctly escaped. Sizes are
+          # cast to numbers via `tonumber`.
+          mkdir -p .manifest-out
+          jq -n \
+            --arg version "$VERSION" \
+            --arg build_time "$build_time" \
+            --argjson build_timestamp "$build_ts" \
+            --arg base_url "$PUBLIC_VERSIONS_URL" \
+            --arg mac_name "$mac_name" --arg mac_sha "$mac_sha" --argjson mac_size "$mac_size" \
+            --arg linux_name "$linux_name" --arg linux_sha "$linux_sha" --argjson linux_size "$linux_size" \
+            --arg win_name "$win_name" --arg win_sha "$win_sha" --argjson win_size "$win_size" \
+            '{
+              version: $version,
+              build_time: $build_time,
+              build_timestamp: $build_timestamp,
+              binaries: {
+                "darwin-arm64": { url: ($base_url + "/latest/" + $mac_name),   sha256: $mac_sha,   size: $mac_size,   filename: $mac_name },
+                "linux-x64":   { url: ($base_url + "/latest/" + $linux_name), sha256: $linux_sha, size: $linux_size, filename: $linux_name },
+                "win32-x64":   { url: ($base_url + "/latest/" + $win_name),   sha256: $win_sha,   size: $win_size,   filename: $win_name }
+              }
+            }' > .manifest-out/manifest.json
+
+          echo "--- manifest.json ---"
+          cat .manifest-out/manifest.json
+
+          # Final sanity check (jq already validates, but be explicit).
+          jq -e . .manifest-out/manifest.json > /dev/null
+
+      - name: Upload manifest as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-one-release-manifest-${{ env.RELEASE_TAG }}
+          path: .manifest-out/manifest.json
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Attach manifest.json to GitHub Release
+        # generate_release_notes is intentionally false here: the matrix legs
+        # already populated the release notes; re-generating from this last
+        # job would clobber any human edits made between jobs.
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          draft: true
+          generate_release_notes: false
+          fail_on_unmatched_files: true
+          files: .manifest-out/manifest.json

@@ -1,6 +1,16 @@
 # T360 - RC S09 RBAC Admin Flow Smoke Harness
 
-Status: OPEN
+Status: DONE
+
+## Resolution
+
+`scripts/rc-smoke/s09-rbac-flow.ts` exists and runs cleanly on Linux:
+`bun run scripts/rc-smoke/s09-rbac-flow.ts` → **201 pass / 0 fail** across
+11 test files (roles RPC, audit, rate-limit, policy engine, scope forgery,
+RBAC resolver, auth state, integrity pass, team-management state,
+roles-panel state). Acceptance criteria already checked. Worklog populated.
+Ticket left in `Status: OPEN` after the work landed; closing now with the
+verification re-run on `ab345880` (2026-05-17).
 
 ## Context
 

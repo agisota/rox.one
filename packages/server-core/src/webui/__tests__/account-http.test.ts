@@ -11,6 +11,7 @@ import { InMemoryManagedCloudWorkspaceStore } from '../account-cloud-workspaces'
 import { createDvnetWebhookSignature } from '../account-billing'
 import type { WorkspaceSyncService } from '../../sync/workspace-sync-service'
 import { InMemoryAuditEventStore } from '../../audit'
+import { ROX_SIGNUP_BONUS_UNITS } from '@rox-one/shared/account'
 
 class MemoryAccountStore implements AccountStore {
   users = new Map<string, PublicUser & { passwordHash: string }>()
@@ -291,6 +292,45 @@ describe('account webui auth', () => {
     const body = await me.json() as { mode: string; user: { email: string } }
     expect(body.mode).toBe('account')
     expect(body.user.email).toBe('user@example.com')
+  })
+
+  it('registers username accounts as rox.one addresses and credits the signup bonus', async () => {
+    const store = new MemoryAccountStore()
+    const emailService = new RecordingAccountEmailService()
+    const ledger = new InMemoryAccountUsageLedger()
+    const handler = createHandler(store, emailService, ledger)
+
+    const register = await handler.fetch(new Request('http://rox.test/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: '  Release_User  ', password: 'password123', displayName: 'Release User' }),
+    }))
+
+    expect(register.status).toBe(200)
+    const registerBody = await register.json() as { user: { email: string; displayName: string | null }; bonus: { amountUnits: number; currency: string } }
+    expect(registerBody.user.email).toBe('release_user@rox.one')
+    expect(registerBody.user.displayName).toBe('Release User')
+    expect(registerBody.bonus).toEqual({
+      amountUnits: ROX_SIGNUP_BONUS_UNITS,
+      currency: 'USDT',
+    })
+
+    const createdUser = await store.getUserByEmail('release_user@rox.one')
+    expect(createdUser).toBeTruthy()
+    expect(emailService.verificationEmails[0]?.to).toBe('release_user@rox.one')
+
+    const balance = await ledger.getBalance(createdUser!.id)
+    expect(balance.balanceUnits).toBe(ROX_SIGNUP_BONUS_UNITS)
+    expect(balance.entries).toHaveLength(1)
+    expect(balance.entries[0]).toMatchObject({
+      type: 'credit',
+      reason: 'signup_bonus',
+      idempotencyKey: 'signup-bonus-v1',
+      amountUnits: ROX_SIGNUP_BONUS_UNITS,
+      metadata: {
+        source: 'account_registration',
+      },
+    })
   })
 
   it('exposes a cloud session boundary with only the current users workspace ids', async () => {

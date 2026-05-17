@@ -1,0 +1,36 @@
+{
+  "name": "Snazzy",
+  "description": "High-contrast terminal palette inspired by Snazzy ports for Zed",
+  "author": "ROX, inspired by Hyper Snazzy",
+  "license": "MIT",
+  "source": "https://zed.dev/extensions",
+  "supportedModes": ["dark"],
+  "shikiTheme": {
+    "light": "github-light",
+    "dark": "dark-plus"
+  },
+  "background": "#282a36",
+  "foreground": "#eff0eb",
+  "accent": "#57c7ff",
+  "info": "#f3f99d",
+  "success": "#5af78e",
+  "destructive": "#ff5c57",
+  "paper": "#303241",
+  "navigator": "#20222d",
+  "input": "#343746",
+  "popover": "#303241",
+  "popoverSolid": "#303241",
+  "dark": {
+    "background": "#282a36",
+    "foreground": "#eff0eb",
+    "accent": "#57c7ff",
+    "info": "#f3f99d",
+    "success": "#5af78e",
+    "destructive": "#ff5c57",
+    "paper": "#303241",
+    "navigator": "#20222d",
+    "input": "#343746",
+    "popover": "#303241",
+    "popoverSolid": "#303241"
+  }
+}

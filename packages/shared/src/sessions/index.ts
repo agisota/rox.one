@@ -93,6 +93,13 @@ export {
 // Field utilities
 export { pickSessionFields } from './utils.ts';
 
+// List ordering utilities
+export {
+  compareSessionsForList,
+  sortSessionsForList,
+  type SessionListSortFields,
+} from './sorting.ts';
+
 // Slug generator utilities
 export {
   generateDatePrefix,
@@ -123,5 +130,4 @@ export {
   validateBundle,
   MAX_BUNDLE_SIZE_BYTES,
 } from './bundle.ts';
-
 

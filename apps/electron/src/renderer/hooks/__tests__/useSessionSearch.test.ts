@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test'
-import { computeCollapsedPagination } from '../useSessionSearch'
+import { computeCollapsedPagination, sortSessionsForList } from '../useSessionSearch'
 import type { SessionMeta } from '@/atoms/sessions'
 
 function makeSession(id: string, opts: Partial<SessionMeta> = {}): SessionMeta {
@@ -65,5 +65,23 @@ describe('computeCollapsedPagination', () => {
 
     expect(result.paginatedItems.map(s => s.id)).toEqual(['a', 'b'])
     expect(result.collapsedGroupsMeta).toEqual([])
+  })
+})
+
+describe('sortSessionsForList', () => {
+  it('keeps pinned sessions above all unpinned sessions in the renderer list pipeline', () => {
+    const sorted = sortSessionsForList([
+      makeSession('recent-unpinned', { lastMessageAt: 300 }),
+      makeSession('older-pin', { pinnedAt: 100, lastMessageAt: 1 }),
+      makeSession('newer-pin', { pinnedAt: 200, lastMessageAt: 2 }),
+      makeSession('older-unpinned', { lastMessageAt: 100 }),
+    ])
+
+    expect(sorted.map(session => session.id)).toEqual([
+      'newer-pin',
+      'older-pin',
+      'recent-unpinned',
+      'older-unpinned',
+    ])
   })
 })

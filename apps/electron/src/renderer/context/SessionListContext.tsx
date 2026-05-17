@@ -8,9 +8,12 @@ import type { ContentSearchResult } from "@/hooks/useSessionSearch"
 export interface SessionListContextValue {
   // Session action callbacks (shared across all items)
   onRenameClick: (sessionId: string, currentName: string) => void
+  onRenameDirect: (sessionId: string, name: string) => void
   onSessionStatusChange: (sessionId: string, state: SessionStatusId) => void
   onFlag?: (sessionId: string) => void
   onUnflag?: (sessionId: string) => void
+  onPin?: (sessionId: string) => void
+  onUnpin?: (sessionId: string) => void
   onArchive?: (sessionId: string) => void
   onUnarchive?: (sessionId: string) => void
   onMarkUnread: (sessionId: string) => void

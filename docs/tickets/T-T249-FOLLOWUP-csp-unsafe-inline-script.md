@@ -1,6 +1,27 @@
 # T-T249-FOLLOWUP: Remove unsafe-inline from script-src (nonce hardening)
 
-Status: OPEN
+Status: DONE
+
+## Resolution
+
+Landed at commit `c38a6555 feat(security): remove unsafe-inline from CSP
+script-src across renderer HTMLs` (2026-05-14). Strategy A (externalize) used
+for `index.html` and `playground.html` — React DevTools loader moved into
+dedicated module scripts (`devtools-loader.ts`,
+`devtools-loader-playground.ts`). Strategy A (delete) used for
+`browser-toolbar.html` and `browser-empty-state.html` — the anti-FOUC theme
+class swap was verified unnecessary; background colours are covered by
+`@media (prefers-color-scheme: dark)` inside the `<style>` block, and neither
+component uses `dark:` Tailwind classes. `'unsafe-inline'` retained in
+`style-src` (Tailwind dependency, separate ticket).
+
+Verification (2026-05-16): `rg "unsafe-inline" apps/electron/src/renderer/*.html`
+returns matches only inside `style-src`; no inline `<script>` tags remain in
+any of the four renderer HTML files.
+
+This ticket was left in `Status: OPEN` after the work landed because the
+follow-up file was not updated in the original PR. Closing now with the
+landed-SHA reference for traceability.
 
 ## Context
 

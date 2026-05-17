@@ -18,9 +18,12 @@ import { EntityList, type EntityListGroup } from "@/components/ui/entity-list"
 import { RenameDialog } from "@/components/ui/rename-dialog"
 import { SessionSearchHeader } from "./SessionSearchHeader"
 import { SessionItem } from "./SessionItem"
+import { SessionMonitorToolbar } from "./SessionMonitorToolbar"
 import { SessionListProvider, type SessionListContextValue } from "@/context/SessionListContext"
 import { useSessionSelection, useSessionSelectionStore } from "@/hooks/useSession"
 import { useSessionSearch, type FilterMode } from "@/hooks/useSessionSearch"
+import { compareSessionsForList } from "@rox-one/shared/sessions/sorting"
+import { buildSessionMonitorKanbanGroups, normalizeSessionMonitorViewMode, type SessionMonitorViewMode } from "./session-monitor-view"
 import { useSessionActions } from "@/hooks/useSessionActions"
 import { useEntityListInteractions } from "@/hooks/useEntityListInteractions"
 import { useFocusZone } from "@/hooks/keyboard"
@@ -44,6 +47,8 @@ interface SessionListProps {
   onDelete: (sessionId: string, skipConfirmation?: boolean) => Promise<boolean>
   onFlag?: (sessionId: string) => void
   onUnflag?: (sessionId: string) => void
+  onPin?: (sessionId: string) => void
+  onUnpin?: (sessionId: string) => void
   onArchive?: (sessionId: string) => void
   onUnarchive?: (sessionId: string) => void
   onMarkUnread: (sessionId: string) => void
@@ -117,6 +122,8 @@ export function SessionList({
   onDelete,
   onFlag,
   onUnflag,
+  onPin,
+  onUnpin,
   onArchive,
   onUnarchive,
   onMarkUnread,
@@ -169,8 +176,16 @@ export function SessionList({
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
   const [renameSessionId, setRenameSessionId] = useState<string | null>(null)
   const [renameName, setRenameName] = useState("")
+  const [monitorViewMode, setMonitorViewModeState] = useState<SessionMonitorViewMode>(() =>
+    normalizeSessionMonitorViewMode(storage.get<string>(KEYS.sessionMonitorViewMode, 'list'))
+  )
   // Track if search input has actual DOM focus (for proper keyboard navigation gating)
   const [isSearchInputFocused, setIsSearchInputFocused] = useState(false)
+
+  const setMonitorViewMode = useCallback((mode: SessionMonitorViewMode) => {
+    setMonitorViewModeState(mode)
+    storage.set(KEYS.sessionMonitorViewMode, mode)
+  }, [])
 
   // Collapsed group keys (for collapsible group headers) — persisted per workspace/filter/grouping context
   const collapseScopeSuffix = useMemo(() => {
@@ -292,8 +307,8 @@ export function SessionList({
         if (row.item.hasUnread) unreadRows.push(row)
         else readRows.push(row)
       }
-      unreadRows.sort((a, b) => (b.item.lastMessageAt || 0) - (a.item.lastMessageAt || 0))
-      readRows.sort((a, b) => (b.item.lastMessageAt || 0) - (a.item.lastMessageAt || 0))
+      unreadRows.sort((a, b) => compareSessionsForList(a.item, b.item))
+      readRows.sort((a, b) => compareSessionsForList(a.item, b.item))
 
       const collapsedUnread = collapsedGroupsMeta.find(m => m.key === 'unread-yes')
       const collapsedRead = collapsedGroupsMeta.find(m => m.key === 'unread-no')
@@ -352,7 +367,7 @@ export function SessionList({
       for (const [key, { rows: groupRows, statusId }] of groupsByKey) {
         const state = sessionStatuses.find(s => s.id === statusId)
         if (!state) continue
-        groupRows.sort((a, b) => (b.item.lastMessageAt || 0) - (a.item.lastMessageAt || 0))
+        groupRows.sort((a, b) => compareSessionsForList(a.item, b.item))
         const collapsedMeta = collapsedGroupsMeta.find(m => m.key === key)
         orderedGroups.push({
           key,
@@ -432,7 +447,13 @@ export function SessionList({
     }
   }, [isSearchMode, matchingFilterItems, otherResultItems, flatItems, groupingMode, sessionStatuses, collapsedGroupsMeta, t, resolvedLanguage])
 
-  const flatRows = rowData.rows
+  const useKanbanLayout = monitorViewMode === 'kanban' && !isSearchMode
+  const kanbanGroups = useMemo(() => {
+    return buildSessionMonitorKanbanGroups(rowData.rows, sessionStatuses, (statusId, fallback) =>
+      t(`status.${statusId}`, fallback)
+    )
+  }, [rowData.rows, sessionStatuses, t])
+  const flatRows = useKanbanLayout ? kanbanGroups.flatMap(group => group.items) : rowData.rows
 
   const collapseAllGroups = useCallback(() => {
     if (groupingMode === 'status') {
@@ -610,12 +631,44 @@ export function SessionList({
   const handleFocusZone = useCallback(() => focusZone('navigator', { intent: 'click', moveFocus: false }), [focusZone])
   const handleOpenInNewWindow = useCallback((item: SessionMeta) => onOpenInNewWindow?.(item), [onOpenInNewWindow])
   const resolvedSearchQuery = isSearchMode ? highlightQuery : searchQuery
+  const monitorHeader = (
+    <>
+      {searchActive && (
+        <SessionSearchHeader
+          searchQuery={searchQuery}
+          onSearchChange={onSearchChange}
+          onSearchClose={onSearchClose}
+          onKeyDown={handleSearchKeyDown}
+          onFocus={() => setIsSearchInputFocused(true)}
+          onBlur={() => setIsSearchInputFocused(false)}
+          isSearching={isSearchingContent}
+          isUnavailable={isSearchUnavailable}
+          resultCount={matchingFilterItems.length + otherResultItems.length}
+          exceededLimit={exceededSearchLimit}
+          inputRef={searchInputRef}
+        />
+      )}
+      <SessionMonitorToolbar
+        viewMode={monitorViewMode}
+        totalCount={rowData.rows.length}
+        onViewModeChange={setMonitorViewMode}
+      />
+      {isSearchMode && matchingFilterItems.length === 0 && otherResultItems.length > 0 && (
+        <div className="px-4 py-3 text-sm text-muted-foreground">
+          {t("session.noResultsInFilter")}
+        </div>
+      )}
+    </>
+  )
 
   const listContext = useMemo((): SessionListContextValue => ({
     onRenameClick: handleRenameClick,
+    onRenameDirect: onRename,
     onSessionStatusChange,
     onFlag: onFlag ? handleFlagWithToast : undefined,
     onUnflag: onUnflag ? handleUnflagWithToast : undefined,
+    onPin,
+    onUnpin,
     onArchive: onArchive ? handleArchiveWithToast : undefined,
     onUnarchive: onUnarchive ? handleUnarchiveWithToast : undefined,
     onMarkUnread,
@@ -637,9 +690,9 @@ export function SessionList({
     activeChatMatchInfo,
     hasPendingPrompt,
   }), [
-    handleRenameClick, onSessionStatusChange,
+    handleRenameClick, onRename, onSessionStatusChange,
     onFlag, handleFlagWithToast, onUnflag, handleUnflagWithToast,
-    onArchive, handleArchiveWithToast, onUnarchive, handleUnarchiveWithToast,
+    onPin, onUnpin, onArchive, handleArchiveWithToast, onUnarchive, handleUnarchiveWithToast,
     onMarkUnread, handleDeleteWithToast, onLabelsChange,
     handleSelectSessionById, handleOpenInNewWindow, setSendToWorkspace, handleFocusZone, handleKeyDown,
     sessionStatuses, flatLabels, labels, resolvedSearchQuery,
@@ -687,86 +740,126 @@ export function SessionList({
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <SessionListProvider value={listContext}>
-      <EntityList<SessionListRow>
-        groups={rowData.groups}
-        getKey={(row) => row.item.id}
-        renderItem={(row, _indexInGroup, isFirstInGroup) => {
-          const flatIndex = rowIndexMap.get(row.item.id) ?? 0
-          const rowProps = interactions.getRowProps(row, flatIndex)
-          return (
-            <SessionItem
-              item={row.item}
-              index={flatIndex}
-              itemProps={rowProps.buttonProps as Record<string, unknown>}
-              isSelected={rowProps.isSelected}
-              isFirstInGroup={isFirstInGroup}
-              isInMultiSelect={rowProps.isInMultiSelect ?? false}
-              onSelect={() => handleSelectSession(row, flatIndex)}
-              onToggleSelect={() => handleToggleSelect(row, flatIndex)}
-              onRangeSelect={() => handleRangeSelect(flatIndex)}
-            />
-          )
-        }}
-        header={
-          <>
-            {searchActive && (
-              <SessionSearchHeader
-                searchQuery={searchQuery}
-                onSearchChange={onSearchChange}
-                onSearchClose={onSearchClose}
-                onKeyDown={handleSearchKeyDown}
-                onFocus={() => setIsSearchInputFocused(true)}
-                onBlur={() => setIsSearchInputFocused(false)}
-                isSearching={isSearchingContent}
-                isUnavailable={isSearchUnavailable}
-                resultCount={matchingFilterItems.length + otherResultItems.length}
-                exceededLimit={exceededSearchLimit}
-                inputRef={searchInputRef}
+      {useKanbanLayout ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          {monitorHeader}
+          <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
+            <div
+              ref={zoneRef}
+              className="flex h-full min-w-max gap-2 p-2"
+              data-focus-zone="navigator"
+              role="listbox"
+              aria-label={t('session.monitorBoard')}
+            >
+              {kanbanGroups.map((group) => (
+                <section
+                  key={group.key}
+                  className="flex h-full w-[280px] min-w-[260px] flex-col overflow-hidden rounded-[8px] border border-border/60 bg-muted/20"
+                  aria-label={group.label}
+                >
+                  <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      {group.status?.icon && (
+                        <span
+                          className="shrink-0"
+                          style={group.status.iconColorable ? { color: group.status.resolvedColor } : undefined}
+                          aria-hidden="true"
+                        >
+                          {group.status.icon}
+                        </span>
+                      )}
+                      <span className="truncate text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                        {group.label}
+                      </span>
+                    </div>
+                    <span className="shrink-0 rounded-[6px] bg-background px-1.5 py-0.5 text-[10px] tabular-nums text-muted-foreground">
+                      {group.items.length}
+                    </span>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-y-auto py-1">
+                    {group.items.map((row, indexInGroup) => {
+                      const flatIndex = rowIndexMap.get(row.item.id) ?? 0
+                      const rowProps = interactions.getRowProps(row, flatIndex)
+                      return (
+                        <SessionItem
+                          key={row.item.id}
+                          item={row.item}
+                          index={flatIndex}
+                          itemProps={rowProps.buttonProps as Record<string, unknown>}
+                          isSelected={rowProps.isSelected}
+                          isFirstInGroup={indexInGroup === 0}
+                          isInMultiSelect={rowProps.isInMultiSelect ?? false}
+                          onSelect={() => handleSelectSession(row, flatIndex)}
+                          onToggleSelect={() => handleToggleSelect(row, flatIndex)}
+                          onRangeSelect={() => handleRangeSelect(flatIndex)}
+                        />
+                      )
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <EntityList<SessionListRow>
+          groups={rowData.groups}
+          getKey={(row) => row.item.id}
+          renderItem={(row, _indexInGroup, isFirstInGroup) => {
+            const flatIndex = rowIndexMap.get(row.item.id) ?? 0
+            const rowProps = interactions.getRowProps(row, flatIndex)
+            return (
+              <SessionItem
+                item={row.item}
+                index={flatIndex}
+                itemProps={rowProps.buttonProps as Record<string, unknown>}
+                isSelected={rowProps.isSelected}
+                isFirstInGroup={isFirstInGroup}
+                isInMultiSelect={rowProps.isInMultiSelect ?? false}
+                onSelect={() => handleSelectSession(row, flatIndex)}
+                onToggleSelect={() => handleToggleSelect(row, flatIndex)}
+                onRangeSelect={() => handleRangeSelect(flatIndex)}
               />
-            )}
-            {isSearchMode && matchingFilterItems.length === 0 && otherResultItems.length > 0 && (
-              <div className="px-4 py-3 text-sm text-muted-foreground">
-                {t("session.noResultsInFilter")}
+            )
+          }}
+          header={monitorHeader}
+          emptyState={
+            isSearchMode && !isSearchingContent ? (
+              <div className="flex flex-col items-center justify-center py-12 px-4">
+                <p className="text-sm text-muted-foreground">{t("session.noSessionsFound")}</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">
+                  {t("session.noSessionsFoundDesc")}
+                </p>
+                <button
+                  onClick={() => onSearchChange?.('')}
+                  className="text-xs text-foreground hover:underline mt-2"
+                >
+                  {t("session.clearSearch")}
+                </button>
               </div>
-            )}
-          </>
-        }
-        emptyState={
-          isSearchMode && !isSearchingContent ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4">
-              <p className="text-sm text-muted-foreground">{t("session.noSessionsFound")}</p>
-              <p className="text-xs text-muted-foreground/60 mt-0.5">
-                {t("session.noSessionsFoundDesc")}
-              </p>
-              <button
-                onClick={() => onSearchChange?.('')}
-                className="text-xs text-foreground hover:underline mt-2"
-              >
-                {t("session.clearSearch")}
-              </button>
-            </div>
-          ) : undefined
-        }
-        footer={
-          hasMore ? (
-            <div className="flex justify-center py-4">
-              <Spinner className="text-muted-foreground" />
-            </div>
-          ) : undefined
-        }
-        viewportRef={scrollViewportRef}
-        containerRef={zoneRef}
-        containerProps={{
-          'data-focus-zone': 'navigator',
-          role: 'listbox',
-          'aria-label': 'Sessions',
-        }}
-        scrollAreaClassName="select-none mask-fade-top-short"
-        collapsedGroups={collapsedGroups}
-        onToggleCollapse={toggleGroupCollapse}
-        onCollapseAll={collapseAllGroups}
-        onExpandAll={expandAllGroups}
-      />
+            ) : undefined
+          }
+          footer={
+            hasMore ? (
+              <div className="flex justify-center py-4">
+                <Spinner className="text-muted-foreground" />
+              </div>
+            ) : undefined
+          }
+          viewportRef={scrollViewportRef}
+          containerRef={zoneRef}
+          containerProps={{
+            'data-focus-zone': 'navigator',
+            role: 'listbox',
+            'aria-label': 'Sessions',
+          }}
+          scrollAreaClassName="select-none mask-fade-top-short"
+          collapsedGroups={collapsedGroups}
+          onToggleCollapse={toggleGroupCollapse}
+          onCollapseAll={collapseAllGroups}
+          onExpandAll={expandAllGroups}
+        />
+      )}
       </SessionListProvider>
 
       {/* Rename Dialog */}
