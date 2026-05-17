@@ -1,5 +1,7 @@
 # T529 - Inline rename and quick session labels
 
+Status: DONE
+
 ## Context
 
 The session list now supports durable pinning, but the user still has to open a

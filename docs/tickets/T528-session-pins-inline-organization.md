@@ -1,5 +1,7 @@
 # T528 - Session pins and quick organization
 
+Status: DONE
+
 ## Context
 
 ROX.ONE Agent Workbench already supports direct session rename and labels, but

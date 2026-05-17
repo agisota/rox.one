@@ -1,5 +1,7 @@
 # T531 - Russian compact What's New summaries
 
+Status: DONE
+
 ## Context
 
 The active onboarding/workspace goal asks for the in-app changelog / What's New

@@ -1,5 +1,7 @@
 # T530 - ROX username registration and signup bonus
 
+Status: DONE
+
 ## Context
 
 The account cabinet already has native login/register/reset flows and a usage

@@ -1,5 +1,7 @@
 # T532 - Zed-inspired bundled theme presets
 
+Status: DONE
+
 ## Context
 
 The active goal asks for more themes inspired by the Zed editor marketplace.

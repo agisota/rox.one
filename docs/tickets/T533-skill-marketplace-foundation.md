@@ -1,5 +1,7 @@
 # T533 - Bundled skill marketplace foundation
 
+Status: DONE
+
 ## Context
 
 The active goal asks for a built-in skill marketplace, more starter skills, and
