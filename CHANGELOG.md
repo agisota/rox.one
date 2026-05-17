@@ -148,6 +148,27 @@ label).
 - v1.0.0 migration guide (`docs/release/v1-migration-guide.md`).
 - This CHANGELOG.md.
 
+#### User experience and platform polish (T528 – T533)
+
+- **Session pinning (T528)** — users can pin frequently used sessions
+  to the top of the session list; pin state persists across restarts
+  via cold-session metadata.
+- **Inline session organization (T529)** — row-level rename and
+  quick-label actions on session items, no menu navigation required.
+- **Registration ROX handle and starter balance (T530)** — new accounts
+  receive a `username@rox.one` handle and a starter balance ledger
+  entry during signup.
+- **Russian compact release notes (T531)** — `.ru.md` companions for
+  the What's New surface deliver short Russian bullets without
+  rewriting the English release-owned source notes.
+- **Zed-inspired bundled themes (T532)** — Kanagawa Wave, macOS
+  Classic, Snazzy, and VS Code Dark Modern presets in the Appearance
+  picker; bundled-theme parser and syntax-theme preload validation.
+- **Skill marketplace foundation (T533)** — 20 starter skills seeded in
+  every new workspace; shared marketplace catalog exposes install-state
+  metadata so the visible marketplace surface can offer one-click
+  installs.
+
 #### Lane M (M.1 – M.21) completion
 
 - **Composer Pillar 4 (M.10)** — history navigation, emphasis toolbar,
