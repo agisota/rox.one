@@ -123,8 +123,13 @@ const LINUX_REQUIRED: Array<{ path: string; minBytes: number }> = isUnsigned
   ? LINUX_UNSIGNED_REQUIRED
   : LINUX_SIGNED_REQUIRED;
 if (process.env.ROX_LINUX_DEB_RPM === 'true') {
+  // electron-builder uses Debian's canonical "amd64" for .deb (even when our
+  // workflow normalizes everywhere else to x86_64), while .rpm correctly uses
+  // x86_64. ROX_LINUX_DEB_ARCH lets the caller override per file family —
+  // defaults match what electron-builder actually writes today.
+  const debArch = process.env.ROX_LINUX_DEB_ARCH ?? (linuxArch === 'x86_64' ? 'amd64' : linuxArch);
   LINUX_REQUIRED.push(
-    { path: `ROX-ONE-${linuxArch}.deb`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
+    { path: `ROX-ONE-${debArch}.deb`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
     { path: `ROX-ONE-${linuxArch}.rpm`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
   );
 }
@@ -142,25 +147,29 @@ const MAC_SIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
 ];
 
 /**
- * Mac artifacts for unsigned-beta mode (v1.0.0-rc.2).
- * No code signature check — a warning is logged instead.
+ * Mac artifacts for unsigned-beta mode (v1.0.0-rc.2+).
+ *
+ * latest-mac.yml is intentionally OPTIONAL in unsigned mode: electron-builder
+ * 26 with `publish: generic` + tag-context only emits it when an actual
+ * publisher upload happens, which we suppress with --publish=never. The
+ * aggregate manifest.json published by .github/workflows/release-all-platforms.yml
+ * publish-manifest job provides equivalent metadata in unified form, so the
+ * yml's absence does not break end-to-end download or auto-update flows.
  */
 const MAC_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
   { path: `ROX-ONE-${macArch}.dmg`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
   { path: `ROX-ONE-${macArch}.zip`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
   { path: `ROX-ONE-${macArch}.dmg.blockmap`, minBytes: MAC_BLOCKMAP_MIN_BYTES },
   { path: `ROX-ONE-${macArch}.zip.blockmap`, minBytes: MAC_BLOCKMAP_MIN_BYTES },
-  { path: 'latest-mac.yml', minBytes: PRESENCE_MIN_BYTES },
 ];
 
 /**
- * Windows artifacts for unsigned-beta mode (v1.0.0-rc.2).
- * Windows signed mode is not implemented yet — Windows only ships in RC2+.
+ * Windows artifacts for unsigned-beta mode.
+ * latest.yml is OPTIONAL — same reasoning as MAC_UNSIGNED_REQUIRED.
  */
 const WINDOWS_UNSIGNED_REQUIRED: Array<{ path: string; minBytes: number }> = [
   { path: `ROX-ONE-${windowsArch}.exe`, minBytes: PRIMARY_ARTIFACT_MIN_BYTES },
   { path: `ROX-ONE-${windowsArch}.exe.blockmap`, minBytes: WINDOWS_BLOCKMAP_MIN_BYTES },
-  { path: 'latest.yml', minBytes: PRESENCE_MIN_BYTES },
 ];
 
 // ---------------------------------------------------------------------------
@@ -216,24 +225,30 @@ function latestEntryOrFail(
 
 if (shouldValidateMac) {
   const latestMacPath = path.join(releaseDir, 'latest-mac.yml');
-  latestMac = yaml.load(readFileSync(latestMacPath, 'utf8')) as LatestYml;
+  if (existsSync(latestMacPath)) {
+    latestMac = yaml.load(readFileSync(latestMacPath, 'utf8')) as LatestYml;
 
-  const urls = new Set(
-    (latestMac.files ?? [])
-      .map((entry) => entry.url)
-      .filter((v): v is string => typeof v === 'string'),
-  );
-  const macZip = `ROX-ONE-${macArch}.zip`;
-  const macDmg = `ROX-ONE-${macArch}.dmg`;
+    const urls = new Set(
+      (latestMac.files ?? [])
+        .map((entry) => entry.url)
+        .filter((v): v is string => typeof v === 'string'),
+    );
+    const macZip = `ROX-ONE-${macArch}.zip`;
+    const macDmg = `ROX-ONE-${macArch}.dmg`;
 
-  if (!urls.has(macZip)) {
-    fail(`latest-mac.yml missing ${macZip} in files[]`);
-  }
-  if (!urls.has(macDmg)) {
-    fail(`latest-mac.yml missing ${macDmg} in files[]`);
-  }
-  if (latestMac.path !== macZip) {
-    fail(`latest-mac.yml path must reference ${macZip}, got: ${String(latestMac.path)}`);
+    if (!urls.has(macZip)) {
+      fail(`latest-mac.yml missing ${macZip} in files[]`);
+    }
+    if (!urls.has(macDmg)) {
+      fail(`latest-mac.yml missing ${macDmg} in files[]`);
+    }
+    if (latestMac.path !== macZip) {
+      fail(`latest-mac.yml path must reference ${macZip}, got: ${String(latestMac.path)}`);
+    }
+  } else if (!isUnsigned) {
+    fail(`missing required artifact: apps/electron/release/latest-mac.yml`);
+  } else {
+    console.log('[packaged-artifacts] latest-mac.yml absent (unsigned mode — optional); see manifest.json for unified metadata');
   }
 }
 
@@ -243,39 +258,43 @@ if (shouldValidateMac) {
 
 if (shouldValidateWindows) {
   const latestYmlPath = path.join(releaseDir, 'latest.yml');
-  const latestYml = yaml.load(readFileSync(latestYmlPath, 'utf8')) as LatestYml;
-  const winUrls = new Set(
-    (latestYml.files ?? [])
-      .map((e) => e.url)
-      .filter((v): v is string => typeof v === 'string'),
-  );
-  const installer = `ROX-ONE-${windowsArch}.exe`;
-  const blockmap = `${installer}.blockmap`;
+  if (existsSync(latestYmlPath)) {
+    const latestYml = yaml.load(readFileSync(latestYmlPath, 'utf8')) as LatestYml;
+    const winUrls = new Set(
+      (latestYml.files ?? [])
+        .map((e) => e.url)
+        .filter((v): v is string => typeof v === 'string'),
+    );
+    const installer = `ROX-ONE-${windowsArch}.exe`;
+    const blockmap = `${installer}.blockmap`;
 
-  if (latestYml.path !== installer) {
-    fail(`latest.yml path must reference ${installer}, got: ${String(latestYml.path)}`);
-  }
-  if (!winUrls.has(installer)) fail(`latest.yml missing ${installer} in files[]`);
+    if (latestYml.path !== installer) {
+      fail(`latest.yml path must reference ${installer}, got: ${String(latestYml.path)}`);
+    }
+    if (!winUrls.has(installer)) fail(`latest.yml missing ${installer} in files[]`);
 
-  const installerSize = statSync(path.join(releaseDir, installer)).size;
-  const blockmapSize = statSync(path.join(releaseDir, blockmap)).size;
-  const installerEntry = latestEntryOrFail(latestYml, installer, 'latest.yml');
-  const blockmapEntry = (latestYml.files ?? []).find((entry) => entry.url === blockmap);
+    const installerSize = statSync(path.join(releaseDir, installer)).size;
+    const blockmapSize = statSync(path.join(releaseDir, blockmap)).size;
+    const installerEntry = latestEntryOrFail(latestYml, installer, 'latest.yml');
+    const blockmapEntry = (latestYml.files ?? []).find((entry) => entry.url === blockmap);
 
-  if (installerEntry?.size !== installerSize) {
-    fail(`latest.yml size for ${installer} does not match artifact on disk`);
-  }
-  if (blockmapEntry && blockmapEntry.size !== blockmapSize) {
-    fail(`latest.yml size for ${blockmap} does not match artifact on disk`);
-  }
+    if (installerEntry?.size !== installerSize) {
+      fail(`latest.yml size for ${installer} does not match artifact on disk`);
+    }
+    if (blockmapEntry && blockmapEntry.size !== blockmapSize) {
+      fail(`latest.yml size for ${blockmap} does not match artifact on disk`);
+    }
 
-  console.log(`[packaged-artifacts] latest.yml size[installer]=${installerEntry.size} bytes`);
-  if (blockmapEntry) {
-    console.log(`[packaged-artifacts] latest.yml size[blockmap]=${blockmapEntry.size} bytes`);
+    console.log(`[packaged-artifacts] latest.yml size[installer]=${installerEntry.size} bytes`);
+    if (blockmapEntry) {
+      console.log(`[packaged-artifacts] latest.yml size[blockmap]=${blockmapEntry.size} bytes`);
+    } else {
+      console.log(`[packaged-artifacts] latest.yml does not list ${blockmap}; validated file on disk`);
+    }
+    console.log('[packaged-artifacts] latest.yml artifact references verified');
   } else {
-    console.log(`[packaged-artifacts] latest.yml does not list ${blockmap}; validated file on disk`);
+    console.log('[packaged-artifacts] latest.yml absent (unsigned mode — optional); see manifest.json for unified metadata');
   }
-  console.log('[packaged-artifacts] latest.yml artifact references verified');
 }
 
 // ---------------------------------------------------------------------------

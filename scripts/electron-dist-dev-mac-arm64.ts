@@ -78,8 +78,19 @@ await run(['bun', 'run', 'electron:build'], ROOT_DIR, {
   ELECTRON_BUILDER_CACHE,
 });
 
-await run([ELECTRON_BUILDER_BIN, '--config', GENERATED_CONFIG_PATH, '--mac', '--arm64'], ELECTRON_DIR, {
-  CSC_IDENTITY_AUTO_DISCOVERY: 'false',
-  ROX_DEV_RUNTIME: '1',
-  ELECTRON_BUILDER_CACHE,
-});
+// --publish=never is load-bearing on tag-triggered CI runs: electron-builder
+// implicitly enables publishing whenever the working tree is on a git tag,
+// which (without configured publisher credentials) silently skips writing
+// latest-mac.yml — and downstream validate:packaged-artifacts then fails
+// with "missing required artifact: latest-mac.yml". The linux + windows
+// invocations in release-all-platforms.yml pass this flag directly for the
+// same reason; mirror that here so the mac script behaves identically.
+await run(
+  [ELECTRON_BUILDER_BIN, '--config', GENERATED_CONFIG_PATH, '--mac', '--arm64', '--publish=never'],
+  ELECTRON_DIR,
+  {
+    CSC_IDENTITY_AUTO_DISCOVERY: 'false',
+    ROX_DEV_RUNTIME: '1',
+    ELECTRON_BUILDER_CACHE,
+  },
+);
