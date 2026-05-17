@@ -1,6 +1,39 @@
 # T-T249-FOLLOWUP: RPC MED-risk boundary validation (T052 scope)
 
-Status: OPEN
+Status: DONE
+
+## Resolution
+
+All seven MED-risk RPC handlers now call boundary parsers from
+`packages/server-core/src/handlers/rpc/_validators.ts` before any domain
+logic. Verified 2026-05-17 with `rg "parseId|parseEnum|parseSafeString|
+parseOptionalSafeString|parseSlug" packages/server-core/src/handlers/rpc/<file>.ts`:
+
+| Handler | Validator imports | First-param parse |
+| --- | --- | --- |
+| `automations.ts` | `parseId`, `parseSafeString` | line 74 `parseId('workspaceId', workspaceId)` |
+| `messaging.ts` | `parseId`, `parseSafeString`, `parseOptionalSafeString` | line 47 `parseId('creds.appId', creds?.appId)` |
+| `sessions.ts` | `parseId`, `parseSafeString`, `parseOptionalSafeString` | line 225 `parseId('workspaceId', workspaceId)` |
+| `settings.ts` | `parseId`, `parseOptionalSafeString` | line 74 `parseId('sessionId', sessionId)` |
+| `sources.ts` | `parseId`, `parseSlug` | line 28 `parseId('workspaceId', workspaceId)` |
+| `oauth.ts` | `parseId`, `parseSafeString` | line 94 `parseId('sourceSlug', sourceSlug)` |
+| `resources.ts` | `parseId`, `parseEnum` | line 30 `parseId('workspaceId', workspaceId)` + line 55 `parseEnum('mode', mode, ['skip', 'overwrite'])` |
+
+`_validators.ts` throws `Error & { code: 'INVALID_INPUT' }` on rejection
+(matching the ticket's acceptance criterion #2), uses zero external
+dependencies (criterion #4), and includes `parseSlug` (path-traversal-safe
+extension of `parseId`) plus a per-payload `parseCreateLabelInput` for the
+HIGH-risk labels handler.
+
+Acceptance criteria:
+- [x] Every MED-risk handler has at least one `parseId` or equivalent call on the first string parameter before any domain logic.
+- [x] `parseId` errors surface with `code: INVALID_INPUT`.
+- [x] All existing tests continue to pass.
+- [x] No new external dependencies (zero-dep parsers, hand-rolled).
+
+This ticket was left in `Status: OPEN` after the work landed because the
+follow-up file was not updated alongside the implementation. Closing now
+with the verification grep results as evidence.
 
 ## Context
 
