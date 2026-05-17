@@ -13,7 +13,7 @@ import {
   UsersRound,
   Workflow,
 } from 'lucide-react'
-import type { CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import appIcon from './assets/pzdrk.png'
 
 const sessions = [
@@ -135,16 +135,49 @@ const runSteps = [
   { label: 'Проверка сборки', value: 94 },
 ]
 
-const terminalRelease = {
-  version: '0.9.2',
-  manifestUrl: 'https://app.rox.one/electron/latest/manifest.json',
-  baseUrl: 'https://app.rox.one/electron/latest',
+const RELEASE_FEED_BASE_URL = 'https://app.rox.one/electron/latest'
+const RELEASE_FEED_MANIFEST_URL = `${RELEASE_FEED_BASE_URL}/manifest.json`
+
+type TerminalDownload = {
+  title: string
+  subtitle: string
+  url: string
+  fileName: string
+  size: string
+  sha256: string
+  action: string
 }
 
-const terminalDownloads = [
+type TerminalRelease = {
+  version: string
+  manifestUrl: string
+}
+
+type ManifestBinary = {
+  url?: string
+  sha256?: string
+  size?: number
+  filename?: string
+}
+
+type ManifestPayload = {
+  version?: string
+  binaries?: Record<string, ManifestBinary>
+}
+
+// Fallback data — rendered while the live manifest is fetching, or if the
+// fetch fails. Mirrors the last shipped release so the page never appears
+// broken even if app.rox.one is unreachable.
+const fallbackTerminalRelease: TerminalRelease = {
+  version: '0.9.2',
+  manifestUrl: RELEASE_FEED_MANIFEST_URL,
+}
+
+const fallbackTerminalDownloads: TerminalDownload[] = [
   {
     title: 'macOS Apple Silicon DMG',
     subtitle: 'Для Mac на M1, M2, M3 и M4',
+    url: `${RELEASE_FEED_BASE_URL}/ROX-ONE-arm64.dmg`,
     fileName: 'ROX-ONE-arm64.dmg',
     size: '320.1 MB',
     sha256: '687376ea2c29710c7006956fe6f12934df3860fc5c6628b64955a37bf93a144c',
@@ -153,6 +186,7 @@ const terminalDownloads = [
   {
     title: 'macOS Apple Silicon ZIP',
     subtitle: 'Для auto-update feed и ручной распаковки',
+    url: `${RELEASE_FEED_BASE_URL}/ROX-ONE-arm64.zip`,
     fileName: 'ROX-ONE-arm64.zip',
     size: '309.4 MB',
     sha256: '8050c770eaaeaf5eb93ac4099e84eda71d885d55cf48d5829469a5846296b25f',
@@ -160,11 +194,111 @@ const terminalDownloads = [
   },
 ]
 
-const releaseFacts = [
-  'Публичный feed: app.rox.one/electron/latest',
-  'Актуальная сборка: macOS arm64 v0.9.2',
-  'Installer scripts: shell + PowerShell',
-]
+const platformLabels: Record<string, { title: string; subtitle: string }> = {
+  'darwin-arm64': { title: 'macOS Apple Silicon', subtitle: 'Для Mac на M1, M2, M3 и M4' },
+  'darwin-x64': { title: 'macOS Intel', subtitle: 'Для Mac на Intel-процессорах' },
+  'linux-x64': { title: 'Linux x64', subtitle: 'AppImage для большинства дистрибутивов' },
+  'linux-arm64': { title: 'Linux ARM64', subtitle: 'AppImage для ARM-систем' },
+  'win32-x64': { title: 'Windows x64', subtitle: 'Установщик NSIS для Windows 10 / 11' },
+  'win32-arm64': { title: 'Windows ARM64', subtitle: 'Установщик для устройств на ARM' },
+}
+
+const platformOrder = ['darwin-arm64', 'darwin-x64', 'linux-x64', 'linux-arm64', 'win32-x64', 'win32-arm64']
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '—'
+  const units = ['B', 'KB', 'MB', 'GB']
+  let value = bytes
+  let unitIndex = 0
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024
+    unitIndex += 1
+  }
+  return `${value.toFixed(unitIndex >= 2 ? 1 : 0)} ${units[unitIndex]}`
+}
+
+function actionLabelForFile(fileName: string): string {
+  const ext = fileName.includes('.') ? fileName.slice(fileName.lastIndexOf('.') + 1).toUpperCase() : ''
+  switch (ext) {
+    case 'DMG':
+    case 'ZIP':
+    case 'EXE':
+    case 'DEB':
+    case 'RPM':
+      return `Скачать ${ext}`
+    case 'APPIMAGE':
+      return 'Скачать AppImage'
+    default:
+      return 'Скачать'
+  }
+}
+
+function manifestToDownloads(manifest: ManifestPayload): TerminalDownload[] {
+  const binaries = manifest.binaries ?? {}
+  const seen = new Set<string>()
+  const ordered: string[] = []
+  for (const key of platformOrder) {
+    if (binaries[key]) {
+      ordered.push(key)
+      seen.add(key)
+    }
+  }
+  for (const key of Object.keys(binaries)) {
+    if (!seen.has(key)) ordered.push(key)
+  }
+
+  const downloads: TerminalDownload[] = []
+  for (const key of ordered) {
+    const binary = binaries[key]
+    if (!binary || !binary.filename || !binary.sha256) continue
+    const label = platformLabels[key] ?? { title: key, subtitle: 'Сборка из release feed' }
+    const fileUrl = binary.url ?? `${RELEASE_FEED_BASE_URL}/${binary.filename}`
+    downloads.push({
+      title: label.title,
+      subtitle: label.subtitle,
+      url: fileUrl,
+      fileName: binary.filename,
+      size: typeof binary.size === 'number' ? formatBytes(binary.size) : '—',
+      sha256: binary.sha256,
+      action: actionLabelForFile(binary.filename),
+    })
+  }
+  return downloads
+}
+
+function useTerminalRelease(): { release: TerminalRelease; downloads: TerminalDownload[] } {
+  const [release, setRelease] = useState<TerminalRelease>(fallbackTerminalRelease)
+  const [downloads, setDownloads] = useState<TerminalDownload[]>(fallbackTerminalDownloads)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const response = await fetch(RELEASE_FEED_MANIFEST_URL, { cache: 'no-cache' })
+        if (!response.ok) return
+        const payload = (await response.json()) as ManifestPayload
+        if (cancelled) return
+        const liveDownloads = manifestToDownloads(payload)
+        if (liveDownloads.length === 0) return
+        setDownloads(liveDownloads)
+        if (typeof payload.version === 'string' && payload.version.length > 0) {
+          setRelease({
+            version: payload.version,
+            manifestUrl: RELEASE_FEED_MANIFEST_URL,
+          })
+        }
+      } catch {
+        // Network or parse failure — leave fallback in place. Intentional silent
+        // catch: the marketing page must render even when app.rox.one is down.
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return { release, downloads }
+}
 
 const trustChecks = [
   'download URLs не завязаны на private GitHub cookies',
@@ -273,6 +407,13 @@ function ProductDemo() {
 }
 
 export function App() {
+  const { release: terminalRelease, downloads: terminalDownloads } = useTerminalRelease()
+  const releaseFacts = [
+    'Публичный feed: app.rox.one/electron/latest',
+    `Актуальная версия: v${terminalRelease.version}`,
+    'Installer scripts: shell + PowerShell',
+  ]
+
   return (
     <div className="site-shell">
       <header className="nav">
@@ -470,7 +611,7 @@ export function App() {
                       <dd className="checksum">{download.sha256}</dd>
                     </div>
                   </dl>
-                  <a className="button primary download-button" href={`${terminalRelease.baseUrl}/${download.fileName}`}>
+                  <a className="button primary download-button" href={download.url}>
                     <MonitorDown aria-hidden="true" />
                     <span>{download.action}</span>
                   </a>
