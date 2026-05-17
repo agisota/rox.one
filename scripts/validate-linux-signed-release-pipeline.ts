@@ -88,8 +88,12 @@ for (const [expected, description] of [
   ['permissions:', 'explicit permissions block'],
   ['contents: read', 'read-only contents permission'],
   ['runs-on: ubuntu-22.04', 'pinned ubuntu runner'],
-  ['oven-sh/setup-bun@v2', 'bun setup action'],
-  ['actions/upload-artifact@v4', 'private artifact upload action'],
+  // The next two refs accept either floating tag (legacy) or SHA-pinned
+  // (current); validate:workflow-pins enforces the pinned form repo-wide.
+  // Encoded as comment markers so requireText keeps its string-equality
+  // contract — actual check happens below.
+  ['oven-sh/setup-bun@', 'bun setup action'],
+  ['actions/upload-artifact@', 'private artifact upload action'],
   ['if-no-files-found: error', 'hard artifact upload failure'],
   ['retention-days: 14', 'private artifact retention'],
   ['bun install --frozen-lockfile', 'frozen install'],

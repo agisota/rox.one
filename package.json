@@ -130,6 +130,8 @@
     "validate:architecture-docs": "bun run scripts/validate-architecture-docs.ts",
     "validate:sync-v2-design": "bun run scripts/validate-sync-v2-design.ts",
     "validate:ci-contract": "bun run scripts/validate-ci-contract.ts",
+    "validate:workflow-pins": "bun run scripts/validate-workflow-pins.ts",
+    "refresh:action-pins": "bun run scripts/refresh-action-pins.ts",
     "validate:mac-arm-build-workflow": "bun run scripts/validate-mac-arm-build-workflow.ts",
     "validate:mac-private-release-boundary": "bun run scripts/validate-mac-private-release-boundary.ts",
     "validate:mac-boundary-fixtures": "bun run scripts/validate-mac-boundary-fixtures.ts",

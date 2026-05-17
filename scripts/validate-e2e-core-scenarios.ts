@@ -56,12 +56,17 @@ for (const requiredText of [
   'bun install --frozen-lockfile',
   'bun run validate:e2e-core-scenarios',
   'bun run e2e:core',
-  'actions/upload-artifact@v4',
   '.e2e-logs',
 ]) {
   if (!workflow.includes(requiredText)) {
     fail(`workflow missing: ${requiredText}`);
   }
+}
+// actions/upload-artifact may be referenced by floating tag (legacy) or
+// SHA-pinned form (current). SHA pin pattern: `@<40-hex> # v4...`.
+// validate:workflow-pins enforces the pinned form repo-wide.
+if (!/actions\/upload-artifact@(v4|[0-9a-f]{40}\s*#\s*v4)/.test(workflow)) {
+  fail('workflow missing actions/upload-artifact@v4 or SHA-pinned equivalent');
 }
 
 if (!suite.includes('ROX_E2E_FAKE_PROVIDERS')) {

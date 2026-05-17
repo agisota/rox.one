@@ -139,7 +139,14 @@ mac:
     - "!**/vendor/copilot/win32-*/**"
     - "!**/resources/bin/win32-*/**"
     - "!**/resources/bin/linux-*/**"
-  # Use predictable naming for macOS packages (applies to zip; dmg uses its own config below)
+  # Use predictable naming for macOS packages (applies to zip; dmg uses its own config below).
+  #
+  # CONTRACT: artifact filenames must match ^[A-Za-z0-9._-]+$ (no spaces, no
+  # parens). Downstream consumers enforce this regex:
+  #   - apps/marketing/src/App.tsx isValidBinary (silently drops mismatches)
+  #   - .github/workflows/release-all-platforms.yml publish-manifest job
+  #     (jq escaping is safe for anything, but the marketing site won't render
+  #     it). Keep all four `artifactName:` entries in this file consistent.
   artifactName: "ROX-ONE-${arch}.${ext}"
   # Code signing & notarization (disabled by default for local builds)
   # To enable: set CSC_LINK, APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID

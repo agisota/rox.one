@@ -108,7 +108,7 @@ jobs:
       # 2. Checkout the exact tag's code
       # -----------------------------------------------------------------------
       - name: Checkout tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           # Checkout the validated tag — NOT the default branch — so the build
           # always reflects the exact tagged commit.
@@ -120,7 +120,7 @@ jobs:
       # 3. Toolchain setup (common across all three platforms)
       # -----------------------------------------------------------------------
       - name: Setup Bun 1.3.11
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: "1.3.11"
 
@@ -128,7 +128,7 @@ jobs:
       # (markitdown, pdf-tool, xlsx-tool, docx-tool, pptx-tool, ical-tool,
       # img-tool, doc-diff) via resources/bin/*.cmd wrappers.
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -408,7 +408,7 @@ jobs:
 
       - name: Upload SBOM artifact (Mac ARM64)
         if: matrix.platform == 'mac-arm64'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: sbom-mac-arm64-${{ env.RELEASE_TAG }}
           path: sbom-mac-arm64.json
@@ -417,7 +417,7 @@ jobs:
 
       - name: Upload SBOM artifact (Linux x64)
         if: matrix.platform == 'linux-x64'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: sbom-linux-x64-${{ env.RELEASE_TAG }}
           path: sbom-linux-x64.json
@@ -426,7 +426,7 @@ jobs:
 
       - name: Upload SBOM artifact (Windows x64)
         if: matrix.platform == 'windows-x64'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: sbom-windows-x64-${{ env.RELEASE_TAG }}
           path: sbom-windows-x64.json
@@ -439,7 +439,7 @@ jobs:
 
       - name: Upload Mac ARM64 workflow artifacts
         if: matrix.platform == 'mac-arm64' && success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: rox-one-release-mac-arm64-${{ env.RELEASE_TAG }}
           path: |
@@ -453,7 +453,7 @@ jobs:
 
       - name: Upload Linux x64 workflow artifacts
         if: matrix.platform == 'linux-x64' && success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: rox-one-release-linux-x64-${{ env.RELEASE_TAG }}
           path: |
@@ -466,7 +466,7 @@ jobs:
 
       - name: Upload Windows x64 workflow artifacts
         if: matrix.platform == 'windows-x64' && success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: rox-one-release-windows-x64-${{ env.RELEASE_TAG }}
           path: |
@@ -480,7 +480,7 @@ jobs:
       # Upload CI evidence logs from all platforms (always, even on failure)
       - name: Upload CI evidence logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: rox-one-release-evidence-${{ matrix.platform }}-${{ env.RELEASE_TAG }}
           path: |
@@ -503,7 +503,7 @@ jobs:
 
       - name: Publish Mac ARM64 artifacts to GitHub Release
         if: matrix.platform == 'mac-arm64' && success()
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           draft: true
@@ -517,7 +517,7 @@ jobs:
 
       - name: Publish Linux x64 artifacts to GitHub Release
         if: matrix.platform == 'linux-x64' && success()
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           draft: true
@@ -530,7 +530,7 @@ jobs:
 
       - name: Publish Windows x64 artifacts to GitHub Release
         if: matrix.platform == 'windows-x64' && success()
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           draft: true
@@ -590,19 +590,19 @@ jobs:
           echo "tag=${CANDIDATE}" >> "$GITHUB_OUTPUT"
 
       - name: Download Mac ARM64 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: rox-one-release-mac-arm64-${{ env.RELEASE_TAG }}
           path: .manifest-bin/mac-arm64
 
       - name: Download Linux x64 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: rox-one-release-linux-x64-${{ env.RELEASE_TAG }}
           path: .manifest-bin/linux-x64
 
       - name: Download Windows x64 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: rox-one-release-windows-x64-${{ env.RELEASE_TAG }}
           path: .manifest-bin/windows-x64
@@ -684,21 +684,84 @@ jobs:
           jq -e . .manifest-out/manifest.json > /dev/null
 
       - name: Upload manifest as workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: rox-one-release-manifest-${{ env.RELEASE_TAG }}
           path: .manifest-out/manifest.json
           retention-days: 30
           if-no-files-found: error
 
+      - name: Write step summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest=.manifest-out/manifest.json
+          version=$(jq -r '.version' "$manifest")
+          {
+            echo "## ROX ONE release manifest — \`${RELEASE_TAG}\`"
+            echo ""
+            echo "- **Live URL:** https://app.rox.one/electron/latest/manifest.json"
+            echo "- **Pinned URL:** https://app.rox.one/electron/${version}/manifest.json"
+            echo "- **GitHub Release asset:** \`manifest.json\` on the \`${RELEASE_TAG}\` draft"
+            echo ""
+            echo "| Platform | Filename | Size | SHA-256 |"
+            echo "|----------|----------|-----:|---------|"
+            jq -r '
+              .binaries
+              | to_entries[]
+              | "| \(.key) | `\(.value.filename)` | \(.value.size) B | `\(.value.sha256)` |"
+            ' "$manifest"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Attach manifest.json to GitHub Release
         # generate_release_notes is intentionally false here: the matrix legs
         # already populated the release notes; re-generating from this last
         # job would clobber any human edits made between jobs.
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           draft: true
           generate_release_notes: false
           fail_on_unmatched_files: true
           files: .manifest-out/manifest.json
+
+      # Best-effort live-feed smoke check. Skipped when the release is left as
+      # a draft (the worker would 404 because the release isn't reachable via
+      # the public latest endpoint until it's published). Also skipped if the
+      # release was just attached — the Cloudflare worker caches the latest
+      # tag for 60s, so a sub-minute check would race against staleness.
+      #
+      # To enable: set repository variable ROX_LIVE_SMOKE_CHECK=true. Off by
+      # default so PR-triggered manual runs don't depend on Cloudflare.
+      - name: Live feed smoke check (optional)
+        # Only meaningful on tag-push events that auto-publish: workflow_dispatch
+        # runs typically target a draft tag that humans publish later, in which
+        # case the public `latest` endpoint stays on the previous release and
+        # the smoke would always warn.
+        if: vars.ROX_LIVE_SMOKE_CHECK == 'true' && github.event_name == 'push'
+        shell: bash
+        env:
+          MANIFEST_URL: https://app.rox.one/electron/latest/manifest.json
+        run: |
+          set -euo pipefail
+          local_version=$(jq -r '.version' .manifest-out/manifest.json)
+          # Give the worker cache (60s TTL) a chance to expire; also wait for
+          # the user to publish the draft. 90s is the smallest value that
+          # covers the 60s TTL with margin without making CI feel sluggish.
+          echo "Waiting 90s for worker cache to expire and draft publish window..."
+          sleep 90
+
+          for attempt in 1 2 3 4 5; do
+            live_version=$(curl -sf "$MANIFEST_URL" | jq -r '.version' || true)
+            if [ "$live_version" = "$local_version" ]; then
+              echo "::notice::Live manifest matches local: v${live_version}"
+              exit 0
+            fi
+            echo "Attempt ${attempt}: live=${live_version:-<unreachable>} expected=${local_version}, retrying..."
+            sleep 30
+          done
+
+          # Don't fail the workflow — the release artifacts are already on
+          # GitHub. Just surface a warning so the publisher knows the live
+          # feed didn't catch up.
+          echo "::warning::Live manifest at $MANIFEST_URL did not match local v${local_version} after 5 attempts. Check Cloudflare worker and that the release draft was published."
