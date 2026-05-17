@@ -728,17 +728,25 @@ jobs:
             ' "$manifest"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Attach manifest.json to GitHub Release
+      - name: Attach manifest.json + install scripts to GitHub Release
         # generate_release_notes is intentionally false here: the matrix legs
         # already populated the release notes; re-generating from this last
         # job would clobber any human edits made between jobs.
+        # Install scripts are bundled per-tag so the Cloudflare worker can
+        # proxy them from a single canonical URL
+        # (https://app.rox.one/install-app.sh / .ps1) without needing a
+        # version path. They are static repo files; uploading per-release
+        # keeps the download URL stable across tag changes.
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           draft: true
           generate_release_notes: false
           fail_on_unmatched_files: true
-          files: .manifest-out/manifest.json
+          files: |
+            .manifest-out/manifest.json
+            scripts/install-app.sh
+            scripts/install-app.ps1
 
       # Best-effort live-feed smoke check. Skipped when the release is left as
       # a draft (the worker would 404 because the release isn't reachable via

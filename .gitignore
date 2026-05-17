@@ -86,3 +86,7 @@ credentials.enc
 # Audit harness raw run artifacts (committed: docs/tickets, docs/audits/INDEX.md only)
 /audits/
 !docs/audits/
+
+# Rendered wrangler configs (regenerated from .example.toml at deploy time)
+infra/cloudflare/wrangler.rox-one-release-feed.toml
+infra/cloudflare/wrangler.rox-one.toml
