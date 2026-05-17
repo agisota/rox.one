@@ -1,6 +1,6 @@
 {
   "name": "rox-agent",
-  "version": "0.9.2",
+  "version": "1.0.0-rc.3",
   "license": "Apache-2.0",
   "description": "Claude Code-like agent for Rox documents",
   "type": "module",

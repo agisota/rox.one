@@ -1,6 +1,6 @@
 {
   "name": "@rox-one/electron",
-  "version": "0.9.2",
+  "version": "1.0.0-rc.3",
   "description": "Desktop app for ROX ONE",
   "main": "dist/main.cjs",
   "private": true,
