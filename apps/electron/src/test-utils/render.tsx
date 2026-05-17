@@ -13,7 +13,8 @@ import { I18nextProvider } from 'react-i18next'
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { TooltipProvider } from '@rox-one/ui'
-import { ReducedMotionProvider } from '@/context/ReducedMotionContext'
+import { ModalProvider } from '../renderer/context/ModalContext'
+import { ReducedMotionProvider } from '../renderer/context/ReducedMotionContext'
 
 // Initialize a minimal i18n instance for tests. Real translations are not
 // loaded; tests should use string keys directly OR pass `t={(key) => key}`.
@@ -39,6 +40,7 @@ interface ComposerHarnessProps {
  * - Jotai (atoms used by FreeFormInput, ChatInputZone, etc.)
  * - i18n (t() returns the key as fallback)
  * - ReducedMotionProvider (so motion/react integration paths run)
+ * - ModalProvider (dialog/close-registry hooks used by composer dialogs)
  * - TooltipProvider (every Radix Tooltip in the composer requires it)
  *
  * Add other providers (ThemeProvider, AppShellContext) here as needed when
@@ -50,7 +52,9 @@ export function TestComposerHarness({ children, store }: ComposerHarnessProps): 
     <JotaiProvider store={jotaiStore}>
       <I18nextProvider i18n={i18n}>
         <ReducedMotionProvider>
-          <TooltipProvider>{children}</TooltipProvider>
+          <ModalProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </ModalProvider>
         </ReducedMotionProvider>
       </I18nextProvider>
     </JotaiProvider>
@@ -72,5 +76,14 @@ export function render(
   })
 }
 
-export * from '@testing-library/react'
+export {
+  act,
+  cleanup,
+  configure,
+  fireEvent,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+  within,
+} from '@testing-library/react'
 export { default as userEvent } from '@testing-library/user-event'
