@@ -59,16 +59,14 @@ linux:
 deb:
   packageCategory: utils
   depends:
-    - libgtk-3-0
+    - libgtk-3-0 | libgtk-3-0t64
     - libnotify4
     - libnss3
     - libsecret-1-0
     - libxtst6
     - libxss1
     - libgbm1
-    - libasound2
-    - gconf2
-    - gconf-service
+    - libasound2 | libasound2t64
     - libappindicator3-1
 
 # RPM package: equivalent Fedora/RHEL/openSUSE library names.
