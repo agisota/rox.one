@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, mock, test } from 'bun:test';
+import { afterAll, afterEach, describe, expect, mock, test } from 'bun:test';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -14,6 +14,7 @@ let remainingSpawnErrors = 0;
 let failPipeStdio = false;
 let failCaptureReads = false;
 let spawnCalls = 0;
+const originalNodeSpawnPrimary = process.env.ROX_TRANSFORM_DATA_NODE_SPAWN_PRIMARY;
 
 const mockedSpawn = ((...args: unknown[]) => {
   spawnCalls += 1;
@@ -62,6 +63,7 @@ function transientSpawnError(code: string): Error & { code: string; syscall: str
 }
 
 describe('transform_data transient spawn retry', () => {
+  process.env.ROX_TRANSFORM_DATA_NODE_SPAWN_PRIMARY = '1';
   let rootDir: string;
   let sessionDir: string;
   let dataDir: string;
@@ -74,6 +76,14 @@ describe('transform_data transient spawn retry', () => {
     spawnCalls = 0;
     if (rootDir) {
       rmSync(rootDir, { recursive: true, force: true });
+    }
+  });
+
+  afterAll(() => {
+    if (originalNodeSpawnPrimary === undefined) {
+      delete process.env.ROX_TRANSFORM_DATA_NODE_SPAWN_PRIMARY;
+    } else {
+      process.env.ROX_TRANSFORM_DATA_NODE_SPAWN_PRIMARY = originalNodeSpawnPrimary;
     }
   });
 

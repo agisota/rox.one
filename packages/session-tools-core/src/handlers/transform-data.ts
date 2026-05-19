@@ -79,6 +79,15 @@ function getBunSpawn(): BunSpawnFn | undefined {
   return typeof bun?.spawn === 'function' ? (bun.spawn as BunSpawnFn) : undefined;
 }
 
+function shouldUseBunSpawnFirst(): boolean {
+  // Bun's node:child_process.spawn compatibility layer can intermittently
+  // fail on hosted Linux with EBADF before the child process starts. When the
+  // runtime already exposes native Bun.spawn, use it as the primary process
+  // launcher and keep node:child_process as the non-Bun fallback. The env flag
+  // is only a regression-test seam for the old Node-spawn retry path.
+  return process.env.ROX_TRANSFORM_DATA_NODE_SPAWN_PRIMARY !== '1' && Boolean(getBunSpawn());
+}
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolveDelay) => setTimeout(resolveDelay, ms));
 }
@@ -243,6 +252,11 @@ async function runTransformProcess(
   dataDir: string,
   env: NodeJS.ProcessEnv,
 ): Promise<TransformProcessResult> {
+  const primaryBunSpawn = shouldUseBunSpawnFirst() ? getBunSpawn() : undefined;
+  if (primaryBunSpawn) {
+    return await runTransformProcessWithBun(primaryBunSpawn, cmd, spawnArgs, dataDir, env);
+  }
+
   let lastError: unknown;
   for (let attempt = 1; attempt <= TRANSFORM_DATA_SPAWN_ATTEMPTS; attempt += 1) {
     try {

@@ -195,3 +195,32 @@ for the workflow contract, because the validator had been extended before the ve
 | Real `rox.one` download surface reads live feed | Deployed, final visual proof pending | Deployed `rox.one` bundle contains `app.rox.one/electron/stable`, `app.rox.one/electron/beta`, and stable release-notes URLs; Playwright screenshot remains pending. |
 | Live URLs verified after deploy | Stable green, beta pending fresh prerelease | Stable/latest URLs returned `200`; old beta rc metadata returned `404`, fixed in Worker selection logic and pending fresh beta release. |
 | Installed app update verified | Pending external stage | Requires published newer release and live feed. |
+
+## 12. Live follow-up CI repair on PR #258
+
+CircleCI `validate` job `673` failed after the beta-feed guard commit, not on the
+release-feed changes themselves, but on the existing hosted Linux
+`transform_data path containment > allows valid descendant paths and writes
+output` test. The artifact showed Bun's `node:child_process.spawn` compatibility
+path throwing `EBADF: bad file descriptor, epoll_ctl` before the child process
+started.
+
+Follow-up repair:
+
+- Keep the existing Node `child_process.spawn` retry/fallback path for non-Bun
+  runtimes and for the dedicated regression tests.
+- When running under Bun and native `Bun.spawn` is available, use `Bun.spawn` as
+  the primary process launcher for `transform_data`; this avoids the hosted
+  Bun child-process compatibility layer that produced the EBADF failure.
+- Preserve the old Node-spawn retry path through the
+  `ROX_TRANSFORM_DATA_NODE_SPAWN_PRIMARY=1` regression-test seam.
+
+Validation after the repair:
+
+- `bun test packages/session-tools-core/src/handlers/transform-data.test.ts`
+- `bun test ./packages/session-tools-core/src/handlers/transform-data-spawn-retry.isolated.ts`
+- `cd packages/session-tools-core && bun run typecheck`
+- `bun test infra/__tests__/rox-one-release-feed-worker.test.ts`
+- `bun run --cwd apps/marketing typecheck`
+- `bun run --cwd apps/marketing build`
+- `bun run validate:release-all-platforms-workflow`
