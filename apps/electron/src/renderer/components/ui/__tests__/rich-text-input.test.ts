@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test'
-import { isEscapeDuringComposition } from '../rich-text-input'
+import { createRichTextIconPreloadPlan, isEscapeDuringComposition } from '../rich-text-input'
 
 describe('isEscapeDuringComposition', () => {
   it('returns true for Escape when local composition ref is active', () => {
@@ -25,5 +25,37 @@ describe('isEscapeDuringComposition', () => {
 
   it('returns false for non-Escape keys even if composing', () => {
     expect(isEscapeDuringComposition({ key: 'Enter', isComposing: true }, true)).toBe(false)
+  })
+})
+
+
+describe('createRichTextIconPreloadPlan', () => {
+  it('preloads source icons but never schedules all skill icons', () => {
+    const plan = createRichTextIconPreloadPlan({
+      workspaceId: 'workspace-1',
+      sources: [
+        { config: { slug: 'source-1', name: 'Source One' } },
+      ] as any,
+      skills: Array.from({ length: 100 }, (_, index) => ({
+        slug: `skill-${index}`,
+        metadata: { name: `Skill ${index}`, description: '' },
+      })) as any,
+    })
+
+    expect(plan.sourceIcons).toHaveLength(1)
+    expect(plan.sourceIcons[0]?.workspaceId).toBe('workspace-1')
+    expect(plan.sourceIcons[0]?.config.slug).toBe('source-1')
+    expect(plan.skillIcons).toEqual([])
+  })
+
+  it('does not schedule icon work without a workspace id', () => {
+    const plan = createRichTextIconPreloadPlan({
+      workspaceId: undefined,
+      sources: [{ config: { slug: 'source-1', name: 'Source One' } }] as any,
+      skills: [{ slug: 'skill-1', metadata: { name: 'Skill One' } }] as any,
+    })
+
+    expect(plan.sourceIcons).toEqual([])
+    expect(plan.skillIcons).toEqual([])
   })
 })

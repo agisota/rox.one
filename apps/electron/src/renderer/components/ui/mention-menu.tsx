@@ -133,6 +133,103 @@ function getMatchScore(text: string, filter: string): number {
   return 0
 }
 
+export const MAX_MENTION_SKILL_ITEMS = 50
+
+function createSkillMentionItem(skill: LoadedSkill): MentionItem {
+  return {
+    id: skill.slug,
+    type: 'skill' as const,
+    label: skill.metadata.name,
+    description: skill.metadata.description,
+    skill,
+  }
+}
+
+function createSourceMentionItem(source: LoadedSource): MentionItem | null {
+  if (!source.config.slug || !source.config.name) return null
+  return {
+    id: source.config.slug,
+    type: 'source' as const,
+    label: source.config.name,
+    description: source.config.tagline,
+    source,
+  }
+}
+
+function getMentionItemMatchScore(item: MentionItem, filter: string): number {
+  const labelScore = getMatchScore(item.label, filter)
+  const idScore = getMatchScore(item.id, filter)
+  const descriptionScore = item.description ? getMatchScore(item.description, filter) : 0
+  return Math.max(labelScore, idScore, descriptionScore)
+}
+
+function filterAndLimitSkillMentionItems(skills: LoadedSkill[], filter: string, limit: number): MentionItem[] {
+  const lowerFilter = filter.trimEnd().toLowerCase()
+  if (!lowerFilter) return skills.slice(0, limit).map(createSkillMentionItem)
+
+  return skills
+    .map(skill => {
+      const item = createSkillMentionItem(skill)
+      return { item, score: getMentionItemMatchScore(item, lowerFilter) }
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => {
+      if (a.score !== b.score) return b.score - a.score
+      return a.item.label.localeCompare(b.item.label)
+    })
+    .slice(0, limit)
+    .map(({ item }) => item)
+}
+
+export function buildMentionSections({
+  isOpen,
+  skills,
+  sources,
+  fileResults,
+  filter,
+}: {
+  isOpen: boolean
+  skills: LoadedSkill[]
+  sources: LoadedSource[]
+  fileResults: MentionItem[]
+  filter: string
+}): MentionSection[] {
+  if (!isOpen) return []
+
+  const result: MentionSection[] = []
+  const skillItems = filterAndLimitSkillMentionItems(skills, filter, MAX_MENTION_SKILL_ITEMS)
+
+  if (skillItems.length > 0) {
+    result.push({
+      id: 'skills',
+      label: 'Skills',
+      items: skillItems,
+    })
+  }
+
+  const sourceItems = sources
+    .map(createSourceMentionItem)
+    .filter((item): item is MentionItem => item !== null)
+
+  if (sourceItems.length > 0) {
+    result.push({
+      id: 'sources',
+      label: 'Sources',
+      items: sourceItems,
+    })
+  }
+
+  if (fileResults.length > 0) {
+    result.push({
+      id: 'files',
+      label: 'Files',
+      items: fileResults,
+    })
+  }
+
+  return result
+}
+
 function filterSections(sections: MentionSection[], filter: string): MentionSection[] {
   if (!filter) return sections
   const lowerFilter = filter.trimEnd().toLowerCase()
@@ -214,8 +311,14 @@ export function InlineMentionMenu({
   const menuRef = React.useRef<HTMLDivElement>(null)
   const listRef = React.useRef<HTMLDivElement>(null)
   const [selectedIndex, setSelectedIndex] = React.useState(0)
-  const filteredSections = filterSections(sections, filter)
-  const flatItems = flattenItems(filteredSections)
+  const filteredSections = React.useMemo(
+    () => open ? filterSections(sections, filter) : [],
+    [open, sections, filter]
+  )
+  const flatItems = React.useMemo(
+    () => open ? flattenItems(filteredSections) : [],
+    [open, filteredSections]
+  )
 
   // Reset selection when filter changes
   React.useEffect(() => {
@@ -503,53 +606,16 @@ export function useInlineMention({
     }
   }, [])
 
-  // Build sections from available data (skills, sources, and file search results)
-  const sections = React.useMemo((): MentionSection[] => {
-    const result: MentionSection[] = []
-
-    // Skills section
-    if (skills.length > 0) {
-      result.push({
-        id: 'skills',
-        label: 'Skills',
-        items: skills.map(skill => ({
-          id: skill.slug,
-          type: 'skill' as const,
-          label: skill.metadata.name,
-          description: skill.metadata.description,
-          skill,
-        })),
-      })
-    }
-
-    // Sources section
-    if (sources.length > 0) {
-      result.push({
-        id: 'sources',
-        label: 'Sources',
-        items: sources
-          .filter(source => source.config.slug && source.config.name)
-          .map(source => ({
-            id: source.config.slug,
-            type: 'source' as const,
-            label: source.config.name,
-            description: source.config.tagline,
-            source,
-          })),
-      })
-    }
-
-    // Files section (from async search results)
-    if (fileResults.length > 0) {
-      result.push({
-        id: 'files',
-        label: 'Files',
-        items: fileResults,
-      })
-    }
-
-    return result
-  }, [skills, sources, fileResults])
+  // Build sections from available data only while the menu is visible. Large
+  // global skill catalogs can contain ~10k entries; keep the closed composer
+  // path free of skill item allocation and cap visible skill results.
+  const sections = React.useMemo((): MentionSection[] => buildMentionSections({
+    isOpen,
+    skills,
+    sources,
+    fileResults,
+    filter: committedFilter,
+  }), [isOpen, skills, sources, fileResults, committedFilter])
 
   const handleInputChange = React.useCallback((value: string, cursorPosition: number) => {
     // Store current state for handleSelect

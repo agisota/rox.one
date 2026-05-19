@@ -2,15 +2,17 @@
 
 ## 1. Task summary
 
-Fix session startup/switch lag caused by `AppShell` reloading skills when the active session working directory changes. The main measured hotspot is `loadAllSkills()` reparsing the full global skill catalog for each distinct project root.
+Fix session startup/switch lag around large skill catalogs. First layer removed repeated backend reparsing of the global skill catalog when the active session working directory changes. Continuation layer removes renderer jank from receiving ~10k skills by preventing closed composer skill-item allocation, capping visible mention items, and stopping eager preload of every skill icon.
 
 ## 2. Repo context discovered
 
 - `apps/electron/src/renderer/components/app-shell/AppShell.tsx` derives `activeSessionWorkingDirectory` from selected session metadata and calls `window.electronAPI.getSkills(activeWorkspaceId, activeSessionWorkingDirectory)` whenever it changes.
 - `packages/server-core/src/handlers/rpc/skills.ts` handles `SKILLS_GET` by calling `loadAllSkills(workspace.rootPath, effectiveWorkingDir)`.
-- `packages/shared/src/skills/storage.ts` caches full merged results by `(workspaceRoot, projectRoot)`. This makes same-project reloads fast but forces global/workspace rescans when switching to another project root.
+- `packages/shared/src/skills/storage.ts` previously cached only full merged `(workspaceRoot, projectRoot)` results; switching project roots reparsed global/workspace tiers.
+- `apps/electron/src/renderer/components/ui/rich-text-input.tsx` received the full `skills` array and eagerly called `loadSkillIcon(skill, workspaceId)` for every skill. With ~10k skills this could create renderer work and icon discovery/file IPC storms on session switches.
+- `apps/electron/src/renderer/components/ui/mention-menu.tsx` built `skills.map(...)` into mention sections even while the mention menu was closed. This made ordinary composer rerenders/session switches allocate thousands of `MentionItem` objects that were not visible.
 - `packages/shared/src/sessions/storage.ts` also does eager `listPlanFiles()` per session, but a synthetic 1000-session baseline was ~125ms; skills loading was the multi-second blocker.
-- Current working tree has unrelated dirty `.agents/**`, `.omc/**`, and previous T304 docs. This task must not touch or stage those files.
+- Current working tree has unrelated dirty `.agents/**` and `.omc/**` files. This task must not touch or stage those files.
 
 ## 3. Files inspected
 
@@ -18,18 +20,33 @@ Fix session startup/switch lag caused by `AppShell` reloading skills when the ac
 - `packages/shared/src/skills/__tests__/storage.test.ts`
 - `packages/server-core/src/handlers/rpc/skills.ts`
 - `apps/electron/src/renderer/components/app-shell/AppShell.tsx`
+- `apps/electron/src/renderer/components/ui/rich-text-input.tsx`
+- `apps/electron/src/renderer/components/ui/mention-menu.tsx`
+- `apps/electron/src/renderer/components/app-shell/input/FreeFormInput.tsx`
+- `apps/electron/src/renderer/components/ui/__tests__/rich-text-input.test.ts`
+- `apps/electron/src/renderer/components/ui/__tests__/mention-menu.test.ts`
 - `packages/shared/src/sessions/storage.ts`
 - `packages/shared/src/sessions/types.ts`
 - `package.json`
 
 ## 4. Tests added first
 
+Backend cache layer:
+
 - Added `loadAllSkills > should reuse lower-priority skill parses when switching project roots` in `packages/shared/src/skills/__tests__/storage.test.ts`. It creates one workspace-tier skill, loads two different project roots, and asserts the workspace/global skill objects are reused rather than reparsed.
 - Added `loadAllSkills > should clear tier caches when skills cache is invalidated` to prove `invalidateSkillsCache()` is still the explicit refresh boundary.
 
+Renderer jank layer:
+
+- Added `buildMentionSections` tests in `apps/electron/src/renderer/components/ui/__tests__/mention-menu.test.ts` to require:
+  - no skill/source sections while the mention menu is closed;
+  - unfiltered skill sections capped to `MAX_MENTION_SKILL_ITEMS`;
+  - filtering checks the full skill catalog before applying the visible cap.
+- Added `createRichTextIconPreloadPlan` tests in `apps/electron/src/renderer/components/ui/__tests__/rich-text-input.test.ts` to require source icon preload while proving skill icon preload stays empty even with a large skill list.
+
 ## 5. Expected failing test output
 
-First targeted run before implementation:
+Backend first targeted run before implementation:
 
 ```text
 bun test packages/shared/src/skills/__tests__/storage.test.ts
@@ -43,9 +60,25 @@ Received: serializes to the same string
 1 fail
 ```
 
-The failure confirms the existing `(workspaceRoot, projectRoot)` merged cache reparses lower-priority tiers when only the project root changes.
+Renderer first targeted run before implementation:
+
+```text
+bun test apps/electron/src/renderer/components/ui/__tests__/rich-text-input.test.ts apps/electron/src/renderer/components/ui/__tests__/mention-menu.test.ts
+...
+TypeError: buildMentionSections is not a function
+(fail) buildMentionSections > returns no skill/source sections while the mention menu is closed
+(fail) buildMentionSections > caps the unfiltered skill section to the renderer-safe limit
+(fail) buildMentionSections > filters the full skill catalog before applying the visible cap
+
+23 pass
+3 fail
+```
+
+The failure confirms the renderer did not yet expose or enforce a closed-menu/visible-cap shaping boundary for the large skill catalog.
 
 ## 6. Implementation changes
+
+Backend cache layer:
 
 - Refactored `packages/shared/src/skills/storage.ts` from a single merged `(workspaceRoot, projectRoot)` cache to tiered caches:
   - `globalSkillsCache` keyed by the global skill directory;
@@ -56,19 +89,39 @@ The failure confirms the existing `(workspaceRoot, projectRoot)` merged cache re
 - `invalidateSkillsCache()` clears all tier caches and merged results.
 - Updated cache comments so working-directory changes are no longer documented as a reason to flush all skills; skill install/remove/update events remain the refresh boundary.
 
+Renderer jank layer:
+
+- Added `createRichTextIconPreloadPlan()` in `rich-text-input.tsx` and changed the icon preload effect to preload source icons only.
+- Removed eager `loadSkillIcon()` fan-out from `RichTextInput`; visible `SkillAvatar` / `useEntityIcon` remains the lazy skill icon load path.
+- Added `MAX_MENTION_SKILL_ITEMS = 50` and `buildMentionSections()` in `mention-menu.tsx`.
+- `useInlineMention()` now returns no skill/source sections while the menu is closed and caps visible skill mention items while preserving full-catalog filtering for typed queries.
+- `InlineMentionMenu` memoizes filtered/flat items and returns empty derived lists while closed.
+
 ## 7. Validation commands run
 
 ```bash
 bun test packages/shared/src/skills/__tests__/storage.test.ts
 bun run typecheck:shared
 bun /tmp/rox-perf-after.ts
+bun test apps/electron/src/renderer/components/ui/__tests__/rich-text-input.test.ts apps/electron/src/renderer/components/ui/__tests__/mention-menu.test.ts
+bun run typecheck:electron
+bun test /tmp/rox-mention-perf.test.ts
+git diff --check -- apps/electron/src/renderer/components/ui/rich-text-input.tsx apps/electron/src/renderer/components/ui/mention-menu.tsx apps/electron/src/renderer/components/ui/__tests__/rich-text-input.test.ts apps/electron/src/renderer/components/ui/__tests__/mention-menu.test.ts
 ```
 
 ## 8. Passing test output summary
 
 - `bun test packages/shared/src/skills/__tests__/storage.test.ts`: `35 pass`, `0 fail`, `799 expect()` calls.
 - `bun run typecheck:shared`: passed (`tsc --noEmit`, no diagnostics).
-- Synthetic post-fix benchmark:
+- `bun test apps/electron/src/renderer/components/ui/__tests__/rich-text-input.test.ts apps/electron/src/renderer/components/ui/__tests__/mention-menu.test.ts`: `28 pass`, `0 fail`, `57 expect()` calls.
+- `bun run typecheck:electron`: passed (`tsc --noEmit`, no diagnostics).
+- `git diff --check` for renderer files: passed, no whitespace errors.
+
+## 9. Build output summary
+
+Full Electron build was not run. Source/runtime behavior changed in renderer helpers, so targeted renderer unit tests and `bun run typecheck:electron` were run. Backend package surface was covered by targeted shared tests and `bun run typecheck:shared`.
+
+Synthetic backend post-fix benchmark:
 
 ```json
 {"kind":"skillsLoad:firstProject","count":10148,"ms":4083}
@@ -77,16 +130,21 @@ bun /tmp/rox-perf-after.ts
 {"kind":"skillsLoad:globalObjectReused","slug":"banana-claude","sameRef":true}
 ```
 
-Baseline from before this task was `secondProject` ~931ms and first project ~4257ms; the second project-root load now avoids reparsing the ~10k global catalog.
+Synthetic renderer post-fix shaping probe over 10,148 skills:
 
-## 9. Build output summary
+```json
+{"kind":"mentionSections:closed","sections":0,"items":0,"ms":0}
+{"kind":"mentionSections:openUnfiltered","sections":1,"items":50,"limit":50,"ms":0}
+{"kind":"mentionSections:openFiltered","sections":1,"items":1,"hasNeedle":true,"ms":15}
+```
 
-No Electron renderer/main source changed. Build was not run; shared typecheck and targeted shared tests cover the modified package surface.
+Baseline from before this task was backend `secondProject` ~931ms and first project ~4257ms; the second project-root load now avoids reparsing the ~10k global catalog. Renderer closed-menu section shaping now performs no skill item allocation.
 
 ## 10. Remaining risks
 
 - First skill load still parses the full installed global catalog (~4s on this workstation). This task removes the repeated cost during session switches; a separate startup/background-loading ticket should address first-load UX if needed.
-- Renderer still receives/stores ~10k skills and downstream mention/icon rendering may contribute jank. If UI remains heavy after backend cache fix, follow up by virtualizing/bounding skill mention data in `rich-text-input.tsx` / skill atoms.
+- `AppShell` still stores and publishes the full `skills` array into renderer state/atoms. Downstream consumers are now bounded in the composer hot path, but a future ticket could move to paged skill search if global catalogs keep growing.
+- Filtering skills in the mention menu still scans the full catalog when the user types a query. The visible result is capped and the measured 10k-skill query was ~15ms, but fuzzy indexing could improve this later.
 - `listSessions()` still eagerly checks plan directories; measured lower priority (~125ms for 1000 sessions) but can be lazied later because `planCount` has no current renderer reads.
 
 ## 11. Acceptance criteria matrix
@@ -98,4 +156,9 @@ No Electron renderer/main source changed. Build was not run; shared typecheck an
 | `invalidateSkillsCache()` clears all relevant skill caches | PASS | Added invalidation regression test; targeted suite passes. |
 | Targeted skill storage tests pass | PASS | `35 pass`, `0 fail`. |
 | Shared typecheck passes | PASS | `bun run typecheck:shared` exit 0. |
-| Benchmark shows cross-project skill load no longer reparses ~10k global skills | PASS | First project 4083ms; second project 2ms; same project 0ms. |
+| Rich text input does not eagerly preload all skill icons | PASS | `createRichTextIconPreloadPlan` tests expect `skillIcons: []` with 100 skills; targeted renderer tests pass. |
+| Mention menu does not allocate skill/source sections while closed | PASS | `buildMentionSections({ isOpen: false, ... })` test returns `[]`; perf probe shows `items: 0`, `ms: 0`. |
+| Mention menu caps unfiltered visible skills | PASS | `MAX_MENTION_SKILL_ITEMS` test and perf probe show `items: 50`. |
+| Mention menu still searches the full catalog for typed skill filters | PASS | Filter regression finds `skill-999` / `Needle Workflow` beyond the initial cap; perf probe found `skill-10147`. |
+| Electron renderer typecheck passes | PASS | `bun run typecheck:electron` exit 0. |
+| Renderer whitespace diff check passes | PASS | `git diff --check -- ...` exit 0. |

@@ -20,10 +20,14 @@ mock.module('react-pdf', () => ({
 }));
 
 let isValidMentionTrigger: (text: string, position: number) => boolean;
+let buildMentionSections: typeof import('../mention-menu').buildMentionSections;
+let MAX_MENTION_SKILL_ITEMS: typeof import('../mention-menu').MAX_MENTION_SKILL_ITEMS;
 
 beforeAll(async () => {
   const mod = await import('../mention-menu');
   isValidMentionTrigger = mod.isValidMentionTrigger;
+  buildMentionSections = mod.buildMentionSections;
+  MAX_MENTION_SKILL_ITEMS = mod.MAX_MENTION_SKILL_ITEMS;
 });
 
 describe('isValidMentionTrigger', () => {
@@ -128,5 +132,56 @@ describe('isValidMentionTrigger', () => {
       expect(isValidMentionTrigger('user@test @', 4)).toBe(false);  // first @
       expect(isValidMentionTrigger('user@test @', 10)).toBe(true); // second @
     });
+  });
+});
+
+
+describe('buildMentionSections', () => {
+  const makeSkill = (index: number, name = `Skill ${index}`) => ({
+    slug: `skill-${index}`,
+    metadata: { name, description: `Description ${index}` },
+  });
+
+  it('returns no skill/source sections while the mention menu is closed', () => {
+    const sections = buildMentionSections({
+      isOpen: false,
+      skills: Array.from({ length: 1000 }, (_, index) => makeSkill(index)) as any,
+      sources: [{ config: { slug: 'source-1', name: 'Source One', tagline: 'Guide' } }] as any,
+      fileResults: [],
+      filter: '',
+    });
+
+    expect(sections).toEqual([]);
+  });
+
+  it('caps the unfiltered skill section to the renderer-safe limit', () => {
+    const sections = buildMentionSections({
+      isOpen: true,
+      skills: Array.from({ length: MAX_MENTION_SKILL_ITEMS + 25 }, (_, index) => makeSkill(index)) as any,
+      sources: [],
+      fileResults: [],
+      filter: '',
+    });
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0]?.id).toBe('skills');
+    expect(sections[0]?.items).toHaveLength(MAX_MENTION_SKILL_ITEMS);
+  });
+
+  it('filters the full skill catalog before applying the visible cap', () => {
+    const sections = buildMentionSections({
+      isOpen: true,
+      skills: [
+        ...Array.from({ length: 200 }, (_, index) => makeSkill(index)),
+        makeSkill(999, 'Needle Workflow'),
+      ] as any,
+      sources: [],
+      fileResults: [],
+      filter: 'needle',
+    });
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0]?.items.map(item => item.id)).toContain('skill-999');
+    expect(sections[0]?.items.length).toBeLessThanOrEqual(MAX_MENTION_SKILL_ITEMS);
   });
 });

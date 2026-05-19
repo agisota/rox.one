@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils'
 import { findMentionMatches, parseMentions, type MentionMatch } from '@/lib/mentions'
 import {
   loadSourceIcon,
-  loadSkillIcon,
   iconCache,
   EMOJI_ICON_PREFIX,
 } from '@/lib/icon-cache'
@@ -64,6 +63,36 @@ export interface RichTextInputProps extends Omit<React.HTMLAttributes<HTMLDivEle
   onLongTextPaste?: (text: string) => void
   /** Accessible label for the contenteditable region */
   ariaLabel?: string
+}
+
+export interface RichTextIconPreloadPlan {
+  sourceIcons: Array<{ config: LoadedSource['config']; workspaceId: string }>
+  skillIcons: []
+}
+
+export function createRichTextIconPreloadPlan({
+  sources,
+  skills,
+  workspaceId,
+}: {
+  sources: LoadedSource[]
+  skills: LoadedSkill[]
+  workspaceId?: string
+}): RichTextIconPreloadPlan {
+  // Skill icons are intentionally not preloaded here. On machines with large
+  // global skill catalogs, this component can receive ~10k skills after each
+  // session switch; eager loading each icon creates renderer jank and IPC/file
+  // discovery storms. SkillAvatar/useEntityIcon loads visible menu icons lazily.
+  void skills
+
+  if (!workspaceId) {
+    return { sourceIcons: [], skillIcons: [] }
+  }
+
+  return {
+    sourceIcons: sources.map(source => ({ config: source.config, workspaceId })),
+    skillIcons: [],
+  }
 }
 
 export interface RichTextInputHandle {
@@ -544,18 +573,12 @@ export const RichTextInput = React.forwardRef<RichTextInputHandle, RichTextInput
     const skillSlugs = React.useMemo(() => skills.map(s => s.slug), [skills])
     const sourceSlugs = React.useMemo(() => sources.map(s => s.config.slug), [sources])
 
-    // Preload icons for sources and skills
+    // Preload only source icons. Skill icons are loaded lazily by visible
+    // avatars instead of faning out over the full skill catalog on session switch.
     React.useEffect(() => {
-      if (!workspaceId) return
-
-      // Preload source icons
-      for (const source of sources) {
-        loadSourceIcon({ config: source.config, workspaceId })
-      }
-
-      // Preload skill icons (handles emoji, URL, file, and auto-discovery)
-      for (const skill of skills) {
-        loadSkillIcon(skill, workspaceId)
+      const preloadPlan = createRichTextIconPreloadPlan({ sources, skills, workspaceId })
+      for (const sourceIcon of preloadPlan.sourceIcons) {
+        loadSourceIcon(sourceIcon)
       }
     }, [sources, skills, workspaceId])
 
