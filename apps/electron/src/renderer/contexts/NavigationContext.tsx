@@ -69,6 +69,7 @@ import {
   isSkillsNavigation,
   isAutomationsNavigation,
   isWorkbenchNavigation,
+  isDesignNavigation,
   DEFAULT_NAVIGATION_STATE,
 } from '../../shared/types'
 import { isValidSettingsSubpage, type SettingsSubpage } from '../../shared/settings-registry'

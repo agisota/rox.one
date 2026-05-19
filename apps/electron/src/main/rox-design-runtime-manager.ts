@@ -57,7 +57,7 @@ interface SidecarStatus {
 
 const EMBED_PARAMS: Record<string, string> = {
   embed: 'rox',
-  theme: 'dark',
+  theme: 'system',
   lang: 'ru',
 }
 

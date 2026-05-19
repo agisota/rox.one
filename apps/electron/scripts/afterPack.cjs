@@ -33,6 +33,11 @@ module.exports = async function afterPack(context) {
   const bundleName = 'ROX.ONE.app';
   const bundlePath = path.join(appPath, bundleName);
   const resourcesDir = path.join(bundlePath, 'Contents', 'Resources');
+  const duplicateRoxDesignPayload = path.join(resourcesDir, 'app', 'dist', 'resources', 'rox-design');
+  if (fs.existsSync(duplicateRoxDesignPayload)) {
+    fs.rmSync(duplicateRoxDesignPayload, { recursive: true, force: true });
+    console.log(`afterPack: removed duplicate Rox Design payload at ${duplicateRoxDesignPayload}`);
+  }
   const precompiledAssets = path.join(context.packager.projectDir, 'resources', 'Assets.car');
   const rootIconSvg = path.join(context.packager.projectDir, 'resources', 'icon.svg');
   const rootIconPng = path.join(context.packager.projectDir, 'resources', 'icon.png');

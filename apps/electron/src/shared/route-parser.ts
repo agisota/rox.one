@@ -36,7 +36,7 @@ export interface ParsedRoute {
 // Compound Route Types (new format)
 // =============================================================================
 
-export type NavigatorType = 'sessions' | 'sources' | 'skills' | 'automations' | 'settings' | 'workbench'
+export type NavigatorType = 'sessions' | 'sources' | 'skills' | 'automations' | 'settings' | 'workbench' | 'design'
 
 export interface ParsedCompoundRoute {
   /** The navigator type */
@@ -62,7 +62,7 @@ export interface ParsedCompoundRoute {
  * Known prefixes that indicate a compound route
  */
 const COMPOUND_ROUTE_PREFIXES = [
-  'allSessions', 'flagged', 'archived', 'state', 'label', 'view', 'sources', 'skills', 'automations', 'settings', 'workbench'
+  'allSessions', 'flagged', 'archived', 'state', 'label', 'view', 'sources', 'skills', 'automations', 'settings', 'workbench', 'design'
 ]
 
 /**
@@ -94,6 +94,11 @@ export function parseCompoundRoute(route: string): ParsedCompoundRoute | null {
   if (segments.length === 0) return null
 
   const first = segments[0]
+
+  // Design navigator - embedded Rox Design surface
+  if (first === 'design') {
+    return { navigator: 'design', details: null }
+  }
 
   // Workbench navigator - Experience Layer screens
   if (first === 'workbench') {
@@ -303,6 +308,10 @@ export function buildCompoundRoute(parsed: ParsedCompoundRoute): string {
     return `${base}/automation/${parsed.details.id}`
   }
 
+  if (parsed.navigator === 'design') {
+    return 'design'
+  }
+
   // Sessions navigator
   let base: string
   const filter = parsed.sessionFilter
@@ -433,6 +442,11 @@ function convertCompoundToViewRoute(compound: ParsedCompoundRoute): ParsedRoute 
     return { type: 'view', name: 'automation-info', id: compound.details.id, params: {} }
   }
 
+  // Design
+  if (compound.navigator === 'design') {
+    return { type: 'view', name: 'design', params: {} }
+  }
+
   // Sessions
   if (compound.sessionFilter) {
     const filter = compound.sessionFilter
@@ -555,6 +569,11 @@ function convertCompoundToNavigationState(compound: ParsedCompoundRoute): Naviga
       navigator: 'skills',
       details: { type: 'skill', skillSlug: compound.details.id },
     }
+  }
+
+  // Design - embedded Rox Design surface (no filter, no details)
+  if (compound.navigator === 'design') {
+    return { navigator: 'design' }
   }
 
   // Automations - include filter if present
@@ -765,6 +784,10 @@ function navigationStateToCompoundRoute(state: NavigationState): ParsedCompoundR
       automationFilter: state.filter ?? undefined,
       details: state.details ? { type: 'automation', id: state.details.automationId } : null,
     }
+  }
+
+  if (state.navigator === 'design') {
+    return { navigator: 'design', details: null }
   }
 
   // Sessions
