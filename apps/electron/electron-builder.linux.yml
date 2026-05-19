@@ -55,7 +55,10 @@ linux:
 
 # DEB package: system library dependencies for Ubuntu/Debian.
 # Covers GTK3, libnotify, NSS, libsecret, X11 extensions needed by Electron.
-# gconf2/gconf-service kept for older LTS compatibility.
+# Uses OR-dep syntax for t64 transitional libs (Ubuntu 24.04+) while
+# remaining compatible with Debian 12 / Ubuntu 22.04 which use pre-t64 names.
+# gconf2/gconf-service removed: dropped from Ubuntu 24.04 and not needed by
+# modern Electron (chromium dropped GConf support years ago).
 deb:
   packageCategory: utils
   depends:
