@@ -7,7 +7,11 @@ name: Mac White-Window Diag Smoke
 #   - workflow_dispatch: manual dispatch from the Actions tab
 #   - push to branches matching fix/multiplatform-mac-* (auto-run on fix branches)
 #
-# Matrix: macos-13 (Ventura), macos-14 (Sonoma), macos-15 (Sequoia).
+# Auto matrix: macos-14 (Sonoma), macos-15 (Sequoia).
+# Ventura (macos-13) is intentionally not in the push matrix: GitHub-hosted
+# macos-13 jobs can remain queued without allocating a runner, which blocks PRs
+# without producing launch evidence. Use a VM/self-hosted Ventura runner for exact
+# Ventura GUI proof if needed.
 # Artefacts: per-OS screenshot + diag.log + DiagnosticReports uploaded always.
 
 on:
@@ -31,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-14, macos-15]
+        os: [macos-14, macos-15]
 
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
