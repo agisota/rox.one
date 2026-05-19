@@ -4,16 +4,15 @@ name: NixOS AppImage smoke
 # the AppImage wrapper builds and runs on NixOS-equivalent infrastructure.
 #
 # Two-phase strategy (avoids chicken-and-egg sha256 problem):
-#   Phase 1 — schema check: `nix flake check` validates the flake structure
+#   Phase 1 - schema check: nix flake check validates the flake structure
 #             without fetching the upstream AppImage.  Uses --no-build so the
 #             fakeSha256 placeholder does not cause a network fetch.
-#   Phase 2 — local build: Downloads the latest release AppImage directly
+#   Phase 2 - local build: Downloads the latest release AppImage directly
 #             from GitHub Releases, writes a patched flake that substitutes
-#             the real sha256, builds the wrapper, and runs `--help`.
+#             the real sha256, builds the wrapper, and runs --help.
 #
 # Security: all github context values that reach shell scripts are passed
-# through env: vars — never inlined via ${{ }} expression interpolation in
-# run: blocks — to prevent expression injection attacks.
+# through env: vars, never via ${{ }} expression interpolation in run: blocks.
 
 on:
   workflow_dispatch:
@@ -38,7 +37,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      # ── 1. Install Nix ──────────────────────────────────────────────────────
       - name: Install Nix
         uses: cachix/install-nix-action@v27
         with:
@@ -46,10 +44,7 @@ jobs:
             experimental-features = nix-command flakes
             accept-flake-config = true
 
-      # ── 2. Flake schema check (no AppImage download) ────────────────────────
-      # `nix flake check --no-build` validates the flake output schema without
-      # building any derivation, so the fakeSha256 placeholder does not trigger
-      # a real network fetch and the check is fast (~5 s).
+      # Phase 1: validate flake schema without building (avoids fakeSha256 fetch)
       - name: nix flake check (schema only, no-build)
         shell: bash
         run: |
@@ -57,9 +52,8 @@ jobs:
           nix flake check ./packaging/nixos --no-build 2>&1 | tee /tmp/nix-flake-check.log
           echo "nix flake check passed"
 
-      # ── 3. Resolve latest release tag ───────────────────────────────────────
-      # Tag and repo name are extracted via env vars, not inlined into the
-      # shell script body, to prevent injection.
+      # Resolve the latest published release tag via GitHub API, falling back
+      # to the highest v* git tag if no published release exists yet.
       - name: Resolve latest release tag
         id: resolve-tag
         shell: bash
@@ -73,7 +67,7 @@ jobs:
             latest=$(git tag -l 'v*' | sort -V | tail -n 1)
           fi
           if [ -z "$latest" ]; then
-            echo "::warning::No release tag found — skipping AppImage download"
+            echo "::warning::No release tag found - skipping AppImage download"
             echo "tag=" >> "$GITHUB_OUTPUT"
             echo "version=" >> "$GITHUB_OUTPUT"
           else
@@ -82,7 +76,6 @@ jobs:
             echo "version=${latest#v}" >> "$GITHUB_OUTPUT"
           fi
 
-      # ── 4. Download AppImage from GitHub Releases ───────────────────────────
       - name: Download AppImage from GitHub Releases
         id: download-appimage
         if: steps.resolve-tag.outputs.tag != ''
@@ -110,7 +103,9 @@ jobs:
             echo "appimage_available=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # ── 5. Build Nix wrapper with real sha256 ───────────────────────────────
+      # Phase 2: build the wrapper using the local AppImage.
+      # We write the patched flake.nix via Python (not a shell heredoc) to
+      # avoid YAML multi-line quoting issues with Nix curly-brace syntax.
       - name: Build Nix wrapper with local AppImage
         id: nix-build
         if: steps.download-appimage.outputs.appimage_available == 'true'
@@ -120,62 +115,61 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Compute sha256 in Nix SRI format (sha256-<base64>)
           REAL_SHA256=$(nix hash file --sri /tmp/rox-agent.AppImage)
           echo "Real sha256 (SRI): ${REAL_SHA256}"
 
-          # Copy packaging/nixos to a temp dir and patch flake.nix to use the
-          # local AppImage path and real hash — leaves the source tree intact.
           FLAKE_DIR=$(mktemp -d)
           cp packaging/nixos/rox-agent.nix "${FLAKE_DIR}/"
 
-          # Write a patched flake that overrides src with the local file.
-          # All variable interpolations below are from trusted CI env vars.
-          cat > "${FLAKE_DIR}/flake.nix" <<NIXEOF
-{
-  description = "ROX.ONE rox-agent — NixOS AppImage flake (CI smoke)";
-  inputs = {
-    nixpkgs.url     = "github:NixOS/nixpkgs/nixos-24.05";
-    flake-utils.url = "github:numtide/flake-utils";
-  };
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
-      let
-        pkgs     = import nixpkgs { inherit system; };
-        lib      = pkgs.lib;
-        version  = "${VERSION}";
-        sha256   = "${REAL_SHA256}";
-        localSrc = pkgs.fetchurl {
-          url    = "file:///tmp/rox-agent.AppImage";
-          inherit sha256;
-        };
-        roxAgent = pkgs.callPackage ./rox-agent.nix {
-          inherit pkgs lib version sha256 system;
-          src = localSrc;
-        };
-      in {
-        packages = { rox-agent = roxAgent; default = roxAgent; };
-        apps = {
-          rox-agent = flake-utils.lib.mkApp { drv = roxAgent; };
-          default   = flake-utils.lib.mkApp { drv = roxAgent; };
-        };
-      }
-    );
-}
-NIXEOF
+          # Write the CI flake via Python to avoid heredoc YAML conflicts.
+          python3 - "${FLAKE_DIR}" "${VERSION}" "${REAL_SHA256}" <<'PYEOF'
+          import sys, textwrap, pathlib
+          flake_dir, version, sha256 = sys.argv[1], sys.argv[2], sys.argv[3]
+          content = textwrap.dedent(f'''
+            {{
+              description = "ROX.ONE rox-agent - NixOS AppImage flake (CI smoke)";
+              inputs = {{
+                nixpkgs.url     = "github:NixOS/nixpkgs/nixos-24.05";
+                flake-utils.url = "github:numtide/flake-utils";
+              }};
+              outputs = {{ self, nixpkgs, flake-utils }}:
+                flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
+                  let
+                    pkgs     = import nixpkgs {{ inherit system; }};
+                    lib      = pkgs.lib;
+                    version  = "{version}";
+                    sha256   = "{sha256}";
+                    localSrc = pkgs.fetchurl {{
+                      url    = "file:///tmp/rox-agent.AppImage";
+                      inherit sha256;
+                    }};
+                    roxAgent = pkgs.callPackage ./rox-agent.nix {{
+                      inherit pkgs lib version sha256 system;
+                      src = localSrc;
+                    }};
+                  in {{
+                    packages = {{ rox-agent = roxAgent; default = roxAgent; }};
+                    apps = {{
+                      rox-agent = flake-utils.lib.mkApp {{ drv = roxAgent; }};
+                      default   = flake-utils.lib.mkApp {{ drv = roxAgent; }};
+                    }};
+                  }}
+                );
+            }}
+          ''').lstrip()
+          pathlib.Path(flake_dir, "flake.nix").write_text(content)
+          print(f"Wrote CI flake to {flake_dir}/flake.nix")
+          PYEOF
 
           echo "Building rox-agent wrapper..."
           nix build "${FLAKE_DIR}#rox-agent" --no-link --print-out-paths \
             2>&1 | tee /tmp/nix-build.log
-          OUT=$(nix build "${FLAKE_DIR}#rox-agent" --no-link --print-out-paths 2>/dev/null || true)
           echo "flake_dir=${FLAKE_DIR}" >> "$GITHUB_OUTPUT"
-          echo "Build completed: ${OUT}"
 
-      # ── 6. Smoke: rox-agent --no-sandbox --help ─────────────────────────────
-      # GitHub-hosted runners disable user namespaces so Electron's sandbox
-      # fails.  Pass --no-sandbox (documented as a known NixOS limitation).
-      # We accept any exit code — the goal is "no FHS / dynamic-linker crash".
-      - name: Smoke test — rox-agent --help
+      # Run the wrapped binary with --no-sandbox (GitHub runners disable user
+      # namespaces which Electron sandbox needs; documented NixOS limitation).
+      # Accept any exit code - the goal is no FHS/dynamic-linker crash.
+      - name: Smoke test - rox-agent --help
         if: steps.download-appimage.outputs.appimage_available == 'true'
         shell: bash
         env:
@@ -188,9 +182,8 @@ NIXEOF
           timeout 20 nix run "${FLAKE_DIR}#rox-agent" -- --no-sandbox --help \
             2>&1 | tee /tmp/nix-run-smoke.log || true
 
-          # Detect known fatal FHS / dynamic-linker errors
           if grep -qiE \
-            "(No such file or directory: '/lib|cannot open shared object|no version information available: /lib64/ld)" \
+            "(No such file or directory: .*/lib|cannot open shared object|no version information available: /lib64/ld)" \
             /tmp/nix-run-smoke.log; then
             echo "::error::FHS / dynamic-linker error detected in smoke output"
             cat /tmp/nix-run-smoke.log
@@ -198,7 +191,6 @@ NIXEOF
           fi
           echo "Smoke test passed (no FHS errors detected)"
 
-      # ── 7. Upload logs ──────────────────────────────────────────────────────
       - name: Upload Nix build logs
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
