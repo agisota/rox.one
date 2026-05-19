@@ -217,7 +217,43 @@ import type {
   ImportRemoteSessionTransferResult,
 } from '@rox-one/shared/protocol'
 
+export type RoxDesignRuntimeStatus = 'idle' | 'starting' | 'running' | 'failed'
+
+export interface RoxDesignStatus {
+  status: RoxDesignRuntimeStatus
+  webUrl?: string
+  daemonUrl?: string
+  version?: string
+  error?: string
+}
+
+export interface RoxDesignBounds {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export interface RoxDesignViewStatus {
+  status: 'shown' | 'hidden'
+  webContentsId?: number
+  viewKind?: 'webContentsView' | 'browserView'
+}
+
+export interface RoxDesignApi {
+  start(): Promise<RoxDesignStatus>
+  getStatus(): Promise<RoxDesignStatus>
+  stop(): Promise<RoxDesignStatus>
+  show(input: { url: string; bounds: RoxDesignBounds }): Promise<RoxDesignViewStatus>
+  setBounds(bounds: RoxDesignBounds): Promise<void>
+  hide(): Promise<void>
+  openExternal(url: string): Promise<void>
+}
+
 export interface ElectronAPI {
+  // Rox Design embedded runtime control
+  roxDesign?: RoxDesignApi
+
   // Session management
   getSessions(): Promise<Session[]>
   getUnreadSummary(): Promise<UnreadSummary>
@@ -876,6 +912,14 @@ export interface WorkbenchNavigationState {
 }
 
 /**
+ * Rox Design embedded navigation state.
+ */
+export interface DesignNavigationState {
+  navigator: 'design'
+  rightSidebar?: RightSidebarPanel
+}
+
+/**
  * Unified navigation state
  */
 export type NavigationState =
@@ -885,6 +929,7 @@ export type NavigationState =
   | SkillsNavigationState
   | AutomationsNavigationState
   | WorkbenchNavigationState
+  | DesignNavigationState
 
 export const isSessionsNavigation = (
   state: NavigationState
@@ -910,6 +955,10 @@ export const isWorkbenchNavigation = (
   state: NavigationState
 ): state is WorkbenchNavigationState => state.navigator === 'workbench'
 
+export const isDesignNavigation = (
+  state: NavigationState
+): state is DesignNavigationState => state.navigator === 'design'
+
 export const DEFAULT_NAVIGATION_STATE: NavigationState = {
   navigator: 'sessions',
   filter: { kind: 'allSessions' },
@@ -917,6 +966,9 @@ export const DEFAULT_NAVIGATION_STATE: NavigationState = {
 }
 
 export const getNavigationStateKey = (state: NavigationState): string => {
+  if (state.navigator === 'design') {
+    return 'design'
+  }
   if (state.navigator === 'workbench') {
     return `workbench/${state.screen}`
   }
@@ -955,6 +1007,7 @@ export const getNavigationStateKey = (state: NavigationState): string => {
 }
 
 export const parseNavigationStateKey = (key: string): NavigationState | null => {
+  if (key === 'design') return { navigator: 'design' }
   if (key === 'workbench') return { navigator: 'workbench', screen: DEFAULT_WORKBENCH_SCREEN }
   if (key.startsWith('workbench/')) {
     const screen = key.slice(10)
