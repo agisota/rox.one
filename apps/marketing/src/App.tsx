@@ -690,7 +690,7 @@ export function App() {
                   </a>
                 </article>
               ))}
-              {betaRelease && betaDownloads.length > 0 && (
+              {betaRelease && betaDownloads[0] && (
                 <article className="download-card">
                   <div className="download-card-header">
                     <div className="feature-icon">
