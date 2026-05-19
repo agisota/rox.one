@@ -75,7 +75,7 @@
     "undici": "7.25.0",
     "unist-util-visit": "^5.0.0",
     "vaul": "^1.1.2",
-    "ws": "8.20.0",
+    "ws": "8.20.1",
     "@anthropic-ai/sdk": "0.91.1",
     "@anthropic-ai/claude-agent-sdk": "0.2.123"
   },
