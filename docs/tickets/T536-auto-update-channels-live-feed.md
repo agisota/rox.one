@@ -1,6 +1,6 @@
 # T536 — Автообновления ROX.ONE: stable/beta, живой release-feed, кнопка обновления
 
-Status: IN_PROGRESS
+Status: IN_PROGRESS — stable live, beta follow-up in progress
 
 ## Цель
 
@@ -27,4 +27,6 @@ Status: IN_PROGRESS
 ## Риски
 
 - Без Apple Developer ID macOS может требовать ручного подтверждения запуска/обновления.
+- Stable `v1.0.0` опубликован и живой; beta feed требует свежий prerelease tag после фикса Worker, потому что старый `v1.0.0-rc.7` не содержит `beta*.yml`.
 - Полная живая проверка старой установленной версии зависит от наличия опубликованного нового выпуска и поведения macOS Gatekeeper.
+- Follow-up PR #258 также чинит hosted CircleCI `validate`: `transform_data` теперь запускает дочерний процесс через native `Bun.spawn` под Bun, чтобы обходить intermittent `node:child_process.spawn` EBADF на Linux runner.

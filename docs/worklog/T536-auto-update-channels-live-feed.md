@@ -7,13 +7,14 @@ Implement ROX.ONE auto-update completion: stable/beta update channels, default b
 ## 2. Repo context discovered
 
 - Repository: `/Users/marklindgreen/Projects/rox-one-terminal-t302-live`
-- Branch: `mac/t302-release-update-live`
+- Branches: initial implementation on `mac/t302-release-update-live`, live follow-up on `mac/t302-marketing-release-live-fix`
 - Remote: `https://github.com/agisota/rox-one-terminal.git`
-- Baseline: `origin/main` at `c14cc785ba235fd4a0d97a7cb5c83a23b8c0f2f9`
+- Baseline: initial feature from `origin/main` at `c14cc785ba235fd4a0d97a7cb5c83a23b8c0f2f9`; live follow-up reset to `origin/main` at merge commit `6fa99c69cc5eca0b2a09936c904e6ffee21c7ae4`
 - Top-level repo contract requires ticket/worklog first and tests/validation before implementation.
 - `electron-updater` was already present, but the live feed contract was incomplete: stable/beta YAML metadata and release notes needed to be emitted, validated, and served by `app.rox.one`.
 - `apps/electron/resources/AGENTS.md` says feature commits must update `release-notes/next.md`, not create versioned release-note files. The temporary `1.0.0*.md` files were removed and folded into `next.md`; versioned files remain a release-prep responsibility.
 - Hosted validate exposed an existing Linux artifact fixture mismatch: the validator correctly expects Debian `amd64` naming while the synthetic test fixture still wrote `x86_64.deb`; the fixture was aligned with electron-builder Debian naming.
+- Live follow-up found `/electron/beta/manifest.json` still resolving old `v1.0.0-rc.7`, whose release lacked `beta*.yml`; the Worker must skip beta/rc releases that are not GitHub prereleases or that lack mandatory beta update metadata.
 
 ## 3. Files inspected
 
@@ -45,6 +46,7 @@ Implement ROX.ONE auto-update completion: stable/beta update channels, default b
 - `scripts/validate-release-notes-feed.ts`
 - `scripts/__tests__/validate-packaged-artifacts.test.ts`
 - `scripts/stamp-release-version.ts`
+- Live follow-up: GitHub PR/release/action state via `gh`, `https://app.rox.one/electron/*` feed URLs via `curl -I`, and `https://rox.one/` deployed bundle markers.
 
 ## 4. Tests added first
 
@@ -63,6 +65,7 @@ Implement ROX.ONE auto-update completion: stable/beta update channels, default b
   - `/electron/{version}` pinned version routing.
   - `release-notes.json` and install script routing.
   - CORS/HEAD/security behavior.
+  - Live follow-up regression: skip old or incomplete beta/rc releases so `/electron/beta/beta*.yml` cannot resolve to a release without required update metadata.
 - `scripts/validate-release-all-platforms-workflow.ts`
   - release workflow must stamp package version from tag, validate YAML/assets, publish `manifest.json` + `release-notes.json`, and keep platform releases draft until final attach.
 - `scripts/validate-release-feed-assets.ts`
@@ -115,12 +118,14 @@ for the workflow contract, because the validator had been extended before the ve
 - Cloudflare Worker:
   - `/electron/latest` aliases stable.
   - `/electron/stable`, `/electron/beta`, `/electron/{version}` route to correct GitHub Release assets.
+  - beta selection now requires a real GitHub prerelease and all mandatory beta metadata assets: `manifest.json`, `beta-mac.yml`, `beta.yml`, `beta-linux.yml`.
   - install scripts and `release-notes.json` are served from release assets.
 - CI validation fixture:
   - aligned Linux `.deb` fixture naming with electron-builder Debian `amd64` output so the existing packaged-artifact validator passes on hosted Linux.
 - Marketing site:
   - download cards read stable/beta manifests and stable release notes from `app.rox.one` instead of relying on hardcoded versions.
   - shows the unsigned Apple Developer ID warning.
+  - live follow-up tightened the beta-card guard from `betaDownloads.length > 0` to `betaDownloads[0]` so strict TypeScript sees the rendered first beta download as defined.
 
 ## 7. Validation commands run
 
@@ -137,18 +142,27 @@ for the workflow contract, because the validator had been extended before the ve
 - `bun run typecheck:all` — pass.
 - `bun run marketing:build` — pass.
 - `bun run electron:build` — pass with existing Vite chunk-size/dynamic-import warnings.
+- `gh pr view 256 --repo agisota/rox-one-terminal --json state,mergedAt,mergeCommit,url,title` — PR merged at `2026-05-19T08:32:50Z`, merge commit `6fa99c69cc5eca0b2a09936c904e6ffee21c7ae4`.
+- `gh run view 26086129899 --repo agisota/rox-one-terminal --json status,conclusion,workflowName,headBranch,headSha,url` — `Release All Platforms` completed with `success` on tag `v1.0.0`.
+- `gh release view v1.0.0 --repo agisota/rox-one-terminal --json ...` — published stable release contains `manifest.json`, `release-notes.json`, `latest*.yml`, `beta*.yml`, install scripts, mac/win/linux binaries.
+- `curl -L -sS -I https://app.rox.one/electron/stable/{manifest.json,latest-mac.yml,latest.yml,latest-linux.yml,release-notes.json,install-app.sh,install-app.ps1,...}` — stable manifest/metadata/scripts/assets returned `200`.
+- `curl -L -sS https://app.rox.one/electron/stable/manifest.json` and `/electron/latest/manifest.json` — both returned version `1.0.0`, channel `stable`.
+- `curl -L -sS -I https://app.rox.one/electron/beta/beta-mac.yml` before the live follow-up fix returned `404`; regression test added to prevent the Worker from selecting an old incomplete rc release.
+- `bun test infra/__tests__/rox-one-release-feed-worker.test.ts` — pass after beta selection guard (`24 pass`, `0 fail`).
+- `bun run --cwd apps/marketing typecheck` — pass after beta-card guard.
+- `bun run --cwd apps/marketing build` — pass after beta-card guard.
 
 ## 8. Passing test output summary
 
 - Auto-update + IPC/channel tests: `53 pass`, `0 fail`, `1244 expect() calls`.
-- Worker tests: `23 pass`, `0 fail`, `79 expect() calls`.
+- Worker tests: initial implementation `23 pass`, `0 fail`, `79 expect() calls`; live follow-up `24 pass`, `0 fail`, `83 expect() calls`.
 - i18n parity: `7 locales, 1614 keys each`.
 - i18n coverage: `1541 literal references, 1160 files scanned`.
 - Workflow validator: `[release-all-platforms-workflow] ok: update-feed workflow contract passed`.
 
 ## 9. Build output summary
 
-- `bun run marketing:build` completed successfully; Vite built `apps/marketing/dist`.
+- `bun run marketing:build` and live follow-up `bun run --cwd apps/marketing build` completed successfully; Vite built `apps/marketing/dist`.
 - `bun run electron:build` completed successfully:
   - main process built and verified.
   - preload entries built and verified.
@@ -161,24 +175,52 @@ for the workflow contract, because the validator had been extended before the ve
 
 ## 10. Remaining risks
 
+- Stable `v1.0.0` live verification is complete; beta channel live proof still requires publishing a fresh prerelease tag that contains `beta*.yml`, then redeploying the Worker with the beta selection guard.
+- Release workflow asset validation is string/contract based plus unit-tested worker behavior; a fresh beta tag run will be the live proof for beta update metadata.
 - Unsigned macOS builds may require manual Gatekeeper action even when update download/install code is correct.
-- Full live verification still depends on GitHub Actions producing release assets and Cloudflare deploy credentials being present locally.
-- Release workflow asset validation is string/contract based plus unit-tested worker behavior; final proof still requires a real tag run and live URL checks.
-- `apps/marketing` builds locally, but before claiming `https://rox.one/` production behavior, the actual Cloudflare Pages/project source must be verified against the deployed site.
 
 ## 11. Acceptance criteria matrix
 
 | Criterion | Status | Evidence |
 | --- | --- | --- |
-| Stable feed exposes required update metadata | Local contract green | `validate-release-feed-assets` required stable YAML; workflow validator passes. Live URL check pending release/deploy. |
-| Beta feed exposes required update metadata | Local contract green | `validate-release-feed-assets` required beta YAML; workflow validator passes. Live URL check pending release/deploy. |
-| `/electron/latest` aliases stable, not rc/beta | Local test green | Worker test `/electron/latest aliases stable and does not resolve prerelease tags`. |
+| Stable feed exposes required update metadata | Live green | `v1.0.0` GitHub Release contains `latest-mac.yml`, `latest.yml`, `latest-linux.yml`; `app.rox.one/electron/stable/*` returned `200`. |
+| Beta feed exposes required update metadata | Regression fixed, live beta release pending | Worker now skips old/incomplete rc releases; fresh beta tag must be published so `/electron/beta/beta*.yml` has live `200`. |
+| `/electron/latest` aliases stable, not rc/beta | Live green | `/electron/latest/manifest.json` and `/electron/stable/manifest.json` both returned version `1.0.0`, channel `stable`; Worker regression test remains green. |
 | App auto-downloads updates by default | Local test green | Auto-update settings test expects `autoDownloadUpdates: true` and `autoUpdater.autoDownload=true`. |
 | App can manually check/download/install when auto-download is off | Local test green | Auto-update tests cover manual check idle state, `downloadUpdate()`, and `installUpdate()`. |
 | TopBar shows non-blocking update button/progress | Implemented, build green | `TopBar.tsx`; `typecheck:electron` and `electron:build` pass. Visual live proof pending packaged app. |
 | Settings expose auto-download and beta participation | Implemented, build green | `AppSettingsPage.tsx`; i18n parity/coverage and Electron build pass. |
 | Remote «Что нового» feed with local fallback works | Implemented, build green | `AppShell.tsx` fetches channel release notes URL and falls back to `getReleaseNotes()`. |
 | Release workflow validates required assets | Local validator green | `bun run validate:release-all-platforms-workflow` pass. |
-| Real `rox.one` download surface reads live feed | Local build green | `apps/marketing/src/App.tsx`; `bun run marketing:build` pass. Production source/deploy check pending. |
-| Live URLs verified after deploy | Pending external stage | Requires tag/build + Worker deploy. |
+| Real `rox.one` download surface reads live feed | Deployed, final visual proof pending | Deployed `rox.one` bundle contains `app.rox.one/electron/stable`, `app.rox.one/electron/beta`, and stable release-notes URLs; Playwright screenshot remains pending. |
+| Live URLs verified after deploy | Stable green, beta pending fresh prerelease | Stable/latest URLs returned `200`; old beta rc metadata returned `404`, fixed in Worker selection logic and pending fresh beta release. |
 | Installed app update verified | Pending external stage | Requires published newer release and live feed. |
+
+## 12. Live follow-up CI repair on PR #258
+
+CircleCI `validate` job `673` failed after the beta-feed guard commit, not on the
+release-feed changes themselves, but on the existing hosted Linux
+`transform_data path containment > allows valid descendant paths and writes
+output` test. The artifact showed Bun's `node:child_process.spawn` compatibility
+path throwing `EBADF: bad file descriptor, epoll_ctl` before the child process
+started.
+
+Follow-up repair:
+
+- Keep the existing Node `child_process.spawn` retry/fallback path for non-Bun
+  runtimes and for the dedicated regression tests.
+- When running under Bun and native `Bun.spawn` is available, use `Bun.spawn` as
+  the primary process launcher for `transform_data`; this avoids the hosted
+  Bun child-process compatibility layer that produced the EBADF failure.
+- Preserve the old Node-spawn retry path through the
+  `ROX_TRANSFORM_DATA_NODE_SPAWN_PRIMARY=1` regression-test seam.
+
+Validation after the repair:
+
+- `bun test packages/session-tools-core/src/handlers/transform-data.test.ts`
+- `bun test ./packages/session-tools-core/src/handlers/transform-data-spawn-retry.isolated.ts`
+- `cd packages/session-tools-core && bun run typecheck`
+- `bun test infra/__tests__/rox-one-release-feed-worker.test.ts`
+- `bun run --cwd apps/marketing typecheck`
+- `bun run --cwd apps/marketing build`
+- `bun run validate:release-all-platforms-workflow`

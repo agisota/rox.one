@@ -24,9 +24,15 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   })
 }
 
-function makeRelease(tag: string, assetNames: string[]): unknown {
+function makeRelease(
+  tag: string,
+  assetNames: string[],
+  options: { draft?: boolean; prerelease?: boolean } = {},
+): unknown {
   return {
     tag_name: tag,
+    draft: options.draft,
+    prerelease: options.prerelease,
     assets: assetNames.map((name, i) => ({
       name,
       size: 100 + i,
@@ -61,8 +67,6 @@ describe('rox-one release feed worker v2', () => {
       restore()
     }
   })
-
-
 
   test('serves /electron/stable/latest-mac.yml from the latest stable release', async () => {
     const calls: string[] = []
@@ -129,12 +133,22 @@ describe('rox-one release feed worker v2', () => {
       calls.push(u)
       if (u.includes('/releases?')) {
         return jsonResponse([
-          makeRelease('v1.3.0-beta.2', ['beta-mac.yml']),
-          makeRelease('v1.2.0-rc.7', ['beta-mac.yml']),
+          makeRelease(
+            'v1.3.0-beta.2',
+            ['manifest.json', 'beta-mac.yml', 'beta.yml', 'beta-linux.yml'],
+            { prerelease: true },
+          ),
+          makeRelease(
+            'v1.2.0-rc.7',
+            ['manifest.json', 'beta-mac.yml', 'beta.yml', 'beta-linux.yml'],
+            { prerelease: true },
+          ),
           makeRelease('v1.1.0', ['latest-mac.yml']),
         ])
       }
-      if (u.endsWith('/releases/tags/v1.3.0-beta.2')) return jsonResponse(makeRelease('v1.3.0-beta.2', ['beta-mac.yml']))
+      if (u.endsWith('/releases/tags/v1.3.0-beta.2')) {
+        return jsonResponse(makeRelease('v1.3.0-beta.2', ['beta-mac.yml'], { prerelease: true }))
+      }
       return new Response('version: 1.3.0-beta.2\n', { status: 200 })
     })
 
@@ -146,6 +160,42 @@ describe('rox-one release feed worker v2', () => {
       expect(response.status).toBe(200)
       expect(await response.text()).toContain('1.3.0-beta.2')
       expect(calls.some((u) => u.endsWith('/releases/tags/v1.3.0-beta.2'))).toBe(true)
+    } finally {
+      restore()
+    }
+  })
+
+  test('skips beta/rc releases that are not prereleases or lack beta update metadata', async () => {
+    const calls: string[] = []
+    const restore = installFetchStub(async (input) => {
+      const u = String(input)
+      calls.push(u)
+      if (u.includes('/releases?')) {
+        return jsonResponse([
+          makeRelease('v1.3.0-rc.7', ['manifest.json', 'ROX-ONE-arm64.zip']),
+          makeRelease(
+            'v1.2.0-beta.1',
+            ['manifest.json', 'beta-mac.yml', 'beta.yml', 'beta-linux.yml'],
+            { prerelease: true },
+          ),
+          makeRelease('v1.1.0', ['manifest.json', 'latest-mac.yml']),
+        ])
+      }
+      if (u.endsWith('/releases/tags/v1.2.0-beta.1')) {
+        return jsonResponse(makeRelease('v1.2.0-beta.1', ['beta-mac.yml'], { prerelease: true }))
+      }
+      return new Response('version: 1.2.0-beta.1\n', { status: 200 })
+    })
+
+    try {
+      const response = await handleReleaseFeedRequest(
+        new Request('https://app.rox.one/electron/beta/beta-mac.yml'),
+        ENV,
+      )
+      expect(response.status).toBe(200)
+      expect(await response.text()).toContain('1.2.0-beta.1')
+      expect(calls.some((u) => u.endsWith('/releases/tags/v1.2.0-beta.1'))).toBe(true)
+      expect(calls.some((u) => u.endsWith('/releases/tags/v1.3.0-rc.7'))).toBe(false)
     } finally {
       restore()
     }

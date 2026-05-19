@@ -46,6 +46,7 @@ type ReleaseChannel = 'stable' | 'beta'
 
 const STABLE_TAG_RE = /^v[0-9]+\.[0-9]+\.[0-9]+$/
 const BETA_TAG_RE = /^v[0-9]+\.[0-9]+\.[0-9]+-(?:beta|rc)\.[0-9]+$/
+const REQUIRED_BETA_ASSETS = ['manifest.json', 'beta-mac.yml', 'beta.yml', 'beta-linux.yml'] as const
 
 let latestTagCache: { value: string; expiresAt: number } | null = null
 const channelTagCache = new Map<ReleaseChannel, { value: string; expiresAt: number }>()
@@ -130,8 +131,18 @@ function isStableRelease(release: GitHubRelease): boolean {
   return release.draft !== true && release.prerelease !== true && STABLE_TAG_RE.test(release.tag_name)
 }
 
+function releaseHasAssets(release: GitHubRelease, names: readonly string[]): boolean {
+  const assetNames = new Set(release.assets?.map((asset) => asset.name) ?? [])
+  return names.every((name) => assetNames.has(name))
+}
+
 function isBetaRelease(release: GitHubRelease): boolean {
-  return release.draft !== true && BETA_TAG_RE.test(release.tag_name)
+  return (
+    release.draft !== true &&
+    release.prerelease === true &&
+    BETA_TAG_RE.test(release.tag_name) &&
+    releaseHasAssets(release, REQUIRED_BETA_ASSETS)
+  )
 }
 
 async function fetchReleaseList(env: Env): Promise<GitHubRelease[] | Response> {
