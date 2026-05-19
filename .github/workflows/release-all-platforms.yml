@@ -825,26 +825,79 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Attach manifest.json + install scripts to GitHub Release
-        # generate_release_notes is intentionally false here: the matrix legs
-        # already populated the release notes; re-generating from this last
-        # job would clobber any human edits made between jobs.
-        # Install scripts are bundled per-tag so the Cloudflare worker can
-        # proxy them from a single canonical URL
-        # (https://app.rox.one/install-app.sh / .ps1) without needing a
-        # version path. They are static repo files; uploading per-release
-        # keeps the download URL stable across tag changes.
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          draft: false
-          prerelease: ${{ env.RELEASE_CHANNEL == 'beta' }}
-          generate_release_notes: false
-          fail_on_unmatched_files: true
-          files: |
-            .manifest-out/manifest.json
-            .manifest-out/release-notes.json
-            scripts/install-app.sh
-            scripts/install-app.ps1
+        # The platform matrix jobs upload their artifacts to a draft release.
+        # Do not use softprops/action-gh-release here with draft:false: when a
+        # draft release already exists for the tag, that action can create a
+        # second published release for the same tag, upload assets to the draft,
+        # then fail finalization with `already_exists`. Upload by release id and
+        # publish the existing draft explicitly instead.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          release_id=$(gh api "repos/${REPO}/releases" --paginate \
+            --jq '.[] | select(.tag_name == env.RELEASE_TAG and .draft == true) | .id' \
+            | head -n 1)
+
+          if [ -z "$release_id" ]; then
+            echo "::error::No draft release found for ${RELEASE_TAG}; refusing to publish a partial release."
+            exit 1
+          fi
+
+          upload_url=$(gh api "repos/${REPO}/releases/${release_id}" --jq '.upload_url' | sed 's/{.*//')
+
+          upload_asset() {
+            local file="$1"
+            local name
+            local encoded_name
+            local content_type
+            local existing_asset_id
+
+            if [ ! -f "$file" ]; then
+              echo "::error::Required release asset not found: $file"
+              exit 1
+            fi
+
+            name=$(basename "$file")
+            encoded_name=$(python3 -c 'import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))' "$name")
+            content_type=$(file -b --mime-type "$file" 2>/dev/null || echo application/octet-stream)
+            existing_asset_id=$(ASSET_NAME="$name" gh api "repos/${REPO}/releases/${release_id}/assets" --paginate \
+              --jq '.[] | select(.name == env.ASSET_NAME) | .id' \
+              | head -n 1)
+
+            if [ -n "$existing_asset_id" ]; then
+              gh api --method DELETE "repos/${REPO}/releases/assets/${existing_asset_id}" --silent
+            fi
+
+            curl --fail-with-body --silent --show-error \
+              --request POST \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header "Accept: application/vnd.github+json" \
+              --header "Content-Type: ${content_type}" \
+              --data-binary "@${file}" \
+              "${upload_url}?name=${encoded_name}" >/tmp/release-asset-upload.json
+
+            echo "Uploaded ${name} to release ${release_id}"
+          }
+
+          upload_asset .manifest-out/manifest.json
+          upload_asset .manifest-out/release-notes.json
+          upload_asset scripts/install-app.sh
+          upload_asset scripts/install-app.ps1
+
+          prerelease=false
+          if [ "$RELEASE_CHANNEL" = "beta" ]; then prerelease=true; fi
+
+          gh api --method PATCH "repos/${REPO}/releases/${release_id}" \
+            -F draft=false \
+            -F prerelease="$prerelease" \
+            -f name="$RELEASE_TAG" \
+            --silent
+
+          echo "Published ${RELEASE_TAG} release ${release_id}"
 
       # Best-effort live-feed smoke check. The release was just published and
       # the Cloudflare worker caches the latest tag for 60s, so a sub-minute

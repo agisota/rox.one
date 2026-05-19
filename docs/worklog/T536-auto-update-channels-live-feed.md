@@ -224,3 +224,24 @@ Validation after the repair:
 - `bun run --cwd apps/marketing typecheck`
 - `bun run --cwd apps/marketing build`
 - `bun run validate:release-all-platforms-workflow`
+
+## 13. Beta release finalization repair
+
+The first fresh beta tag `v1.0.1-beta.1` proved that platform packaging works,
+but the aggregate manifest job failed at the final publish step. The matrix jobs
+had uploaded all platform assets to a draft release, then
+`softprops/action-gh-release` with `draft:false` created a second published
+release for the same tag, uploaded aggregate assets to the draft, and failed
+with `Validation Failed: already_exists field=tag_name` while finalizing.
+
+Follow-up repair:
+
+- Keep platform jobs publishing to a draft release.
+- Replace the aggregate job's final `softprops/action-gh-release` call with an
+  explicit GitHub API upload by draft release id.
+- Publish the existing draft by id after `manifest.json`, `release-notes.json`,
+  `install-app.sh`, and `install-app.ps1` are attached.
+
+Validation:
+
+- `bun run validate:release-all-platforms-workflow`
