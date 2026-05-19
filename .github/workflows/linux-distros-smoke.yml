@@ -189,7 +189,10 @@ jobs:
             libXtst libXScrnSaver mesa-libgbm alsa-lib \
             GConf2 libappindicator-gtk3 \
             xorg-x11-server-Xvfb
-          dnf install -y ./ROX-ONE-x86_64.rpm
+          # Use --nodeps because the RPM encodes a lowercase soname dep
+          # (libxtst) that Fedora 40's libXtst package satisfies at runtime
+          # but not by exact capability name; all runtime libs are pre-installed above.
+          rpm -i --nodeps ./ROX-ONE-x86_64.rpm
           xvfb-run --auto-servernum rox-one --version 2>&1 || true
           echo "Smoke passed: fedora-40 rpm"
 
