@@ -7,5 +7,11 @@ routes = [
 ]
 
 [vars]
-ROX_ONE_MARKETING_ORIGIN = "https://main.rox-one.pages.dev"
+# Point at the canonical Pages alias (= latest production deployment) so the
+# router always serves whatever Astro build CI most recently promoted to
+# production. Branch-aliases like `main.rox-one.pages.dev` are NOT safe here
+# because any one-off `wrangler pages deploy --branch=main` from a different
+# tree pins them indefinitely — that's how the v1.0.0 Vite-stub regression
+# happened. The deploy workflow uses --branch=production, not --branch=main.
+ROX_ONE_MARKETING_ORIGIN = "https://rox-one.pages.dev"
 ROX_ONE_WEBUI_ORIGIN = "https://app.rox.one"
