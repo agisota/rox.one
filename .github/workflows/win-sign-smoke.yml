@@ -3,12 +3,12 @@ name: Windows Authenticode Sign + Smoke
 # Authenticode signing smoke test on Win10 (windows-2019) and Win11 (windows-2022).
 #
 # Two modes:
-#   Real signing  — WIN_CSC_LINK + WIN_CSC_KEY_PASSWORD secrets present -> Authenticode
-#   Self-signed   — secrets absent + PR branch -> New-SelfSignedCertificate test cert
-#                   (SmartScreen will still block; status logged as warning, not failure)
+#   Real signing  - WIN_CSC_LINK + WIN_CSC_KEY_PASSWORD secrets present -> Authenticode
+#   Self-signed   - secrets absent + PR branch -> New-SelfSignedCertificate test cert
+#                   (SmartScreen blocks; status logged as warning, not failure)
 #
-# Untrusted-input safety: no user-supplied inputs are interpolated into run: blocks.
-# All env values are passed via env: vars or GITHUB_ENV (never ${{ inputs.* }} inline).
+# Untrusted-input safety: no user-supplied inputs are interpolated into run blocks.
+# All env values passed via env vars or GITHUB_ENV.
 
 on:
   workflow_dispatch:
@@ -102,22 +102,23 @@ jobs:
           $allOk = $true
           foreach ($exe in $exes) {
             $sig = Get-AuthenticodeSignature -FilePath $exe.FullName
-            $line = "$($exe.Name): $($sig.Status) -- $($sig.SignerCertificate?.Subject ?? 'unsigned')"
+            $subject = if ($sig.SignerCertificate) { $sig.SignerCertificate.Subject } else { 'unsigned' }
+            $line = "$($exe.Name): $($sig.Status) -- $subject"
             $results += $line
             Write-Host $line
             if ($sig.Status -eq 'Valid') {
-              Write-Host "##[notice] Authenticode signature: Valid — $($exe.Name)"
+              Write-Host "##[notice] Authenticode signature: Valid"
             } elseif ($sig.Status -eq 'NotSigned') {
-              Write-Warning "##[warning] $($exe.Name) is unsigned. SmartScreen will warn. Expected for smoke without trusted cert."
+              Write-Warning "Installer is unsigned. SmartScreen will warn. Expected for smoke without trusted cert."
             } else {
-              Write-Error "Unexpected signature status '$($sig.Status)' for $($exe.Name)"
+              Write-Error "Unexpected signature status $($sig.Status) for $($exe.Name)"
               $allOk = $false
             }
           }
           $results | Out-File -FilePath .ci-logs\win-sign-smoke\signature-verification.log -Encoding utf8
           if (-not $allOk) { exit 1 }
 
-      - name: Install Playwright + Electron driver
+      - name: Install Playwright
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -138,7 +139,7 @@ jobs:
           }
           Write-Host "Install complete (exit 0)"
 
-      - name: Smoke test — launch, screenshot, assert title
+      - name: Smoke test -- launch, screenshot, assert title
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -147,30 +148,13 @@ jobs:
             $appExe = Get-ChildItem "$env:LOCALAPPDATA\Programs" -Filter 'ROX.ONE.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
           }
           if (-not $appExe) {
-            Write-Warning "##[warning] Installed exe not found — skipping launch smoke (install path may differ)"
+            Write-Warning "Installed exe not found -- skipping launch smoke (install path may differ)"
             exit 0
           }
           Write-Host "Launching: $($appExe.FullName)"
-          $screenshotPath = "$PWD\.ci-logs\win-sign-smoke\smoke-screenshot-${{ matrix.os }}.png"
-          $smokeScript = @"
-const { _electron: electron } = require('playwright');
-(async () => {
-  const app = await electron.launch({ executablePath: process.argv[2], args: ['--no-sandbox', '--headless=new'] });
-  const win = await app.firstWindow();
-  await win.waitForLoadState('domcontentloaded');
-  const title = await win.title();
-  console.log('window-title:' + title);
-  await win.screenshot({ path: process.argv[3] });
-  await app.close();
-  if (!title.toLowerCase().includes('rox')) {
-    console.error('Title does not contain rox: ' + title);
-    process.exit(1);
-  }
-})().catch(e => { console.error(e); process.exit(1); });
-"@
-          $tmpScript = [System.IO.Path]::GetTempFileName() + '.cjs'
-          $smokeScript | Out-File -FilePath $tmpScript -Encoding utf8
-          node $tmpScript "$($appExe.FullName)" "$screenshotPath"
+          $os = "${{ matrix.os }}"
+          $screenshotPath = "$PWD\.ci-logs\win-sign-smoke\smoke-screenshot-$os.png"
+          node scripts/win-smoke-launch.cjs "$($appExe.FullName)" "$screenshotPath"
           Write-Host "Screenshot saved: $screenshotPath"
 
       - name: Upload installer artifact
