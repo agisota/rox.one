@@ -47,6 +47,8 @@ jobs:
       # Phase 1: validate flake schema without building (avoids fakeSha256 fetch)
       - name: nix flake check (schema only, no-build)
         shell: bash
+        env:
+          NIXPKGS_ALLOW_UNFREE: "1"
         run: |
           set -euo pipefail
           nix flake check ./packaging/nixos --no-build 2>&1 | tee /tmp/nix-flake-check.log
@@ -112,6 +114,7 @@ jobs:
         shell: bash
         env:
           VERSION: ${{ steps.resolve-tag.outputs.version }}
+          NIXPKGS_ALLOW_UNFREE: "1"
         run: |
           set -euo pipefail
 
@@ -135,7 +138,7 @@ jobs:
               outputs = {{ self, nixpkgs, flake-utils }}:
                 flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
                   let
-                    pkgs     = import nixpkgs {{ inherit system; }};
+                    pkgs     = import nixpkgs {{ inherit system; config.allowUnfree = true; }};
                     lib      = pkgs.lib;
                     version  = "{version}";
                     sha256   = "{sha256}";
@@ -176,6 +179,7 @@ jobs:
           FLAKE_DIR: ${{ steps.nix-build.outputs.flake_dir }}
           DISPLAY: ""
           ELECTRON_DISABLE_SANDBOX: "1"
+          NIXPKGS_ALLOW_UNFREE: "1"
         run: |
           set -euo pipefail
           echo "Running smoke test..."
