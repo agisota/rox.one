@@ -17,7 +17,7 @@ on:
       - "fix/multiplatform-win-*"
 
 concurrency:
-  group: win-sign-smoke-${{ github.ref }}-${{ matrix.os }}
+  group: win-sign-smoke-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -76,18 +76,17 @@ jobs:
         working-directory: apps/electron
         run: |
           $ErrorActionPreference = 'Stop'
-          bun run build:win *>&1 | Tee-Object -FilePath ..\..\..\.ci-logs\win-sign-smoke\electron-build.log
+          bun run build:win *>&1 | Tee-Object -FilePath ..\..\.ci-logs\win-sign-smoke\electron-build.log
 
       # Package with the win signing overlay config.
+      # CSC_LINK and CSC_KEY_PASSWORD are written to GITHUB_ENV by the
+      # win-codesign.ts step and are automatically available here.
       - name: Package Windows NSIS + Portable (signed or test-signed)
         shell: pwsh
         working-directory: apps/electron
-        env:
-          CSC_LINK: ${{ env.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ env.CSC_KEY_PASSWORD }}
         run: |
           $ErrorActionPreference = 'Stop'
-          bunx electron-builder --win --x64 --config electron-builder.win.yml --publish=never *>&1 | Tee-Object -FilePath ..\..\..\.ci-logs\win-sign-smoke\electron-builder.log
+          bunx electron-builder --win --x64 --config electron-builder.win.yml --publish=never *>&1 | Tee-Object -FilePath ..\..\.ci-logs\win-sign-smoke\electron-builder.log
 
       # Signature verification: Valid -> pass, NotSigned -> warning, other -> fail.
       - name: Verify Authenticode signature
