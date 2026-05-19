@@ -32,6 +32,7 @@ import {
   Bot,
   Info,
   MailOpen,
+  Palette,
 } from "lucide-react"
 // SessionStatusIcons no longer used - icons come from dynamic sessionStatuses
 import { SourceAvatar } from "@/components/ui/source-avatar"
@@ -113,6 +114,7 @@ import {
   isSkillsNavigation,
   isAutomationsNavigation,
   isWorkbenchNavigation,
+  isDesignNavigation,
   type NavigationState,
 } from "@/contexts/NavigationContext"
 import type { SettingsSubpage } from "../../../shared/types"
@@ -1791,6 +1793,10 @@ function AppShellContent({
     navigate(routes.view.workbench(screen))
   }, [])
 
+  const handleRoxDesignClick = useCallback(() => {
+    navigate(routes.view.design())
+  }, [])
+
   // Handler for settings view
   const handleSettingsClick = useCallback((subpage: SettingsSubpage = 'app') => {
     navigate(routes.view.settings(subpage))
@@ -2044,11 +2050,12 @@ function AppShellContent({
     result.push({ id: 'nav:workbench:progression', type: 'nav', action: () => handleWorkbenchClick('progression') })
     result.push({ id: 'nav:workbench:quest-map', type: 'nav', action: () => handleWorkbenchClick('quest-map') })
     result.push({ id: 'nav:workbench:agent-forge', type: 'nav', action: () => handleWorkbenchClick('agent-forge') })
+    result.push({ id: 'nav:design', type: 'nav', action: handleRoxDesignClick })
     result.push({ id: 'nav:settings', type: 'nav', action: () => handleSettingsClick('app') })
     result.push({ id: 'nav:whats-new', type: 'nav', action: handleWhatsNewClick })
 
     return result
-  }, [handleAllSessionsClick, handleFlaggedClick, handleArchivedClick, handleSessionStatusClick, effectiveSessionStatuses, handleLabelClick, labelTree, handleSourcesClick, handleSkillsClick, handleAutomationsClick, handleWorkbenchClick, handleSettingsClick, handleWhatsNewClick])
+  }, [handleAllSessionsClick, handleFlaggedClick, handleArchivedClick, handleSessionStatusClick, effectiveSessionStatuses, handleLabelClick, labelTree, handleSourcesClick, handleSkillsClick, handleAutomationsClick, handleWorkbenchClick, handleRoxDesignClick, handleSettingsClick, handleWhatsNewClick])
 
   // Toggle folder expanded state
   const handleToggleFolder = React.useCallback((path: string) => {
@@ -2190,6 +2197,8 @@ function AppShellContent({
       }
     }
 
+    if (isDesignNavigation(navState)) return 'Rox Design'
+
     // Settings navigator
     if (isSettingsNavigation(navState)) return t("sidebar.settings")
 
@@ -2285,6 +2294,7 @@ function AppShellContent({
           onOpenSettingsSubpage={handleSettingsClick}
           onOpenKeyboardShortcuts={onOpenKeyboardShortcuts}
           onOpenStoredUserPreferences={onOpenStoredUserPreferences}
+          onOpenRoxDesign={handleRoxDesignClick}
           onBack={goBack}
           onForward={goForward}
           canGoBack={canGoBack}
@@ -2611,6 +2621,13 @@ function AppShellContent({
                           onClick: () => handleWorkbenchClick('agent-forge'),
                         },
                       ],
+                    },
+                    {
+                      id: "nav:design",
+                      title: "Rox Design",
+                      icon: Palette,
+                      variant: isDesignNavigation(navState) ? "default" : "ghost",
+                      onClick: handleRoxDesignClick,
                     },
                     // --- Separator ---
                     { id: "separator:skills-settings", type: "separator" },
@@ -3326,6 +3343,19 @@ function AppShellContent({
             )}
             {isWorkbenchNavigation(navState) && (
               <ExperienceDemoSessionList screen={navState.screen} />
+            )}
+            {isDesignNavigation(navState) && (
+              <div className="flex h-full flex-col justify-between p-4 text-sm text-muted-foreground">
+                <div className="rounded-2xl border border-border/60 bg-card/50 p-4 shadow-minimal">
+                  <div className="mb-3 flex items-center gap-2 text-foreground">
+                    <Palette className="h-4 w-4" />
+                    <span className="font-medium">Rox Design</span>
+                  </div>
+                  <p className="leading-6">
+                    Встроенная поверхность Open Design запускается в правой области ROX и обновляется вместе с приложением.
+                  </p>
+                </div>
+              </div>
             )}
             {isSessionsNavigation(navState) && (
               /* Sessions List */

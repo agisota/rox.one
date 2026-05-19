@@ -188,6 +188,9 @@ export const routes = {
     /** Experience Layer / mission-control surfaces */
     workbench: (screen: WorkbenchScreen = DEFAULT_WORKBENCH_SCREEN) =>
       `workbench/${screen}` as const,
+
+    /** Rox Design embedded runtime surface */
+    design: () => 'design' as const,
   },
 } as const
 
