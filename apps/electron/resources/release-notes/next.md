@@ -16,4 +16,6 @@ This file accumulates release notes for the next unreleased version. PRs that ad
 
 ## Bug Fixes
 
+- **Packaged app startup repaired** — fixed a renderer chunking regression that could leave the installed macOS app stuck on the first loading screen; release builds now fail fast if the broken React/i18n chunk shape comes back, and packaged launch smoke runs across macOS, Linux, and Windows surfaces.
+
 ## Breaking Changes

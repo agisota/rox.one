@@ -278,6 +278,25 @@ Other PR checks: Secret Scan success, E2E Core Scenarios success, Mac ARM Build 
 
 CI warning observed but non-fatal: pinned Node 20 actions emit GitHub's Node.js 20 deprecation warning ahead of the June 2, 2026 default Node 24 runner change. This affects existing pinned workflow actions and should be handled as a separate workflow-pinning maintenance task.
 
+## 9b. Follow-up installed-app loading check after user report
+After a follow-up report that the installed app still did not load, I closed any stale ROX.ONE processes, opened `/Applications/ROX ONE.app` normally, activated the app window, captured a fresh desktop screenshot, and reran the packaged checks against the installed bundle.
+
+```text
+pkill -f "/Applications/ROX ONE.app/Contents/MacOS/ROX.ONE" || true
+open -a "/Applications/ROX ONE.app"
+
+ROX_MAC_APP_PATH="/Applications/ROX ONE.app" bun run electron:ui-smoke:packaged:mac
+[ui-smoke] account tabs/forms OK
+[ui-smoke] experience six-tab navigation OK
+[ui-smoke] composer primary and overflow quick actions OK
+[ui-smoke] packaged ROX.ONE UI smoke passed; evidence: /Users/marklindgreen/.ai-agent-hub/evidence/playwright-smoke/rox-one-ui-smoke-2026-05-19T16-28-47-418Z
+
+ROX_MAC_APP_PATH="/Applications/ROX ONE.app" bun run electron:smoke:packaged:mac
+[packaged-smoke] ROX.ONE packaged headless startup passed
+```
+
+Fresh visible-launch evidence was captured at `/Users/marklindgreen/.ai-agent-hub/evidence/playwright-smoke/rox-one-not-loading-20260519T162544Z/screen.png`. The screenshot shows the ROX.ONE window loaded and frontmost with the real user profile.
+
 ## 10. Remaining risks
 - Local machine can directly prove only the local macOS ARM64 artifact; PR CI now proves macOS Sequoia ARM64 packaged launch, while Monterey/Ventura/Sonoma still need VM/lab proof if exact OS-version evidence is required.
 - GitHub-hosted Windows runners are Windows Server images, not literal Windows 10/11 consumer desktops. They now prove Windows x64 Electron packaging/startup class on `windows-latest` and `windows-2022`, not the exact consumer SKU UX.
