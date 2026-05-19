@@ -260,10 +260,28 @@ normal real-profile launch with updater path enabled:
 
 The app was then launched normally via `open -a '/Applications/ROX ONE.app'`; process `ROX.ONE` is running from `/Applications/ROX ONE.app/Contents/MacOS/ROX.ONE`.
 
+Remote PR CI evidence (PR #261, latest run set from 2026-05-19T15:49:29Z):
+
+```text
+Cross Platform Launch Smoke: success (run 26108546079)
+- macOS Sequoia ARM64 packaged launch: success; build, package, smoke, artifact validation, evidence upload all passed.
+- Windows packaged launch (windows-latest): success; build, unpacked smoke, NSIS package, artifact validation, evidence upload all passed.
+- Windows packaged launch (windows-2022): success; build, unpacked smoke, NSIS package, artifact validation, evidence upload all passed.
+- Linux Ubuntu packaged launch (ubuntu-24.04): success; Xvfb smoke, AppImage/deb/rpm package, artifact validation, evidence upload all passed.
+- Linux Ubuntu packaged launch (ubuntu-22.04): success; Xvfb smoke, AppImage/deb/rpm package, artifact validation, evidence upload all passed.
+- Linux installer launcher guard (debian): success.
+- Linux installer launcher guard (fedora): success.
+- Linux installer launcher guard (nixos): success.
+
+Other PR checks: Secret Scan success, E2E Core Scenarios success, Mac ARM Build success, Validate success.
+```
+
+CI warning observed but non-fatal: pinned Node 20 actions emit GitHub's Node.js 20 deprecation warning ahead of the June 2, 2026 default Node 24 runner change. This affects existing pinned workflow actions and should be handled as a separate workflow-pinning maintenance task.
+
 ## 10. Remaining risks
-- Local machine can directly prove only the local macOS ARM64 artifact; current local OS is newer than Sequoia, so Sequoia and Monterey/Ventura/Sonoma proof must come from CI/VM/lab.
-- GitHub-hosted Windows runners are Windows Server images, not literal Windows 10/11 consumer desktops. They prove Windows x64 Electron packaging/startup class, not the exact consumer SKU UX.
-- Ubuntu launch can be proved on GitHub-hosted runners. Debian/Fedora/NixOS entries in this change are launcher/static guard coverage unless a real distro VM/self-hosted runner is attached.
+- Local machine can directly prove only the local macOS ARM64 artifact; PR CI now proves macOS Sequoia ARM64 packaged launch, while Monterey/Ventura/Sonoma still need VM/lab proof if exact OS-version evidence is required.
+- GitHub-hosted Windows runners are Windows Server images, not literal Windows 10/11 consumer desktops. They now prove Windows x64 Electron packaging/startup class on `windows-latest` and `windows-2022`, not the exact consumer SKU UX.
+- Ubuntu 22.04 and 24.04 packaged launch are proven in PR CI under Xvfb. Debian/Fedora/NixOS entries in this change are launcher/static guard coverage unless a real distro VM/self-hosted runner is attached.
 - Public production distribution remains unsigned/notarization dependent per existing release readiness docs; this task does not procure Apple Developer ID, Authenticode, or Linux GPG production signing credentials.
 
 ## 11. Acceptance criteria matrix
@@ -271,10 +289,10 @@ The app was then launched normally via `open -a '/Applications/ROX ONE.app'`; pr
 | --- | --- | --- |
 | Renderer chunk crash fixed | Passing locally | Exact package matching in `vite.config.ts`; `validate:renderer-chunks` reports 341 chunks checked. |
 | Circular chunk regression guarded | Passing locally | `scripts/validate-renderer-chunks.isolated.ts` rejects React/i18n cycle; renderer build fails on `Circular chunk:`. |
-| macOS pre-Tahoe floor pinned | Passing locally | `electron-builder.yml` sets `minimumSystemVersion: "12.0"`; packaged validator prints `LSMinimumSystemVersion=12.0`. |
+| macOS pre-Tahoe floor pinned | Passing local + remote CI | `electron-builder.yml` sets `minimumSystemVersion: "12.0"`; local and Sequoia PR CI packaged validators print `LSMinimumSystemVersion=12.0`. |
 | Packaged macOS launch smoke | Passing locally | `electron:smoke:packaged:mac` and generic `electron:smoke:packaged` both report packaged headless startup passed. |
 | Packaged macOS UI leaves loader | Passing locally | `electron:ui-smoke:packaged:mac` passed; evidence dir `/Users/marklindgreen/.ai-agent-hub/evidence/playwright-smoke/rox-one-ui-smoke-rebuilt-20260519T153804Z`. |
-| Windows packaged launch harness | Passing static; remote pending | `electron-smoke-packaged.ts` supports `win-unpacked/ROX.ONE.exe`; workflow added for `windows-latest` and `windows-2022`. |
-| Ubuntu packaged launch harness | Passing static; remote pending | Workflow runs Ubuntu 22.04/24.04 under `xvfb-run` and calls `electron:smoke:packaged`. |
-| Debian/Fedora/NixOS launcher support | Passing static; remote pending | `install-app.sh` plus `validate:linux-installer-launcher`; workflow has distro guard images `debian:12`, `fedora:40`, `nixos/nix`. |
+| Windows packaged launch harness | Passing remote CI | PR CI passed packaged build, unpacked smoke, NSIS package, and artifact validation on `windows-latest` and `windows-2022`. |
+| Ubuntu packaged launch harness | Passing remote CI | PR CI passed packaged launch under Xvfb plus AppImage/deb/rpm packaging and artifact validation on Ubuntu 22.04 and 24.04. |
+| Debian/Fedora/NixOS launcher support | Passing remote guard CI | PR CI passed distro launcher guards for `debian:12`, `fedora:40`, and `nixos/nix`; full GUI launch still needs VM/self-hosted runner proof. |
 | CI guard wired into local gate | Passing locally | `bun run validate:ci` passed after ticket metadata repair. |
