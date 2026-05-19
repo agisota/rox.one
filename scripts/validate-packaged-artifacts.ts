@@ -48,6 +48,7 @@ const artifactPlatform = normalizeArtifactPlatform(platformInput);
 const linuxArch = process.env.ROX_LINUX_ARCH ?? 'x86_64';
 const windowsArch = process.env.ROX_ARTIFACT_ARCH ?? 'x64';
 const macArch = process.env.ROX_ARTIFACT_ARCH ?? 'arm64';
+const MAC_MIN_SYSTEM_VERSION = '12.0';
 const shouldValidateLinux = artifactPlatform === 'linux' || artifactPlatform === 'all';
 const shouldValidateMac = artifactPlatform === 'mac' || artifactPlatform === 'all';
 const requestedWindows = artifactPlatform === 'windows' || artifactPlatform === 'all';
@@ -100,6 +101,38 @@ function assertMinSize(relativePath: string, minBytes: number): void {
       `artifact too small — apps/electron/release/${relativePath} is ${formatBytes(size)}, expected >= ${formatBytes(minBytes)}`,
     );
   }
+}
+
+function plistStringValue(plist: string, key: string): string | undefined {
+  const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`<key>\\s*${escapedKey}\\s*</key>\\s*<string>([^<]+)</string>`);
+  return pattern.exec(plist)?.[1]?.trim();
+}
+
+
+function assertMacMinimumSystemVersion(): void {
+  const plistRelativePath = `mac-${macArch}/ROX.ONE.app/Contents/Info.plist`;
+  const plistPath = path.join(releaseDir, plistRelativePath);
+
+  if (!existsSync(plistPath)) {
+    fail(`missing packaged macOS app plist: apps/electron/release/${plistRelativePath}`);
+  }
+
+  const plist = readFileSync(plistPath, 'utf8');
+  const actual = plistStringValue(plist, 'LSMinimumSystemVersion');
+  if (actual !== MAC_MIN_SYSTEM_VERSION) {
+    fail(
+      `LSMinimumSystemVersion must be ${MAC_MIN_SYSTEM_VERSION} for Monterey-through-Sequoia compatibility; got: ${actual ?? 'missing'}`,
+    );
+  }
+
+  const bundleId = plistStringValue(plist, 'CFBundleIdentifier');
+  if (bundleId !== 'com.rox.one') {
+    fail(`CFBundleIdentifier must be com.rox.one; got: ${bundleId ?? 'missing'}`);
+  }
+
+  console.log(`[packaged-artifacts] LSMinimumSystemVersion=${actual}`);
+  console.log(`[packaged-artifacts] CFBundleIdentifier=${bundleId}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -188,6 +221,7 @@ if (shouldValidateMac) {
   for (const entry of macRequired) {
     assertMinSize(entry.path, entry.minBytes);
   }
+  assertMacMinimumSystemVersion();
 }
 
 if (artifactPlatform === 'windows' && !isUnsigned) {

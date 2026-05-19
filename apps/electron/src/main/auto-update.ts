@@ -151,7 +151,7 @@ function __resolveUpdateEvent(): void {
 }
 
 function isDevRuntimeUpdateDisabled(): boolean {
-  return process.env.ROX_ELECTRON_DEV_RUNTIME === '1'
+  return process.env.ROX_ELECTRON_DEV_RUNTIME === '1' || process.env.ROX_E2E === '1'
 }
 
 /**

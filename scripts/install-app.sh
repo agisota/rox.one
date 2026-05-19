@@ -371,6 +371,21 @@ done
 # Set APPIMAGE for auto-update
 export APPIMAGE="$APPIMAGE_PATH"
 
+is_nixos() {
+    [ -f /etc/os-release ] && grep -Eqi '^ID="?nixos"?$' /etc/os-release
+}
+
+# NixOS does not expose the usual FHS dynamic-loader/library paths that raw
+# AppImage binaries expect. appimage-run supplies the compatibility wrapper.
+if is_nixos; then
+    if command -v appimage-run >/dev/null 2>&1; then
+        exec appimage-run "$APPIMAGE_PATH" --no-sandbox "$@"
+    fi
+    echo "NixOS detected: install appimage-run first, then launch rox-agents again." >&2
+    echo "Try: nix profile install nixpkgs#appimage-run" >&2
+    exit 1
+fi
+
 # Launch with --no-sandbox (AppImage extracts to /tmp, losing SUID on chrome-sandbox)
 exec "$APPIMAGE_PATH" --no-sandbox "$@"
 WRAPPER_EOF
@@ -400,5 +415,6 @@ WRAPPER_EOF
         warn "FUSE required but not detected."
         printf "%b\n" "  Install: ${BOLD}sudo apt install fuse libfuse2${NC} (Debian/Ubuntu)"
         printf "%b\n" "           ${BOLD}sudo dnf install fuse fuse-libs${NC} (Fedora)"
+        printf "%b\n" "           ${BOLD}nix profile install nixpkgs#appimage-run${NC} (NixOS)"
     fi
 fi

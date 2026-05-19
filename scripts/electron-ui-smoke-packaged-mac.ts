@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { spawn } from 'bun';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -25,12 +25,12 @@ const EXPERIENCE_SCREENS = [
 ] as const;
 
 const COMPOSER_ACTIONS = [
-  { id: 'improve-prompt', expected: 'Prompt Lab', overflow: false },
-  { id: 'run-tdd-plan', expected: 'TDD Plan', overflow: false },
-  { id: 'verify', expected: 'Review Gate', overflow: false },
-  { id: 'tear-down', expected: 'Review Gate', overflow: true },
-  { id: 'build-spec', expected: 'Spec Builder', overflow: true },
-  { id: 'review', expected: 'Review Gate', overflow: true },
+  { id: 'improve-prompt', wrapperId: 'improve-prompt', expected: 'Улучшить запрос', overflow: false },
+  { id: 'run-tdd-plan', wrapperId: 'tdd-plan', expected: 'TDD план', overflow: false },
+  { id: 'verify', wrapperId: 'verify', expected: 'Проверить', overflow: false },
+  { id: 'tear-down', wrapperId: 'tear-down', expected: 'Разъебать', overflow: true },
+  { id: 'build-spec', wrapperId: 'spec', expected: 'Собрать ТЗ', overflow: true },
+  { id: 'review', wrapperId: 'review', expected: 'Ревью', overflow: true },
 ] as const;
 
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
@@ -44,6 +44,7 @@ if (!existsSync(EXECUTABLE_PATH)) {
 }
 
 mkdirSync(EVIDENCE_DIR, { recursive: true });
+const smokeStartedAtMs = Date.now();
 const userDataDir = mkdtempSync(join(tmpdir(), 'rox-one-ui-smoke-user-data-'));
 const configDir = mkdtempSync(join(tmpdir(), 'rox-one-ui-smoke-config-'));
 
@@ -60,9 +61,16 @@ const appProc = spawn({
     ...process.env,
     ROX_E2E: '1',
     ROX_E2E_FAKE_PROVIDERS: '1',
+    // Keep the packaged app identity intact while preventing live update installs
+    // from racing the UI smoke. The updater already treats this flag as a
+    // dev-runtime guard in packaged verification runs.
+    ROX_ELECTRON_DEV_RUNTIME: '1',
     ROX_CONFIG_DIR: configDir,
   },
 });
+
+const stdoutCapture = captureOutput(appProc.stdout, 'app-stdout.log');
+const stderrCapture = captureOutput(appProc.stderr, 'app-stderr.log');
 
 let forceKillTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -72,6 +80,7 @@ try {
   await client.send('Runtime.enable');
   await client.send('Page.enable');
   await waitForAppShell(client);
+  await waitForNavigationReady(client);
 
   await runAccountSmoke(client);
   await runExperienceSmoke(client);
@@ -87,10 +96,8 @@ try {
   forceKillTimer = setTimeout(() => appProc.kill('SIGKILL'), FORCE_KILL_GRACE_MS);
   await appProc.exited.catch(() => undefined);
   if (forceKillTimer) clearTimeout(forceKillTimer);
-  await Promise.allSettled([
-    drainOutput(appProc.stdout),
-    drainOutput(appProc.stderr),
-  ]);
+  await Promise.allSettled([stdoutCapture, stderrCapture]);
+  copyMainLogEvidence();
   rmSync(userDataDir, { force: true, recursive: true });
   rmSync(configDir, { force: true, recursive: true });
 }
@@ -129,19 +136,23 @@ async function runExperienceSmoke(client: CdpClient) {
 }
 
 async function runComposerSmoke(client: CdpClient) {
-  const prompt = [
+  const promptBase = [
     'Собери production-ready план для проверки регистрации, Experience Layer и Composer Toolbar.',
     'Нужны конкретные проверки, риски и минимальный порядок исполнения.',
   ].join(' ');
 
-  await navigate(client, `action/new-session?input=${encodeURIComponent(prompt)}`);
-  await waitForEval(
-    client,
-    "document.querySelector('[data-testid=\"product-mode-toolbar\"]') !== null",
-    'composer toolbar',
-  );
-
   for (const action of COMPOSER_ACTIONS) {
+    const marker = `ui-smoke-${action.id}-${Date.now()}`;
+    const prompt = `${promptBase} Маркер проверки: ${marker}.`;
+
+    await navigate(client, `action/new-session?input=${encodeURIComponent(prompt)}`);
+    await waitForEval(
+      client,
+      "document.querySelector('[data-testid=\"product-mode-toolbar\"]') !== null",
+      `composer toolbar for ${action.id}`,
+    );
+    await waitForText(client, marker, `prefilled composer input for ${action.id}`);
+
     if (action.overflow) {
       await clickSelector(client, '[data-testid="product-mode-action-overflow"]', 'composer overflow button');
       await waitForEval(
@@ -154,26 +165,23 @@ async function runComposerSmoke(client: CdpClient) {
       await clickSelector(client, `[data-product-mode-action="${action.id}"]`, `composer action ${action.id}`);
     }
 
+    const quickCommand = `Быстрая команда: ${action.wrapperId}`;
     await waitForEval(
       client,
-      "document.querySelector('[aria-label=\"Composer artifact panel\"]') !== null",
-      `artifact panel for ${action.id}`,
+      [
+        `document.body && document.body.innerText.includes(${JSON.stringify(action.expected)})`,
+        `document.body && document.body.innerText.includes(${JSON.stringify(quickCommand)})`,
+        `document.body && document.body.innerText.includes(${JSON.stringify(marker)})`,
+      ].join(' && '),
+      `submitted quick-action wrapper for ${action.id}`,
     );
-    await waitForText(client, action.expected, `artifact ${action.expected} for ${action.id}`);
 
     if (action.id === 'improve-prompt' || action.id === 'build-spec') {
       await screenshot(client, `composer-${action.id}.png`);
     }
-
-    await clickButtonExact(client, 'Закрыть');
-    await waitForEval(
-      client,
-      "document.querySelector('[aria-label=\"Composer artifact panel\"]') === null",
-      `artifact panel closed after ${action.id}`,
-    );
   }
 
-  console.log('[ui-smoke] composer primary and overflow actions OK');
+  console.log('[ui-smoke] composer primary and overflow quick actions OK');
 }
 
 async function navigate(client: CdpClient, route: string) {
@@ -184,7 +192,30 @@ async function navigate(client: CdpClient, route: string) {
     }));
     true
   `);
-  await sleep(500);
+
+  if (!route.startsWith('action/')) {
+    await waitForRoute(client, route, `route ${route}`);
+  } else {
+    await sleep(500);
+  }
+}
+
+async function waitForNavigationReady(client: CdpClient) {
+  await waitForEval(
+    client,
+    `new URLSearchParams(window.location.search).has('route') || new URLSearchParams(window.location.search).has('panels')`,
+    'initial navigation route',
+    15_000,
+  );
+}
+
+async function waitForRoute(client: CdpClient, route: string, description: string) {
+  await waitForEval(
+    client,
+    `new URLSearchParams(window.location.search).get('route') === ${JSON.stringify(route)}`,
+    description,
+    15_000,
+  );
 }
 
 async function waitForAppShell(client: CdpClient) {
@@ -424,16 +455,65 @@ async function messageEventToText(data: unknown): Promise<string> {
   return String(data);
 }
 
-async function drainOutput(stream: ReadableStream<Uint8Array> | null) {
+async function captureOutput(stream: ReadableStream<Uint8Array> | null, fileName: string) {
   if (!stream) return;
   const reader = stream.getReader();
+  const chunks: Buffer[] = [];
   try {
-    while (!(await reader.read()).done) {
-      // Keep the child pipe from filling without echoing app internals into CI logs.
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(Buffer.from(value));
     }
   } catch {
     // The stream can close during app shutdown.
+  } finally {
+    writeFileSync(join(EVIDENCE_DIR, fileName), Buffer.concat(chunks));
   }
+}
+
+function copyMainLogEvidence() {
+  const candidatePaths = [
+    join(homedir(), 'Library/Logs/@rox-one/electron/main.log'),
+    join(homedir(), 'Library/Logs/ROX.ONE/main.log'),
+  ];
+
+  for (const logPath of candidatePaths) {
+    if (!existsSync(logPath)) continue;
+    try {
+      const evidenceName = `main-${logPath.split('/').at(-2) ?? 'electron'}.log`;
+      const logText = readRecentTextFile(logPath, 512 * 1024);
+      const smokeLines = logText
+        .split(/\r?\n/)
+        .filter((line) => line.includes('rox-one-ui-smoke') || lineTimestampIsAfterSmokeStart(line));
+      writeFileSync(
+        join(EVIDENCE_DIR, evidenceName),
+        smokeLines.length > 0 ? `${smokeLines.join('\n')}\n` : logText,
+      );
+    } catch {
+      // Best-effort evidence copy only.
+    }
+  }
+}
+
+function readRecentTextFile(filePath: string, maxBytes: number): string {
+  const size = statSync(filePath).size;
+  const start = Math.max(0, size - maxBytes);
+  const file = openSync(filePath, 'r');
+  try {
+    const buffer = Buffer.alloc(size - start);
+    readSync(file, buffer, 0, buffer.length, start);
+    return buffer.toString('utf8');
+  } finally {
+    closeSync(file);
+  }
+}
+
+function lineTimestampIsAfterSmokeStart(line: string): boolean {
+  const match = /"timestamp":"([^"\\]+)"/.exec(line) ?? /^(\d{4}-\d{2}-\d{2}T[^ ]+)/.exec(line);
+  if (!match?.[1]) return false;
+  const timestampMs = Date.parse(match[1]);
+  return Number.isFinite(timestampMs) && timestampMs >= smokeStartedAtMs - 2_000;
 }
 
 function escapeForJs(value: string): string {

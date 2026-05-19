@@ -97,6 +97,10 @@ asar: false
 
 mac:
   category: public.app-category.productivity
+  # Explicit support floor for the Electron 39 runtime: Monterey (12.0) and newer,
+  # including Ventura, Sonoma, Sequoia, and Tahoe. Keep this pinned so CI catches
+  # accidental SDK/runtime drift that would strand pre-Tahoe users.
+  minimumSystemVersion: "12.0"
   icon: resources/icon.icns
   # Private/local RC builds intentionally use ad-hoc signing. electron-builder
   # only preserves hardened runtime for ad-hoc output when identity is "-";
