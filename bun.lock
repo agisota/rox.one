@@ -191,10 +191,6 @@
         "vitest": "^2",
       },
     },
-    "apps/marketing": {
-      "name": "@rox-one/marketing",
-      "version": "0.8.12",
-    },
     "apps/viewer": {
       "name": "@rox-one/viewer",
       "version": "0.9.1",
@@ -1237,8 +1233,6 @@
     "@rox-one/core": ["@rox-one/core@workspace:packages/core"],
 
     "@rox-one/electron": ["@rox-one/electron@workspace:apps/electron"],
-
-    "@rox-one/marketing": ["@rox-one/marketing@workspace:apps/marketing"],
 
     "@rox-one/messaging-gateway": ["@rox-one/messaging-gateway@workspace:packages/messaging-gateway"],
 

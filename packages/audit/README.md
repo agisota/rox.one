@@ -12,7 +12,7 @@ Phase A.4: E2E user-flow probes (later).
 ```
 bun run audit run <surfaces> [--probes=<csv>]
 bun run audit run renderer --probes=static-tsc
-bun run audit run renderer,webui,viewer,marketing --probes=static-*
+bun run audit run renderer,webui,viewer --probes=static-*
 ```
 
 Output:

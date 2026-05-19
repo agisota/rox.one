@@ -270,7 +270,7 @@ jobs:
 
       # electron-builder names the AppImage with the Linux-canonical
       # architecture (x86_64), but downstream consumers (the rox.one
-      # marketing site at the time of v1.0.0-rc.7) link to it as `x64` to
+      # website at the time of v1.0.0-rc.7) link to it as `x64` to
       # stay consistent with mac/win arch labels. Duplicate the AppImage
       # under both names so existing buttons + canonical naming both
       # resolve to the same bytes. Cheap: it's a copy of a single file.

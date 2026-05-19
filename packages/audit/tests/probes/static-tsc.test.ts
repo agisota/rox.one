@@ -17,7 +17,6 @@ describe("static-tsc probe", () => {
     expect(staticTscProbe.applicableTo("renderer")).toBe(true);
     expect(staticTscProbe.applicableTo("webui")).toBe(true);
     expect(staticTscProbe.applicableTo("viewer")).toBe(true);
-    expect(staticTscProbe.applicableTo("marketing")).toBe(true);
   });
 
   test("detects all 3 errors in tsc-broken fixture", async () => {

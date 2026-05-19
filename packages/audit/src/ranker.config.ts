@@ -12,7 +12,6 @@ export const RANKER_CONFIG = {
     renderer: 4,
     webui: 3,
     viewer: 2,
-    marketing: 1,
   } as Record<Surface, number>,
   vdiBonusMax: 50, // additive cap when vdiImpact = {1,1,1}
 } as const;

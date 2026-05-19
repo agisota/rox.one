@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { PlaywrightRunner } from "./runners/playwright-runner.ts";
 import type { LLMClient } from "./runners/llm-runner.ts";
 
-export type Surface = "renderer" | "webui" | "viewer" | "marketing";
+export type Surface = "renderer" | "webui" | "viewer";
 export type Phase = "A.1" | "A.2" | "A.3" | "A.4";
 export type FindingSeverity = "critical" | "high" | "medium" | "low";
 

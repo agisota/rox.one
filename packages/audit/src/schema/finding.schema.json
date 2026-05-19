@@ -8,7 +8,7 @@
     "schemaVersion": { "const": 1 },
     "id": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
     "probe": { "type": "string", "minLength": 1 },
-    "surface": { "enum": ["renderer", "webui", "viewer", "marketing"] },
+    "surface": { "enum": ["renderer", "webui", "viewer"] },
     "phase": { "enum": ["A.1", "A.2", "A.3", "A.4"] },
     "severity": { "enum": ["critical", "high", "medium", "low"] },
     "rule": { "type": "string", "minLength": 1 },
