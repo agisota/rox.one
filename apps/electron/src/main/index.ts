@@ -3,7 +3,7 @@
 import { loadShellEnv } from './shell-env'
 loadShellEnv()
 
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, safeStorage, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, safeStorage, shell, type IpcMainInvokeEvent } from 'electron'
 import { createHash, randomUUID } from 'crypto'
 import { hostname, homedir } from 'os'
 import * as Sentry from '@sentry/electron/main'
@@ -107,6 +107,9 @@ import type { EventSink } from '@rox-one/server-core/transport'
 import { validateGitBashPath, checkVCRedistInstalled } from '@rox-one/server-core/services'
 import { createAccountApiProxy } from './account-api'
 import { createFileAccountSessionStore } from './account-session-store'
+import { RoxDesignRuntimeManager } from './rox-design-runtime-manager'
+import { RoxDesignViewManager } from './rox-design-view-manager'
+import { RoxDesignDesktopBridge } from './rox-design-desktop-bridge'
 
 // Initialize electron-log for renderer process support
 log.initialize()
@@ -191,13 +194,16 @@ registerPiModelResolver((piAuthProvider) =>
 // Supports multi-instance dev: ROX_DEEPLINK_SCHEME env var (roxagents1, roxagents2, etc.)
 const DEEPLINK_SCHEME = process.env.ROX_DEEPLINK_SCHEME || 'rox'
 
-if (process.env.ROX_HEADLESS === '1' && process.env.ROX_SMOKE_USER_DATA_DIR) {
+if (process.env.ROX_SMOKE_USER_DATA_DIR && (process.env.ROX_HEADLESS === '1' || process.env.ROX_E2E === '1')) {
   app.setPath('userData', process.env.ROX_SMOKE_USER_DATA_DIR)
 }
 
 let windowManager: WindowManager | null = null
 let sessionManager: SessionManager | null = null
 let browserPaneManager: BrowserPaneManager | null = null
+let roxDesignRuntimeManager: RoxDesignRuntimeManager | null = null
+let roxDesignViewManager: RoxDesignViewManager | null = null
+let roxDesignDesktopBridge: RoxDesignDesktopBridge | null = null
 let oauthFlowStore: OAuthFlowStore | null = null
 let moduleSink: EventSink | null = null
 let moduleClientResolver: ((webContentsId: number) => string | undefined) | null = null
@@ -212,6 +218,48 @@ const accountApiProxy = createAccountApiProxy({
     },
   }),
 })
+
+function getRoxDesignResourcesBase(): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, 'app')
+    : join(__dirname, '..')
+}
+
+function getRoxDesignRuntimeManager(): RoxDesignRuntimeManager {
+  if (!roxDesignRuntimeManager) {
+    roxDesignRuntimeManager = new RoxDesignRuntimeManager({
+      resourcesRoot: getRoxDesignResourcesBase(),
+      logger: mainLog,
+    })
+  }
+  return roxDesignRuntimeManager
+}
+
+function getRoxDesignViewManager(): RoxDesignViewManager {
+  if (!windowManager) throw new Error('Window manager is not initialized.')
+  if (!roxDesignViewManager) {
+    roxDesignViewManager = new RoxDesignViewManager({
+      windowManager,
+      logger: mainLog,
+    })
+  }
+  return roxDesignViewManager
+}
+
+function getRoxDesignDesktopBridge(): RoxDesignDesktopBridge {
+  if (!roxDesignDesktopBridge) {
+    roxDesignDesktopBridge = new RoxDesignDesktopBridge(() => getRoxDesignRuntimeManager().getDesktopBridgeContext())
+  }
+  return roxDesignDesktopBridge
+}
+
+function requireRoxDesignManagedWebContents(event: IpcMainInvokeEvent): BrowserWindow | null {
+  const viewManager = getRoxDesignViewManager()
+  if (!viewManager.hasWebContents(event.sender)) {
+    throw new Error('Rox Design desktop bridge is only available to the managed Rox Design view.')
+  }
+  return viewManager.getHostWindowForWebContents(event.sender)
+}
 
 // Messaging gateway: the bootstrap handle is created once sessionManager is
 // available (inside createHandlerDeps) and populated with the WS publisher
@@ -564,6 +612,51 @@ app.whenReady().then(async () => {
       } else {
         mainLog.info(message, context)
       }
+    })
+
+    // Rox Design runtime/view control is app-local and stays on direct IPC.
+    roxDesignRuntimeManager = getRoxDesignRuntimeManager()
+    roxDesignViewManager = getRoxDesignViewManager()
+    ipcMain.handle('rox-design:start', async () => getRoxDesignRuntimeManager().start())
+    ipcMain.handle('rox-design:get-status', async () => getRoxDesignRuntimeManager().getStatus())
+    ipcMain.handle('rox-design:stop', async () => getRoxDesignRuntimeManager().stop())
+    ipcMain.handle('rox-design:view-show', async (event, input) => getRoxDesignViewManager().show({
+      senderWebContentsId: event.sender.id,
+      url: input?.url,
+      bounds: input?.bounds,
+    }))
+    ipcMain.handle('rox-design:view-set-bounds', async (event, bounds) => {
+      getRoxDesignViewManager().setBounds({ senderWebContentsId: event.sender.id, bounds })
+    })
+    ipcMain.handle('rox-design:view-hide', async (event) => getRoxDesignViewManager().hide(event.sender.id))
+    ipcMain.handle('rox-design:open-external', async (_event, url: string) => {
+      const parsed = new URL(url)
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        throw new Error('Rox Design can only open http(s) URLs externally.')
+      }
+      await shell.openExternal(url)
+    })
+
+    const roxDesignBridge = getRoxDesignDesktopBridge()
+    ipcMain.handle('rox-design-bridge:open-external', async (event, url: string) => {
+      requireRoxDesignManagedWebContents(event)
+      return roxDesignBridge.openExternal(url)
+    })
+    ipcMain.handle('rox-design-bridge:pick-folder', async (event) => {
+      const ownerWindow = requireRoxDesignManagedWebContents(event)
+      return roxDesignBridge.pickFolder(ownerWindow)
+    })
+    ipcMain.handle('rox-design-bridge:pick-and-import', async (event, init) => {
+      const ownerWindow = requireRoxDesignManagedWebContents(event)
+      return roxDesignBridge.pickAndImport(ownerWindow, init)
+    })
+    ipcMain.handle('rox-design-bridge:open-path', async (event, projectId: string) => {
+      requireRoxDesignManagedWebContents(event)
+      return roxDesignBridge.openPath(projectId)
+    })
+    ipcMain.handle('rox-design-bridge:print-pdf', async (event, html: string, nonce?: string) => {
+      requireRoxDesignManagedWebContents(event)
+      return roxDesignBridge.printPdf(html, nonce)
     })
 
     // Dialog bridge — preload capability handlers use ipcRenderer.invoke to
@@ -1224,6 +1317,20 @@ app.on('before-quit', async (event) => {
     // Clean up browser pane instances
     if (browserPaneManager) {
       browserPaneManager.destroyAll()
+    }
+
+    // Stop Rox Design native view and sidecars if they were started.
+    if (roxDesignViewManager) {
+      roxDesignViewManager.destroyAll()
+      roxDesignViewManager = null
+    }
+
+    if (roxDesignRuntimeManager) {
+      try {
+        await roxDesignRuntimeManager.stop()
+      } catch (err) {
+        mainLog.error('[rox-design] failed to stop runtime during quit:', err)
+      }
     }
 
     // Clean up OAuth flow store (stop periodic cleanup timer)
