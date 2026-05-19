@@ -19,6 +19,7 @@ import { homedir, tmpdir } from 'os';
 import { join } from 'path';
 import {
   loadAllSkills,
+  invalidateSkillsCache,
   loadWorkspaceSkills,
   loadSkill,
   skillExists,
@@ -113,6 +114,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  invalidateSkillsCache();
+
   if (tempDir && existsSync(tempDir)) {
     rmSync(tempDir, { recursive: true, force: true });
   }
@@ -436,6 +439,65 @@ describe('loadAllSkills', () => {
 
     // Total: baseline globals + shared (1, deduplicated) + only_ws + only_proj = baseline + 3
     expect(skills.length).toBe(baselineGlobal.size + 3);
+  });
+
+  it('should reuse lower-priority skill parses when switching project roots', () => {
+    const wsDir = getWorkspaceSkillsDir();
+    createSkill(wsDir, `${TEST_PREFIX}cached_ws`, {
+      name: 'Cached Workspace Skill',
+      description: 'Workspace tier should not be reparsed for every project root',
+    });
+
+    const firstProjectRoot = join(tempDir, 'project-one');
+    const secondProjectRoot = join(tempDir, 'project-two');
+    mkdirSync(firstProjectRoot, { recursive: true });
+    mkdirSync(secondProjectRoot, { recursive: true });
+
+    const firstSkills = loadAllSkills(workspaceRoot, firstProjectRoot);
+    const secondSkills = loadAllSkills(workspaceRoot, secondProjectRoot);
+
+    const firstWorkspaceSkill = firstSkills.find(s => s.slug === `${TEST_PREFIX}cached_ws`);
+    const secondWorkspaceSkill = secondSkills.find(s => s.slug === `${TEST_PREFIX}cached_ws`);
+
+    expect(firstWorkspaceSkill).toBeDefined();
+    expect(secondWorkspaceSkill).toBe(firstWorkspaceSkill);
+
+    const baselineGlobal = getExistingGlobalSlugs();
+    if (baselineGlobal.size > 0) {
+      const globalSlug = [...baselineGlobal][0]!;
+      const firstGlobalSkill = firstSkills.find(s => s.slug === globalSlug);
+      const secondGlobalSkill = secondSkills.find(s => s.slug === globalSlug);
+      expect(secondGlobalSkill).toBe(firstGlobalSkill);
+    }
+  });
+
+  it('should clear tier caches when skills cache is invalidated', () => {
+    const wsDir = getWorkspaceSkillsDir();
+    createSkill(wsDir, `${TEST_PREFIX}before_invalidate`, {
+      name: 'Before Invalidate',
+      description: 'Loaded before cache invalidation',
+    });
+
+    const firstProjectRoot = join(tempDir, 'project-before-invalidate');
+    const secondProjectRoot = join(tempDir, 'project-stale-before-invalidate');
+    mkdirSync(firstProjectRoot, { recursive: true });
+    mkdirSync(secondProjectRoot, { recursive: true });
+
+    const firstLoad = loadAllSkills(workspaceRoot, firstProjectRoot);
+    expect(firstLoad.find(s => s.slug === `${TEST_PREFIX}before_invalidate`)).toBeDefined();
+
+    createSkill(wsDir, `${TEST_PREFIX}after_invalidate`, {
+      name: 'After Invalidate',
+      description: 'Loaded after cache invalidation',
+    });
+
+    const staleSecondLoad = loadAllSkills(workspaceRoot, secondProjectRoot);
+    expect(staleSecondLoad.find(s => s.slug === `${TEST_PREFIX}after_invalidate`)).toBeUndefined();
+
+    invalidateSkillsCache();
+
+    const refreshedSecondLoad = loadAllSkills(workspaceRoot, secondProjectRoot);
+    expect(refreshedSecondLoad.find(s => s.slug === `${TEST_PREFIX}after_invalidate`)).toBeDefined();
   });
 
   it('should handle missing project directory gracefully', () => {
