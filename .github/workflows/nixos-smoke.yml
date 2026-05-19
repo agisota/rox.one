@@ -92,11 +92,20 @@ jobs:
           APPIMAGE_URL="https://github.com/${REPO}/releases/download/${RELEASE_TAG}/${APPIMAGE_NAME}"
           echo "Attempting download: ${APPIMAGE_URL}"
 
-          http_code=$(curl -sSL -w "%{http_code}" -o /tmp/rox-agent.AppImage \
+          # Write status code to a separate file so it is not mixed with body
+          curl -sSL -o /tmp/rox-agent.AppImage \
             -H "Authorization: Bearer ${GH_TOKEN}" \
-            "${APPIMAGE_URL}" 2>/dev/null || echo "000")
+            -w "%{http_code}" \
+            "${APPIMAGE_URL}" 2>/dev/null > /tmp/rox-agent-http-code.txt || true
+          http_code=$(cat /tmp/rox-agent-http-code.txt 2>/dev/null || echo "000")
+          echo "HTTP status: ${http_code}"
 
-          if [ "${http_code}" = "200" ] && [ -s /tmp/rox-agent.AppImage ]; then
+          # AppImages are typically >50MB; a 404 HTML page is <10KB.
+          # Require http_code=200 AND file size >1MB to rule out error pages.
+          file_size=$(wc -c < /tmp/rox-agent.AppImage 2>/dev/null || echo 0)
+          echo "File size: ${file_size} bytes"
+
+          if [ "${http_code}" = "200" ] && [ "${file_size}" -gt 1048576 ]; then
             echo "Downloaded AppImage ($(wc -c < /tmp/rox-agent.AppImage) bytes)"
             chmod +x /tmp/rox-agent.AppImage
             echo "appimage_available=true" >> "$GITHUB_OUTPUT"
