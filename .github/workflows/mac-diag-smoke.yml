@@ -38,6 +38,11 @@ jobs:
       ROX_DEV_RUNTIME: "1"
       ROX_DIAG: "1"
       ROX_HEADLESS: "0"
+      # @vscode/ripgrep downloads from GitHub Releases during postinstall;
+      # authenticate to avoid unauthenticated API 403/rate-limit failures on macOS runners.
+      GITHUB_TOKEN: ${{ github.token }}
+      # Exercise the impending GitHub Actions Node 24 runtime before it becomes default.
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
     steps:
       - name: Checkout
