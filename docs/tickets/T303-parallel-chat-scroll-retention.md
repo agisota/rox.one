@@ -1,5 +1,7 @@
 # T303 - Parallel chat scroll retention
 
+Status: DONE
+
 ## Context
 
 ROX ONE supports multiple active chat sessions and multiple visible content panels. Users can run several sessions in parallel, but when inspecting the second or third chat, the transcript can snap back to the bottom and make older history effectively unscrollable.
