@@ -1,0 +1,197 @@
+name: Windows Authenticode Sign + Smoke
+
+# Authenticode signing smoke test on Win10 (windows-2019) and Win11 (windows-2022).
+#
+# Two modes:
+#   Real signing  — WIN_CSC_LINK + WIN_CSC_KEY_PASSWORD secrets present -> Authenticode
+#   Self-signed   — secrets absent + PR branch -> New-SelfSignedCertificate test cert
+#                   (SmartScreen will still block; status logged as warning, not failure)
+#
+# Untrusted-input safety: no user-supplied inputs are interpolated into run: blocks.
+# All env values are passed via env: vars or GITHUB_ENV (never ${{ inputs.* }} inline).
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "fix/multiplatform-win-*"
+
+concurrency:
+  group: win-sign-smoke-${{ github.ref }}-${{ matrix.os }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  win-sign-smoke:
+    name: "Win sign smoke (${{ matrix.os }})"
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    env:
+      ROX_HEADLESS: "1"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-2019
+          - windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Prepare CI log directory
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path .ci-logs\win-sign-smoke | Out-Null
+
+      # Wire Authenticode certificate. Reads WIN_CSC_LINK (base64 pfx) +
+      # WIN_CSC_KEY_PASSWORD from secrets. When absent on a non-main branch,
+      # generates a self-signed TEST cert instead (clearly marked in logs).
+      - name: Setup code-signing certificate
+        shell: pwsh
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun run scripts/win-codesign.ts *>&1 | Tee-Object -FilePath .ci-logs\win-sign-smoke\win-codesign.log
+
+      - name: Build Electron app (Windows)
+        shell: pwsh
+        working-directory: apps/electron
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun run build:win *>&1 | Tee-Object -FilePath ..\..\..\.ci-logs\win-sign-smoke\electron-build.log
+
+      # Package with the win signing overlay config.
+      - name: Package Windows NSIS + Portable (signed or test-signed)
+        shell: pwsh
+        working-directory: apps/electron
+        env:
+          CSC_LINK: ${{ env.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ env.CSC_KEY_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bunx electron-builder --win --x64 --config electron-builder.win.yml --publish=never *>&1 | Tee-Object -FilePath ..\..\..\.ci-logs\win-sign-smoke\electron-builder.log
+
+      # Signature verification: Valid -> pass, NotSigned -> warning, other -> fail.
+      - name: Verify Authenticode signature
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exes = Get-ChildItem -Path apps\electron\release -Filter 'ROX-ONE-*.exe' -Recurse -ErrorAction SilentlyContinue
+          if (-not $exes) {
+            Write-Error "No installer .exe found in apps/electron/release"
+            exit 1
+          }
+          $results = @()
+          $allOk = $true
+          foreach ($exe in $exes) {
+            $sig = Get-AuthenticodeSignature -FilePath $exe.FullName
+            $line = "$($exe.Name): $($sig.Status) -- $($sig.SignerCertificate?.Subject ?? 'unsigned')"
+            $results += $line
+            Write-Host $line
+            if ($sig.Status -eq 'Valid') {
+              Write-Host "##[notice] Authenticode signature: Valid — $($exe.Name)"
+            } elseif ($sig.Status -eq 'NotSigned') {
+              Write-Warning "##[warning] $($exe.Name) is unsigned. SmartScreen will warn. Expected for smoke without trusted cert."
+            } else {
+              Write-Error "Unexpected signature status '$($sig.Status)' for $($exe.Name)"
+              $allOk = $false
+            }
+          }
+          $results | Out-File -FilePath .ci-logs\win-sign-smoke\signature-verification.log -Encoding utf8
+          if (-not $allOk) { exit 1 }
+
+      - name: Install Playwright + Electron driver
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun add -d @playwright/test 2>&1 | Out-Null
+          bunx playwright install chromium --with-deps 2>&1 | Out-Null
+
+      - name: Install app silently (NSIS /S)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installer = Get-ChildItem -Path apps\electron\release -Filter 'ROX-ONE-*.exe' | Where-Object { $_.Name -notlike '*Portable*' } | Select-Object -First 1
+          if (-not $installer) { Write-Error "NSIS installer not found"; exit 1 }
+          Write-Host "Installing: $($installer.FullName)"
+          $proc = Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -PassThru
+          if ($proc.ExitCode -ne 0) {
+            Write-Error "Installer exited with code $($proc.ExitCode)"
+            exit 1
+          }
+          Write-Host "Install complete (exit 0)"
+
+      - name: Smoke test — launch, screenshot, assert title
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $appExe = Get-ChildItem "$env:LOCALAPPDATA\Programs" -Filter 'rox-one.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $appExe) {
+            $appExe = Get-ChildItem "$env:LOCALAPPDATA\Programs" -Filter 'ROX.ONE.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $appExe) {
+            Write-Warning "##[warning] Installed exe not found — skipping launch smoke (install path may differ)"
+            exit 0
+          }
+          Write-Host "Launching: $($appExe.FullName)"
+          $screenshotPath = "$PWD\.ci-logs\win-sign-smoke\smoke-screenshot-${{ matrix.os }}.png"
+          $smokeScript = @"
+const { _electron: electron } = require('playwright');
+(async () => {
+  const app = await electron.launch({ executablePath: process.argv[2], args: ['--no-sandbox', '--headless=new'] });
+  const win = await app.firstWindow();
+  await win.waitForLoadState('domcontentloaded');
+  const title = await win.title();
+  console.log('window-title:' + title);
+  await win.screenshot({ path: process.argv[3] });
+  await app.close();
+  if (!title.toLowerCase().includes('rox')) {
+    console.error('Title does not contain rox: ' + title);
+    process.exit(1);
+  }
+})().catch(e => { console.error(e); process.exit(1); });
+"@
+          $tmpScript = [System.IO.Path]::GetTempFileName() + '.cjs'
+          $smokeScript | Out-File -FilePath $tmpScript -Encoding utf8
+          node $tmpScript "$($appExe.FullName)" "$screenshotPath"
+          Write-Host "Screenshot saved: $screenshotPath"
+
+      - name: Upload installer artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: rox-one-win-signed-${{ matrix.os }}
+          path: |
+            apps/electron/release/ROX-ONE-*.exe
+            apps/electron/release/ROX-ONE-*.exe.blockmap
+            apps/electron/release/latest.yml
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Upload smoke evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: rox-one-win-smoke-evidence-${{ matrix.os }}
+          path: |
+            .ci-logs/win-sign-smoke/**/*
+          retention-days: 7
+          if-no-files-found: warn

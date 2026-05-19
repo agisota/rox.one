@@ -90,6 +90,7 @@
     "electron:dist": "bun run electron:build && cd apps/electron && electron-builder --config electron-builder.yml",
     "electron:dist:mac": "bun run electron:build && cd apps/electron && electron-builder --config electron-builder.yml --mac",
     "electron:dist:win": "bun run electron:build && cd apps/electron && electron-builder --config electron-builder.yml --win",
+    "electron:build:win": "bun run electron:build && cd apps/electron && electron-builder --config electron-builder.win.yml --win --x64 --publish=never",
     "electron:dist:linux": "bun run electron:build && cd apps/electron && electron-builder --config electron-builder.yml --linux",
     "electron:dist:dev:mac": "CSC_IDENTITY_AUTO_DISCOVERY=false ROX_DEV_RUNTIME=1 bun run electron:build && cd apps/electron && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --config electron-builder.yml --mac",
     "electron:dist:dev:win": "ROX_DEV_RUNTIME=1 bun run electron:build && cd apps/electron && electron-builder --config electron-builder.yml --win",
