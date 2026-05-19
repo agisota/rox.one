@@ -43,6 +43,7 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
             accept-flake-config = true
+            sandbox = false
 
       # Phase 1: validate flake schema without building (avoids fakeSha256 fetch)
       - name: nix flake check (schema only, no-build)
