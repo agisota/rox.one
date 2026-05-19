@@ -54,6 +54,8 @@ export interface StoredConfig {
   colorTheme?: string;  // ID of selected preset theme (e.g., 'dracula', 'nord'). Default: 'default'
   // Auto-update
   dismissedUpdateVersion?: string;  // Version that user dismissed (skip notifications for this version)
+  autoDownloadUpdates?: boolean;  // Automatically download updates after detection (default: true)
+  updateChannel?: 'stable' | 'beta';  // Update channel (default: stable)
   // Input settings
   autoCapitalisation?: boolean;  // Auto-capitalize first letter when typing (default: true)
   sendMessageKey?: 'enter' | 'cmd-enter';  // Key to send messages (default: 'enter')
@@ -105,6 +107,8 @@ const FALLBACK_CONFIG_DEFAULTS: ConfigDefaults = {
     richToolDescriptions: true,
     extendedPromptCache: false,
     browserToolEnabled: true,
+    autoDownloadUpdates: true,
+    updateChannel: 'stable',
   },
   workspaceDefaults: {
     thinkingLevel: 'medium',

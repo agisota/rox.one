@@ -36,6 +36,10 @@ import * as realPath from 'node:path'
 
 const actualGetDismissedUpdateVersion = realSharedConfig.getDismissedUpdateVersion
 const actualClearDismissedUpdateVersion = realSharedConfig.clearDismissedUpdateVersion
+const actualGetAutoDownloadUpdates = realSharedConfig.getAutoDownloadUpdates
+const actualSetAutoDownloadUpdates = realSharedConfig.setAutoDownloadUpdates
+const actualGetUpdateChannel = realSharedConfig.getUpdateChannel
+const actualSetUpdateChannel = realSharedConfig.setUpdateChannel
 const actualGetAppVersion = realSharedVersion.getAppVersion
 const actualReadJsonFileSync = realSharedFiles.readJsonFileSync
 const actualFsExistsSync = realFs.existsSync
@@ -196,13 +200,25 @@ mock.module('@rox-one/shared/version', () => ({
 
 const mockGetDismissedUpdateVersion = mock(actualGetDismissedUpdateVersion)
 const mockClearDismissedUpdateVersion = mock(actualClearDismissedUpdateVersion)
+const mockGetAutoDownloadUpdates = mock(actualGetAutoDownloadUpdates)
+const mockSetAutoDownloadUpdates = mock(actualSetAutoDownloadUpdates)
+const mockGetUpdateChannel = mock(actualGetUpdateChannel)
+const mockSetUpdateChannel = mock(actualSetUpdateChannel)
 mockGetDismissedUpdateVersion.mockImplementation(() => null)
 mockClearDismissedUpdateVersion.mockImplementation(() => {})
+mockGetAutoDownloadUpdates.mockImplementation(() => true)
+mockSetAutoDownloadUpdates.mockImplementation(() => {})
+mockGetUpdateChannel.mockImplementation(() => 'stable')
+mockSetUpdateChannel.mockImplementation(() => {})
 
 mock.module('@rox-one/shared/config', () => ({
   ...realSharedConfig,
   getDismissedUpdateVersion: mockGetDismissedUpdateVersion,
   clearDismissedUpdateVersion: mockClearDismissedUpdateVersion,
+  getAutoDownloadUpdates: mockGetAutoDownloadUpdates,
+  setAutoDownloadUpdates: mockSetAutoDownloadUpdates,
+  getUpdateChannel: mockGetUpdateChannel,
+  setUpdateChannel: mockSetUpdateChannel,
 }))
 
 const mockReadJsonFileSync = mock(actualReadJsonFileSync)
@@ -267,6 +283,10 @@ afterAll(() => {
   mockGetAppVersion.mockImplementation(actualGetAppVersion)
   mockGetDismissedUpdateVersion.mockImplementation(actualGetDismissedUpdateVersion)
   mockClearDismissedUpdateVersion.mockImplementation(actualClearDismissedUpdateVersion)
+  mockGetAutoDownloadUpdates.mockImplementation(actualGetAutoDownloadUpdates)
+  mockSetAutoDownloadUpdates.mockImplementation(actualSetAutoDownloadUpdates)
+  mockGetUpdateChannel.mockImplementation(actualGetUpdateChannel)
+  mockSetUpdateChannel.mockImplementation(actualSetUpdateChannel)
   mockReadJsonFileSync.mockImplementation(actualReadJsonFileSync)
   mockFsExistsSync.mockImplementation(actualFsExistsSync)
   mockFsReaddirSync.mockImplementation(actualFsReaddirSync)
@@ -291,12 +311,15 @@ const autoUpdaterListeners: Record<string, EventHandler[]> = {}
 // Tracks calls made to the mocked autoUpdater
 const mockCheckForUpdates = mock(async (): Promise<MockUpdateResult> => ({ updateInfo: null }))
 const mockQuitAndInstall = mock((_isSilent: boolean, _isForceRunAfter: boolean) => {})
+const mockDownloadUpdate = mock(async () => [])
+const mockSetFeedURL = mock((_options: unknown) => {})
 
 const mockAutoUpdater = {
   autoDownload: true,
   autoInstallOnAppQuit: true,
   logger: null as unknown,
   downloadedUpdateHelper: null as unknown,
+  allowPrerelease: false,
 
   on: (event: string, handler: EventHandler) => {
     if (!autoUpdaterListeners[event]) autoUpdaterListeners[event] = []
@@ -304,7 +327,9 @@ const mockAutoUpdater = {
   },
 
   checkForUpdates: mockCheckForUpdates,
+  downloadUpdate: mockDownloadUpdate,
   quitAndInstall: mockQuitAndInstall,
+  setFeedURL: mockSetFeedURL,
 
   // Helper used in tests to simulate events fired by electron-updater internals
   _emit: async (event: string, ...args: unknown[]) => {
@@ -326,6 +351,9 @@ const {
   setAutoUpdateEventSink,
   isUpdating,
   installUpdate,
+  downloadUpdate,
+  getUpdateSettings,
+  setUpdateSettings,
   checkForUpdatesOnLaunch,
 } = await import('../auto-update.ts' + '?sig-test') as typeof import('../auto-update.ts')
 
@@ -382,6 +410,66 @@ describe('auto-update module configuration', () => {
         `Expected handler registered for '${event}'`,
       ).toBeGreaterThan(0)
     }
+  })
+})
+
+
+
+describe('auto-update channel settings and manual download', () => {
+  beforeEach(() => {
+    mockSetFeedURL.mockClear()
+    mockDownloadUpdate.mockClear()
+    mockSetAutoDownloadUpdates.mockClear()
+    mockSetUpdateChannel.mockClear()
+    mockGetAutoDownloadUpdates.mockImplementation(() => true)
+    mockGetUpdateChannel.mockImplementation(() => 'stable')
+    mockAutoUpdater.allowPrerelease = false
+    mockAutoUpdater.autoDownload = true
+  })
+
+  it('uses stable feed and default auto-download settings', () => {
+    const settings = getUpdateSettings()
+    expect(settings).toEqual({ autoDownloadUpdates: true, updateChannel: 'stable' })
+    expect(mockAutoUpdater.autoDownload).toBe(true)
+    expect(mockAutoUpdater.allowPrerelease).toBe(false)
+    expect(mockSetFeedURL).toHaveBeenCalledWith({ provider: 'generic', url: 'https://app.rox.one/electron/stable/', channel: 'latest' })
+  })
+
+  it('switches to beta feed and allows prerelease checks', () => {
+    setUpdateSettings({ updateChannel: 'beta' })
+    expect(mockSetUpdateChannel).toHaveBeenCalledWith('beta')
+    expect(mockAutoUpdater.allowPrerelease).toBe(true)
+    expect(mockSetFeedURL).toHaveBeenLastCalledWith({ provider: 'generic', url: 'https://app.rox.one/electron/beta/', channel: 'beta' })
+  })
+
+  it('ignores invalid runtime update settings before configuring the feed', () => {
+    const settings = setUpdateSettings({
+      autoDownloadUpdates: 'yes' as unknown as boolean,
+      updateChannel: 'https://evil.example/feed' as unknown as 'stable',
+    })
+
+    expect(settings).toEqual({ autoDownloadUpdates: true, updateChannel: 'stable' })
+    expect(mockSetAutoDownloadUpdates).not.toHaveBeenCalled()
+    expect(mockSetUpdateChannel).not.toHaveBeenCalled()
+    expect(mockSetFeedURL).toHaveBeenLastCalledWith({ provider: 'generic', url: 'https://app.rox.one/electron/stable/', channel: 'latest' })
+  })
+
+  it('manual check respects disabled auto-download and leaves update ready for explicit download', async () => {
+    mockCheckForUpdates.mockImplementation(async () => {
+      await mockAutoUpdater._emit('update-available', { version: '1.0.0' })
+      return { updateInfo: { version: '1.0.0' } }
+    })
+
+    const result = await checkForUpdates({ autoDownload: false })
+    expect(result.available).toBe(true)
+    expect(result.downloadState).toBe('idle')
+    expect(mockAutoUpdater.autoDownload).toBe(true)
+  })
+
+  it('downloadUpdate delegates to electron-updater and marks downloading', async () => {
+    await downloadUpdate()
+    expect(mockDownloadUpdate).toHaveBeenCalled()
+    expect(getUpdateInfo().downloadState).toBe('downloading')
   })
 })
 
@@ -736,6 +824,27 @@ describe('Scenario 4: Successful path — valid signed manifest with newer versi
     // completed cleanly regardless of any prior test state.
     expect(result.downloadState).toBe('ready')
     expect(result.available).toBe(true)
+  })
+
+  it('broadcasts canInstall=true when the downloaded update is ready', async () => {
+    const updateBroadcasts: any[] = []
+    const sink = mock((channel: string, _meta: unknown, payload: unknown) => {
+      if (channel === 'update:available') updateBroadcasts.push(payload)
+    })
+    setAutoUpdateEventSink(sink as never)
+
+    mockCheckForUpdates.mockImplementation(async () => {
+      await mockAutoUpdater._emit('update-available', { version: '1.0.0' })
+      await mockAutoUpdater._emit('update-downloaded', { version: '1.0.0' })
+      return { updateInfo: { version: '1.0.0' } }
+    })
+
+    await checkForUpdates()
+    const readyBroadcast = updateBroadcasts.find((payload) => payload?.downloadState === 'ready')
+    expect(readyBroadcast).toBeDefined()
+    expect(readyBroadcast.canInstall).toBe(true)
+
+    setAutoUpdateEventSink(null as never)
   })
 })
 

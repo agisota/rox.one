@@ -84,9 +84,13 @@ extraMetadata:
   main: dist/main.cjs
 
 # Auto-update: electron-updater fetches from this URL for update manifests (.yml files)
+detectUpdateChannel: true
+generateUpdatesFilesForAllChannels: true
+
 publish:
   provider: generic
-  url: https://app.rox.one/electron/latest
+  url: https://app.rox.one/electron/stable/
+  channel: latest
 
 # Disable ASAR to avoid decompression overhead and click delays
 asar: false

@@ -500,12 +500,25 @@ export interface GitBashStatus {
   platform: 'win32' | 'darwin' | 'linux'
 }
 
+export type UpdateChannel = 'stable' | 'beta'
+
+export interface UpdateSettings {
+  autoDownloadUpdates: boolean
+  updateChannel: UpdateChannel
+}
+
 export interface UpdateInfo {
   available: boolean
   currentVersion: string
   latestVersion: string | null
   downloadState: 'idle' | 'downloading' | 'ready' | 'installing' | 'error'
   downloadProgress: number
+  channel: UpdateChannel
+  autoDownload: boolean
+  canInstall: boolean
+  manualDownloadUrl: string | null
+  releaseNotesUrl: string | null
+  requiresManualInstall?: boolean
   error?: string
 }
 

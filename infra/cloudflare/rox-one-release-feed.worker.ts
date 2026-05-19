@@ -42,11 +42,18 @@ type GitHubRelease = {
 
 // Module-scoped caches. Workers reuse module memory across requests within an
 // isolate, so this is effectively a per-edge-pop in-process cache.
+type ReleaseChannel = 'stable' | 'beta'
+
+const STABLE_TAG_RE = /^v[0-9]+\.[0-9]+\.[0-9]+$/
+const BETA_TAG_RE = /^v[0-9]+\.[0-9]+\.[0-9]+-(?:beta|rc)\.[0-9]+$/
+
 let latestTagCache: { value: string; expiresAt: number } | null = null
+const channelTagCache = new Map<ReleaseChannel, { value: string; expiresAt: number }>()
 const releaseCache = new Map<string, { value: GitHubRelease; expiresAt: number }>()
 
 export function resetReleaseFeedCachesForTest(): void {
   latestTagCache = null
+  channelTagCache.clear()
   releaseCache.clear()
 }
 
@@ -119,25 +126,86 @@ async function githubRequest(path: string, env: Env): Promise<Response> {
   })
 }
 
+function isStableRelease(release: GitHubRelease): boolean {
+  return release.draft !== true && release.prerelease !== true && STABLE_TAG_RE.test(release.tag_name)
+}
+
+function isBetaRelease(release: GitHubRelease): boolean {
+  return release.draft !== true && BETA_TAG_RE.test(release.tag_name)
+}
+
+async function fetchReleaseList(env: Env): Promise<GitHubRelease[] | Response> {
+  const response = await githubRequest(`/repos/${REPO}/releases?per_page=30`, env)
+  if (!response.ok) {
+    return plainText(response.status === 404 ? 404 : 502, `Release list lookup failed: ${response.status}`)
+  }
+  let payload: unknown
+  try {
+    payload = await response.json()
+  } catch {
+    return plainText(502, 'Release list payload is not JSON')
+  }
+  if (!Array.isArray(payload)) {
+    return plainText(502, 'Release list payload is not an array')
+  }
+  return payload as GitHubRelease[]
+}
+
+async function resolveStableViaGitHubLatest(env: Env, now: number): Promise<string | Response> {
+  const response = await githubRequest(`/repos/${REPO}/releases/latest`, env)
+  if (!response.ok) {
+    return plainText(response.status === 404 ? 404 : 502, `Latest release lookup failed: ${response.status}`)
+  }
+  const payload = (await response.json()) as { tag_name?: string; prerelease?: boolean; draft?: boolean }
+  if (!payload.tag_name) {
+    return plainText(502, 'Latest release missing tag_name')
+  }
+  if (!STABLE_TAG_RE.test(payload.tag_name)) {
+    return plainText(502, `Latest release tag is not stable: ${payload.tag_name}`)
+  }
+  latestTagCache = { value: payload.tag_name, expiresAt: now + TAG_TTL_MS }
+  channelTagCache.set('stable', { value: payload.tag_name, expiresAt: now + TAG_TTL_MS })
+  return payload.tag_name
+}
+
+async function resolveChannelTag(channel: ReleaseChannel, env: Env): Promise<string | Response> {
+  const now = Date.now()
+  const cached = channelTagCache.get(channel)
+  if (cached && cached.expiresAt > now) {
+    return cached.value
+  }
+  channelTagCache.delete(channel)
+  if (channel === 'stable') latestTagCache = null
+
+  const releases = await fetchReleaseList(env)
+  if (releases instanceof Response) {
+    if (channel === 'stable') {
+      return resolveStableViaGitHubLatest(env, now)
+    }
+    return releases
+  }
+
+  const selected = releases.find(channel === 'stable' ? isStableRelease : isBetaRelease)
+  if (!selected) {
+    if (channel === 'stable') {
+      return resolveStableViaGitHubLatest(env, now)
+    }
+    return plainText(404, 'No beta release found')
+  }
+
+  channelTagCache.set(channel, { value: selected.tag_name, expiresAt: now + TAG_TTL_MS })
+  if (channel === 'stable') {
+    latestTagCache = { value: selected.tag_name, expiresAt: now + TAG_TTL_MS }
+  }
+  return selected.tag_name
+}
+
 async function resolveLatestTag(env: Env): Promise<string | Response> {
   const now = Date.now()
   if (latestTagCache && latestTagCache.expiresAt > now) {
     return latestTagCache.value
   }
-  // Evict stale entry on read so a failed upstream call doesn't leave a
-  // dangling reference for the next request to also miss against.
-  latestTagCache = null
-
-  const response = await githubRequest(`/repos/${REPO}/releases/latest`, env)
-  if (!response.ok) {
-    return plainText(response.status === 404 ? 404 : 502, `Latest release lookup failed: ${response.status}`)
-  }
-  const payload = (await response.json()) as { tag_name?: string }
-  if (!payload.tag_name) {
-    return plainText(502, 'Latest release missing tag_name')
-  }
-  latestTagCache = { value: payload.tag_name, expiresAt: now + TAG_TTL_MS }
-  return payload.tag_name
+  return resolveChannelTag('stable', env)
 }
 
 async function fetchRelease(tag: string, env: Env): Promise<GitHubRelease | Response> {
@@ -366,31 +434,30 @@ export async function handleReleaseFeedRequest(request: Request, env: Env): Prom
   const url = new URL(request.url)
   const pathname = url.pathname.replace(/\/+$/, '') || '/'
 
-  // Install scripts are always pulled from the latest release.
+  // Install scripts are always pulled from the latest stable release.
   if (pathname === '/install-app.sh' || pathname === '/install-app.ps1') {
-    const tag = await resolveLatestTag(env)
+    const tag = await resolveChannelTag('stable', env)
     if (typeof tag !== 'string') return tag
     return serveAssetByName(tag, pathname.slice(1), env, method)
   }
 
-  // /electron/latest and /electron/latest/manifest.json — both serve manifest.
-  if (pathname === '/electron/latest' || pathname === '/electron/latest/manifest.json') {
-    const tag = await resolveLatestTag(env)
+  // Channel paths:
+  // - /electron/latest is a backward-compatible alias for stable.
+  // - /electron/stable resolves to the newest non-prerelease vX.Y.Z tag.
+  // - /electron/beta resolves to the newest vX.Y.Z-beta.N or vX.Y.Z-rc.N prerelease tag.
+  const channelMatch = pathname.match(/^\/electron\/(latest|stable|beta)(?:\/(.+))?$/)
+  if (channelMatch) {
+    const channel = channelMatch[1] === 'beta' ? 'beta' : 'stable'
+    const rest = channelMatch[2]
+    const tag = await resolveChannelTag(channel, env)
     if (typeof tag !== 'string') return tag
-    return serveAssetByName(tag, 'manifest.json', env, method)
-  }
-
-  // /electron/latest/{filename}
-  const latestAssetMatch = pathname.match(/^\/electron\/latest\/([^/]+)$/)
-  if (latestAssetMatch) {
-    const tag = await resolveLatestTag(env)
-    if (typeof tag !== 'string') return tag
-    return serveAssetByName(tag, decodeURIComponent(latestAssetMatch[1]), env, method)
+    const assetName = !rest || rest === 'manifest.json' ? 'manifest.json' : decodeURIComponent(rest)
+    return serveAssetByName(tag, assetName, env, method)
   }
 
   // /electron/{version}, /electron/{version}/manifest.json, /electron/{version}/{filename}
-  // Version path → tag is `v{version}`.
-  const versionMatch = pathname.match(/^\/electron\/(v?[0-9]+\.[0-9]+\.[0-9]+(?:-rc\.[0-9]+)?)(?:\/(.+))?$/)
+  // Version path supports stable and prerelease tags with or without leading `v`.
+  const versionMatch = pathname.match(/^\/electron\/(v?[0-9]+\.[0-9]+\.[0-9]+(?:-(?:rc|beta)\.[0-9]+)?)(?:\/(.+))?$/)
   if (versionMatch) {
     const versionPart = versionMatch[1]
     const tag = versionPart.startsWith('v') ? versionPart : `v${versionPart}`

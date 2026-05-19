@@ -566,14 +566,78 @@ function AppShellContent({
   const [releaseNotesContent, setReleaseNotesContent] = React.useState('')
   const [hasUnseenReleaseNotes, setHasUnseenReleaseNotes] = React.useState(false)
 
-  // Check for unseen release notes on mount
+  type RemoteReleaseNote = {
+    version?: string
+    title?: string
+    content?: string
+    notes?: string[]
+    releasedAt?: string
+    date?: string
+  }
+
+  const formatRemoteReleaseNotes = useCallback((payload: unknown): { content: string; latestVersion?: string } | null => {
+    if (!payload || typeof payload !== 'object') return null
+    const source = payload as { releases?: RemoteReleaseNote[]; version?: string; content?: string; notes?: string[]; releasedAt?: string }
+    const releases = Array.isArray(source.releases) && source.releases.length > 0
+      ? source.releases
+      : [{ version: source.version, content: source.content, notes: source.notes, releasedAt: source.releasedAt }]
+
+    const sections = releases
+      .filter((release) => release && (release.content || release.notes?.length || release.version))
+      .map((release) => {
+        const version = release.version ? release.version.replace(/^v/, '') : ''
+        const title = release.title || (version ? `ROX.ONE v${version}` : 'ROX.ONE')
+        const date = release.releasedAt || release.date
+        const body = release.content?.trim()
+          || (release.notes?.length ? release.notes.map((note) => `- ${note}`).join('\n') : '')
+        return [`# ${title}`, date ? `_${date}_` : '', body].filter(Boolean).join('\n\n')
+      })
+      .filter(Boolean)
+
+    if (sections.length === 0) return null
+    return {
+      content: sections.join('\n\n---\n\n'),
+      latestVersion: releases[0]?.version?.replace(/^v/, ''),
+    }
+  }, [])
+
+  const fetchRemoteReleaseNotes = useCallback(async () => {
+    try {
+      let releaseNotesUrl = 'https://app.rox.one/electron/stable/release-notes.json'
+      try {
+        const info = await window.electronAPI.getUpdateInfo()
+        releaseNotesUrl = info.releaseNotesUrl || releaseNotesUrl
+      } catch {
+        try {
+          const settings = await window.electronAPI.getUpdateSettings()
+          releaseNotesUrl = `https://app.rox.one/electron/${settings.updateChannel}/release-notes.json`
+        } catch {
+          // Keep the stable feed fallback when update settings are unavailable.
+        }
+      }
+      const response = await fetch(releaseNotesUrl, { cache: 'no-cache' })
+      if (!response.ok) return null
+      return formatRemoteReleaseNotes(await response.json())
+    } catch {
+      return null
+    }
+  }, [formatRemoteReleaseNotes])
+
+  // Check for unseen release notes on mount. Prefer the remote feed, but keep
+  // the bundled local notes as the offline fallback.
   useEffect(() => {
-    window.electronAPI.getLatestReleaseVersion().then((latestVersion) => {
-      if (!latestVersion) return
+    let cancelled = false
+    void (async () => {
+      const remote = await fetchRemoteReleaseNotes()
+      const latestVersion = remote?.latestVersion ?? await window.electronAPI.getLatestReleaseVersion()
+      if (cancelled || !latestVersion) return
       const lastSeen = storage.get(storage.KEYS.whatsNewLastSeenVersion, '')
       setHasUnseenReleaseNotes(lastSeen !== latestVersion)
-    })
-  }, [t])
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [fetchRemoteReleaseNotes])
 
   const [isResizing, setIsResizing] = React.useState<'sidebar' | 'session-list' | null>(null)
   const [sidebarHandleY, setSidebarHandleY] = React.useState<number | null>(null)
@@ -1734,16 +1798,17 @@ function AppShellContent({
 
   // Handler for What's New overlay
   const handleWhatsNewClick = useCallback(async () => {
-    const content = await window.electronAPI.getReleaseNotes()
+    const remote = await fetchRemoteReleaseNotes()
+    const content = remote?.content ?? await window.electronAPI.getReleaseNotes()
     setReleaseNotesContent(content)
     setShowWhatsNew(true)
     setHasUnseenReleaseNotes(false)
     // Update last seen version
-    const latestVersion = await window.electronAPI.getLatestReleaseVersion()
+    const latestVersion = remote?.latestVersion ?? await window.electronAPI.getLatestReleaseVersion()
     if (latestVersion) {
       storage.set(storage.KEYS.whatsNewLastSeenVersion, latestVersion)
     }
-  }, [])
+  }, [fetchRemoteReleaseNotes])
 
   // ============================================================================
   // EDIT POPOVER STATE

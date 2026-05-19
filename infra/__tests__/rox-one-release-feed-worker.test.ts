@@ -62,6 +62,116 @@ describe('rox-one release feed worker v2', () => {
     }
   })
 
+
+
+  test('serves /electron/stable/latest-mac.yml from the latest stable release', async () => {
+    const calls: string[] = []
+    const restore = installFetchStub(async (input) => {
+      const u = String(input)
+      calls.push(u)
+      if (u.includes('/releases?')) {
+        return jsonResponse([
+          makeRelease('v1.1.0-beta.1', ['beta-mac.yml']),
+          makeRelease('v1.0.0', ['latest-mac.yml']),
+        ])
+      }
+      if (u.endsWith('/releases/tags/v1.0.0')) return jsonResponse(makeRelease('v1.0.0', ['latest-mac.yml']))
+      return new Response('version: 1.0.0\n', { status: 200 })
+    })
+
+    try {
+      const response = await handleReleaseFeedRequest(
+        new Request('https://app.rox.one/electron/stable/latest-mac.yml'),
+        ENV,
+      )
+      expect(response.status).toBe(200)
+      expect(await response.text()).toContain('version: 1.0.0')
+      expect(calls.some((u) => u.endsWith('/releases/tags/v1.0.0'))).toBe(true)
+      expect(calls.some((u) => u.endsWith('/releases/tags/v1.1.0-beta.1'))).toBe(false)
+    } finally {
+      restore()
+    }
+  })
+
+  test('/electron/latest aliases stable and does not resolve prerelease tags', async () => {
+    const calls: string[] = []
+    const restore = installFetchStub(async (input) => {
+      const u = String(input)
+      calls.push(u)
+      if (u.includes('/releases?')) {
+        return jsonResponse([
+          makeRelease('v1.2.0-rc.1', ['manifest.json']),
+          makeRelease('v1.1.0', ['manifest.json']),
+        ])
+      }
+      if (u.endsWith('/releases/tags/v1.1.0')) return jsonResponse(makeRelease('v1.1.0', ['manifest.json']))
+      return new Response('{"version":"1.1.0"}', { status: 200 })
+    })
+
+    try {
+      const response = await handleReleaseFeedRequest(
+        new Request('https://app.rox.one/electron/latest/manifest.json'),
+        ENV,
+      )
+      expect(response.status).toBe(200)
+      expect((await response.json()).version).toBe('1.1.0')
+      expect(calls.some((u) => u.endsWith('/releases/tags/v1.1.0'))).toBe(true)
+      expect(calls.some((u) => u.endsWith('/releases/tags/v1.2.0-rc.1'))).toBe(false)
+    } finally {
+      restore()
+    }
+  })
+
+  test('serves /electron/beta/beta-mac.yml from the latest beta or rc prerelease', async () => {
+    const calls: string[] = []
+    const restore = installFetchStub(async (input) => {
+      const u = String(input)
+      calls.push(u)
+      if (u.includes('/releases?')) {
+        return jsonResponse([
+          makeRelease('v1.3.0-beta.2', ['beta-mac.yml']),
+          makeRelease('v1.2.0-rc.7', ['beta-mac.yml']),
+          makeRelease('v1.1.0', ['latest-mac.yml']),
+        ])
+      }
+      if (u.endsWith('/releases/tags/v1.3.0-beta.2')) return jsonResponse(makeRelease('v1.3.0-beta.2', ['beta-mac.yml']))
+      return new Response('version: 1.3.0-beta.2\n', { status: 200 })
+    })
+
+    try {
+      const response = await handleReleaseFeedRequest(
+        new Request('https://app.rox.one/electron/beta/beta-mac.yml'),
+        ENV,
+      )
+      expect(response.status).toBe(200)
+      expect(await response.text()).toContain('1.3.0-beta.2')
+      expect(calls.some((u) => u.endsWith('/releases/tags/v1.3.0-beta.2'))).toBe(true)
+    } finally {
+      restore()
+    }
+  })
+
+  test('serves stable release-notes.json as a public JSON feed', async () => {
+    const restore = installFetchStub(async (input) => {
+      const u = String(input)
+      if (u.includes('/releases?')) return jsonResponse([makeRelease('v1.4.0', ['release-notes.json'])])
+      if (u.endsWith('/releases/tags/v1.4.0')) return jsonResponse(makeRelease('v1.4.0', ['release-notes.json']))
+      return new Response('{"releases":[{"version":"1.4.0","content":"notes"}]}', { status: 200 })
+    })
+
+    try {
+      const response = await handleReleaseFeedRequest(
+        new Request('https://app.rox.one/electron/stable/release-notes.json'),
+        ENV,
+      )
+      expect(response.status).toBe(200)
+      expect(response.headers.get('content-type')).toContain('application/json')
+      expect((await response.json()).releases[0].version).toBe('1.4.0')
+    } finally {
+      restore()
+    }
+  })
+
   test('proxies a Windows .exe with attachment disposition and correct content type', async () => {
     const restore = installFetchStub(async (input) => {
       const u = String(input)

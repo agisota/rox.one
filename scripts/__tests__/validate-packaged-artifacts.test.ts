@@ -102,7 +102,7 @@ function buildFixture(opts: FixtureOptions): string {
   } = opts;
 
   if (linux) {
-    createFakeFile(join(releaseDir, 'ROX-ONE-x86_64.deb'), FIFTY_MB);
+    createFakeFile(join(releaseDir, 'ROX-ONE-amd64.deb'), FIFTY_MB);
     createFakeFile(join(releaseDir, 'ROX-ONE-x86_64.rpm'), FIFTY_MB);
     createFakeFile(join(releaseDir, 'ROX-ONE-x86_64.AppImage'), FIFTY_MB);
     if (linuxSignature) {
@@ -222,7 +222,7 @@ describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
     });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).toBe(0);
-    expect(combined).toContain('ROX-ONE-x86_64.deb');
+    expect(combined).toContain('ROX-ONE-amd64.deb');
     expect(combined).toContain('ROX-ONE-x86_64.rpm');
     expect(combined).toContain('ROX-ONE-x86_64.AppImage');
     expect(combined).not.toContain('ROX-ONE-x86_64.AppImage.sig');

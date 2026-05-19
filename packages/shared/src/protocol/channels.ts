@@ -119,7 +119,10 @@ export const RPC_CHANNELS = {
   },
   update: {
     CHECK: 'update:check',
+    DOWNLOAD: 'update:download',
     GET_INFO: 'update:getInfo',
+    GET_SETTINGS: 'update:getSettings',
+    SET_SETTINGS: 'update:setSettings',
     INSTALL: 'update:install',
     DISMISS: 'update:dismiss',
     GET_DISMISSED: 'update:getDismissed',
