@@ -186,6 +186,16 @@ const api = buildClientApi(client, CHANNEL_MAP, (ch) => client.isChannelAvailabl
 
 ;(api as any).getRuntimeEnvironment = (): 'electron' | 'web' => 'electron'
 
+;(api as ElectronAPI).roxDesign = {
+  start: () => ipcRenderer.invoke('rox-design:start'),
+  getStatus: () => ipcRenderer.invoke('rox-design:get-status'),
+  stop: () => ipcRenderer.invoke('rox-design:stop'),
+  show: (input) => ipcRenderer.invoke('rox-design:view-show', input),
+  setBounds: (bounds) => ipcRenderer.invoke('rox-design:view-set-bounds', bounds),
+  hide: () => ipcRenderer.invoke('rox-design:view-hide'),
+  openExternal: (url: string) => ipcRenderer.invoke('rox-design:open-external', url),
+}
+
 // ---------------------------------------------------------------------------
 // Transport connection state logging (for remote connections)
 // ---------------------------------------------------------------------------
