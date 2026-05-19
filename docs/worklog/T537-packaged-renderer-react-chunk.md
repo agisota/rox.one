@@ -200,7 +200,7 @@ Packaged UI smoke:
 [ui-smoke] account tabs/forms OK
 [ui-smoke] experience six-tab navigation OK
 [ui-smoke] composer primary and overflow quick actions OK
-[ui-smoke] packaged ROX.ONE UI smoke passed; evidence: /Users/marklindgreen/.ai-agent-hub/evidence/playwright-smoke/rox-one-ui-smoke-2026-05-19T15-32-51-675Z
+[ui-smoke] packaged ROX.ONE UI smoke passed; evidence: /Users/marklindgreen/.ai-agent-hub/evidence/playwright-smoke/rox-one-ui-smoke-rebuilt-20260519T153804Z
 ```
 
 
@@ -224,6 +224,42 @@ ruby -e 'require "yaml"; Dir[".github/workflows/*.yml"].sort.each { |f| YAML.loa
 ok .github/workflows/cross-platform-launch.yml
 ```
 
+## 9a. Local installed-app recovery evidence
+After the user reported that the installed application did not load, I verified the stale installed bundle and replaced it with the freshly rebuilt packaged app:
+
+```text
+/Applications/ROX ONE.app before replacement: CFBundleShortVersionString=0.9.2, ad-hoc signed, LSMinimumSystemVersion=12.0
+ROX_MAC_APP_PATH='/Applications/ROX ONE.app' bun run electron:smoke:packaged:mac
+[packaged-smoke] ROX.ONE packaged startup timed out after 30000ms; escalated to SIGKILL after 5000ms grace
+```
+
+The rebuilt app was installed to `/Applications/ROX ONE.app` after preserving the old bundle under `/Users/marklindgreen/.ai-agent-hub/backups/rox-one-app/`:
+
+```text
+/Applications/ROX ONE.app after replacement: CFBundleShortVersionString=1.0.0-rc.7
+LSMinimumSystemVersion=12.0
+CFBundleIdentifier=com.rox.one
+codesign --verify --deep --strict /Applications/ROX ONE.app -> OK
+```
+
+Installed-app verification passed on both isolated smoke data and the real user profile:
+
+```text
+ROX_MAC_APP_PATH='/Applications/ROX ONE.app' bun run electron:smoke:packaged:mac
+[packaged-smoke] ROX.ONE packaged headless startup passed
+
+ROX_MAC_APP_PATH='/Applications/ROX ONE.app' bun run electron:ui-smoke:packaged:mac
+[ui-smoke] account tabs/forms OK
+[ui-smoke] experience six-tab navigation OK
+[ui-smoke] composer primary and overflow quick actions OK
+[ui-smoke] packaged ROX.ONE UI smoke passed; evidence: /Users/marklindgreen/.ai-agent-hub/evidence/playwright-smoke/rox-one-ui-smoke-installed-rebuilt-20260519T153939Z
+
+normal real-profile launch with updater path enabled:
+[normal-real-profile-smoke] installed app renderer loaded with normal update path
+```
+
+The app was then launched normally via `open -a '/Applications/ROX ONE.app'`; process `ROX.ONE` is running from `/Applications/ROX ONE.app/Contents/MacOS/ROX.ONE`.
+
 ## 10. Remaining risks
 - Local machine can directly prove only the local macOS ARM64 artifact; current local OS is newer than Sequoia, so Sequoia and Monterey/Ventura/Sonoma proof must come from CI/VM/lab.
 - GitHub-hosted Windows runners are Windows Server images, not literal Windows 10/11 consumer desktops. They prove Windows x64 Electron packaging/startup class, not the exact consumer SKU UX.
@@ -237,7 +273,7 @@ ok .github/workflows/cross-platform-launch.yml
 | Circular chunk regression guarded | Passing locally | `scripts/validate-renderer-chunks.isolated.ts` rejects React/i18n cycle; renderer build fails on `Circular chunk:`. |
 | macOS pre-Tahoe floor pinned | Passing locally | `electron-builder.yml` sets `minimumSystemVersion: "12.0"`; packaged validator prints `LSMinimumSystemVersion=12.0`. |
 | Packaged macOS launch smoke | Passing locally | `electron:smoke:packaged:mac` and generic `electron:smoke:packaged` both report packaged headless startup passed. |
-| Packaged macOS UI leaves loader | Passing locally | `electron:ui-smoke:packaged:mac` passed; evidence dir `/Users/marklindgreen/.ai-agent-hub/evidence/playwright-smoke/rox-one-ui-smoke-2026-05-19T15-32-51-675Z`. |
+| Packaged macOS UI leaves loader | Passing locally | `electron:ui-smoke:packaged:mac` passed; evidence dir `/Users/marklindgreen/.ai-agent-hub/evidence/playwright-smoke/rox-one-ui-smoke-rebuilt-20260519T153804Z`. |
 | Windows packaged launch harness | Passing static; remote pending | `electron-smoke-packaged.ts` supports `win-unpacked/ROX.ONE.exe`; workflow added for `windows-latest` and `windows-2022`. |
 | Ubuntu packaged launch harness | Passing static; remote pending | Workflow runs Ubuntu 22.04/24.04 under `xvfb-run` and calls `electron:smoke:packaged`. |
 | Debian/Fedora/NixOS launcher support | Passing static; remote pending | `install-app.sh` plus `validate:linux-installer-launcher`; workflow has distro guard images `debian:12`, `fedora:40`, `nixos/nix`. |

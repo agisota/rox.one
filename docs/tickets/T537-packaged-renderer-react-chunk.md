@@ -12,6 +12,7 @@ ROX.ONE packaged builds must not hang on the first loading screen or refuse to s
 ## Acceptance criteria
 - Production renderer build fails if React/i18n chunks form the known circular packaged-loader crash shape.
 - Packaged macOS app smoke proves the app exits cleanly from headless startup and the UI smoke leaves the initial loader.
+- Installed `/Applications/ROX ONE.app` can be replaced by the rebuilt bundle and opens with the real user profile.
 - macOS artifacts pin `LSMinimumSystemVersion=12.0` and `CFBundleIdentifier=com.rox.one`.
 - Cross-platform packaged smoke harness supports macOS, Linux unpacked, and Windows unpacked executables.
 - CI has an explicit cross-platform launch workflow for macOS Sequoia, Ubuntu 22.04/24.04, Windows hosted runners, and distro launcher guards for Debian/Fedora/NixOS.
