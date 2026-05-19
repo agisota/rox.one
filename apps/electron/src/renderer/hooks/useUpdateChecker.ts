@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-import type { UpdateInfo } from '../../shared/types'
+import type { UpdateInfo, UpdateSettings } from '../../shared/types'
 
 interface UseUpdateCheckerResult {
   /** Current update info */
@@ -25,10 +25,18 @@ interface UseUpdateCheckerResult {
   isReadyToInstall: boolean
   /** Download progress (0-100) */
   downloadProgress: number
+  /** Current persisted update settings */
+  updateSettings: UpdateSettings | null
   /** Check for updates manually */
   checkForUpdates: () => Promise<void>
+  /** Download an already-detected update */
+  downloadUpdate: () => Promise<void>
   /** Install the downloaded update and restart */
   installUpdate: () => Promise<void>
+  /** Refresh persisted update settings */
+  refreshSettings: () => Promise<UpdateSettings | null>
+  /** Persist update settings */
+  setUpdateSettings: (settings: Partial<UpdateSettings>) => Promise<UpdateSettings | null>
 }
 
 // Toast ID for update notification (allows dismiss/update)
@@ -37,10 +45,38 @@ const UPDATE_TOAST_ID = 'update-available'
 export function useUpdateChecker(): UseUpdateCheckerResult {
   const { t } = useTranslation()
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+  const [updateSettings, setUpdateSettingsState] = useState<UpdateSettings | null>(null)
   // Track if we've shown the toast for this version to avoid duplicates
   const shownToastVersionRef = useRef<string | null>(null)
 
   // Show toast notification when update is ready
+  const refreshSettings = useCallback(async () => {
+    try {
+      const settings = await window.electronAPI.getUpdateSettings()
+      setUpdateSettingsState(settings)
+      return settings
+    } catch (error) {
+      console.error('[useUpdateChecker] Failed to load update settings:', error)
+      return null
+    }
+  }, [])
+
+  const setUpdateSettings = useCallback(async (settings: Partial<UpdateSettings>) => {
+    try {
+      const next = await window.electronAPI.setUpdateSettings(settings)
+      setUpdateSettingsState(next)
+      const info = await window.electronAPI.getUpdateInfo()
+      setUpdateInfo(info)
+      return next
+    } catch (error) {
+      console.error('[useUpdateChecker] Failed to save update settings:', error)
+      toast.error(t('toast.failedToSaveUpdateSettings'), {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      })
+      return null
+    }
+  }, [t])
+
   const showUpdateToast = useCallback((version: string, onInstall: () => void) => {
     // Don't show if already shown for this version in this session
     if (shownToastVersionRef.current === version) {
@@ -81,6 +117,23 @@ export function useUpdateChecker(): UseUpdateCheckerResult {
     }
   }, [t])
 
+  const downloadUpdate = useCallback(async () => {
+    try {
+      toast.info(t('toast.downloadingUpdate'), { duration: 3000 })
+      const info = await window.electronAPI.downloadUpdate()
+      setUpdateInfo(info)
+      if (info.downloadState === 'ready' && info.latestVersion) {
+        shownToastVersionRef.current = null
+        showUpdateToast(info.latestVersion, installUpdate)
+      }
+    } catch (error) {
+      console.error('[useUpdateChecker] Download failed:', error)
+      toast.error(t('toast.failedToDownloadUpdate'), {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  }, [t, showUpdateToast, installUpdate])
+
   // Load initial state and check if update ready
   useEffect(() => {
     const checkAndNotify = async (info: UpdateInfo) => {
@@ -96,6 +149,8 @@ export function useUpdateChecker(): UseUpdateCheckerResult {
       // Show toast for ready update
       showUpdateToast(info.latestVersion, installUpdate)
     }
+
+    refreshSettings()
 
     // Get initial update info
     window.electronAPI.getUpdateInfo().then((info) => {
@@ -118,7 +173,7 @@ export function useUpdateChecker(): UseUpdateCheckerResult {
       cleanupAvailable()
       cleanupProgress()
     }
-  }, [showUpdateToast, installUpdate, t])
+  }, [showUpdateToast, installUpdate, refreshSettings])
 
   // Check for updates manually
   const checkForUpdates = useCallback(async () => {
@@ -135,6 +190,11 @@ export function useUpdateChecker(): UseUpdateCheckerResult {
         // If already ready, show toast (clear any previous dismissal since user explicitly checked)
         shownToastVersionRef.current = null // Reset so toast can show again
         showUpdateToast(info.latestVersion, installUpdate)
+      } else if (info.downloadState === 'idle' && info.latestVersion) {
+        toast.info(t('toast.updateAvailable'), {
+          description: t('toast.downloadUpdateToInstall', { version: info.latestVersion }),
+          duration: 5000,
+        })
       }
     } catch (error) {
       console.error('[useUpdateChecker] Check failed:', error)
@@ -146,11 +206,15 @@ export function useUpdateChecker(): UseUpdateCheckerResult {
 
   return {
     updateInfo,
+    updateSettings,
     updateAvailable: updateInfo?.available ?? false,
     isDownloading: updateInfo?.downloadState === 'downloading',
     isReadyToInstall: updateInfo?.downloadState === 'ready',
     downloadProgress: updateInfo?.downloadProgress ?? 0,
     checkForUpdates,
+    downloadUpdate,
     installUpdate,
+    refreshSettings,
+    setUpdateSettings,
   }
 }

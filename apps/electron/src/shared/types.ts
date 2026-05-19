@@ -204,6 +204,7 @@ import type {
   GitBashStatus,
   ClaudeOAuthResult,
   UpdateInfo,
+  UpdateSettings,
   WorkspaceSettings,
   PermissionModeState,
   BrowserInstanceInfo,
@@ -352,7 +353,10 @@ export interface ElectronAPI {
 
   // Auto-update
   checkForUpdates(): Promise<UpdateInfo>
+  downloadUpdate(): Promise<UpdateInfo>
   getUpdateInfo(): Promise<UpdateInfo>
+  getUpdateSettings(): Promise<UpdateSettings>
+  setUpdateSettings(settings: Partial<UpdateSettings>): Promise<UpdateSettings>
   installUpdate(): Promise<void>
   dismissUpdate(version: string): Promise<void>
   getDismissedUpdateVersion(): Promise<string | null>

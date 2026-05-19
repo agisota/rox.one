@@ -325,6 +325,76 @@ export function clearDismissedUpdateVersion(_scope: BrandedWorkspaceScope = DEFA
   saveConfig(config, _scope);
 }
 
+
+export type UpdateChannel = 'stable' | 'beta';
+
+export interface UpdateSettings {
+  autoDownloadUpdates: boolean;
+  updateChannel: UpdateChannel;
+}
+
+function normalizeUpdateChannel(value: unknown): UpdateChannel {
+  return value === 'beta' ? 'beta' : 'stable';
+}
+
+/**
+ * Get whether updates are automatically downloaded after detection.
+ * Defaults to true so users get the update button after background download.
+ */
+export function getAutoDownloadUpdates(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): boolean {
+  const config = loadStoredConfig(_scope);
+  if (config?.autoDownloadUpdates !== undefined) {
+    return config.autoDownloadUpdates;
+  }
+  const defaults = loadConfigDefaults(_scope);
+  return defaults.defaults.autoDownloadUpdates ?? true;
+}
+
+/** Persist the automatic update download preference. */
+export function setAutoDownloadUpdates(enabled: boolean, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
+  if (!config) return;
+  config.autoDownloadUpdates = enabled;
+  saveConfig(config, _scope);
+}
+
+/** Get selected update channel. Defaults to stable. */
+export function getUpdateChannel(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): UpdateChannel {
+  const config = loadStoredConfig(_scope);
+  if (config?.updateChannel !== undefined) {
+    return normalizeUpdateChannel(config.updateChannel);
+  }
+  const defaults = loadConfigDefaults(_scope);
+  return normalizeUpdateChannel(defaults.defaults.updateChannel);
+}
+
+/** Persist selected update channel. */
+export function setUpdateChannel(channel: UpdateChannel, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): void {
+  const config = loadStoredConfig(_scope);
+  if (!config) return;
+  config.updateChannel = normalizeUpdateChannel(channel);
+  saveConfig(config, _scope);
+}
+
+/** Get all update settings as one DTO. */
+export function getUpdateSettings(_scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): UpdateSettings {
+  return {
+    autoDownloadUpdates: getAutoDownloadUpdates(_scope),
+    updateChannel: getUpdateChannel(_scope),
+  };
+}
+
+/** Persist one or more update settings. */
+export function setUpdateSettings(settings: Partial<UpdateSettings>, _scope: BrandedWorkspaceScope = DEFAULT_LOCAL_SCOPE): UpdateSettings {
+  if (settings.autoDownloadUpdates !== undefined) {
+    setAutoDownloadUpdates(settings.autoDownloadUpdates, _scope);
+  }
+  if (settings.updateChannel !== undefined) {
+    setUpdateChannel(settings.updateChannel, _scope);
+  }
+  return getUpdateSettings(_scope);
+}
+
 // ============================================
 // Default Thinking Level
 // ============================================

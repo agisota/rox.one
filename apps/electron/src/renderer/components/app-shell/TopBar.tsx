@@ -43,6 +43,7 @@ import type { Workspace } from "../../../shared/types"
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher"
 import { getDocUrl } from "@rox-one/shared/docs/doc-links"
 import { AGENT_WORKBENCH_BRAND_CONFIG, getBrandDocsUrl } from "@rox-one/shared/branding"
+import { useUpdateChecker } from "@/hooks/useUpdateChecker"
 
 // --- Menu rendering (moved from AppMenu) ---
 
@@ -204,6 +205,18 @@ export function TopBar({
   const browserTabLabel = t("browser.newWindow") === 'New Browser Window'
     ? 'New Browser Tab'
     : t("browser.newWindow")
+  const updateChecker = useUpdateChecker()
+  const showUpdateAction = updateChecker.isDownloading || updateChecker.isReadyToInstall || (updateChecker.updateAvailable && updateChecker.updateInfo?.downloadState === 'idle')
+  const updateActionLabel = updateChecker.isDownloading
+    ? t('updates.topBar.downloading', { percent: updateChecker.downloadProgress })
+    : updateChecker.isReadyToInstall
+      ? t('updates.topBar.updateApp')
+      : t('updates.topBar.downloadUpdate')
+  const handleUpdateAction = updateChecker.isReadyToInstall
+    ? updateChecker.installUpdate
+    : updateChecker.updateInfo?.downloadState === 'idle'
+      ? updateChecker.downloadUpdate
+      : undefined
 
   useEffect(() => {
     window.electronAPI.isDebugMode().then(setIsDebugMode)
@@ -421,6 +434,30 @@ export function TopBar({
         <div className="min-w-0">
           <BrowserTabStrip activeSessionId={activeSessionId} maxVisibleBadges={maxVisibleBrowserBadges} />
         </div>
+        {showUpdateAction && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={updateActionLabel}
+                disabled={updateChecker.isDownloading || !handleUpdateAction}
+                onClick={handleUpdateAction}
+                className={cn(
+                  "titlebar-no-drag inline-flex h-[26px] shrink-0 items-center gap-1.5 rounded-lg border border-orange-500/35 bg-orange-500/15 px-2.5 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-500/25 disabled:cursor-default disabled:opacity-80 dark:text-orange-300",
+                  updateChecker.isReadyToInstall && "animate-pulse",
+                )}
+              >
+                {updateChecker.isDownloading ? (
+                  <Icons.Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.6} />
+                ) : (
+                  <Icons.Download className="h-3.5 w-3.5" strokeWidth={1.6} />
+                )}
+                <span className="max-w-[150px] truncate">{updateActionLabel}</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{updateActionLabel}</TooltipContent>
+          </Tooltip>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <TopBarButton aria-label={t("menu.addPanelMenu")} className="ml-1 h-[26px] w-[26px] rounded-lg">

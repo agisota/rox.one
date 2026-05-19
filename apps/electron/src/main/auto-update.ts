@@ -25,9 +25,13 @@ import { getAppVersion } from '@rox-one/shared/version'
 import {
   getDismissedUpdateVersion,
   clearDismissedUpdateVersion,
+  getAutoDownloadUpdates,
+  setAutoDownloadUpdates,
+  getUpdateChannel,
+  setUpdateChannel,
 } from '@rox-one/shared/config'
 import { readJsonFileSync } from '@rox-one/shared/utils/files'
-import { RPC_CHANNELS, type UpdateInfo } from '../shared/types'
+import { RPC_CHANNELS, type UpdateChannel, type UpdateInfo, type UpdateSettings } from '../shared/types'
 import type { EventSink } from '@rox-one/server-core/transport'
 
 // Platform detection
@@ -54,14 +58,78 @@ function getUpdateCacheDir(): string {
   }
 }
 
-// Module state — keeps track of update info for IPC queries
-let updateInfo: UpdateInfo = {
-  available: false,
-  currentVersion: getAppVersion(),
-  latestVersion: null,
-  downloadState: 'idle',
-  downloadProgress: 0,
+const UPDATE_FEED_ROOT = 'https://app.rox.one/electron'
+
+function getReleaseNotesUrl(channel: UpdateChannel): string {
+  return `${UPDATE_FEED_ROOT}/${channel}/release-notes.json`
 }
+
+function getManualDownloadUrl(channel: UpdateChannel, version: string | null): string | null {
+  const channelOrVersion = version ? version.replace(/^v/, '') : channel
+  const base = `${UPDATE_FEED_ROOT}/${channelOrVersion}`
+  if (IS_MAC) {
+    return `${base}/ROX-ONE-${process.arch === 'arm64' ? 'arm64' : 'x64'}.dmg`
+  }
+  if (IS_WINDOWS) {
+    return `${base}/ROX-ONE-x64.exe`
+  }
+  return `${base}/ROX-ONE-x86_64.AppImage`
+}
+
+
+function normalizeUpdateChannelSetting(value: unknown, fallback: UpdateChannel = 'stable'): UpdateChannel {
+  if (value === 'beta') return 'beta'
+  if (value === 'stable') return 'stable'
+  return fallback
+}
+
+function normalizeAutoDownloadSetting(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback
+}
+
+function currentUpdateSettings(): UpdateSettings {
+  return {
+    autoDownloadUpdates: getAutoDownloadUpdates(),
+    updateChannel: getUpdateChannel(),
+  }
+}
+
+function makeUpdateInfo(overrides: Partial<UpdateInfo> = {}): UpdateInfo {
+  const settings = currentUpdateSettings()
+  const latestVersion = overrides.latestVersion ?? null
+  const channel = overrides.channel ?? settings.updateChannel
+  const downloadState = overrides.downloadState ?? 'idle'
+  return {
+    available: false,
+    currentVersion: getAppVersion(),
+    latestVersion,
+    downloadState,
+    downloadProgress: 0,
+    channel,
+    autoDownload: settings.autoDownloadUpdates,
+    canInstall: downloadState === 'ready',
+    manualDownloadUrl: getManualDownloadUrl(channel, latestVersion),
+    releaseNotesUrl: getReleaseNotesUrl(channel),
+    ...overrides,
+  }
+}
+
+function refreshDerivedUpdateInfoFields(info: UpdateInfo): UpdateInfo {
+  const settings = currentUpdateSettings()
+  const channel = info.channel ?? settings.updateChannel
+  return {
+    ...info,
+    currentVersion: getAppVersion(),
+    channel,
+    autoDownload: settings.autoDownloadUpdates,
+    canInstall: info.downloadState === 'ready',
+    manualDownloadUrl: getManualDownloadUrl(channel, info.latestVersion),
+    releaseNotesUrl: getReleaseNotesUrl(channel),
+  }
+}
+
+// Module state — keeps track of update info for IPC queries
+let updateInfo: UpdateInfo = makeUpdateInfo()
 
 let eventSink: EventSink | null = null
 
@@ -105,7 +173,67 @@ export function setAutoUpdateEventSink(sink: EventSink): void {
  * Get current update info (called by IPC handler)
  */
 export function getUpdateInfo(): UpdateInfo {
+  updateInfo = refreshDerivedUpdateInfoFields(updateInfo)
   return { ...updateInfo }
+}
+
+function configureUpdateFeed(settings: UpdateSettings = currentUpdateSettings()): void {
+  const channel = settings.updateChannel
+  const feedChannel = channel === 'beta' ? 'beta' : 'latest'
+  autoUpdater.autoDownload = settings.autoDownloadUpdates
+  autoUpdater.allowPrerelease = channel === 'beta'
+  autoUpdater.allowDowngrade = false
+  try {
+    autoUpdater.setFeedURL({
+      provider: 'generic',
+      url: `${UPDATE_FEED_ROOT}/${channel}/`,
+      channel: feedChannel,
+    })
+  } catch (error) {
+    mainLog.warn('[auto-update] Failed to configure update feed:', error)
+  }
+  updateInfo = refreshDerivedUpdateInfoFields({
+    ...updateInfo,
+    channel,
+    autoDownload: settings.autoDownloadUpdates,
+    releaseNotesUrl: getReleaseNotesUrl(channel),
+  })
+}
+
+export function getUpdateSettings(): UpdateSettings {
+  const settings = currentUpdateSettings()
+  configureUpdateFeed(settings)
+  return settings
+}
+
+export function setUpdateSettings(settings: Partial<UpdateSettings>): UpdateSettings {
+  const current = currentUpdateSettings()
+  const next: UpdateSettings = {
+    autoDownloadUpdates: normalizeAutoDownloadSetting(settings.autoDownloadUpdates, current.autoDownloadUpdates),
+    updateChannel: normalizeUpdateChannelSetting(settings.updateChannel, current.updateChannel),
+  }
+
+  if (typeof settings.autoDownloadUpdates === 'boolean') {
+    setAutoDownloadUpdates(next.autoDownloadUpdates)
+  } else if (settings.autoDownloadUpdates !== undefined) {
+    mainLog.warn('[auto-update] Ignoring invalid autoDownloadUpdates setting:', settings.autoDownloadUpdates)
+  }
+  if (settings.updateChannel === 'stable' || settings.updateChannel === 'beta') {
+    setUpdateChannel(next.updateChannel)
+  } else if (settings.updateChannel !== undefined) {
+    mainLog.warn('[auto-update] Ignoring invalid updateChannel setting:', settings.updateChannel)
+  }
+
+  configureUpdateFeed(next)
+  updateInfo = makeUpdateInfo({
+    ...updateInfo,
+    channel: next.updateChannel,
+    autoDownload: next.autoDownloadUpdates,
+    downloadState: updateInfo.downloadState === 'error' ? 'idle' : updateInfo.downloadState,
+    error: undefined,
+  })
+  broadcastUpdateInfo()
+  return next
 }
 
 /**
@@ -130,9 +258,6 @@ function broadcastDownloadProgress(progress: number): void {
 
 // ─── Configure electron-updater ───────────────────────────────────────────────
 
-// Auto-download updates in the background after detection
-autoUpdater.autoDownload = true
-
 // Install on app quit (if update is downloaded but user hasn't clicked "Restart")
 autoUpdater.autoInstallOnAppQuit = true
 
@@ -143,6 +268,9 @@ autoUpdater.logger = {
   error: (msg: unknown) => mainLog.error('[electron-updater]', msg),
   debug: (msg: unknown) => mainLog.info('[electron-updater:debug]', msg),
 }
+
+// Apply persisted channel + auto-download settings at module load.
+configureUpdateFeed()
 
 // ─── Event handlers ───────────────────────────────────────────────────────────
 
@@ -162,12 +290,12 @@ autoUpdater.on('update-available', (info) => {
     mainLog.warn(
       `[auto-update] DOWNGRADE BLOCKED: remote version ${info.version} is not newer than current ${current}. Refusing update.`,
     )
-    updateInfo = {
+    updateInfo = refreshDerivedUpdateInfoFields({
       ...updateInfo,
       available: false,
       latestVersion: info.version,
       downloadState: 'idle',
-    }
+    })
     broadcastUpdateInfo()
     __resolveUpdateEvent()
     return
@@ -177,13 +305,13 @@ autoUpdater.on('update-available', (info) => {
   const internalState = checkElectronUpdaterState()
   if (internalState.ready) {
     mainLog.info(`[auto-update] electron-updater reports download ready`)
-    updateInfo = {
+    updateInfo = refreshDerivedUpdateInfoFields({
       ...updateInfo,
       available: true,
       latestVersion: info.version,
       downloadState: 'ready',
       downloadProgress: 100,
-    }
+    })
     broadcastUpdateInfo()
     __resolveUpdateEvent()
     return
@@ -193,38 +321,44 @@ autoUpdater.on('update-available', (info) => {
   const existing = checkForExistingDownload()
   if (existing.exists) {
     mainLog.info(`[auto-update] Update already downloaded (file check), setting state to ready`)
-    updateInfo = {
+    updateInfo = refreshDerivedUpdateInfoFields({
       ...updateInfo,
       available: true,
       latestVersion: info.version,
       downloadState: 'ready',
       downloadProgress: 100,
-    }
+    })
     broadcastUpdateInfo()
     __resolveUpdateEvent()
     return
   }
 
-  updateInfo = {
+  const nextState = autoUpdater.autoDownload ? 'downloading' : 'idle'
+  updateInfo = refreshDerivedUpdateInfoFields({
     ...updateInfo,
     available: true,
     latestVersion: info.version,
-    downloadState: 'downloading',
+    downloadState: nextState,
     downloadProgress: 0,
-  }
+    error: undefined,
+  })
   broadcastUpdateInfo()
+  if (!autoUpdater.autoDownload) {
+    __resolveUpdateEvent()
+    return
+  }
   // Do NOT resolve here — wait for update-downloaded or error to signal completion
 })
 
 autoUpdater.on('update-not-available', (info) => {
   mainLog.info(`[auto-update] Already up to date (${info.version})`)
 
-  updateInfo = {
+  updateInfo = refreshDerivedUpdateInfoFields({
     ...updateInfo,
     available: false,
     latestVersion: info.version,
     downloadState: 'idle',
-  }
+  })
   broadcastUpdateInfo()
   // W-4: signal checkForUpdates() that we have a definitive answer
   __resolveUpdateEvent()
@@ -232,20 +366,20 @@ autoUpdater.on('update-not-available', (info) => {
 
 autoUpdater.on('download-progress', (progress) => {
   const percent = Math.round(progress.percent)
-  updateInfo = { ...updateInfo, downloadProgress: percent }
+  updateInfo = refreshDerivedUpdateInfoFields({ ...updateInfo, downloadState: 'downloading', downloadProgress: percent })
   broadcastDownloadProgress(percent)
 })
 
 autoUpdater.on('update-downloaded', async (info) => {
   mainLog.info(`[auto-update] Update downloaded: v${info.version}`)
 
-  updateInfo = {
+  updateInfo = refreshDerivedUpdateInfoFields({
     ...updateInfo,
     available: true,
     latestVersion: info.version,
     downloadState: 'ready',
     downloadProgress: 100,
-  }
+  })
   broadcastUpdateInfo()
   // W-4: signal checkForUpdates() that we have a definitive answer
   __resolveUpdateEvent()
@@ -261,11 +395,12 @@ autoUpdater.on('error', (error) => {
   // even when no renderer window is listening.
   mainLog.error('[auto-update] Error:', error.message)
 
-  updateInfo = {
+  updateInfo = refreshDerivedUpdateInfoFields({
     ...updateInfo,
+    available: false,
     downloadState: 'error',
     error: error.message,
-  }
+  })
 
   // Broadcast to renderer if a sink is connected; the log above is the fallback.
   broadcastUpdateInfo()
@@ -373,16 +508,17 @@ function checkForExistingDownload(): { exists: boolean; version?: string } {
  * @throws when electron-updater emits an error or the network request fails (W-2)
  */
 export async function checkForUpdates(options: CheckOptions = {}): Promise<UpdateInfo> {
-  const { autoDownload = true } = options
+  configureUpdateFeed()
+  const { autoDownload = getAutoDownloadUpdates() } = options
 
   if (isDevRuntimeUpdateDisabled()) {
     mainLog.info('[auto-update] Skipping update check in Electron dev runtime')
-    updateInfo = {
+    updateInfo = refreshDerivedUpdateInfoFields({
       ...updateInfo,
       available: false,
       downloadState: 'idle',
       error: undefined,
-    }
+    })
     return getUpdateInfo()
   }
 
@@ -420,11 +556,11 @@ export async function checkForUpdates(options: CheckOptions = {}): Promise<Updat
         const existing = checkForExistingDownload()
         if (existing.exists) {
           mainLog.info('[auto-update] Update already downloaded, updating state to ready')
-          updateInfo = {
+          updateInfo = refreshDerivedUpdateInfoFields({
             ...updateInfo,
             downloadState: 'ready',
             downloadProgress: 100,
-          }
+          })
           broadcastUpdateInfo()
         }
       }
@@ -439,11 +575,11 @@ export async function checkForUpdates(options: CheckOptions = {}): Promise<Updat
     }
   } catch (error) {
     mainLog.error('[auto-update] Check failed:', error)
-    updateInfo = {
+    updateInfo = refreshDerivedUpdateInfoFields({
       ...updateInfo,
       downloadState: 'error',
       error: error instanceof Error ? error.message : 'Check failed',
-    }
+    })
     // W-2: re-throw so callers can distinguish success from failure via try/catch
     throw error
   } finally {
@@ -454,6 +590,39 @@ export async function checkForUpdates(options: CheckOptions = {}): Promise<Updat
   }
 
   return getUpdateInfo()
+}
+
+
+/**
+ * Explicitly download an already-detected update.
+ * Used when auto-download is disabled and the user clicks "Download update".
+ */
+export async function downloadUpdate(): Promise<UpdateInfo> {
+  configureUpdateFeed()
+  if (isDevRuntimeUpdateDisabled()) {
+    mainLog.info('[auto-update] Skipping update download in Electron dev runtime')
+    return getUpdateInfo()
+  }
+  try {
+    updateInfo = refreshDerivedUpdateInfoFields({
+      ...updateInfo,
+      downloadState: 'downloading',
+      downloadProgress: updateInfo.downloadProgress || 0,
+      error: undefined,
+    })
+    broadcastUpdateInfo()
+    await autoUpdater.downloadUpdate()
+    return getUpdateInfo()
+  } catch (error) {
+    mainLog.error('[auto-update] Download failed:', error)
+    updateInfo = refreshDerivedUpdateInfoFields({
+      ...updateInfo,
+      downloadState: 'error',
+      error: error instanceof Error ? error.message : 'Download failed',
+    })
+    broadcastUpdateInfo()
+    throw error
+  }
 }
 
 /**
@@ -471,7 +640,7 @@ export async function installUpdate(): Promise<void> {
 
   mainLog.info('[auto-update] Installing update and restarting...')
 
-  updateInfo = { ...updateInfo, downloadState: 'installing' }
+  updateInfo = refreshDerivedUpdateInfoFields({ ...updateInfo, downloadState: 'installing' })
   broadcastUpdateInfo()
 
   // Clear dismissed version since user is explicitly updating
@@ -487,7 +656,7 @@ export async function installUpdate(): Promise<void> {
   } catch (error) {
     __isUpdating = false
     mainLog.error('[auto-update] quitAndInstall failed:', error)
-    updateInfo = { ...updateInfo, downloadState: 'error' }
+    updateInfo = refreshDerivedUpdateInfoFields({ ...updateInfo, downloadState: 'error' })
     broadcastUpdateInfo()
     throw error
   }
@@ -513,7 +682,7 @@ export async function checkForUpdatesOnLaunch(): Promise<UpdateOnLaunchResult> {
 
   let info: UpdateInfo
   try {
-    info = await checkForUpdates({ autoDownload: true })
+    info = await checkForUpdates({ autoDownload: getAutoDownloadUpdates() })
   } catch {
     // checkForUpdates() now re-throws on error (W-2). On launch, a transient
     // network failure or signature error should not crash the app — log and

@@ -30,6 +30,7 @@ import {
   SettingsRow,
   SettingsToggle,
   SettingsInput,
+  SettingsSegmentedControl,
 } from '@/components/settings'
 import { useUpdateChecker } from '@/hooks/useUpdateChecker'
 
@@ -122,6 +123,15 @@ export default function AppSettingsPage() {
     } finally {
       setIsCheckingForUpdates(false)
     }
+  }, [updateChecker])
+
+  const handleAutoDownloadUpdatesChange = useCallback(async (enabled: boolean) => {
+    await updateChecker.setUpdateSettings({ autoDownloadUpdates: enabled })
+  }, [updateChecker])
+
+  const handleUpdateChannelChange = useCallback(async (channel: 'stable' | 'beta') => {
+    await updateChecker.setUpdateSettings({ updateChannel: channel })
+    await updateChecker.checkForUpdates()
   }, [updateChecker])
 
   // Load settings on mount
@@ -324,6 +334,30 @@ export default function AppSettingsPage() {
                       )}
                     </div>
                   </SettingsRow>
+                  {isElectron && updateChecker.updateSettings && (
+                    <>
+                      <SettingsToggle
+                        label={t("settings.about.autoDownloadUpdates")}
+                        description={t("settings.about.autoDownloadUpdatesDesc")}
+                        checked={updateChecker.updateSettings.autoDownloadUpdates}
+                        onCheckedChange={handleAutoDownloadUpdatesChange}
+                      />
+                      <SettingsRow
+                        label={t("settings.about.currentChannel")}
+                        description={t("settings.about.betaUpdatesDesc")}
+                      >
+                        <SettingsSegmentedControl
+                          size="sm"
+                          value={updateChecker.updateSettings.updateChannel}
+                          onValueChange={handleUpdateChannelChange}
+                          options={[
+                            { value: 'stable', label: t("settings.about.channelStable") },
+                            { value: 'beta', label: t("settings.about.channelBeta") },
+                          ]}
+                        />
+                      </SettingsRow>
+                    </>
+                  )}
                   {isElectron && (
                     <SettingsRow label={t("settings.about.checkForUpdates")}>
                       <Button
@@ -343,6 +377,16 @@ export default function AppSettingsPage() {
                       </Button>
                     </SettingsRow>
                   )}
+                  {isElectron && updateChecker.updateAvailable && updateChecker.updateInfo?.downloadState === 'idle' && updateChecker.updateInfo.latestVersion && (
+                    <SettingsRow label={t("settings.about.downloadUpdate")}>
+                      <Button
+                        size="sm"
+                        onClick={updateChecker.downloadUpdate}
+                      >
+                        {t("settings.about.downloadUpdate")}
+                      </Button>
+                    </SettingsRow>
+                  )}
                   {isElectron && updateChecker.isReadyToInstall && updateChecker.updateInfo?.latestVersion && (
                     <SettingsRow label={t("settings.about.updateReady")}>
                       <Button
@@ -350,6 +394,20 @@ export default function AppSettingsPage() {
                         onClick={updateChecker.installUpdate}
                       >
                         {t("settings.about.restartToUpdate", { version: updateChecker.updateInfo.latestVersion })}
+                      </Button>
+                    </SettingsRow>
+                  )}
+                  {isElectron && updateChecker.updateInfo?.downloadState === 'error' && updateChecker.updateInfo.manualDownloadUrl && (
+                    <SettingsRow
+                      label={t("settings.about.manualDownload")}
+                      description={t("settings.about.manualDownloadDesc")}
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.electronAPI.openUrl(updateChecker.updateInfo?.manualDownloadUrl ?? 'https://app.rox.one/electron/stable/')}
+                      >
+                        {t("settings.about.manualDownload")}
                       </Button>
                     </SettingsRow>
                   )}

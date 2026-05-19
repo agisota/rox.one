@@ -87,7 +87,10 @@ export const LOCAL_ONLY_CHANNELS = new Set<string>([
 
   // update — local auto-update
   RPC_CHANNELS.update.CHECK,
+  RPC_CHANNELS.update.DOWNLOAD,
   RPC_CHANNELS.update.GET_INFO,
+  RPC_CHANNELS.update.GET_SETTINGS,
+  RPC_CHANNELS.update.SET_SETTINGS,
   RPC_CHANNELS.update.INSTALL,
   RPC_CHANNELS.update.DISMISS,
   RPC_CHANNELS.update.GET_DISMISSED,

@@ -4,6 +4,7 @@ This file accumulates release notes for the next unreleased version. PRs that ad
 
 ## Features
 
+- **Auto-update channels and live release notes** — ROX.ONE now supports stable/beta update channels, background update downloads by default, an in-app top-bar update button, update settings for manual checks/downloads, and a remote `app.rox.one` release-notes feed with bundled notes as the offline fallback. macOS builds remain unsigned until Apple Developer ID signing is configured.
 - **Experience session sync and MCP defaults** — ROX.ONE now imports sanitized external Rox Agent session index entries into workspace sessions on startup and seeds new/migrated workspaces with Exa, ByteRover, Firecrawl, GitHub, Playwright, and Z.AI MCP source presets. The importer keeps raw transcripts, local source paths, and secret-like prompt fragments out of generated session stubs.
 
 ## Improvements

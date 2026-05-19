@@ -21,6 +21,8 @@ export interface ConfigDefaults {
     richToolDescriptions: boolean;
     extendedPromptCache: boolean;
     browserToolEnabled: boolean;
+    autoDownloadUpdates: boolean;
+    updateChannel: 'stable' | 'beta';
   };
   workspaceDefaults: {
     thinkingLevel: ThinkingLevel;

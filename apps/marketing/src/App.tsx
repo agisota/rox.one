@@ -137,8 +137,12 @@ const runSteps = [
   { label: 'Проверка сборки', value: 94 },
 ]
 
-const RELEASE_FEED_BASE_URL = 'https://app.rox.one/electron/latest'
-const RELEASE_FEED_MANIFEST_URL = `${RELEASE_FEED_BASE_URL}/manifest.json`
+const STABLE_RELEASE_FEED_BASE_URL = 'https://app.rox.one/electron/stable'
+const BETA_RELEASE_FEED_BASE_URL = 'https://app.rox.one/electron/beta'
+const RELEASE_NOTES_URL = 'https://app.rox.one/electron/stable/release-notes.json'
+const RELEASE_FEED_BASE_URL = STABLE_RELEASE_FEED_BASE_URL
+const RELEASE_FEED_MANIFEST_URL = `${STABLE_RELEASE_FEED_BASE_URL}/manifest.json`
+const BETA_RELEASE_FEED_MANIFEST_URL = `${BETA_RELEASE_FEED_BASE_URL}/manifest.json`
 
 type TerminalDownload = {
   title: string
@@ -171,7 +175,7 @@ type ManifestPayload = {
 // fetch fails. Mirrors the last shipped release so the page never appears
 // broken even if app.rox.one is unreachable. Refresh on each release bump.
 const fallbackTerminalRelease: TerminalRelease = {
-  version: '1.0.0-rc.7',
+  version: '1.0.0',
   manifestUrl: RELEASE_FEED_MANIFEST_URL,
 }
 
@@ -266,7 +270,7 @@ function isValidBinary(binary: ManifestBinary): binary is Required<Pick<Manifest
   return true
 }
 
-function manifestToDownloads(manifest: ManifestPayload): TerminalDownload[] {
+function manifestToDownloads(manifest: ManifestPayload, feedBaseUrl = RELEASE_FEED_BASE_URL): TerminalDownload[] {
   const binaries = manifest.binaries ?? {}
   const seen = new Set<string>()
   const ordered: string[] = []
@@ -285,7 +289,7 @@ function manifestToDownloads(manifest: ManifestPayload): TerminalDownload[] {
     const binary = binaries[key]
     if (!binary || !isValidBinary(binary)) continue
     const label = platformLabels[key] ?? { title: key, subtitle: 'Сборка из release feed' }
-    const fileUrl = binary.url ?? `${RELEASE_FEED_BASE_URL}/${binary.filename}`
+    const fileUrl = binary.url ?? `${feedBaseUrl}/${binary.filename}`
     downloads.push({
       title: label.title,
       subtitle: label.subtitle,
@@ -299,37 +303,60 @@ function manifestToDownloads(manifest: ManifestPayload): TerminalDownload[] {
   return downloads
 }
 
-function useTerminalRelease(): { release: TerminalRelease; downloads: TerminalDownload[] } {
+function useTerminalRelease(): {
+  release: TerminalRelease
+  downloads: TerminalDownload[]
+  betaRelease: TerminalRelease | null
+  betaDownloads: TerminalDownload[]
+  latestNotesVersion: string | null
+} {
   const [release, setRelease] = useState<TerminalRelease>(fallbackTerminalRelease)
   const [downloads, setDownloads] = useState<TerminalDownload[]>(fallbackTerminalDownloads)
+  const [betaRelease, setBetaRelease] = useState<TerminalRelease | null>(null)
+  const [betaDownloads, setBetaDownloads] = useState<TerminalDownload[]>([])
+  const [latestNotesVersion, setLatestNotesVersion] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
+    const loadManifest = async (manifestUrl: string, feedBaseUrl: string) => {
+      const response = await fetch(manifestUrl, { signal: controller.signal })
+      if (!response.ok) return null
+      const payload = (await response.json()) as ManifestPayload
+      if (controller.signal.aborted) return null
+      const liveDownloads = manifestToDownloads(payload, feedBaseUrl)
+      if (liveDownloads.length === 0) return null
+      return { payload, downloads: liveDownloads }
+    }
+
     void (async () => {
       try {
-        // Trust the worker's Cache-Control: public, max-age=60 — the page
-        // already shows fallback data instantly, and a 1-minute stale
-        // manifest is fine for marketing copy. Browser cache short-circuits
-        // a network call on every page load.
-        const response = await fetch(RELEASE_FEED_MANIFEST_URL, {
-          signal: controller.signal,
-        })
-        if (!response.ok) return
-        const payload = (await response.json()) as ManifestPayload
-        if (controller.signal.aborted) return
-        const liveDownloads = manifestToDownloads(payload)
-        if (liveDownloads.length === 0) return
-        setDownloads(liveDownloads)
-        if (typeof payload.version === 'string' && payload.version.length > 0) {
-          setRelease({
-            version: payload.version,
-            manifestUrl: RELEASE_FEED_MANIFEST_URL,
-          })
+        const [stable, beta, notes] = await Promise.allSettled([
+          loadManifest(RELEASE_FEED_MANIFEST_URL, STABLE_RELEASE_FEED_BASE_URL),
+          loadManifest(BETA_RELEASE_FEED_MANIFEST_URL, BETA_RELEASE_FEED_BASE_URL),
+          fetch(RELEASE_NOTES_URL, { signal: controller.signal }).then((r) => r.ok ? r.json() : null),
+        ])
+
+        if (stable.status === 'fulfilled' && stable.value) {
+          setDownloads(stable.value.downloads)
+          if (typeof stable.value.payload.version === 'string' && stable.value.payload.version.length > 0) {
+            setRelease({ version: stable.value.payload.version, manifestUrl: RELEASE_FEED_MANIFEST_URL })
+          }
+        }
+
+        if (beta.status === 'fulfilled' && beta.value && typeof beta.value.payload.version === 'string') {
+          setBetaDownloads(beta.value.downloads)
+          setBetaRelease({ version: beta.value.payload.version, manifestUrl: BETA_RELEASE_FEED_MANIFEST_URL })
+        }
+
+        if (notes.status === 'fulfilled' && notes.value && typeof notes.value === 'object') {
+          const first = Array.isArray((notes.value as { releases?: unknown[] }).releases)
+            ? (notes.value as { releases: Array<{ version?: string }> }).releases[0]
+            : notes.value as { version?: string }
+          if (typeof first?.version === 'string') setLatestNotesVersion(first.version.replace(/^v/, ''))
         }
       } catch (err) {
         // Aborts (unmount, StrictMode double-invoke) are expected and silent.
-        // Other failures (network, JSON parse) also fall through silently —
-        // the fallback constants keep the page usable when app.rox.one is down.
+        // Other failures fall through silently — fallback constants keep the page usable.
         if ((err as { name?: string })?.name === 'AbortError') return
       }
     })()
@@ -338,7 +365,7 @@ function useTerminalRelease(): { release: TerminalRelease; downloads: TerminalDo
     }
   }, [])
 
-  return { release, downloads }
+  return { release, downloads, betaRelease, betaDownloads, latestNotesVersion }
 }
 
 const trustChecks = [
@@ -448,12 +475,13 @@ function ProductDemo() {
 }
 
 export function App() {
-  const { release: terminalRelease, downloads: terminalDownloads } = useTerminalRelease()
+  const { release: terminalRelease, downloads: terminalDownloads, betaRelease, betaDownloads, latestNotesVersion } = useTerminalRelease()
   const liveSignals = buildLiveSignals(terminalRelease.version)
   const releaseFacts = [
-    'Публичный feed: app.rox.one/electron/latest',
+    'Публичный feed: app.rox.one/electron/stable',
     `Актуальная версия: v${terminalRelease.version}`,
     'Installer scripts: shell + PowerShell',
+    latestNotesVersion ? `Что нового: v${latestNotesVersion}` : 'Что нового: live release-notes',
   ]
 
   return (
@@ -609,9 +637,12 @@ export function App() {
           <div className="download-layout">
             <div className="download-intro">
               <p>
-                Скачайте нативное приложение ROX ONE Terminal. Сборка использует бренд ROX ONE,
-                bundle id <code>com.rox.one</code> и поставляется через публичный release feed
-                на <code>app.rox.one</code>.
+                Скачайте нативное приложение ROX ONE Terminal. Стабильная сборка и бета-сборки
+                берутся из live manifest на <code>app.rox.one</code>, без захардкоженной версии на сайте.
+              </p>
+              <p>
+                Важно: сборка пока без Apple Developer ID, поэтому macOS может показать предупреждение
+                при первом запуске или обновлении.
               </p>
               <div className="release-facts" aria-label="Состояние релиза">
                 {releaseFacts.map((fact) => (
@@ -659,6 +690,42 @@ export function App() {
                   </a>
                 </article>
               ))}
+              {betaRelease && betaDownloads.length > 0 && (
+                <article className="download-card">
+                  <div className="download-card-header">
+                    <div className="feature-icon">
+                      <MonitorDown aria-hidden="true" />
+                    </div>
+                    <div>
+                      <h3>Бета v{betaRelease.version}</h3>
+                      <p>Ранняя сборка для проверки новых изменений. Может быть менее стабильной.</p>
+                    </div>
+                  </div>
+                  <dl className="download-meta">
+                    <div>
+                      <dt>Файл</dt>
+                      <dd>{betaDownloads[0].fileName}</dd>
+                    </div>
+                    <div>
+                      <dt>Размер</dt>
+                      <dd>{betaDownloads[0].size}</dd>
+                    </div>
+                    <div>
+                      <dt>SHA-256</dt>
+                      <dd className="checksum">{betaDownloads[0].sha256}</dd>
+                    </div>
+                  </dl>
+                  <a className="button secondary download-button" href={betaDownloads[0].url}>
+                    <MonitorDown aria-hidden="true" />
+                    <span>{betaDownloads[0].action}</span>
+                  </a>
+                  <a className="repo-link release-link" href={betaRelease.manifestUrl}>
+                    <GitBranch aria-hidden="true" />
+                    <span>Открыть beta manifest</span>
+                    <ArrowRight aria-hidden="true" />
+                  </a>
+                </article>
+              )}
               <article className="download-card trust-card">
                 <div className="download-card-header">
                   <div className="feature-icon">
