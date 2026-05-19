@@ -1,0 +1,181 @@
+name: Mac White-Window Diag Smoke
+
+# Diagnostic workflow to capture per-OS screenshots and diag logs for the
+# macOS white-window regression (Sequoia / Sonoma).
+#
+# Triggers:
+#   - workflow_dispatch: manual dispatch from the Actions tab
+#   - push to branches matching fix/multiplatform-mac-* (auto-run on fix branches)
+#
+# Matrix: macos-13 (Ventura), macos-14 (Sonoma), macos-15 (Sequoia).
+# Artefacts: per-OS screenshot + diag.log + DiagnosticReports uploaded always.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "fix/multiplatform-mac-*"
+
+concurrency:
+  group: mac-diag-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  diag-smoke:
+    name: Diag smoke — ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-13, macos-14, macos-15]
+
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      ROX_DEV_RUNTIME: "1"
+      ROX_DIAG: "1"
+      ROX_HEADLESS: "0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Patch nested dep symlink for electron-builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          NESTED_DIR=node_modules/@anthropic-ai/claude-agent-sdk/node_modules/@anthropic-ai
+          mkdir -p "$NESTED_DIR"
+          if [ ! -e "$NESTED_DIR/sdk" ]; then
+            ln -sf ../../../../@anthropic-ai/sdk "$NESTED_DIR/sdk"
+            echo "Created symlink: $NESTED_DIR/sdk -> ../../../../@anthropic-ai/sdk"
+          else
+            echo "Symlink already exists at $NESTED_DIR/sdk"
+          fi
+
+      - name: Build Electron app
+        run: bun run electron:build
+
+      - name: Package macOS app (dir output for smoke launch)
+        shell: bash
+        run: |
+          set -o pipefail
+          bunx electron-builder --mac --arm64 --x64 --dir --publish=never \
+            2>&1 | tee /tmp/electron-builder-${{ matrix.os }}.log
+
+      - name: Install Playwright dependencies
+        run: |
+          bunx playwright install chromium --with-deps || true
+
+      - name: Launch app and capture screenshot + diag log
+        continue-on-error: true
+        shell: bash
+        env:
+          ROX_DIAG: "1"
+          ROX_SMOKE_EXIT_ON_READY: "0"
+          OS_LABEL: ${{ matrix.os }}
+        run: |
+          set -euo pipefail
+
+          # Locate the built .app (prefer arm64, fall back to x64)
+          APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: Could not find ROX.ONE.app in apps/electron/release"
+            find apps/electron/release -type d | head -20
+            exit 1
+          fi
+          echo "Found app at: $APP_PATH"
+
+          # Write a tiny Playwright script and run it with node
+          cat > /tmp/diag-launch.mjs << 'PLAYWRIGHT_SCRIPT'
+          import { _electron as electron } from '@playwright/test'
+          import { join } from 'path'
+
+          const appPath = process.env.ROX_APP_PATH
+          const screenshotPath = process.env.ROX_SCREENSHOT_PATH
+          console.log('Launching app:', appPath)
+
+          const electronApp = await electron.launch({
+            executablePath: join(appPath, 'Contents/MacOS/ROX.ONE'),
+            env: {
+              ...process.env,
+              ROX_DIAG: '1',
+              ROX_SMOKE_EXIT_ON_READY: '0',
+            },
+            timeout: 30000,
+          })
+
+          // Wait for first window
+          let page
+          try {
+            page = await electronApp.firstWindow()
+            console.log('First window URL:', page.url())
+          } catch (err) {
+            console.error('firstWindow() failed:', err.message)
+            await electronApp.close()
+            process.exit(1)
+          }
+
+          // Wait 10 s for the renderer to paint
+          await new Promise(resolve => setTimeout(resolve, 10000))
+
+          await page.screenshot({ path: screenshotPath, fullPage: true })
+          console.log('Screenshot saved to:', screenshotPath)
+          console.log('Page title:', await page.title(), '| URL:', page.url())
+
+          await electronApp.close()
+          PLAYWRIGHT_SCRIPT
+
+          ROX_APP_PATH="$APP_PATH" \
+          ROX_SCREENSHOT_PATH="/tmp/diag-${OS_LABEL}.png" \
+            node /tmp/diag-launch.mjs
+
+      - name: Copy diag.log from app logs dir
+        if: always()
+        shell: bash
+        env:
+          OS_LABEL: ${{ matrix.os }}
+        run: |
+          LOG_DIR=~/Library/Logs/ROX.ONE
+          if [ -d "$LOG_DIR" ]; then
+            cp "$LOG_DIR/diag.log" "/tmp/diag-${OS_LABEL}.log" 2>/dev/null || true
+            echo "Copied diag.log from $LOG_DIR"
+          else
+            echo "No diag log dir at $LOG_DIR — listing ~/Library/Logs/:"
+            ls ~/Library/Logs/ 2>/dev/null || true
+          fi
+
+      - name: Upload diag artefacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: diag-${{ matrix.os }}
+          path: |
+            /tmp/diag-${{ matrix.os }}.png
+            /tmp/diag-${{ matrix.os }}.log
+            /tmp/electron-builder-${{ matrix.os }}.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload DiagnosticReports (crash logs)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: crash-reports-${{ matrix.os }}
+          path: ~/Library/Logs/DiagnosticReports/
+          if-no-files-found: ignore
+          retention-days: 14
