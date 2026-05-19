@@ -33,7 +33,10 @@ describe('ProductModeToolbar compact actions', () => {
     expect(onIntent).toHaveBeenCalledWith({
       type: 'product-mode-intent',
       source: 'composer-toolbar',
+      behavior: 'wrap-prompt',
       actionId: 'build-spec',
+      artifactKind: 'spec-builder',
+      wrapperId: 'spec',
       mode: 'spec',
       labelKey: 'workbench.actions.buildSpec',
     })
@@ -57,7 +60,10 @@ describe('ProductModeToolbar compact actions', () => {
     expect(onIntent).toHaveBeenCalledWith({
       type: 'product-mode-intent',
       source: 'composer-toolbar',
+      behavior: 'wrap-prompt',
       actionId: 'verify',
+      artifactKind: 'review-gate',
+      wrapperId: 'verify',
       mode: 'verify',
       labelKey: 'workbench.actions.verify',
     })

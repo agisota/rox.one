@@ -1,21 +1,21 @@
 # T505 - bun:test vs vitest discovery drift investigation
 
-Status: DEFERRED
-PR: fix/T505-test-runner-drift
+Status: DONE
+PR: fix/t505-rtl-modal-provider-wrap
 Date: 2026-05-15
-Owner-of-fix: T504 / C1 (shared RTL render helper)
-Related: `fix/T504-rtl-modal-provider-wrap` (active fix branch)
+Owner-of-fix: Codex
+Related: `fix/T504-rtl-modal-provider-wrap` (superseded/deferred ownership handoff)
 
 ## Summary
 
 Bonus unit for RC2 cycle. The MEMORY.md note `bun:test vs vitest discovery
 drift` claims ~100 unit test failures on main 2026-05-14. This ticket reopens
-the investigation. Outcome: the framing is wrong — there is no discovery
-drift; `bun test` is green; the visible failures are 55 RTL tests under
-Vitest, all from a single missing provider in the shared render helper. The
-fix is well-understood and one-line, but the file is owned by C1 in the
-current parallel-agent allocation (T504 is the active fix branch), so the
-actual code change is deferred.
+the investigation. Outcome: the framing was wrong — there was no discovery
+drift; `bun test` was green; the visible failures were RTL tests under Vitest
+from a missing provider in the shared render helper. The deferred ownership
+blocker is now resolved: `TestComposerHarness` wraps tests with `ModalProvider`,
+the helper no longer re-exports Testing Library's raw `render` through a star
+export, and the full RTL suite is green.
 
 ## Findings
 
@@ -31,11 +31,17 @@ actual code change is deferred.
   `apps/electron/src/test-utils/render.tsx` does not wrap children with
   `ModalProvider` from `apps/electron/src/renderer/context/ModalContext.tsx`.
 
-## Recommended fix (deferred to T504 / C1)
+## Resolution
 
-Add `ModalProvider` wrapper inside `TestComposerHarness`. One-line
-import + one-line JSX. Estimated effort < 30 minutes including re-running
-the full Vitest suite.
+- Added `ModalProvider` to `apps/electron/src/test-utils/render.tsx`.
+- Replaced the broad Testing Library star re-export with explicit helper
+  exports so `render` is unambiguously the provider-wrapped local function.
+- Added a `useModalRegistry` smoke assertion in
+  `apps/electron/src/test-utils/__tests__/render.rtl.test.tsx`.
+- Removed a hoisted `ModalContext` mock from `edit-popover.rtl.test.tsx` that
+  became invalid once the shared helper provided the real provider.
+- Refreshed stale `ProductModeToolbar` intent assertions for the current
+  `behavior`, `artifactKind`, and `wrapperId` contract.
 
 ## Secondary observation
 
@@ -54,10 +60,12 @@ to the "drift" framing.
 ## Validation
 
 - `bun test` exit 0 (was: claim of 100 failures; actual: 0 failures).
-- `bun run test:rtl` reproduces 55 failures with a single-line root cause.
+- `bun run test:rtl` passes: 30 files / 170 tests.
+- `apps/electron` `bun run typecheck` passes.
 - No production source files modified.
-- No test files modified or skipped.
-- `bun run validate:architecture-docs` clean.
+- Test files were updated only to lock the helper/provider contract and current
+  product-mode intent shape; no tests were skipped.
+- `bun run validate:architecture-docs` clean in the original investigation.
 
 ## References
 

@@ -338,11 +338,7 @@ describe('EditPopover [P0 a11y — WCAG 4.1.2 / 2.1.2 / 2.4.3]', () => {
      */
     it('RenameDialog input receives focus after open via setTimeout workaround', async () => {
       // Dynamically import RenameDialog here to avoid top-level import cost.
-      // We also need to mock ModalContext which RenameDialog uses.
-      vi.mock('@/context/ModalContext', () => ({
-        useRegisterModal: () => undefined,
-      }))
-
+      // The shared render helper supplies ModalProvider for useRegisterModal.
       const { default: React } = await import('react')
       const { RenameDialog } = await import('../rename-dialog')
 
