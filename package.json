@@ -51,7 +51,7 @@
     "test:rtl:coverage": "cd apps/electron && ~/.bun/bin/bunx vitest run --config vitest.config.ts --coverage",
     "test:doc-tools": "python3 -m unittest apps.electron.resources.scripts.tests.test_pdf_tool_smoke apps.electron.resources.scripts.tests.test_xlsx_tool_smoke apps.electron.resources.scripts.tests.test_docx_tool_smoke apps.electron.resources.scripts.tests.test_pptx_tool_smoke apps.electron.resources.scripts.tests.test_img_tool_smoke apps.electron.resources.scripts.tests.test_ical_tool_smoke apps.electron.resources.scripts.tests.test_doc_diff_smoke apps.electron.resources.scripts.tests.test_markitdown_smoke",
     "validate:dev": "bun run typecheck:all && bun run test:shared:all && bun run test:doc-tools",
-    "validate:ci": "bun run validate:agent-contract && bun run validate:architecture-docs && bun run validate:ci-contract && bun run validate:private-release-pipeline && bun run validate:release-all-platforms-workflow && bun run validate:dev && bun run validate:audit && bun run lint:i18n:parity && bun run lint:i18n:sorted && bun run lint:i18n:coverage",
+    "validate:ci": "bun run validate:agent-contract && bun run validate:architecture-docs && bun run validate:ci-contract && bun run validate:private-release-pipeline && bun run validate:release-all-platforms-workflow && bun run validate:cross-platform-launch-workflow && bun run validate:linux-installer-launcher && bun run validate:dev && bun run validate:audit && bun run lint:i18n:parity && bun run lint:i18n:sorted && bun run lint:i18n:coverage",
     "validate:private-release-pipeline": "bun run scripts/validate-private-release-pipeline.ts",
     "validate:release": "bun run validate:docs && bun run lint && bun run typecheck:all && bun test && bun run electron:build && bun run validate:bundle-policy && bun run validate:mac-arm-build-workflow && bun run validate:private-release-pipeline",
     "lint:ipc-sends": "bash scripts/check-raw-sends.sh",
@@ -75,7 +75,7 @@
     "validate:audit": "bash scripts/audit-smoke.sh",
     "build:wa-worker": "bun run scripts/build-wa-worker.ts",
     "electron:build:assets": "cd apps/electron && bun scripts/copy-assets.ts",
-    "electron:build": "bun run electron:build:main && bun run electron:build:preload && bun run electron:build:renderer && bun run electron:build:resources && bun run electron:build:assets",
+    "electron:build": "bun run electron:build:main && bun run electron:build:preload && bun run electron:build:renderer && bun run validate:renderer-chunks && bun run electron:build:resources && bun run electron:build:assets",
     "electron:start": "bun run electron:dev",
     "electron:dev": "bun run scripts/electron-dev.ts",
     "electron:dev:terminal": "bun run scripts/electron-dev.ts --terminal",
@@ -149,7 +149,11 @@
     "release:stamp-version": "bun run scripts/stamp-release-version.ts",
     "validate:release-feed-assets": "bun run scripts/validate-release-feed-assets.ts",
     "validate:release-notes-feed": "bun run scripts/validate-release-notes-feed.ts",
-    "validate:release-all-platforms-workflow": "bun run scripts/validate-release-all-platforms-workflow.ts"
+    "validate:release-all-platforms-workflow": "bun run scripts/validate-release-all-platforms-workflow.ts",
+    "validate:renderer-chunks": "bun run scripts/validate-renderer-chunks.ts",
+    "validate:linux-installer-launcher": "bun run scripts/validate-linux-installer-launcher.ts",
+    "electron:smoke:packaged": "bun run scripts/electron-smoke-packaged.ts",
+    "validate:cross-platform-launch-workflow": "bun run scripts/validate-cross-platform-launch-workflow.ts"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1038.0",

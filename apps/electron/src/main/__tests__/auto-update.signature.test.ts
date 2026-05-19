@@ -976,4 +976,24 @@ describe('dev runtime guard', () => {
 
     process.env.ROX_ELECTRON_DEV_RUNTIME = original
   })
+
+  it('skips the update check entirely when ROX_E2E=1', async () => {
+    const original = process.env.ROX_E2E
+    process.env.ROX_E2E = '1'
+
+    try {
+      mockCheckForUpdates.mockClear()
+      const result = await checkForUpdates()
+
+      expect(mockCheckForUpdates).not.toHaveBeenCalled()
+      expect(result.available).toBe(false)
+      expect(result.downloadState).toBe('idle')
+    } finally {
+      if (original === undefined) {
+        delete process.env.ROX_E2E
+      } else {
+        process.env.ROX_E2E = original
+      }
+    }
+  })
 })

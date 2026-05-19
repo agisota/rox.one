@@ -8,6 +8,11 @@ import { resolve } from 'path'
 // SENTRY_ORG, SENTRY_PROJECT to CI secrets. See CLAUDE.md "Sentry Error Tracking" section.
 // import { sentryVitePlugin } from '@sentry/vite-plugin'
 
+function isNodeModulePackage(id: string, packageName: string): boolean {
+  const normalized = id.replace(/\\/g, '/')
+  return normalized.includes(`/node_modules/${packageName}/`)
+}
+
 export default defineConfig(({ command }) => {
   // Playground is a dev-only component browser. Exclude it from production builds
   // to avoid shipping ~784 KB of mock/demo code to end users.
@@ -79,26 +84,26 @@ export default defineConfig(({ command }) => {
         //   - index-ui-*         (@rox-one/ui — internal design-system package)
         // Without these explicit buckets, the auto-chunker keeps these modules in
         // whichever entry first imports them, inflating main-*.js past budget.
-        // Rollup may emit "circular chunk" warnings for the index-* buckets —
-        // the chunks still execute correctly because the cycles resolve at
-        // runtime through ESM live bindings (same semantics as Webpack
-        // splitChunks). The pre-T132e build collapsed all of this into a single
-        // index-*.js chunk and shipped fine.
+        // Important: match React's exact package directory. A broad `/react/`
+        // substring also catches packages such as `@tiptap/react`, pulling
+        // feature code into the React runtime bucket and creating circular
+        // chunks with i18n/shared code. That broke packaged startup before
+        // React could replace the initial loader.
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('/sonner/')) return 'sonner'
-            if (id.includes('/@sentry/')) return 'sentry'
+            if (isNodeModulePackage(id, 'sonner')) return 'sonner'
+            if (id.includes('/node_modules/@sentry/')) return 'sentry'
             if (
-              id.includes('/i18next/') ||
-              id.includes('/react-i18next/') ||
-              id.includes('/i18next-browser-languagedetector/')
+              isNodeModulePackage(id, 'i18next') ||
+              isNodeModulePackage(id, 'react-i18next') ||
+              isNodeModulePackage(id, 'i18next-browser-languagedetector')
             ) {
               return 'i18n'
             }
             if (
-              id.includes('/react/') ||
-              id.includes('/react-dom/') ||
-              id.includes('/scheduler/')
+              isNodeModulePackage(id, 'react') ||
+              isNodeModulePackage(id, 'react-dom') ||
+              isNodeModulePackage(id, 'scheduler')
             ) {
               return 'index-react'
             }
