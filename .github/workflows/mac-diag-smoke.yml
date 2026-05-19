@@ -58,11 +58,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          NESTED_DIR=node_modules/@anthropic-ai/claude-agent-sdk/node_modules/@anthropic-ai
+          # electron-builder is invoked from apps/electron (working-directory below), so patch
+          # that package's node_modules. BunNodeModulesCollector fails to resolve @anthropic-ai/sdk
+          # (hoisted by bun to workspace root) when traversing @anthropic-ai/claude-agent-sdk deps.
+          # Use absolute symlink target to avoid miscounting relative ../ levels.
+          NESTED_DIR=apps/electron/node_modules/@anthropic-ai/claude-agent-sdk/node_modules/@anthropic-ai
+          SDK_ABS="${GITHUB_WORKSPACE}/node_modules/@anthropic-ai/sdk"
           mkdir -p "$NESTED_DIR"
           if [ ! -e "$NESTED_DIR/sdk" ]; then
-            ln -sf ../../../../@anthropic-ai/sdk "$NESTED_DIR/sdk"
-            echo "Created symlink: $NESTED_DIR/sdk -> ../../../../@anthropic-ai/sdk"
+            ln -sf "$SDK_ABS" "$NESTED_DIR/sdk"
+            echo "Created symlink: $NESTED_DIR/sdk -> $SDK_ABS"
           else
             echo "Symlink already exists at $NESTED_DIR/sdk"
           fi
@@ -72,6 +77,7 @@ jobs:
 
       - name: Package macOS app (dir output for smoke launch)
         shell: bash
+        working-directory: apps/electron
         run: |
           set -o pipefail
           bunx electron-builder --mac --arm64 --x64 --dir --publish=never \
