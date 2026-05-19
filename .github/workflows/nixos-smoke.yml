@@ -130,13 +130,21 @@ jobs:
           REAL_SHA256=$(nix hash file --sri /tmp/rox-agent.AppImage)
           echo "Real sha256 (SRI): ${REAL_SHA256}"
 
+          # Add the AppImage into the Nix store so the daemon can access it
+          # without needing to fetch from the network.  nix store add-path
+          # copies the file into /nix/store and prints the resulting store path.
+          STORE_PATH=$(nix store add-path /tmp/rox-agent.AppImage --name "rox-agent.AppImage")
+          echo "AppImage store path: ${STORE_PATH}"
+
           FLAKE_DIR=$(mktemp -d)
           cp packaging/nixos/rox-agent.nix "${FLAKE_DIR}/"
 
           # Write the CI flake via Python to avoid heredoc YAML conflicts.
-          python3 - "${FLAKE_DIR}" "${VERSION}" "${REAL_SHA256}" <<'PYEOF'
+          # We use builtins.path to reference the store-added file directly;
+          # this works without --impure because the path is already in the store.
+          python3 - "${FLAKE_DIR}" "${VERSION}" "${REAL_SHA256}" "${STORE_PATH}" <<'PYEOF'
           import sys, textwrap, pathlib
-          flake_dir, version, sha256 = sys.argv[1], sys.argv[2], sys.argv[3]
+          flake_dir, version, sha256, store_path = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
           content = textwrap.dedent(f'''
             {{
               description = "ROX.ONE rox-agent - NixOS AppImage flake (CI smoke)";
@@ -151,10 +159,7 @@ jobs:
                     lib      = pkgs.lib;
                     version  = "{version}";
                     sha256   = "{sha256}";
-                    localSrc = pkgs.fetchurl {{
-                      url    = "file:///tmp/rox-agent.AppImage";
-                      inherit sha256;
-                    }};
+                    localSrc = "{store_path}";
                     roxAgent = pkgs.callPackage ./rox-agent.nix {{
                       inherit pkgs lib version sha256 system;
                       src = localSrc;
@@ -175,7 +180,7 @@ jobs:
 
           echo "Building rox-agent wrapper..."
           nix build "${FLAKE_DIR}#rox-agent" --no-link --print-out-paths \
-            2>&1 | tee /tmp/nix-build.log
+            --impure 2>&1 | tee /tmp/nix-build.log
           echo "flake_dir=${FLAKE_DIR}" >> "$GITHUB_OUTPUT"
 
       # Run the wrapped binary with --no-sandbox (GitHub runners disable user
@@ -192,7 +197,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "Running smoke test..."
-          timeout 20 nix run "${FLAKE_DIR}#rox-agent" -- --no-sandbox --help \
+          timeout 20 nix run "${FLAKE_DIR}#rox-agent" --impure -- --no-sandbox --help \
             2>&1 | tee /tmp/nix-run-smoke.log || true
 
           if grep -qiE \
