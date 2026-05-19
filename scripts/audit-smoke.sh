@@ -27,7 +27,7 @@ echo "=== static-tsc on renderer ==="
 "$BUN" run "$REPO_ROOT/packages/audit/src/cli.ts" run renderer --probes=static-tsc --no-tickets --out="$OUT/static-tsc"
 
 # Surfaces to gate with static-bundle (electron excluded: placeholder budget, no vite build)
-SURFACES=("webui" "viewer" "marketing")
+SURFACES=("webui" "viewer")
 
 for surface in "${SURFACES[@]}"; do
   if [ "$SKIP_BUILD" -eq 0 ]; then

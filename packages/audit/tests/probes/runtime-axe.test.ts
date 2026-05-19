@@ -16,7 +16,7 @@ describe("runtime-axe probe", () => {
   test("detects WCAG violations on fixture page", async () => {
     const playwright = await createPlaywrightRunner();
     const ctx: ProbeContext = {
-      surface: "marketing",
+      surface: "viewer",
       workspaceRoot: FIXTURE,
       surfaceRoot: FIXTURE,
       playwright,

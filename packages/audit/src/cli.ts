@@ -19,7 +19,7 @@ import { join } from "node:path";
 const HELP = `Usage:
   audit run <surfaces> [--probes=<csv>] [--worker-cap=N] [--out=<path>] [--no-tickets] [--top-k=N] [--max-llm-calls=N]
 
-  surfaces: comma-separated, one or more of: renderer, webui, viewer, marketing
+  surfaces: comma-separated, one or more of: renderer, webui, viewer
   --probes: comma-separated probe names (supports * suffix glob)
   --worker-cap: parallel probe-surface pairs (default 4)
   --out: output dir override (default audits/<ISO timestamp>)
@@ -29,7 +29,7 @@ const HELP = `Usage:
 
 Examples:
   audit run renderer --probes=static-tsc
-  audit run renderer,webui,viewer,marketing --probes=static-*
+  audit run renderer,webui,viewer --probes=static-*
   audit run renderer --no-tickets
   audit run renderer,webui --top-k=20
   audit run renderer,webui --max-llm-calls=20
@@ -56,7 +56,7 @@ function parseArgs(argv: string[]): {
   if (!surfacesArg || surfacesArg.startsWith("--")) {
     throw new Error("`audit run` requires a surfaces argument (e.g. `audit run renderer,webui`)");
   }
-  const validSurfaces: Surface[] = ["renderer", "webui", "viewer", "marketing"];
+  const validSurfaces: Surface[] = ["renderer", "webui", "viewer"];
   const surfaces = surfacesArg.split(",").map((s) => s.trim()) as Surface[];
   for (const s of surfaces) {
     if (!validSurfaces.includes(s)) throw new Error(`Unknown surface: ${s}`);
@@ -116,7 +116,6 @@ async function main(): Promise<number> {
     renderer: join(workspaceRoot, "apps/electron/src/renderer"),
     webui: join(workspaceRoot, "apps/webui"),
     viewer: join(workspaceRoot, "apps/viewer"),
-    marketing: join(workspaceRoot, "apps/marketing"),
   };
 
   // Instantiate a shared Playwright runner when any registered probe is A.2+.
@@ -146,7 +145,6 @@ async function main(): Promise<number> {
   const surfaceDevCommands: Partial<Record<Surface, { command: string; args: string[] }>> = {
     webui: { command: bunBin, args: ["run", "webui:dev"] },
     viewer: { command: bunBin, args: ["run", "viewer:dev"] },
-    marketing: { command: bunBin, args: ["run", "marketing:dev"] },
   };
 
   try {

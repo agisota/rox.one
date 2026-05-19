@@ -93,12 +93,12 @@ describe("discoverRoutes", () => {
   test("returns empty array for unknown surface", async () => {
     expect(await discoverRoutes("renderer", "/nonexistent")).toEqual([]);
   });
-  test("returns array of route URLs for marketing (file-based routing)", async () => {
+  test("returns array of route URLs for viewer (file-based routing)", async () => {
     await withScratch(async (dir) => {
       mkdirSync(join(dir, "src", "pages"), { recursive: true });
       writeFileSync(join(dir, "src", "pages", "index.html"), "<html></html>");
       writeFileSync(join(dir, "src", "pages", "about.html"), "<html></html>");
-      const routes = await discoverRoutes("marketing", dir);
+      const routes = await discoverRoutes("viewer", dir);
       expect(routes.length).toBeGreaterThanOrEqual(2);
     });
   });
