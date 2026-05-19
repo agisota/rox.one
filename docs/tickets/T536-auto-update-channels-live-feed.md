@@ -30,3 +30,4 @@ Status: IN_PROGRESS — stable live, beta follow-up in progress
 - Stable `v1.0.0` опубликован и живой; beta feed требует свежий prerelease tag после фикса Worker, потому что старый `v1.0.0-rc.7` не содержит `beta*.yml`.
 - Полная живая проверка старой установленной версии зависит от наличия опубликованного нового выпуска и поведения macOS Gatekeeper.
 - Follow-up PR #258 также чинит hosted CircleCI `validate`: `transform_data` теперь запускает дочерний процесс через native `Bun.spawn` под Bun, чтобы обходить intermittent `node:child_process.spawn` EBADF на Linux runner.
+- Fresh beta tag `v1.0.1-beta.1` exposed a release finalization bug: the aggregate manifest job must publish the existing draft by release id instead of using `softprops/action-gh-release` with `draft:false`, otherwise GitHub can create a duplicate published release and leave the asset-filled draft unpublished.

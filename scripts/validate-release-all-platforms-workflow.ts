@@ -17,6 +17,12 @@ function requireText(source: string, expected: string, description: string): voi
   if (!source.includes(expected)) fail(`missing ${description}: ${expected}`)
 }
 
+function requireAnyText(source: string, expectedOptions: string[], description: string): void {
+  if (!expectedOptions.some((expected) => source.includes(expected))) {
+    fail(`missing ${description}: one of ${expectedOptions.join(' | ')}`)
+  }
+}
+
 function requireOrder(source: string, before: string, after: string, description: string): void {
   const beforeIndex = source.indexOf(before)
   const afterIndex = source.indexOf(after)
@@ -86,7 +92,7 @@ for (const stepName of [
 }
 
 const finalAttachBlock = stepBlock(workflow, 'Attach manifest.json + install scripts to GitHub Release')
-requireText(finalAttachBlock, 'draft: false', 'final attach publishes release after all assets validate')
+requireAnyText(finalAttachBlock, ['draft: false', '-F draft=false'], 'final attach publishes release after all assets validate')
 requireText(finalAttachBlock, '.manifest-out/manifest.json', 'final attach includes manifest.json')
 requireText(finalAttachBlock, '.manifest-out/release-notes.json', 'final attach includes release-notes.json')
 requireText(finalAttachBlock, 'scripts/install-app.sh', 'final attach includes shell installer')
