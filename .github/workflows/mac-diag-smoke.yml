@@ -92,12 +92,20 @@ jobs:
           bunx electron-builder --mac --arm64 --x64 --dir --publish=never \
             2>&1 | tee /tmp/electron-builder-${{ matrix.os }}.log
 
-      - name: Install Playwright dependencies
+      - name: Install Playwright (ad-hoc, isolated tree)
+        shell: bash
         run: |
-          bunx playwright install chromium --with-deps || true
+          set -euo pipefail
+          # @playwright/test is not a project dependency; install it ad-hoc into
+          # /tmp/pw so the diag launch script (placed in the same dir) can resolve
+          # the import. Avoids polluting the workspace lockfile.
+          mkdir -p /tmp/pw
+          cd /tmp/pw
+          npm init -y >/dev/null
+          npm install --no-fund --no-audit --silent @playwright/test@^1.48
+          npx --yes playwright install chromium
 
       - name: Launch app and capture screenshot + diag log
-        continue-on-error: true
         shell: bash
         env:
           ROX_DIAG: "1"
@@ -115,8 +123,9 @@ jobs:
           fi
           echo "Found app at: $APP_PATH"
 
-          # Write a tiny Playwright script and run it with node
-          cat > /tmp/diag-launch.mjs << 'PLAYWRIGHT_SCRIPT'
+          # Script lives inside /tmp/pw so node resolves @playwright/test from
+          # /tmp/pw/node_modules (installed in the previous step).
+          cat > /tmp/pw/diag-launch.mjs << 'PLAYWRIGHT_SCRIPT'
           import { _electron as electron } from '@playwright/test'
           import { join } from 'path'
 
@@ -157,7 +166,21 @@ jobs:
 
           ROX_APP_PATH="$APP_PATH" \
           ROX_SCREENSHOT_PATH="/tmp/diag-${OS_LABEL}.png" \
-            node /tmp/diag-launch.mjs
+            node /tmp/pw/diag-launch.mjs
+
+          # Hard assertion: the screenshot MUST exist and be non-trivially sized.
+          # Without this, a silently broken Playwright run would still mark the
+          # job green (see prior incident with @playwright/test missing).
+          if [ ! -s "/tmp/diag-${OS_LABEL}.png" ]; then
+            echo "ERROR: screenshot /tmp/diag-${OS_LABEL}.png missing or empty"
+            exit 1
+          fi
+          SIZE=$(stat -f%z "/tmp/diag-${OS_LABEL}.png" 2>/dev/null || stat -c%s "/tmp/diag-${OS_LABEL}.png")
+          echo "Screenshot size: $SIZE bytes"
+          if [ "$SIZE" -lt 2000 ]; then
+            echo "ERROR: screenshot suspiciously small ($SIZE bytes) — likely all-white"
+            exit 1
+          fi
 
       - name: Copy diag.log from app logs dir
         if: always()
