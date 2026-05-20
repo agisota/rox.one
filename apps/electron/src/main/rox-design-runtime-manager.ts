@@ -289,6 +289,12 @@ export class RoxDesignRuntimeManager {
   private desktopAuthSecret: Buffer | null = null
   private startPromise: Promise<RoxDesignStatus> | null = null
   private pendingSidecarExitEvent: SidecarExitedPayload | null = null
+  // C-H2 (audit 2026-05-20-pr268-release-readiness-audit): guards the
+  // child.once('exit') handler from emitting rox-design:sidecar-exited IPC
+  // during an intentional stop(). Without this flag the stop() kill races the
+  // exit handler and the renderer incorrectly treats a clean shutdown as a
+  // crash. See also: PR #268 follow-up d1ea1854 that introduced the handler.
+  private stopping = false
 
   constructor(options: RoxDesignRuntimeManagerOptions) {
     this.resourcesRoot = options.resourcesRoot
@@ -383,7 +389,11 @@ export class RoxDesignRuntimeManager {
   }
 
   async stop(): Promise<RoxDesignStatus> {
+    // C-H2: set before kill so the exit handler short-circuits.
+    this.stopping = true
     await this.stopProcesses()
+    // Reset so a subsequent start()+stop() cycle works correctly.
+    this.stopping = false
     this.status = { status: 'idle' }
     this.broadcastStatus()
     return this.getStatus()
@@ -532,6 +542,9 @@ export class RoxDesignRuntimeManager {
     })
     child.once('exit', (code, signal) => {
       this.logger?.info?.(`[rox-design:${app}] exited`, { code, signal })
+      // C-H2: skip crash notification when stop() intentionally killed the
+      // child — this exit is expected, not a crash.
+      if (this.stopping) return
       if (this.status.status === 'running') {
         this.status = {
           status: 'failed',
