@@ -34,8 +34,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Playwright Chromium
-        run: ./node_modules/.bin/playwright install --with-deps chromium
+      - name: Install Playwright Chromium headless shell
+        run: node node_modules/playwright/cli.js install --with-deps --only-shell chromium
 
       - name: Prepare validation logs
         run: mkdir -p .ci-logs

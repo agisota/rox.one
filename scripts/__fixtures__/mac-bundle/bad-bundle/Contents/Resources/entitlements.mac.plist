@@ -2,9 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
   <dict>
-    <!-- Bad-fixture entitlements: disable-library-validation present, plus
-         inbound-network server entitlement. Both are forbidden by the
-         T250 trust-boundary contract. -->
+    <!-- Bad-fixture entitlements: inbound-network server entitlement is
+         forbidden by the trust-boundary contract. -->
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
     <key>com.apple.security.cs.disable-library-validation</key>

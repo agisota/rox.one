@@ -438,7 +438,20 @@ bun test --timeout=30000 scripts/__tests__/validate-packaged-artifacts.test.ts
 ```
 
 The broader all-test cleanup should be handled as a separate test-harness
-stabilization task, not inside the current PR #299 CI unblock branch.
+stabilization task, not inside the current PR #330 CI unblock branch.
+
+## 9h. PR #330 validate Playwright browser install repair
+The validate workflow installed Playwright browsers through
+`./node_modules/.bin/playwright`, which resolves to `@playwright/test` 1.60.0 in
+this Bun install. The audit runner imports the direct `playwright` package at
+1.55.1, so its headless Chromium launch asks for the 1.55 browser cache entry:
+`chromium_headless_shell-1193/chrome-linux/headless_shell`.
+
+Local reproduction used an empty `PLAYWRIGHT_BROWSERS_PATH` and confirmed the
+same missing executable path without downloading browsers. The direct
+`node_modules/playwright/cli.js install --dry-run --only-shell chromium`
+command targets `chromium_headless_shell-1193`, so the validate workflow now
+installs the browser artifact used by the package that launches Chromium.
 
 ## 10. Remaining risks
 - Local machine can directly prove only the local macOS ARM64 artifact; PR CI now proves macOS Sequoia ARM64 packaged launch and diagnostic smoke proves Sonoma/Sequoia on GitHub-hosted runners. Monterey/Ventura are no longer supported release targets after the Sonoma 14.0 floor change.
