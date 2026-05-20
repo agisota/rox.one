@@ -171,6 +171,7 @@ jobs:
               ...process.env,
               ROX_DIAG: '1',
               ROX_SMOKE_EXIT_ON_READY: '0',
+              ROX_STARTUP_LOG_PATH: process.env.ROX_STARTUP_LOG_PATH,
             },
             timeout: 90000,
           })
@@ -210,15 +211,24 @@ jobs:
           await electronApp.close()
           PLAYWRIGHT_SCRIPT
 
+          # M.18 white-window diag: also expose ROX_STARTUP_LOG_PATH so the
+          # main process appends a per-stage marker line to disk (path
+          # survives Playwright stderr-piping limitations on macOS runners).
+          STARTUP_LOG="/tmp/diag-${OS_LABEL}-rox-startup.log"
+          rm -f "$STARTUP_LOG"
+
           set +e
           ROX_APP_PATH="$APP_PATH" \
           ROX_SCREENSHOT_PATH="/tmp/diag-${OS_LABEL}.png" \
           ROX_STDERR_LOG="/tmp/diag-${OS_LABEL}-stderr.log" \
           ROX_STDOUT_LOG="/tmp/diag-${OS_LABEL}-stdout.log" \
+          ROX_STARTUP_LOG_PATH="$STARTUP_LOG" \
             node /tmp/pw/diag-launch.mjs
           NODE_RC=$?
           set -e
 
+          echo "=== ROX_STARTUP markers (disk) ==="
+          cat "$STARTUP_LOG" 2>/dev/null || echo "(no startup log)"
           echo "=== stderr log (first 200 lines) ==="
           head -n 200 "/tmp/diag-${OS_LABEL}-stderr.log" 2>/dev/null || echo "(no stderr log)"
           echo "=== stdout log (first 80 lines) ==="
@@ -272,6 +282,7 @@ jobs:
             /tmp/diag-${{ matrix.os }}-stderr.log
             /tmp/diag-${{ matrix.os }}-stdout.log
             /tmp/diag-${{ matrix.os }}-codesign.log
+            /tmp/diag-${{ matrix.os }}-rox-startup.log
             /tmp/electron-builder-${{ matrix.os }}.log
           if-no-files-found: warn
           retention-days: 14

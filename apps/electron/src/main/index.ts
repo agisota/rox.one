@@ -1,15 +1,24 @@
-// Hard-coded stderr instrumentation (M.18 white-window diag). Writes
-// straight to fd 2 so it survives even if the logger fails to initialize
-// or the app exits before app.whenReady fires. Captured by Playwright via
-// electronApp.process().stderr in mac-diag-smoke workflow.
-process.stderr.write('ROX_STARTUP: main-entry (pre-imports)\n')
+// Hard-coded stage instrumentation (M.18 white-window diag). Writes a
+// single-line entry to /tmp/rox-startup.log (sync, no logger dependency)
+// in addition to fd 2. Disk path is required because Playwright on macOS
+// runners does not always capture child-process stderr cleanly, but a flat
+// file survives any startup-phase hang and is copied to artefacts later.
+import { appendFileSync as __rox_appendFileSync } from 'fs'
+const __rox_startupLogPath =
+  process.env.ROX_STARTUP_LOG_PATH || '/tmp/rox-startup.log'
+function roxStartup(stage: string): void {
+  const line = `[${new Date().toISOString()}] ROX_STARTUP: ${stage}\n`
+  try { process.stderr.write(line) } catch { /* swallow */ }
+  try { __rox_appendFileSync(__rox_startupLogPath, line) } catch { /* swallow */ }
+}
+roxStartup('main-entry (pre-imports)')
 
 // Load user's shell environment first (before other imports that may use env)
 // This ensures tools like Homebrew, nvm, etc. are available to the agent
 import { loadShellEnv } from './shell-env'
-process.stderr.write('ROX_STARTUP: before loadShellEnv\n')
+roxStartup('before loadShellEnv')
 loadShellEnv()
-process.stderr.write('ROX_STARTUP: after loadShellEnv\n')
+roxStartup('after loadShellEnv')
 
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, safeStorage, shell } from 'electron'
 import { createHash, randomUUID } from 'crypto'
@@ -343,7 +352,7 @@ if (!gotTheLock) {
 
 // Helper to create initial windows on startup
 async function createInitialWindows(): Promise<void> {
-  process.stderr.write('ROX_STARTUP: createInitialWindows entered\n')
+  roxStartup('createInitialWindows entered')
   if (!windowManager) return
 
   // Load saved window state
@@ -391,19 +400,19 @@ async function createInitialWindows(): Promise<void> {
   }
 
   // Default: open window for first workspace
-  process.stderr.write('ROX_STARTUP: before windowManager.createWindow (default workspace)\n')
+  roxStartup('before windowManager.createWindow (default workspace)')
   windowManager.createWindow({ workspaceId: workspaces[0].id })
-  process.stderr.write('ROX_STARTUP: after windowManager.createWindow (default workspace)\n')
+  roxStartup('after windowManager.createWindow (default workspace)')
   mainLog.info(`Created window for first workspace: ${workspaces[0].name}`)
 }
 
-process.stderr.write('ROX_STARTUP: before app.whenReady().then registration\n')
+roxStartup('before app.whenReady().then registration')
 app.whenReady().then(async () => {
-  process.stderr.write('ROX_STARTUP: app.whenReady fired\n')
+  roxStartup('app.whenReady fired')
   // Diagnostic mode — no-op unless ROX_DIAG=1
   const { initDiagLogger } = await import('./diag/diag-logger')
   initDiagLogger()
-  process.stderr.write('ROX_STARTUP: diag-logger initialized\n')
+  roxStartup('diag-logger initialized')
 
   const smokeExitOnReady = process.env.ROX_SMOKE_EXIT_ON_READY === '1'
   const scheduleSmokeShutdown = (exitCode: number, message: string) => {
@@ -503,10 +512,10 @@ app.whenReady().then(async () => {
   }
 
   try {
-    process.stderr.write('ROX_STARTUP: before WindowManager construction\n')
+    roxStartup('before WindowManager construction')
     // Initialize window manager
     windowManager = new WindowManager()
-    process.stderr.write('ROX_STARTUP: after WindowManager construction\n')
+    roxStartup('after WindowManager construction')
 
     // Create the application menu (needs windowManager for New Window action)
     createApplicationMenu(windowManager)
@@ -678,6 +687,7 @@ app.whenReady().then(async () => {
       }
 
       // Bootstrap the WS RPC server via shared bootstrap function.
+      roxStartup('before bootstrapServer')
       const instance = await bootstrapServer<SessionManager, HandlerDeps>({
         serverToken,
         rpcHost,
@@ -780,6 +790,7 @@ app.whenReady().then(async () => {
         },
       })
 
+      roxStartup('after bootstrapServer returned')
       // Capture module-level references for before-quit cleanup and deep-link handlers
       sessionManager = instance.sessionManager
       oauthFlowStore = instance.oauthFlowStore
@@ -1074,7 +1085,9 @@ app.whenReady().then(async () => {
     // Create initial windows (restores from saved state or opens first workspace)
     // In headless mode the server runs without any UI — skip window creation.
     if (!isHeadless) {
+      roxStartup('about to call createInitialWindows')
       await createInitialWindows()
+      roxStartup('createInitialWindows resolved')
     }
 
     // Run credential health check at startup to detect issues early

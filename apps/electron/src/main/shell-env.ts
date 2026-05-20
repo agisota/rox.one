@@ -10,7 +10,14 @@
  */
 
 import { execSync } from 'child_process'
+import { appendFileSync } from 'fs'
 import { mainLog } from './logger'
+
+function roxStartup(stage: string): void {
+  const line = `[${new Date().toISOString()}] ROX_STARTUP: ${stage}\n`
+  try { process.stderr.write(line) } catch { /* swallow */ }
+  try { appendFileSync(process.env.ROX_STARTUP_LOG_PATH || '/tmp/rox-startup.log', line) } catch { /* swallow */ }
+}
 
 // Environment variables that should NOT be imported from the shell
 // VITE_* vars from dev mode would make packaged app try to load from localhost
@@ -39,7 +46,7 @@ export function loadShellEnv(): void {
 
   const shell = process.env.SHELL || '/bin/zsh'
   mainLog.info(`[shell-env] Loading environment from ${shell}`)
-  process.stderr.write(`ROX_STARTUP: shell-env spawning ${shell}\n`)
+  roxStartup(`shell-env spawning ${shell}`)
 
   try {
     // Run login shell to get full environment
@@ -63,7 +70,7 @@ export function loadShellEnv(): void {
       stdio: ['pipe', 'pipe', 'pipe'],
     })
 
-    process.stderr.write('ROX_STARTUP: shell-env execSync returned\n')
+    roxStartup('shell-env execSync returned')
     // Parse environment after marker and set variables (excluding blocked ones)
     const envSection = output.split('__ENV_START__')[1] || ''
     let count = 0
@@ -87,7 +94,7 @@ export function loadShellEnv(): void {
     }
   } catch (error) {
     // Don't fail app startup if shell env loading fails
-    process.stderr.write(`ROX_STARTUP: shell-env execSync FAILED: ${String(error).slice(0, 200)}\n`)
+    roxStartup(`shell-env execSync FAILED: ${String(error).slice(0, 200)}`)
     mainLog.warn(`[shell-env] Failed to load shell environment: ${error}`)
     mainLog.warn('[shell-env] Adding common paths as fallback')
 
