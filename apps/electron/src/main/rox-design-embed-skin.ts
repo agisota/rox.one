@@ -970,6 +970,48 @@ export function buildRoxDesignEmbedBootstrapScript(zoomFactor: number): string {
       }
     }, 250);
   }
+
+  // ---- PZD-83: INP measurement inside the embedded Rox Design surface. ----
+  // Tiny inline equivalent of web-vitals' INP observer (~30 LoC) — bundled
+  // directly into the bootstrap script so we don't pull a new dependency
+  // into the renderer bundle.
+  if (!window.__ROX_DESIGN_PERF_BUFFER__) {
+    window.__ROX_DESIGN_PERF_BUFFER__ = [];
+  }
+  if (!window.__ROX_DESIGN_PERF_READ__) {
+    window.__ROX_DESIGN_PERF_READ__ = () => {
+      const samples = window.__ROX_DESIGN_PERF_BUFFER__ || [];
+      window.__ROX_DESIGN_PERF_BUFFER__ = [];
+      return samples;
+    };
+  }
+  if (!window.__ROX_DESIGN_INP_OBSERVER__ && typeof PerformanceObserver === 'function') {
+    try {
+      const supported = (PerformanceObserver.supportedEntryTypes || []);
+      if (supported.indexOf('event') !== -1) {
+        const observer = new PerformanceObserver((list) => {
+          const buf = window.__ROX_DESIGN_PERF_BUFFER__ = window.__ROX_DESIGN_PERF_BUFFER__ || [];
+          for (const entry of list.getEntries()) {
+            // 'event' entries always carry a duration; INP is the slowest
+            // input-response observed. We push raw samples and let the main
+            // process compute aggregates.
+            if (entry && typeof entry.duration === 'number' && entry.duration > 0) {
+              buf.push(entry.duration);
+              // Cap buffer to avoid unbounded growth between polls.
+              if (buf.length > 256) buf.splice(0, buf.length - 256);
+            }
+          }
+        });
+        // durationThreshold lower bound is 16ms per spec; below that the
+        // browser may not emit entries at all.
+        observer.observe({ type: 'event', durationThreshold: 16, buffered: true });
+        window.__ROX_DESIGN_INP_OBSERVER__ = observer;
+      }
+    } catch {
+      // Browsers that lack PerformanceObserver 'event' support silently skip
+      // INP collection — dashboards will show "no data" for those platforms.
+    }
+  }
 })();
 `;
 }
