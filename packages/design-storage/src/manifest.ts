@@ -54,7 +54,9 @@ function rowToArtifact(row: ArtifactRow): DesignArtifact {
 function openDatabase(dbPath: string): BunSqliteDatabase {
   // Keep bun:sqlite out of Electron's esbuild graph; Bun resolves it at runtime
   // when tests or Bun-hosted tools actually open a manifest.
-  const requireBunSqlite = import.meta.require as (specifier: 'bun:sqlite') => typeof import('bun:sqlite')
+  const requireBunSqlite = (
+    typeof require === 'function' ? require : import.meta.require
+  ) as (specifier: 'bun:sqlite') => typeof import('bun:sqlite')
   const { Database } = requireBunSqlite('bun:sqlite')
   return new Database(dbPath, { create: true })
 }
