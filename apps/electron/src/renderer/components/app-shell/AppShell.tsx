@@ -73,6 +73,7 @@ import {
 import { SessionList, type ChatGroupingMode } from "./SessionList"
 import { MainContentPanel } from "./MainContentPanel"
 import { PanelStackContainer } from "./PanelStackContainer"
+import { ArtifactRail } from "../artifacts/ArtifactRail"
 import type { ChatDisplayHandle } from "./ChatDisplay"
 import { LeftSidebar } from "./LeftSidebar"
 import { useSession } from "@/hooks/useSession"
@@ -546,6 +547,9 @@ function AppShellContent({
   const [sessionListWidth, setSessionListWidth] = React.useState(() => {
     return storage.get(storage.KEYS.sessionListWidth, 300)
   })
+  const [artifactPanelWidth, setArtifactPanelWidth] = React.useState(() => {
+    return storage.get(storage.KEYS.artifactPanelWidth, 420)
+  })
 
   // Hides both sidebar and navigator (CMD+. toggle)
   // Seed from either focused window param or persisted preference, then keep it toggleable.
@@ -641,14 +645,14 @@ function AppShellContent({
     }
   }, [fetchRemoteReleaseNotes])
 
-  const [isResizing, setIsResizing] = React.useState<'sidebar' | 'session-list' | null>(null)
+  const [isResizing, setIsResizing] = React.useState<'sidebar' | 'session-list' | 'artifact-panel' | null>(null)
   const [sidebarHandleY, setSidebarHandleY] = React.useState<number | null>(null)
   const [sessionListHandleY, setSessionListHandleY] = React.useState<number | null>(null)
   const resizeHandleRef = React.useRef<HTMLDivElement>(null)
   const sessionListHandleRef = React.useRef<HTMLDivElement>(null)
   const [session, setSession] = useSession()
   const { resolvedMode, isDark, setMode } = useTheme()
-  const { canGoBack, canGoForward, goBack, goForward, navigateToSource, navigateToSession } = useNavigation()
+  const { canGoBack, canGoForward, goBack, goForward, navigateToSource, navigateToSession, updateRightSidebar } = useNavigation()
 
   // Double-Esc interrupt feature: first Esc shows warning, second Esc interrupts
   const { handleEscapePress } = useEscapeInterrupt()
@@ -1154,6 +1158,8 @@ function AppShellContent({
   // Shift+Tab cycles permission mode through enabled modes (textarea handles its own, this handles when focus is elsewhere)
   // In multi-panel, targets the focused panel's session
   const effectiveSessionId = focusedSessionId ?? session.selected
+  const artifactSidebar = navState.rightSidebar?.type === 'artifact' ? navState.rightSidebar : null
+  const isArtifactPanelVisible = Boolean(artifactSidebar && effectiveSessionId)
 
   // Focus chat input for the target session only (multi-panel safe).
   const focusChatInputForSession = useCallback((targetSessionId?: string | null) => {
@@ -1296,7 +1302,7 @@ function AppShellContent({
     return () => document.removeEventListener('paste', handleGlobalPaste)
   }, [focusedSessionId, session.selected])
 
-  // Resize effect for sidebar, session list, browser host lane, and metadata right sidebar.
+  // Resize effect for sidebar, session list, browser host lane, and artifact right sidebar.
   React.useEffect(() => {
     if (!isResizing) return
 
@@ -1316,6 +1322,10 @@ function AppShellContent({
           const rect = sessionListHandleRef.current.getBoundingClientRect()
           setSessionListHandleY(e.clientY - rect.top)
         }
+      } else if (isResizing === 'artifact-panel') {
+        const shellRight = shellRef.current?.getBoundingClientRect().right ?? window.innerWidth
+        const newWidth = Math.min(Math.max(shellRight - e.clientX - PANEL_EDGE_INSET, 320), 720)
+        setArtifactPanelWidth(newWidth)
       }
     }
 
@@ -1326,6 +1336,8 @@ function AppShellContent({
       } else if (isResizing === 'session-list') {
         storage.set(storage.KEYS.sessionListWidth, sessionListWidth)
         setSessionListHandleY(null)
+      } else if (isResizing === 'artifact-panel') {
+        storage.set(storage.KEYS.artifactPanelWidth, artifactPanelWidth)
       }
       setIsResizing(null)
     }
@@ -1341,6 +1353,7 @@ function AppShellContent({
     isResizing,
     sidebarWidth,
     sessionListWidth,
+    artifactPanelWidth,
     isSidebarVisible,
   ])
 
@@ -3429,10 +3442,24 @@ function AppShellContent({
           }
           navigatorWidth={isAutoCompact ? sessionListWidth : (effectiveSidebarAndNavigatorHidden ? 0 : sessionListWidth)}
           isSidebarAndNavigatorHidden={effectiveSidebarAndNavigatorHidden}
-          isRightSidebarVisible={false}
+          isRightSidebarVisible={isArtifactPanelVisible && !isAutoCompact}
           isCompact={isAutoCompact}
           isResizing={!!isResizing}
         />
+
+        {isArtifactPanelVisible && effectiveSessionId && (
+          <ArtifactRail
+            sessionId={effectiveSessionId}
+            artifactId={artifactSidebar?.artifactId}
+            width={artifactPanelWidth}
+            isCompact={isAutoCompact}
+            onClose={() => updateRightSidebar({ type: 'none' })}
+            onResizeStart={(event) => {
+              event.preventDefault()
+              setIsResizing('artifact-panel')
+            }}
+          />
+        )}
 
         {/* Sidebar Resize Handle (absolute, hidden in focused mode) */}
         {!effectiveSidebarAndNavigatorHidden && (

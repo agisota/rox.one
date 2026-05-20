@@ -93,6 +93,60 @@ export interface SessionTokenUsage {
  */
 export type { StoredMessage } from '@rox-one/core/types';
 
+export const AGENT_ARTIFACT_TYPES = [
+  'html',
+  'markdown',
+  'code',
+  'text',
+  'json',
+  'docx',
+  'xlsx',
+  'pptx',
+  'pdf',
+  'image',
+  'figma',
+  'browser',
+] as const;
+
+export type AgentArtifactType = typeof AGENT_ARTIFACT_TYPES[number];
+
+export interface AgentArtifactVersion {
+  id: string;
+  artifactId: string;
+  content: string;
+  createdAt: number;
+  title?: string;
+  type?: AgentArtifactType;
+  sourceMessageId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface AgentArtifact {
+  id: string;
+  conversationId: string;
+  type: AgentArtifactType;
+  title: string;
+  content: string;
+  currentVersionId: string;
+  createdAt: number;
+  updatedAt: number;
+  versions: AgentArtifactVersion[];
+  sourceMessageId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface UpsertSessionArtifactInput {
+  id?: string;
+  conversationId?: string;
+  type: AgentArtifactType;
+  title: string;
+  content: string;
+  sourceMessageId?: string;
+  versionId?: string;
+  now?: number;
+  metadata?: Record<string, unknown>;
+}
+
 /**
  * Session configuration (persisted metadata)
  */

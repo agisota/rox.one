@@ -10,6 +10,7 @@
  * - data/ (transform_data tool output: JSON files for datatable/spreadsheet blocks)
  * - long_responses/ (full tool results that were summarized due to size limits)
  * - downloads/ (binary files downloaded from API sources: PDFs, images, archives, etc.)
+ * - artifacts/ (agent-created preview/code artifacts with version history)
  */
 
 import {
@@ -45,6 +46,18 @@ import { sessionPersistenceQueue } from './persistence-queue.ts';
 
 // Re-export types for convenience
 export type { SessionConfig } from './types.ts';
+export {
+  deleteSessionArtifact,
+  deleteSessionArtifactFromPath,
+  getSessionArtifact,
+  getSessionArtifactFromPath,
+  getSessionArtifactsPath,
+  getSessionArtifactsPathFromSessionPath,
+  listSessionArtifacts,
+  listSessionArtifactsFromPath,
+  upsertSessionArtifact,
+  upsertSessionArtifactInPath,
+} from './artifacts.ts';
 
 // ============================================================
 // Directory Utilities
@@ -88,7 +101,7 @@ export function ensureSessionDir(workspaceRootPath: string, sessionId: string): 
   if (!existsSync(sessionDir)) {
     mkdirSync(sessionDir, { recursive: true });
   }
-  // Also create plans, attachments, long_responses, and downloads directories
+  // Also create plans, attachments, long_responses, downloads, and artifacts directories
   const plansDir = join(sessionDir, 'plans');
   if (!existsSync(plansDir)) {
     mkdirSync(plansDir, { recursive: true });
@@ -110,6 +123,10 @@ export function ensureSessionDir(workspaceRootPath: string, sessionId: string): 
   const downloadsDir = join(sessionDir, 'downloads');
   if (!existsSync(downloadsDir)) {
     mkdirSync(downloadsDir, { recursive: true });
+  }
+  const artifactsDir = join(sessionDir, 'artifacts');
+  if (!existsSync(artifactsDir)) {
+    mkdirSync(artifactsDir, { recursive: true });
   }
   return sessionDir;
 }
