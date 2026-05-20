@@ -259,7 +259,11 @@ if (
 
 // 2. electron-builder yml: hardened runtime + ad-hoc local-RC posture.
 const builderConfig = read('apps/electron/electron-builder.yml');
-requireText(builderConfig, 'asar: false', 'documented local-RC ASAR-disabled setting');
+// v1.0.1: ASAR re-enabled for startup-speed (single blob fopen vs thousands
+// of fs reads on slow disks — measurable cold-start gain). ASAR posture has
+// no impact on the ad-hoc + hardened-runtime + entitlements security boundary
+// validated by the other checks in this file. Audit doc updated accordingly.
+requireText(builderConfig, 'asar: true', 'documented v1.0.1 ASAR-enabled startup-speed setting');
 requireText(
   builderConfig,
   'Code signing & notarization (disabled by default for local builds)',
