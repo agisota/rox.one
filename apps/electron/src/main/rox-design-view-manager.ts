@@ -13,6 +13,7 @@ import {
   buildRoxDesignEmbedBootstrapScript,
   resolveRoxDesignContentZoomFactor,
 } from './rox-design-embed-skin'
+import { startDesignThemeBridge } from './rox-design-theme-bridge'
 import type { WindowManager } from './window-manager'
 
 type RoxDesignViewKind = 'webContentsView' | 'browserView'
@@ -29,6 +30,8 @@ interface ManagedRoxDesignView {
   attached: boolean
   contentZoomFactor: number
   skinCssKey: string | null
+  /** Dispose function returned by startDesignThemeBridge — set after first load. */
+  disposeThemeBridge: (() => void) | null
 }
 
 export interface RoxDesignViewManagerOptions {
@@ -138,6 +141,7 @@ export class RoxDesignViewManager {
       attached: false,
       contentZoomFactor: 1,
       skinCssKey: null,
+      disposeThemeBridge: null,
     }
 
     this.configureWebContents(entry)
@@ -185,6 +189,10 @@ export class RoxDesignViewManager {
 
     entry.webContents.on('did-start-navigation', () => {
       entry.skinCssKey = null
+      // Tear down theme bridge on navigation; it will be re-established after
+      // the new page load triggers applyEmbedSkin again.
+      entry.disposeThemeBridge?.()
+      entry.disposeThemeBridge = null
     })
 
     entry.webContents.on('dom-ready', () => {
@@ -233,6 +241,12 @@ export class RoxDesignViewManager {
         entry.skinCssKey = await entry.webContents.insertCSS(ROX_DESIGN_EMBED_CSS)
       }
       await entry.webContents.executeJavaScript(buildRoxDesignEmbedBootstrapScript(entry.contentZoomFactor), true)
+
+      // Start the native theme/i18n/icon bridge on first successful skin apply.
+      // Re-navigation resets skinCssKey, so dispose + restart on each new page load.
+      if (!entry.disposeThemeBridge && !entry.webContents.isDestroyed()) {
+        entry.disposeThemeBridge = startDesignThemeBridge(entry.webContents)
+      }
     } catch (error) {
       this.logger?.warn?.('[rox-design-view] failed to apply embedded ROX skin', {
         error: error instanceof Error ? error.message : String(error),
@@ -262,6 +276,8 @@ export class RoxDesignViewManager {
 
   private destroyEntry(entry: ManagedRoxDesignView): void {
     this.hideEntry(entry)
+    entry.disposeThemeBridge?.()
+    entry.disposeThemeBridge = null
     if (!entry.webContents.isDestroyed()) entry.webContents.close()
   }
 }
