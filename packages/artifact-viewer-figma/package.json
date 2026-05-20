@@ -1,0 +1,27 @@
+{
+  "name": "@rox-one/artifact-viewer-figma",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Figma artifact viewer adapter stub for ROX.ONE (awaiting plugin approval)",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./adapter": "./src/figma-adapter.ts",
+    "./register": "./src/register.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bun run tsc --noEmit"
+  },
+  "dependencies": {
+    "@rox-one/artifact-viewer-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.28"
+  }
+}
