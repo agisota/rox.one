@@ -35,8 +35,8 @@ const DEFAULT_PROPS = {
     never: 'Never',
     close: 'Close',
   },
-  onChoice: vi.fn<[AutoLaunchDesignChoice], void>(),
-  onClose: vi.fn(),
+  onChoice: vi.fn<(choice: AutoLaunchDesignChoice) => void>(),
+  onClose: vi.fn<() => void>(),
 }
 
 afterEach(() => {
@@ -73,7 +73,7 @@ describe('OnboardingPromptModal', () => {
   })
 
   it('calls onChoice("always") when Always button is clicked', () => {
-    const onChoice = vi.fn<[AutoLaunchDesignChoice], void>()
+    const onChoice = vi.fn<(choice: AutoLaunchDesignChoice) => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onChoice={onChoice} />)
     fireEvent.click(screen.getByText('Always'))
     expect(onChoice).toHaveBeenCalledTimes(1)
@@ -81,7 +81,7 @@ describe('OnboardingPromptModal', () => {
   })
 
   it('calls onChoice("ask") when Ask me button is clicked', () => {
-    const onChoice = vi.fn<[AutoLaunchDesignChoice], void>()
+    const onChoice = vi.fn<(choice: AutoLaunchDesignChoice) => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onChoice={onChoice} />)
     fireEvent.click(screen.getByText('Ask me'))
     expect(onChoice).toHaveBeenCalledTimes(1)
@@ -89,7 +89,7 @@ describe('OnboardingPromptModal', () => {
   })
 
   it('calls onChoice("never") when Never button is clicked', () => {
-    const onChoice = vi.fn<[AutoLaunchDesignChoice], void>()
+    const onChoice = vi.fn<(choice: AutoLaunchDesignChoice) => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onChoice={onChoice} />)
     fireEvent.click(screen.getByText('Never'))
     expect(onChoice).toHaveBeenCalledTimes(1)
@@ -97,14 +97,14 @@ describe('OnboardingPromptModal', () => {
   })
 
   it('calls onClose when the close button is clicked', () => {
-    const onClose = vi.fn()
+    const onClose = vi.fn<() => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onClose={onClose} />)
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('calls onClose when backdrop is clicked', () => {
-    const onClose = vi.fn()
+    const onClose = vi.fn<() => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onClose={onClose} />)
     // Backdrop is the aria-hidden div behind the panel
     const backdrop = document.querySelector('[aria-hidden="true"]') as HTMLElement

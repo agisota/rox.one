@@ -12,13 +12,13 @@ binary runs correctly without any manual patching.
 ### Run without installing
 
 ```sh
-nix run github:agisota/rox-one-terminal?dir=packaging/nixos
+nix run github:agisota/rox.one?dir=packaging/nixos
 ```
 
 ### Install into your profile
 
 ```sh
-nix profile install github:agisota/rox-one-terminal?dir=packaging/nixos
+nix profile install github:agisota/rox.one?dir=packaging/nixos
 ```
 
 After installation `rox-agent` is on your `PATH`.
@@ -26,7 +26,7 @@ After installation `rox-agent` is on your `PATH`.
 ### Development / smoke-test shell
 
 ```sh
-nix develop github:agisota/rox-one-terminal?dir=packaging/nixos
+nix develop github:agisota/rox.one?dir=packaging/nixos
 rox-agent --help
 ```
 
@@ -64,7 +64,7 @@ time you build with a new version string.
 
    ```sh
    nix-prefetch-url \
-     https://github.com/agisota/rox-one-terminal/releases/download/v1.0.0-rc.8/ROX-ONE-x86_64.AppImage
+     https://github.com/agisota/rox.one/releases/download/v1.0.0-rc.8/ROX-ONE-x86_64.AppImage
    ```
 
    The command prints a base32 Nix hash, for example:

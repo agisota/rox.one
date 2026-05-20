@@ -11,7 +11,8 @@ import { describe, it, expect, mock, beforeEach } from 'bun:test'
 import { randomUUID } from 'crypto'
 
 // ── Electron mock ──────────────────────────────────────────────────────────────
-const handleMock = mock(() => undefined)
+type IpcHandler = (_event: unknown, aap: unknown) => Promise<unknown>
+const handleMock = mock((_channel: string, _handler: IpcHandler) => undefined)
 const ipcMainMock = { handle: handleMock }
 
 mock.module('electron', () => ({
@@ -21,7 +22,10 @@ mock.module('electron', () => ({
 // ── IPC invoke spy — simulates calling design:openWithContext ─────────────────
 // The router calls handleOpenWithContext directly (same process); we inject a
 // spy so tests can assert without a real storage dir.
-const openWithContextSpy = mock(async (_raw: unknown) => ({ status: 'opened', windowId: 0 }))
+type OpenWithContextResult =
+  | { status: 'opened'; windowId: number }
+  | { status: 'failed'; reason: string }
+const openWithContextSpy = mock(async (_raw: unknown): Promise<OpenWithContextResult> => ({ status: 'opened', windowId: 0 }))
 
 mock.module('../rox-design-ipc.ts', () => ({
   handleOpenWithContext: openWithContextSpy,
@@ -85,7 +89,13 @@ function makeDesignAap() {
   }
 }
 
-function makeMixedAap(...payloadParts: Array<{ kind: 'text'; text: string } | { kind: 'code'; language: string; text: string } | { kind: 'design'; request: ReturnType<typeof makeDesignRequest> } | { kind: 'mixed'; parts: unknown[] }>) {
+type TestPayloadPart =
+  | { kind: 'text'; text: string }
+  | { kind: 'code'; language: string; text: string }
+  | { kind: 'design'; request: ReturnType<typeof makeDesignRequest> }
+  | { kind: 'mixed'; parts: TestPayloadPart[] }
+
+function makeMixedAap(...payloadParts: TestPayloadPart[]) {
   return {
     agentId: 'agent-1',
     sessionId: 'sess-1',
