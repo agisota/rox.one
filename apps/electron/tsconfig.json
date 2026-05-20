@@ -58,7 +58,8 @@
       "@rox-one/design-theme-bridge": ["../../packages/design-theme-bridge/src/index.ts"],
       "@rox-one/design-theme-bridge/*": ["../../packages/design-theme-bridge/src/*"],
       "@rox-one/design-contract": ["../../packages/design-contract/src/index.ts"],
-      "@rox-one/design-storage": ["../../packages/design-storage/src/index.ts"]
+      "@rox-one/design-storage": ["../../packages/design-storage/src/index.ts"],
+      "@rox-one/design-classifier": ["../../packages/design-classifier/src/index.ts"]
     }
   },
   "include": ["src/**/*", "../../packages/shared/src/**/*.d.ts"],
