@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { OpenDesignRequest, OpenDesignResult } from '@rox-one/design-contract'
 
 const desktopApi = {
   pickFolder: () => ipcRenderer.invoke('rox-design-bridge:pick-folder'),
@@ -27,6 +28,8 @@ const desktopApi = {
     ipcRenderer.on('rox-design:locale-change', handler)
     return () => ipcRenderer.removeListener('rox-design:locale-change', handler)
   },
+  openWithContext: (req: OpenDesignRequest): Promise<OpenDesignResult> =>
+    ipcRenderer.invoke('design:openWithContext', req),
 }
 
 contextBridge.exposeInMainWorld('__OD_CLIENT_TYPE__', 'desktop')

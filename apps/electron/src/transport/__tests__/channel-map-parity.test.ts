@@ -31,6 +31,7 @@ type ApiToChannelMapKeys = Exclude<
   | 'getFilePath' // renderer-local — webUtils.getPathForFile, no IPC round-trip
   | 'onRoxDesignStatusChanged' // direct IPC listener — rox-design:status-changed push from main
   | 'onDesignToggle' // direct IPC listener — design:toggle hotkey push from main
+  | 'openWithContext' // direct IPC to main process — design:openWithContext handler (T537 Phase B)
 > | BrowserPaneKeys
 type ChannelMapKeys = keyof typeof CHANNEL_MAP & string
 
