@@ -9,15 +9,12 @@ import type { Readable } from 'stream'
 import { BrowserWindow } from 'electron'
 import type { RoxDesignStatus } from '../shared/types'
 import { readGatedEnv } from './integrations/env-policy'
+import { recordRoxDesignError, type RoxDesignTelemetryLogger } from './rox-design-telemetry'
 
 export interface RoxDesignRuntimeManagerOptions {
   resourcesRoot: string
   dataRoot?: string
-  logger?: {
-    info?: (message: string, meta?: Record<string, unknown>) => void
-    warn?: (message: string, meta?: Record<string, unknown>) => void
-    error?: (message: string, meta?: Record<string, unknown>) => void
-  }
+  logger?: RoxDesignTelemetryLogger
 }
 
 interface OpenDesignConfig {
@@ -338,6 +335,12 @@ export class RoxDesignRuntimeManager {
           status: 'failed',
           error: `Invalid ROX_DESIGN_WEB_URL: ${error instanceof Error ? error.message : String(error)}`,
         }
+        recordRoxDesignError({
+          phase: 'start',
+          error,
+          logger: this.logger,
+          context: { source: 'ROX_DESIGN_WEB_URL' },
+        })
         this.broadcastStatus()
         return this.getStatus()
       }
@@ -351,7 +354,12 @@ export class RoxDesignRuntimeManager {
         status: 'failed',
         error: `Rox Design runtime bundle is incomplete: ${error instanceof Error ? error.message : String(error)}`,
       }
-      this.logger?.error?.('[rox-design] bundled runtime bundle is incomplete', { error: this.status.error })
+      recordRoxDesignError({
+        phase: 'start',
+        error,
+        logger: this.logger,
+        context: { reason: 'bundle-incomplete', resourcesRoot: this.resourcesRoot },
+      })
       this.broadcastStatus()
       return this.getStatus()
     }
@@ -361,7 +369,13 @@ export class RoxDesignRuntimeManager {
         status: 'failed',
         error: `Rox Design runtime is not bundled yet. Expected Open Design resources under ${join(this.resourcesRoot, 'resources', 'rox-design')}.`,
       }
-      this.logger?.warn?.('[rox-design] bundled runtime missing', { resourcesRoot: this.resourcesRoot })
+      recordRoxDesignError({
+        phase: 'start',
+        error: new Error('bundled runtime missing'),
+        logger: this.logger,
+        level: 'warn',
+        context: { reason: 'bundle-missing', resourcesRoot: this.resourcesRoot },
+      })
       this.broadcastStatus()
       return this.getStatus()
     }
@@ -377,7 +391,12 @@ export class RoxDesignRuntimeManager {
         status: 'failed',
         error: `Rox Design runtime failed to start: ${error instanceof Error ? error.message : String(error)}`,
       }
-      this.logger?.error?.('[rox-design] bundled runtime failed to start', { error: this.status.error })
+      recordRoxDesignError({
+        phase: 'runtime-spawn-daemon',
+        error,
+        logger: this.logger,
+        context: { reason: 'bundled-runtime-failed-to-start', root: bundledLayout.root },
+      })
       this.broadcastStatus()
       return this.getStatus()
     }
@@ -464,7 +483,13 @@ export class RoxDesignRuntimeManager {
     if (!daemonStatus.url) throw new Error('daemon sidecar did not provide a URL')
     const registeredDesktopAuth = await this.registerDesktopAuthWithDaemon()
     if (!registeredDesktopAuth) {
-      this.logger?.warn?.('[rox-design] desktop import-token handshake with daemon did not complete; first folder import will retry')
+      recordRoxDesignError({
+        phase: 'register-desktop-auth',
+        error: new Error('desktop import-token handshake with daemon did not complete; first folder import will retry'),
+        logger: this.logger,
+        level: 'warn',
+        context: { reason: 'handshake-incomplete' },
+      })
     }
     const daemonPort = parsePort(daemonStatus.url)
 
@@ -504,8 +529,17 @@ export class RoxDesignRuntimeManager {
       try {
         const result = await requestJsonIpc(this.daemonIpcPath, message, REGISTER_DESKTOP_AUTH_TIMEOUT_MS) as { accepted?: boolean } | null
         if (result?.accepted === true) return true
-      } catch {
+      } catch (error) {
         // Daemon may still be wiring the desktop auth gate; retry below.
+        // Log the attempt at warn level so persistent failures show up in the
+        // Sentry breadcrumb trail without flooding production logs.
+        recordRoxDesignError({
+          phase: 'register-desktop-auth',
+          error,
+          logger: this.logger,
+          level: 'warn',
+          context: { attempt, maxAttempts: REGISTER_DESKTOP_AUTH_RETRY_DELAYS_MS.length },
+        })
       }
 
       if (attempt >= REGISTER_DESKTOP_AUTH_RETRY_DELAYS_MS.length) break
@@ -538,6 +572,12 @@ export class RoxDesignRuntimeManager {
           status: 'failed',
           error: `Rox Design ${app} sidecar exited unexpectedly (code=${code ?? 'null'}, signal=${signal ?? 'null'}).`,
         }
+        recordRoxDesignError({
+          phase: app === 'web' ? 'runtime-spawn-web' : 'runtime-spawn-daemon',
+          error: new Error(`Rox Design ${app} sidecar exited unexpectedly`),
+          logger: this.logger,
+          context: { app, code: code ?? null, signal: signal ?? null, pid: child.pid ?? null },
+        })
         this.broadcastStatus()
         const payload: SidecarExitedPayload = {
           reason: `${app} sidecar exited unexpectedly (code=${code ?? 'null'}, signal=${signal ?? 'null'})`,
@@ -561,7 +601,18 @@ export class RoxDesignRuntimeManager {
     await Promise.allSettled(processes.map(({ child }) => stopChild(child)))
 
     if (this.ipcBase) {
-      await rm(this.ipcBase, { recursive: true, force: true }).catch(() => undefined)
+      const ipcBase = this.ipcBase
+      await rm(ipcBase, { recursive: true, force: true }).catch((error) => {
+        // The IPC sockets are best-effort cleanup during stop / before-quit;
+        // surface failures via telemetry without rethrowing.
+        recordRoxDesignError({
+          phase: 'before-quit-cleanup',
+          error,
+          logger: this.logger,
+          level: 'warn',
+          context: { ipcBase },
+        })
+      })
       this.ipcBase = null
     }
     this.daemonIpcPath = null

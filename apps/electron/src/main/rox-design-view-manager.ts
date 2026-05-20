@@ -14,6 +14,7 @@ import {
   resolveRoxDesignContentZoomFactor,
 } from './rox-design-embed-skin'
 import { startDesignThemeBridge } from './rox-design-theme-bridge'
+import { catchRoxDesignError, recordRoxDesignError, type RoxDesignTelemetryLogger } from './rox-design-telemetry'
 import type { WindowManager } from './window-manager'
 
 type RoxDesignViewKind = 'webContentsView' | 'browserView'
@@ -37,11 +38,7 @@ interface ManagedRoxDesignView {
 export interface RoxDesignViewManagerOptions {
   windowManager?: WindowManager | null
   preloadPath?: string
-  logger?: {
-    info?: (message: string, meta?: Record<string, unknown>) => void
-    warn?: (message: string, meta?: Record<string, unknown>) => void
-    error?: (message: string, meta?: Record<string, unknown>) => void
-  }
+  logger?: RoxDesignTelemetryLogger
 }
 
 export class RoxDesignViewManager {
@@ -168,12 +165,21 @@ export class RoxDesignViewManager {
   }
 
   private configureWebContents(entry: ManagedRoxDesignView): void {
+    const logger = this.logger
     entry.webContents.setWindowOpenHandler(({ url }) => {
       const decision = getRoxDesignNavigationDecision(entry.currentUrl, url)
       if (decision.action === 'allow') {
-        void entry.webContents.loadURL(url)
+        entry.webContents.loadURL(url).catch(catchRoxDesignError({
+          phase: 'navigate',
+          logger,
+          context: { trigger: 'window-open-handler', url },
+        }))
       } else if (decision.action === 'external') {
-        void shell.openExternal(decision.url)
+        shell.openExternal(decision.url).catch(catchRoxDesignError({
+          phase: 'view-open-external',
+          logger,
+          context: { trigger: 'window-open-handler', url: decision.url },
+        }))
       }
       return { action: 'deny' }
     })
@@ -185,7 +191,13 @@ export class RoxDesignViewManager {
         return
       }
       event.preventDefault()
-      if (decision.action === 'external') void shell.openExternal(decision.url)
+      if (decision.action === 'external') {
+        shell.openExternal(decision.url).catch(catchRoxDesignError({
+          phase: 'view-open-external',
+          logger,
+          context: { trigger: 'will-navigate', url: decision.url },
+        }))
+      }
     })
 
     entry.webContents.on('did-start-navigation', () => {
@@ -197,15 +209,29 @@ export class RoxDesignViewManager {
     })
 
     entry.webContents.on('dom-ready', () => {
-      void this.applyEmbedSkin(entry)
+      this.applyEmbedSkin(entry).catch(catchRoxDesignError({
+        phase: 'view-attach',
+        logger,
+        context: { trigger: 'dom-ready', webContentsId: entry.webContents.id },
+      }))
     })
 
     entry.webContents.on('did-finish-load', () => {
-      void this.applyEmbedSkin(entry)
+      this.applyEmbedSkin(entry).catch(catchRoxDesignError({
+        phase: 'view-attach',
+        logger,
+        context: { trigger: 'did-finish-load', webContentsId: entry.webContents.id },
+      }))
     })
 
     entry.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
-      this.logger?.warn?.('[rox-design-view] load failed', { errorCode, errorDescription, validatedURL })
+      recordRoxDesignError({
+        phase: 'navigate',
+        error: new Error(errorDescription || `load failed (code=${errorCode})`),
+        logger,
+        level: 'warn',
+        context: { errorCode, errorDescription, validatedURL },
+      })
     })
 
     ;(entry.webContents as WebContents & { setBackgroundColor?: (color: string) => void }).setBackgroundColor?.('#05070d')
@@ -229,7 +255,11 @@ export class RoxDesignViewManager {
     if (entry.contentZoomFactor !== contentZoomFactor) {
       entry.contentZoomFactor = contentZoomFactor
       entry.webContents.setZoomFactor(contentZoomFactor)
-      void this.applyEmbedSkin(entry)
+      this.applyEmbedSkin(entry).catch(catchRoxDesignError({
+        phase: 'view-attach',
+        logger: this.logger,
+        context: { trigger: 'zoom-change', webContentsId: entry.webContents.id, contentZoomFactor },
+      }))
     }
     entry.view.setBounds(scaled)
     ;(entry.view as BrowserView).setAutoResize?.({ width: false, height: false })
@@ -246,11 +276,15 @@ export class RoxDesignViewManager {
       // Start the native theme/i18n/icon bridge on first successful skin apply.
       // Re-navigation resets skinCssKey, so dispose + restart on each new page load.
       if (!entry.disposeThemeBridge && !entry.webContents.isDestroyed()) {
-        entry.disposeThemeBridge = startDesignThemeBridge(entry.webContents)
+        entry.disposeThemeBridge = startDesignThemeBridge(entry.webContents, undefined, this.logger)
       }
     } catch (error) {
-      this.logger?.warn?.('[rox-design-view] failed to apply embedded ROX skin', {
-        error: error instanceof Error ? error.message : String(error),
+      recordRoxDesignError({
+        phase: 'view-attach',
+        error,
+        logger: this.logger,
+        level: 'warn',
+        context: { reason: 'apply-embed-skin', webContentsId: entry.webContents.id },
       })
     }
   }
