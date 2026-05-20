@@ -14,10 +14,39 @@
 //  Required environment:
 //    GITHUB_RELEASE_TOKEN — fine-grained PAT with "Contents: read" on the
 //                          agisota/rox.one repo.
+//
+//  Optional environment (R2 Phase 5 migration):
+//    R2_PUBLIC_BASE_URL — public R2 bucket base URL, e.g. "https://pub-<hash>.r2.dev".
+//                         When absent, R2 is never contacted (safe default).
+//    R2_PRIMARY         — set to the string "true" to flip into R2-primary mode.
+//                         Leave unset or "false" during Phase 5a (parallel write)
+//                         to keep GitHub as the sole source. Flip to "true" in
+//                         Phase 5b once the R2 bucket is fully populated.
+//
+//  R2 path layout (Phase 5):
+//    R2 objects are stored at {channel}/{filename}, matching the URL path
+//    segments the worker already resolves: e.g. "stable/manifest.json" or
+//    "beta/beta-mac.yml". For versioned paths the channel is derived from the
+//    tag (stable vs prerelease), not the numeric version, so the layout stays
+//    channel-centric rather than version-centric.
+//
+//  Fallback chain (R2_PRIMARY === "true"):
+//    1. Try R2 at {R2_PUBLIC_BASE_URL}/{channel}/{filename}.
+//    2. On 404 from R2, fall back to the existing GitHub-redirect logic.
+//    3. Any other R2 error (5xx, network) is surfaced immediately (no GH retry).
+//
+//  When R2_PRIMARY is absent/empty/"false":
+//    Existing GH-redirect logic only; R2 is never contacted. This is the
+//    default so that setting the env vars does NOT change behaviour until
+//    an operator explicitly opts in by setting R2_PRIMARY=true.
 // =============================================================================
 
 export interface Env {
   GITHUB_RELEASE_TOKEN: string
+  /** Public R2 bucket base URL, e.g. "https://pub-<hash>.r2.dev". Optional. */
+  R2_PUBLIC_BASE_URL?: string
+  /** Set to "true" to make R2 the primary source (Phase 5b). Default: false. */
+  R2_PRIMARY?: string
 }
 
 const REPO = 'agisota/rox.one'
@@ -391,12 +420,124 @@ async function streamAsset(asset: GitHubReleaseAsset, env: Env): Promise<Respons
 // list (Set-Cookie, x-amz-*, Server, etc.) is intentionally dropped.
 const UPSTREAM_PASSTHROUGH_HEADERS = ['content-length', 'etag', 'accept-ranges'] as const
 
+// ---------------------------------------------------------------------------
+// R2 helpers (Phase 5 migration)
+//
+// R2 objects follow a flat channel/{filename} path convention that mirrors
+// the request URL segments already resolved by this worker. The channel is
+// always "stable" or "beta" — versioned requests still route through a
+// channel key for R2, derived from the tag shape.
+//
+// Phase 5a (R2_PRIMARY unset/false): no R2 traffic — bucket may be empty or
+//   still being populated in parallel with GitHub releases. Safe default.
+// Phase 5b (R2_PRIMARY=true): R2 is tried first; a 404 from R2 falls back to
+//   GitHub so artefacts published before the R2 parallel-write window are
+//   still reachable. Any non-404 R2 error is surfaced immediately.
+// ---------------------------------------------------------------------------
+
+function isR2Primary(env: Env): boolean {
+  return env.R2_PRIMARY === 'true'
+}
+
+/** Map a release tag to the R2 channel prefix ("stable" or "beta"). */
+function r2ChannelForTag(tag: string): ReleaseChannel {
+  return BETA_TAG_RE.test(tag) ? 'beta' : 'stable'
+}
+
+/**
+ * Attempt to serve an asset directly from R2. Returns:
+ *   - a successful Response if R2 has the object
+ *   - null if R2 returned 404 (caller should fall back to GitHub)
+ *   - an error Response for any other failure
+ *
+ * The function uses `redirect: 'manual'` to remain consistent with the
+ * GitHub streaming path and to guard against any unexpected redirects from
+ * the R2 public URL surfacing credentials in a follow-through.
+ */
+async function tryR2(channel: ReleaseChannel, assetName: string, env: Env): Promise<Response | null> {
+  if (!env.R2_PUBLIC_BASE_URL) return null
+
+  // Sanitise the base URL: strip any trailing slash so path construction is
+  // predictable regardless of how the operator configured the env var.
+  const base = env.R2_PUBLIC_BASE_URL.replace(/\/+$/, '')
+  const r2Url = `${base}/${channel}/${encodeURIComponent(assetName)}`
+
+  let r2Response: Response
+  try {
+    r2Response = await fetch(r2Url, {
+      redirect: 'manual',
+      headers: { 'User-Agent': 'rox-one-release-feed' },
+    })
+  } catch {
+    // Network-level failure reaching R2 — treat same as 5xx (don't fall back).
+    return plainText(502, 'R2 fetch failed: network error')
+  }
+
+  if (r2Response.status === 404) {
+    // Object not yet in R2 — signal caller to fall back to GitHub.
+    return null
+  }
+
+  // Follow an R2 redirect (e.g., if the public bucket URL itself redirects).
+  const REDIRECT_CODES = new Set([301, 302, 303, 307, 308])
+  if (REDIRECT_CODES.has(r2Response.status)) {
+    const location = r2Response.headers.get('location')
+    if (!location) return plainText(502, 'R2 redirect missing Location header')
+    let target: URL
+    try {
+      target = new URL(location, r2Url)
+    } catch {
+      return plainText(502, 'R2 redirect Location is not a valid URL')
+    }
+    if (target.protocol !== 'https:') {
+      return plainText(502, `Refusing to follow non-https R2 redirect to ${target.protocol}`)
+    }
+    r2Response = await fetch(target.toString(), {
+      headers: { 'User-Agent': 'rox-one-release-feed' },
+    })
+  }
+
+  if (!r2Response.ok) {
+    return plainText(r2Response.status === 404 ? 404 : 502, `R2 fetch failed: ${r2Response.status}`)
+  }
+
+  const headers = new Headers()
+  for (const name of UPSTREAM_PASSTHROUGH_HEADERS) {
+    const value = r2Response.headers.get(name)
+    if (value) headers.set(name, value)
+  }
+  headers.set('Content-Type', contentTypeFor(assetName))
+  headers.set(
+    'Cache-Control',
+    isTextLike(assetName) ? `public, max-age=${TEXT_CACHE_MAX_AGE}` : `public, max-age=${BINARY_CACHE_MAX_AGE}`,
+  )
+  headers.set('X-Content-Type-Options', 'nosniff')
+  headers.set('X-Source', 'r2')
+  setContentDisposition(headers, assetName)
+  applyCors(headers)
+  return new Response(r2Response.body, { status: 200, headers })
+}
+
 async function serveAssetByName(
   tag: string,
   assetName: string,
   env: Env,
   method: 'GET' | 'HEAD' = 'GET',
 ): Promise<Response> {
+  // Phase 5b: try R2 first when R2_PRIMARY=true. HEAD requests synthesise
+  // metadata from GitHub release data (no body needed), so we skip R2 for
+  // HEAD — the GitHub metadata cache is the source of truth for sizes/dates.
+  if (method === 'GET' && isR2Primary(env)) {
+    const channel = r2ChannelForTag(tag)
+    const r2Result = await tryR2(channel, assetName, env)
+    if (r2Result !== null) {
+      // null means "not in R2, fall through to GitHub". Any non-null result
+      // (including error responses) is returned directly.
+      return r2Result
+    }
+    // 404 from R2 — fall through to GitHub redirect path below.
+  }
+
   const asset = await resolveAsset(tag, assetName, env)
   if (asset instanceof Response) return asset
   if (method === 'HEAD') return headResponse(asset)
