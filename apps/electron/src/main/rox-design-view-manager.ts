@@ -20,6 +20,33 @@ type RoxDesignViewKind = 'webContentsView' | 'browserView'
 
 type NativeRoxDesignView = BrowserView | WebContentsView
 
+/**
+ * Lifecycle phase hook surface used by the view manager. The hook is
+ * created per `show()` call so individual phases (`attach-view`, `load-url`,
+ * `dom-ready`, `did-finish-load`) can be timed independently.
+ *
+ * Hook implementation lives in `rox-design-telemetry.ts`. The view manager
+ * has no opinion on how phases are reported — it only marks boundaries.
+ */
+export interface RoxDesignShowPhaseHook {
+  startPhase(
+    phase: 'attach-view' | 'load-url' | 'dom-ready' | 'did-finish-load',
+  ): { end(): void }
+  /**
+   * Signal that the overall show lifecycle has completed (did-finish-load
+   * fired, or the load aborted). Implementations should close the underlying
+   * show span here; the view manager guarantees one call per show().
+   */
+  complete(): void
+}
+
+/**
+ * Sink for INP samples polled from the embedded Rox Design surface. The view
+ * manager calls this every 5s with raw event-timing durations measured by
+ * `PerformanceObserver({ type: 'event' })` inside the bootstrap script.
+ */
+export type RoxDesignInpSink = (sampleMs: number) => void
+
 interface ManagedRoxDesignView {
   hostWindow: BrowserWindow
   hostWebContentsId: number
@@ -42,6 +69,20 @@ export interface RoxDesignViewManagerOptions {
     warn?: (message: string, meta?: Record<string, unknown>) => void
     error?: (message: string, meta?: Record<string, unknown>) => void
   }
+  /**
+   * Optional factory that returns a perf hook for the current `show()` call.
+   * Called lazily inside `show()`; return `null` to skip instrumentation
+   * (e.g. in unit tests).
+   */
+  showPhaseHookFactory?: () => RoxDesignShowPhaseHook | null
+  /**
+   * Optional sink for INP samples reported by the embedded surface. When
+   * provided, the view manager polls `window.__ROX_DESIGN_PERF_READ__()`
+   * every {@link inpPollIntervalMs} after the first did-finish-load.
+   */
+  inpSink?: RoxDesignInpSink
+  /** Poll interval in ms; defaults to 5000. */
+  inpPollIntervalMs?: number
 }
 
 export class RoxDesignViewManager {
@@ -49,11 +90,31 @@ export class RoxDesignViewManager {
   private readonly preloadPath: string
   private readonly logger: RoxDesignViewManagerOptions['logger']
   private readonly entries = new Map<number, ManagedRoxDesignView>()
+  private readonly showPhaseHookFactory: (() => RoxDesignShowPhaseHook | null) | null
+  private readonly inpSink: RoxDesignInpSink | null
+  private readonly inpPollIntervalMs: number
+  /** Per-webContents INP poll timers — cleared on hide/destroy/fail-load. */
+  private readonly inpPollTimers = new Map<number, ReturnType<typeof setInterval>>()
+  /**
+   * Per-webContents pending phase hooks for `dom-ready` / `did-finish-load`.
+   * The map is single-slot per webContents — replaced on each `show()` so the
+   * latest spawn always wins. The `hook` reference is the show-level hook
+   * (for `complete()`), kept here so the listeners can close it on
+   * load-finished/load-failed.
+   */
+  private readonly pendingPhaseHooks = new Map<number, {
+    domReady: { end(): void } | null
+    finishLoad: { end(): void } | null
+    hook: RoxDesignShowPhaseHook | null
+  }>()
 
   constructor(options: RoxDesignViewManagerOptions = {}) {
     this.windowManager = options.windowManager
     this.preloadPath = options.preloadPath ?? join(__dirname, 'rox-design-bridge-preload.cjs')
     this.logger = options.logger
+    this.showPhaseHookFactory = options.showPhaseHookFactory ?? null
+    this.inpSink = options.inpSink ?? null
+    this.inpPollIntervalMs = options.inpPollIntervalMs ?? 5_000
   }
 
   async show(input: { senderWebContentsId: number; url: string; bounds: RoxDesignBounds }): Promise<RoxDesignViewStatus> {
@@ -66,14 +127,42 @@ export class RoxDesignViewManager {
     if (!sanitized) throw new Error('Rox Design host bounds are invalid.')
     if (!isHttpUrl(input.url)) throw new Error('Rox Design view URL must be http(s).')
 
+    const phaseHook = this.showPhaseHookFactory?.() ?? null
+
     const hostWebContentsId = hostWindow.webContents.id
     const entry = this.entries.get(hostWebContentsId) ?? this.createEntry(hostWindow, hostWebContentsId)
-    this.attachEntry(entry)
-    this.setEntryBounds(entry, sanitized)
+
+    const attachPhase = phaseHook?.startPhase('attach-view') ?? null
+    try {
+      this.attachEntry(entry)
+      this.setEntryBounds(entry, sanitized)
+    } finally {
+      attachPhase?.end()
+    }
 
     if (entry.currentUrl !== input.url) {
+      // Prime dom-ready / did-finish-load hooks BEFORE loadURL so the events
+      // race with the latest load, not a stale one. The configureWebContents
+      // listeners call hook.end() then clear the slot.
+      if (phaseHook) {
+        this.pendingPhaseHooks.set(entry.webContents.id, {
+          domReady: phaseHook.startPhase('dom-ready'),
+          finishLoad: phaseHook.startPhase('did-finish-load'),
+          hook: phaseHook,
+        })
+      }
       entry.currentUrl = input.url
-      await entry.webContents.loadURL(input.url)
+      const loadPhase = phaseHook?.startPhase('load-url') ?? null
+      try {
+        await entry.webContents.loadURL(input.url)
+      } finally {
+        loadPhase?.end()
+      }
+    } else if (phaseHook) {
+      // Same-URL re-show: there's no fresh navigation so dom-ready/finish-load
+      // won't fire. Complete the show span immediately so callers get a
+      // warm-cache record.
+      phaseHook.complete()
     }
 
     this.showEntry(entry)
@@ -197,14 +286,39 @@ export class RoxDesignViewManager {
     })
 
     entry.webContents.on('dom-ready', () => {
+      const pending = this.pendingPhaseHooks.get(entry.webContents.id)
+      pending?.domReady?.end()
+      if (pending) pending.domReady = null
       void this.applyEmbedSkin(entry)
     })
 
     entry.webContents.on('did-finish-load', () => {
+      const pending = this.pendingPhaseHooks.get(entry.webContents.id)
+      pending?.finishLoad?.end()
+      if (pending) pending.finishLoad = null
+      // Drop the slot once both child hooks resolved so subsequent shows
+      // get a clean record. Close the show-level hook so the parent span
+      // (cold-start / warm-open total) is emitted.
+      if (pending && !pending.domReady && !pending.finishLoad) {
+        pending.hook?.complete()
+        this.pendingPhaseHooks.delete(entry.webContents.id)
+      }
       void this.applyEmbedSkin(entry)
+      // Start INP polling once the page is loaded. The poll re-runs even if
+      // the page navigates within the same webContents — the bootstrap script
+      // re-initializes the observer on each navigation.
+      this.startInpPolling(entry)
     })
 
     entry.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+      // Release any pending perf phase hooks so we don't leak open spans
+      // when the load aborts before dom-ready / did-finish-load fire.
+      const pending = this.pendingPhaseHooks.get(entry.webContents.id)
+      pending?.domReady?.end()
+      pending?.finishLoad?.end()
+      pending?.hook?.complete()
+      this.pendingPhaseHooks.delete(entry.webContents.id)
+      this.stopInpPolling(entry.webContents.id)
       this.logger?.warn?.('[rox-design-view] load failed', { errorCode, errorDescription, validatedURL })
     })
 
@@ -264,6 +378,7 @@ export class RoxDesignViewManager {
   }
 
   private hideEntry(entry: ManagedRoxDesignView): void {
+    this.stopInpPolling(entry.webContents.id)
     if (entry.hostWindow.isDestroyed()) return
     entry.view.setBounds({ x: 0, y: 0, width: 1, height: 1 })
     if (entry.viewKind === 'webContentsView') {
@@ -277,8 +392,51 @@ export class RoxDesignViewManager {
 
   private destroyEntry(entry: ManagedRoxDesignView): void {
     this.hideEntry(entry)
+    this.stopInpPolling(entry.webContents.id)
     entry.disposeThemeBridge?.()
     entry.disposeThemeBridge = null
     if (!entry.webContents.isDestroyed()) entry.webContents.close()
+  }
+
+  private startInpPolling(entry: ManagedRoxDesignView): void {
+    if (!this.inpSink) return
+    if (this.inpPollTimers.has(entry.webContents.id)) return
+    const timer = setInterval(() => {
+      void this.drainInpBuffer(entry)
+    }, this.inpPollIntervalMs)
+    // Don't keep the Electron event loop alive on this timer.
+    ;(timer as unknown as { unref?: () => void }).unref?.()
+    this.inpPollTimers.set(entry.webContents.id, timer)
+  }
+
+  private stopInpPolling(webContentsId: number): void {
+    const timer = this.inpPollTimers.get(webContentsId)
+    if (!timer) return
+    clearInterval(timer)
+    this.inpPollTimers.delete(webContentsId)
+  }
+
+  private async drainInpBuffer(entry: ManagedRoxDesignView): Promise<void> {
+    if (!this.inpSink) return
+    if (entry.webContents.isDestroyed()) {
+      this.stopInpPolling(entry.webContents.id)
+      return
+    }
+    try {
+      const samples = await entry.webContents.executeJavaScript(
+        '(typeof window.__ROX_DESIGN_PERF_READ__ === "function" ? window.__ROX_DESIGN_PERF_READ__() : [])',
+        true,
+      ) as unknown
+      if (!Array.isArray(samples)) return
+      for (const value of samples) {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+          this.inpSink(value)
+        }
+      }
+    } catch (error) {
+      this.logger?.warn?.('[rox-design-view] inp poll failed', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
   }
 }

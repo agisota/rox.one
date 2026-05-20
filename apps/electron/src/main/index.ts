@@ -127,6 +127,11 @@ import { createFileAccountSessionStore } from './account-session-store'
 import { RoxDesignRuntimeManager } from './rox-design-runtime-manager'
 import { RoxDesignViewManager } from './rox-design-view-manager'
 import { RoxDesignDesktopBridge } from './rox-design-desktop-bridge'
+import {
+  createRoxDesignTelemetry,
+  type RoxDesignTelemetry,
+  type RoxDesignTelemetryRecord,
+} from './rox-design-telemetry'
 import { registerDesignHotkeyOnWebContents } from './rox-design-hotkey'
 
 // Initialize electron-log for renderer process support
@@ -222,6 +227,8 @@ let browserPaneManager: BrowserPaneManager | null = null
 let roxDesignRuntimeManager: RoxDesignRuntimeManager | null = null
 let roxDesignViewManager: RoxDesignViewManager | null = null
 let roxDesignDesktopBridge: RoxDesignDesktopBridge | null = null
+let roxDesignTelemetry: RoxDesignTelemetry | null = null
+let roxDesignCurrentShowSpan: ReturnType<RoxDesignTelemetry['startShow']> | null = null
 let oauthFlowStore: OAuthFlowStore | null = null
 let moduleSink: EventSink | null = null
 let moduleClientResolver: ((webContentsId: number) => string | undefined) | null = null
@@ -243,11 +250,52 @@ function getRoxDesignResourcesBase(): string {
     : join(__dirname, '..')
 }
 
+/**
+ * PZD-83: Rox Design perf telemetry. Records cold-start/warm-open/INP samples
+ * via Sentry breadcrumbs + mainLog. The sink swallows its own errors; the
+ * factory is safe to call even if Sentry is disabled (no DSN).
+ */
+function getRoxDesignTelemetry(): RoxDesignTelemetry {
+  if (!roxDesignTelemetry) {
+    roxDesignTelemetry = createRoxDesignTelemetry({
+      sink: {
+        emit: (record: RoxDesignTelemetryRecord) => {
+          // Structured log for local diagnosis (rox.log / DevTools terminal).
+          mainLog.info('[rox-design:perf]', record as unknown as Record<string, unknown>)
+          // Sentry breadcrumb so the record shows up alongside any session
+          // errors. Categorized so dashboards can filter cleanly.
+          try {
+            Sentry.addBreadcrumb({
+              category: 'rox-design.perf',
+              level: 'info',
+              data: record as unknown as Record<string, unknown>,
+              message: record.event + (record.phase ? `:${record.phase}` : ''),
+            })
+          } catch {
+            // Sentry not initialized in some test/dev paths — best-effort only.
+          }
+        },
+      },
+      onSinkError: (err) => mainLog.warn('[rox-design:perf] sink error', { error: String(err) }),
+    })
+  }
+  return roxDesignTelemetry
+}
+
 function getRoxDesignRuntimeManager(): RoxDesignRuntimeManager {
   if (!roxDesignRuntimeManager) {
+    const telemetry = getRoxDesignTelemetry()
     roxDesignRuntimeManager = new RoxDesignRuntimeManager({
       resourcesRoot: getRoxDesignResourcesBase(),
       logger: mainLog,
+      // Phase hook proxies to whichever show-span is currently open. Wrapping
+      // the lookup in a getter avoids snapshotting `null` at construction time.
+      startupPhaseHook: {
+        startPhase: (phase) => {
+          if (!roxDesignCurrentShowSpan) roxDesignCurrentShowSpan = telemetry.startShow()
+          return roxDesignCurrentShowSpan.startPhase(phase)
+        },
+      },
     })
   }
   return roxDesignRuntimeManager
@@ -256,9 +304,27 @@ function getRoxDesignRuntimeManager(): RoxDesignRuntimeManager {
 function getRoxDesignViewManager(): RoxDesignViewManager {
   if (!windowManager) throw new Error('Window manager is not initialized.')
   if (!roxDesignViewManager) {
+    const telemetry = getRoxDesignTelemetry()
     roxDesignViewManager = new RoxDesignViewManager({
       windowManager,
       logger: mainLog,
+      showPhaseHookFactory: () => {
+        // Reuse any in-flight cold-start show span so view phases get
+        // attributed to it; otherwise open a fresh one (warm-open path).
+        if (!roxDesignCurrentShowSpan) roxDesignCurrentShowSpan = telemetry.startShow()
+        const span = roxDesignCurrentShowSpan
+        return {
+          startPhase: (phase) => span.startPhase(phase),
+          complete: () => {
+            // End the show span when the view manager signals lifecycle
+            // complete (did-finish-load or did-fail-load). Clear the global
+            // slot so the next click opens a fresh span.
+            span.end()
+            if (roxDesignCurrentShowSpan === span) roxDesignCurrentShowSpan = null
+          },
+        }
+      },
+      inpSink: (sampleMs) => telemetry.reportInpSample(sampleMs),
     })
   }
   return roxDesignViewManager

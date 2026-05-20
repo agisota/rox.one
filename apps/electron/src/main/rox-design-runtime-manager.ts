@@ -9,6 +9,18 @@ import type { Readable } from 'stream'
 import { BrowserWindow } from 'electron'
 import type { RoxDesignStatus } from '../shared/types'
 
+/**
+ * Hook surface used by the runtime manager to record perf phases during
+ * cold-start. Concrete implementation lives in `rox-design-telemetry.ts` —
+ * passed in via {@link RoxDesignRuntimeManagerOptions.startupPhaseHook}.
+ *
+ * The hook receives `null` when no perf measurement is active, so the
+ * manager can no-op cheaply in tests / fallback paths.
+ */
+export interface RoxDesignStartupPhaseHook {
+  startPhase(phase: 'spawn-sidecar' | 'register-desktop-auth'): { end(): void }
+}
+
 export interface RoxDesignRuntimeManagerOptions {
   resourcesRoot: string
   dataRoot?: string
@@ -17,6 +29,12 @@ export interface RoxDesignRuntimeManagerOptions {
     warn?: (message: string, meta?: Record<string, unknown>) => void
     error?: (message: string, meta?: Record<string, unknown>) => void
   }
+  /**
+   * Optional perf telemetry hook. When provided, `start()` instruments
+   * `spawn-sidecar` and `register-desktop-auth` phases. Existing callers
+   * that don't pass this stay functionally unchanged.
+   */
+  startupPhaseHook?: RoxDesignStartupPhaseHook | null
 }
 
 interface OpenDesignConfig {
@@ -283,6 +301,7 @@ export class RoxDesignRuntimeManager {
   private readonly resourcesRoot: string
   private readonly dataRoot?: string
   private readonly logger: RoxDesignRuntimeManagerOptions['logger']
+  private readonly startupPhaseHook: RoxDesignStartupPhaseHook | null
   private processes: ManagedProcess[] = []
   private ipcBase: string | null = null
   private daemonIpcPath: string | null = null
@@ -294,6 +313,7 @@ export class RoxDesignRuntimeManager {
     this.resourcesRoot = options.resourcesRoot
     this.dataRoot = options.dataRoot
     this.logger = options.logger
+    this.startupPhaseHook = options.startupPhaseHook ?? null
   }
 
   getStatus(): RoxDesignStatus {
@@ -455,13 +475,32 @@ export class RoxDesignRuntimeManager {
       OD_DATA_DIR: this.dataRoot ?? join(layout.root, '.rox-design-data'),
     }
 
-    const daemon = this.spawnSidecar('daemon', layout.nodePath, layout.daemonEntryPath, sidecarStampArgs('daemon', namespace, daemonIpcPath), {
-      ...commonEnv,
-      OD_PORT: '0',
-    }, layout.root)
-    const daemonStatus = await waitForSidecarStatus(daemon)
+    // Wrap the daemon+web sidecar spawn in a single phase span so dashboards
+    // attribute the (often-slow) child process startup correctly. Lifecycle
+    // ordering is preserved: daemon → register-desktop-auth → web.
+    const spawnPhase = this.startupPhaseHook?.startPhase('spawn-sidecar') ?? null
+    let daemonStatus: SidecarStatus
+    try {
+      const daemon = this.spawnSidecar('daemon', layout.nodePath, layout.daemonEntryPath, sidecarStampArgs('daemon', namespace, daemonIpcPath), {
+        ...commonEnv,
+        OD_PORT: '0',
+      }, layout.root)
+      daemonStatus = await waitForSidecarStatus(daemon)
+    } finally {
+      // Close the spawn span as soon as the daemon reports ready; the web
+      // sidecar reuses the same phase below but the auth gate must happen
+      // first to preserve the existing lifecycle ordering.
+      spawnPhase?.end()
+    }
     if (!daemonStatus.url) throw new Error('daemon sidecar did not provide a URL')
-    const registeredDesktopAuth = await this.registerDesktopAuthWithDaemon()
+
+    const authPhase = this.startupPhaseHook?.startPhase('register-desktop-auth') ?? null
+    let registeredDesktopAuth = false
+    try {
+      registeredDesktopAuth = await this.registerDesktopAuthWithDaemon()
+    } finally {
+      authPhase?.end()
+    }
     if (!registeredDesktopAuth) {
       this.logger?.warn?.('[rox-design] desktop import-token handshake with daemon did not complete; first folder import will retry')
     }

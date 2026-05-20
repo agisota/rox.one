@@ -72,6 +72,12 @@ describe("RoxDesignViewManager helpers", () => {
     );
     expect(script).toContain("fetch('/api/app-config'");
     expect(script).toContain("dismissPrivacyConsent");
+    // PZD-83: INP observer + perf buffer must be installed inside the embed.
+    expect(script).toContain("__ROX_DESIGN_PERF_BUFFER__");
+    expect(script).toContain("__ROX_DESIGN_PERF_READ__");
+    expect(script).toContain("__ROX_DESIGN_INP_OBSERVER__");
+    expect(script).toContain("type: 'event'");
+    expect(script).toContain("durationThreshold: 16");
   });
 
   it("allows same-origin navigation and externalizes cross-origin http(s)", () => {
