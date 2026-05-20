@@ -7,6 +7,7 @@ export const DESKTOP_IMPORT_TOKEN_FIELD_SEP = '~'
 export const DESKTOP_IMPORT_TOKEN_HEADER = 'X-OD-Desktop-Import-Token'
 const DESKTOP_IMPORT_TOKEN_TTL_MS = 60_000
 const PRINT_READY_TIMEOUT_MS = 30_000
+const MAX_PRINT_HTML_BYTES = Number(process.env.ROX_DESIGN_MAX_PRINT_HTML_MB ?? 5) * 1024 * 1024
 
 export interface DesktopAuthBridgeContext {
   daemonUrl?: string
@@ -253,6 +254,9 @@ export class RoxDesignDesktopBridge {
 
   async printPdf(html: unknown, nonce: unknown): Promise<void> {
     if (typeof html !== 'string') throw new Error('Invalid print payload: expected HTML string')
+    if (Buffer.byteLength(html, 'utf8') > MAX_PRINT_HTML_BYTES) {
+      throw new Error(`printPdf html payload exceeds MAX_PRINT_HTML_BYTES limit`)
+    }
     const printNonce = typeof nonce === 'string' ? nonce : ''
     const printWindow = new BrowserWindow({
       width: 800,

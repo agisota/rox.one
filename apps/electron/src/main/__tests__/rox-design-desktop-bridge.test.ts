@@ -2,7 +2,19 @@ import { describe, expect, it, mock } from 'bun:test'
 import { createHmac } from 'crypto'
 
 mock.module('electron', () => ({
-  BrowserWindow: class MockBrowserWindow {},
+  BrowserWindow: class MockBrowserWindow {
+    isDestroyed() { return false }
+    webContents = {
+      setWindowOpenHandler: () => undefined,
+      on: () => undefined,
+      executeJavaScript: () => Promise.resolve(true),
+      print: (_opts: unknown, cb: (success: boolean) => void) => cb(true),
+    }
+    loadURL() { return Promise.resolve() }
+    show() { return undefined }
+    close() { return undefined }
+    static getAllWindows() { return [] }
+  },
   dialog: {
     showOpenDialog: mock(async () => ({ canceled: true, filePaths: [] })),
   },
@@ -17,6 +29,7 @@ const {
   isHttpUrl,
   isOpenPathAllowedForProject,
   signDesktopImportToken,
+  RoxDesignDesktopBridge,
 } = await import('../rox-design-desktop-bridge') as typeof import('../rox-design-desktop-bridge')
 
 describe('Rox Design desktop bridge helpers', () => {
@@ -46,5 +59,11 @@ describe('Rox Design desktop bridge helpers', () => {
       ok: false,
       reason: 'project did not come from the trusted picker flow',
     })
+  })
+
+  it('rejects printPdf when HTML payload exceeds the size cap', async () => {
+    const bridge = new RoxDesignDesktopBridge(() => ({}))
+    const oversizedHtml = '<html>' + 'x'.repeat(6 * 1024 * 1024) + '</html>'
+    await expect(bridge.printPdf(oversizedHtml, 'nonce')).rejects.toThrow('exceeds')
   })
 })
