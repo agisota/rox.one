@@ -411,11 +411,13 @@ export class RoxDesignRuntimeManager {
 
   private findBundledRuntimeLayout(): OpenDesignRuntimeLayout | null {
     const explicitRoot = process.env.ROX_DESIGN_RUNTIME_ROOT?.trim()
+    const unpackedResourcesRoot = `${this.resourcesRoot}.asar.unpacked`
     const candidates = [
       ...(explicitRoot ? [explicitRoot] : []),
       this.resourcesRoot,
       join(this.resourcesRoot, 'resources', 'rox-design'),
       join(this.resourcesRoot, 'rox-design'),
+      join(unpackedResourcesRoot, 'resources', 'rox-design'),
       join(dirname(this.resourcesRoot), 'rox-design'),
     ]
 

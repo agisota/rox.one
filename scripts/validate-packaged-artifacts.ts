@@ -245,6 +245,30 @@ function assertMacMinimumSystemVersion(): void {
   console.log(`[packaged-artifacts] CFBundleIdentifier=${bundleId}`);
 }
 
+function assertMacRoxDesignPayload(): void {
+  const payloadRoot = `mac-${macArch}/ROX.ONE.app/Contents/Resources/app.asar.unpacked/resources/rox-design`;
+  const requiredPayloadPaths = [
+    'open-design-config.json',
+    'open-design/bin/node',
+    'app/prebundled/daemon/daemon-sidecar.mjs',
+    'app/prebundled/daemon/daemon-cli.mjs',
+    'app/prebundled/web-sidecar.mjs',
+  ];
+
+  const missing = requiredPayloadPaths.filter((relativePath) =>
+    !existsSync(path.join(releaseDir, payloadRoot, relativePath)),
+  );
+
+  if (missing.length > 0) {
+    fail(
+      `missing Rox Design payload outside ASAR under apps/electron/release/${payloadRoot}:\n` +
+        missing.map((relativePath) => `  - ${relativePath}`).join('\n'),
+    );
+  }
+
+  console.log(`[packaged-artifacts] Rox Design payload externalized: ${payloadRoot}`);
+}
+
 // ---------------------------------------------------------------------------
 // Platform-specific requirement definitions
 // ---------------------------------------------------------------------------

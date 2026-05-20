@@ -158,6 +158,28 @@ describe('RoxDesignRuntimeManager', () => {
     await expect(manager.stop()).resolves.toMatchObject({ status: 'idle' })
   })
 
+  test('starts bundled runtime from app.asar.unpacked when packaged with asarUnpack', async () => {
+    const packagedResourcesRoot = tempRoot()
+    const appResourcesRoot = join(packagedResourcesRoot, 'app')
+    const unpackedResourcesRoot = join(packagedResourcesRoot, 'app.asar.unpacked')
+    createMockOpenDesignRuntime(unpackedResourcesRoot)
+    const manager = new RoxDesignRuntimeManager({
+      resourcesRoot: appResourcesRoot,
+      dataRoot: join(packagedResourcesRoot, 'data'),
+    })
+
+    const status = await manager.start()
+
+    expect(status).toMatchObject({
+      status: 'running',
+      daemonUrl: 'http://127.0.0.1:49111',
+      webUrl: 'http://127.0.0.1:49112?embed=rox&theme=system&lang=ru',
+      version: '0.7-test',
+    })
+
+    await expect(manager.stop()).resolves.toMatchObject({ status: 'idle' })
+  })
+
   test('can start from an explicit Open Design runtime root', async () => {
     const resourcesRoot = tempRoot()
     const runtimeRoot = createMockOpenDesignRuntime(resourcesRoot)
