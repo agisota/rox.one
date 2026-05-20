@@ -53,7 +53,7 @@ rox-cli ping
 
 ## System Requirements
 
-- **macOS:** Sonoma 14.0 or newer (Sonoma, Sequoia, Tahoe). Apple silicon (arm64) and Intel (x64) are both supported. macOS Ventura (13) and earlier are not supported.
+- **macOS:** Monterey 12.0 or newer (Monterey, Ventura, Sonoma, Sequoia, Tahoe). Apple silicon (arm64) and Intel (x64) are both supported.
 - **Windows:** Windows 10 (1809) or newer; Windows 11 recommended. First launch shows a SmartScreen warning because builds are self-signed — click **More info → Run anyway** once.
 - **Linux:** any glibc-based distribution with GTK 3 and `libnss3`. Native packages for Ubuntu 22.04+/24.04, Debian 12, Fedora 40 (DEB/RPM) plus an AppImage that runs on most distros. NixOS users can install via the bundled flake.
 

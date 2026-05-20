@@ -48,7 +48,7 @@ const artifactPlatform = normalizeArtifactPlatform(platformInput);
 const linuxArch = process.env.ROX_LINUX_ARCH ?? 'x86_64';
 const windowsArch = process.env.ROX_ARTIFACT_ARCH ?? 'x64';
 const macArch = process.env.ROX_ARTIFACT_ARCH ?? 'arm64';
-const MAC_MIN_SYSTEM_VERSION = '14.0';
+const MAC_MIN_SYSTEM_VERSION = '12.0';
 const shouldValidateLinux = artifactPlatform === 'linux' || artifactPlatform === 'all';
 const shouldValidateMac = artifactPlatform === 'mac' || artifactPlatform === 'all';
 const requestedWindows = artifactPlatform === 'windows' || artifactPlatform === 'all';
@@ -122,7 +122,7 @@ function assertMacMinimumSystemVersion(): void {
   const actual = plistStringValue(plist, 'LSMinimumSystemVersion');
   if (actual !== MAC_MIN_SYSTEM_VERSION) {
     fail(
-      `LSMinimumSystemVersion must be ${MAC_MIN_SYSTEM_VERSION} for Sonoma-and-newer compatibility; got: ${actual ?? 'missing'}`,
+      `LSMinimumSystemVersion must be ${MAC_MIN_SYSTEM_VERSION} for Monterey-and-newer compatibility; got: ${actual ?? 'missing'}`,
     );
   }
 

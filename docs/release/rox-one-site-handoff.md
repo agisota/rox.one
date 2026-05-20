@@ -80,7 +80,7 @@ and asset filenames below.
 - Button label: "Download for Mac (Apple Silicon)"
 - File: `ROX-ONE-arm64.dmg` (~120 MB)
 - URL: `https://app.rox.one/electron/latest/ROX-ONE-arm64.dmg`
-- Requires: macOS 14.0 (Sonoma) or newer.
+- Requires: macOS 12.0 (Monterey) or newer (Monterey, Ventura, Sonoma, Sequoia, Tahoe).
 - First-launch warning: see `docs/release/macos-first-launch.md`
   (to be created). The app is ad-hoc signed; on first open users
   must right-click -> Open -> Open again to bypass Gatekeeper.
