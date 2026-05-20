@@ -256,6 +256,34 @@ export const mockElectronAPI = {
     }
   },
 
+  listArtifacts: async (sessionId: string) => {
+    console.log('[Playground] listArtifacts called:', sessionId)
+    return []
+  },
+
+  getArtifact: async (sessionId: string, artifactId: string) => {
+    console.log('[Playground] getArtifact called:', sessionId, artifactId)
+    return null
+  },
+
+  upsertArtifact: async (sessionId: string, input: unknown) => {
+    console.log('[Playground] upsertArtifact called:', sessionId, input)
+    throw new Error('Artifact writes are not available in playground mode')
+  },
+
+  deleteArtifact: async (sessionId: string, artifactId: string) => {
+    console.log('[Playground] deleteArtifact called:', sessionId, artifactId)
+    return false
+  },
+
+  onArtifactsChanged: (callback: (sessionId: string, artifactId: string) => void) => {
+    console.log('[Playground] onArtifactsChanged subscribed')
+    void callback
+    return () => {
+      console.log('[Playground] onArtifactsChanged unsubscribed')
+    }
+  },
+
   browserPane: {
     focus: async (instanceId: string) => {
       console.log('[Playground] browserPane.focus called:', instanceId)

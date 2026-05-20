@@ -380,10 +380,11 @@ export function NavigationProvider({
   }, [store, maybePushHistoryForSemanticChange])
 
   // Right sidebar changes: push history
-  const prevSidebarTypeRef = useRef(rightSidebar?.type)
+  const prevSidebarKeyRef = useRef(buildRightSidebarParam(rightSidebar) ?? '')
   useEffect(() => {
-    if (rightSidebar?.type === prevSidebarTypeRef.current) return
-    prevSidebarTypeRef.current = rightSidebar?.type
+    const sidebarKey = buildRightSidebarParam(rightSidebar) ?? ''
+    if (sidebarKey === prevSidebarKeyRef.current) return
+    prevSidebarKeyRef.current = sidebarKey
     if (suppressPushRef.current) return
     if (!initialRouteRestoredRef.current) return
     maybePushHistoryForSemanticChange()

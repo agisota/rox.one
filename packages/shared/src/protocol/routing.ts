@@ -253,6 +253,13 @@ export const REMOTE_ELIGIBLE_CHANNELS = new Set<string>([
   RPC_CHANNELS.sessions.EXPORT_REMOTE_TRANSFER,
   RPC_CHANNELS.sessions.IMPORT_REMOTE_TRANSFER,
 
+  // artifacts — session-scoped generated outputs
+  RPC_CHANNELS.artifacts.LIST,
+  RPC_CHANNELS.artifacts.GET,
+  RPC_CHANNELS.artifacts.UPSERT,
+  RPC_CHANNELS.artifacts.DELETE,
+  RPC_CHANNELS.artifacts.CHANGED,
+
   // transfer — chunked large-payload import (sessions, resources)
   RPC_CHANNELS.transfer.START,
   RPC_CHANNELS.transfer.CHUNK,
