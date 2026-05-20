@@ -10,3 +10,13 @@ routes = [
 
 # Required secret:
 # GITHUB_RELEASE_TOKEN - read access to private agisota/rox-one-terminal release assets.
+
+# Optional: R2 Phase 5 migration vars.
+# Phase 5a (parallel write GH+R2): leave R2_PRIMARY commented out or set to "false".
+#   The worker uses GitHub only; R2 receives writes but is never read.
+# Phase 5b (R2-primary): set R2_PRIMARY = "true" to make R2 the primary source
+#   with automatic GitHub fallback on 404.
+#
+# [vars]
+# R2_PUBLIC_BASE_URL = "https://pub-<hash>.r2.dev"
+# R2_PRIMARY = "false"
