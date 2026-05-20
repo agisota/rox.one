@@ -160,6 +160,7 @@ export class RoxDesignViewManager {
     return {
       contextIsolation: true,
       nodeIntegration: false,
+      partition: 'persist:rox-design',
       preload: this.preloadPath,
       sandbox: true,
       webviewTag: false,

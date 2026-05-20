@@ -9,6 +9,18 @@ const desktopApi = {
   printPdf: (html: string, nonce?: string) => ipcRenderer.invoke('rox-design-bridge:print-pdf', html, nonce),
   printPDF: (html: string, nonce?: string) => ipcRenderer.invoke('rox-design-bridge:print-pdf', html, nonce),
   /**
+   * Narrowly-scoped filesystem access for the Design embed surface (T537 PR #5b).
+   * Paths are validated on the main-process side against an explicit allowlist:
+   *   - ~/.rox/storage/artifacts/design/
+   *   - ~/.rox/storage/workspaces/<id>/files/
+   */
+  fs: {
+    readSelected: (filePath: string): Promise<string> =>
+      ipcRenderer.invoke('design:fs:readSelected', filePath),
+    writeArtifact: (filePath: string, content: string): Promise<{ sha256: string; path: string }> =>
+      ipcRenderer.invoke('design:fs:writeArtifact', filePath, content),
+  },
+  /**
    * Register a listener for theme snapshot updates pushed from the host bridge
    * (T537 PR #2). The listener receives a `{ name: value }` map of --rox-*
    * CSS variables that the Design surface can apply to its document root.

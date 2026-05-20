@@ -160,7 +160,9 @@
     "validate:linux-installer-launcher": "bun run scripts/validate-linux-installer-launcher.ts",
     "electron:smoke:packaged": "bun run scripts/electron-smoke-packaged.ts",
     "validate:cross-platform-launch-workflow": "bun run scripts/validate-cross-platform-launch-workflow.ts",
-    "validate:mac-diag-smoke-workflow": "bun run scripts/validate-mac-diag-smoke-workflow.ts"
+    "validate:mac-diag-smoke-workflow": "bun run scripts/validate-mac-diag-smoke-workflow.ts",
+    "validate:csp": "bun run scripts/validate-csp.ts",
+    "generate:design-sbom": "bun run scripts/generate-design-sbom.ts"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1038.0",

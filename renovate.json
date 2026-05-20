@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "schedule": ["before 6am on Monday"],
+  "prCreation": "immediate",
+  "packageRules": [
+    {
+      "description": "Weekly upstream sync reminder for nexu-io/open-design (T537 PR #5b)",
+      "matchPackageNames": ["@nexu-io/open-design"],
+      "labels": ["upstream-sync", "design-embed", "T537"],
+      "schedule": ["before 6am on Monday"],
+      "prTitle": "chore(design): weekly @nexu-io/open-design upstream sync check",
+      "commitMessageSuffix": "(T537 upstream-sync)",
+      "enabled": true
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "Track nexu-io/open-design vendored version via GitHub releases",
+      "customType": "regex",
+      "fileMatch": ["^scripts/prepare-rox-design-runtime\\.ts$"],
+      "matchStrings": [
+        "ROX_DESIGN_VERSION\\s*[=:]\\s*['\"](?<currentValue>[^'\"]+)['\"]"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "nexu-io/open-design",
+      "versioningTemplate": "semver"
+    }
+  ]
+}
