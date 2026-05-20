@@ -149,7 +149,7 @@ Initial pre-implementation failures were expected and observed while the code wa
 
 ## 10. Remaining risks
 - Manual in-window end-to-end creation/import/PDF export inside Rox Design was not fully walked through by hand after launch; the bridge paths are unit-tested and packaged sidecars are smoke-tested, but the complete interactive Open Design workflow remains the next manual QA item.
-- The local Open Design runtime payload is git-ignored and must be regenerated with `scripts/prepare-rox-design-runtime.ts` on a clean machine or CI before packaging.
+- The local Open Design runtime payload is git-ignored and must be regenerated on a clean machine or CI before packaging. Use `bun run rox-design:prepare -- --force` (added in checkpoint 13 below); a packaging preflight `bun run rox-design:payload:verify` is wired into every `electron:dist*` entry to fail fast when the payload is absent.
 - Unsigned/dev mac packaging was validated; notarized release signing was not part of this task.
 - Existing lint warnings remain intentionally unchanged.
 - The built release app is currently launchable from `apps/electron/release/mac-arm64/ROX.ONE.app`; installed `/Applications/ROX ONE.app` is separate and was not replaced by this task.
@@ -163,7 +163,7 @@ Initial pre-implementation failures were expected and observed while the code wa
 | Native view bounds follow Rox Design page host | Pass | Renderer sync uses `ResizeObserver`/resize/scroll; policy tests cover sanitize/scale. |
 | Safe bridge covers external URL, picker/import, project open path, print PDF | Pass | `RoxDesignDesktopBridge` implements all four areas and has unit tests for validation/trust/token behavior. |
 | Bridge calls are accepted only from managed Rox Design webContents | Pass | Main IPC handlers call `requireRoxDesignManagedWebContents`; unmanaged senders throw. |
-| Real Open Design runtime payload copied into package resources | Pass | Payload manifest version `0.7.0`; local and packaged payload size `251M`. |
+| Real Open Design runtime payload copied into package resources | Pass (machine-local on 2026-05-19) | Payload manifest version `0.7.0`; local and packaged payload size `251M`. Reproducibility on clean checkout was hardened later in checkpoint 13 (`rox-design:prepare` + `rox-design:payload:verify`). |
 | Unit/RTL/typecheck/lint/build pass or blockers documented | Pass | `test:units`, focused tests, `typecheck:all`, `lint`, and `build` passed; lint warnings documented. |
 | Packaged smoke verifies embedded payload | Pass | `/tmp/rox-packaged-smoke-20260519151514.log` validates payload and starts daemon/web sidecars from `.app`. |
 | Packaged UI smoke passes | Pass | `/tmp/rox-ui-smoke-packaged-20260519152432.log` plus Playwright evidence directory. |
@@ -229,3 +229,54 @@ ROX_UI_SMOKE_EVIDENCE_DIR="$EVID" bun run electron:ui-smoke:packaged:mac
 - Rerun packaged UI smoke and inspect fresh screenshots for every Rox Design tab.
 - Run broader gates if time allows: `bun run typecheck:all`, `bun run lint`, `bun run electron:smoke:packaged:mac`.
 - Launch the rebuilt `.app` visibly and capture final evidence.
+
+## 13. Checkpoint — T091-packaging-reproducibility-recon (2026-05-20)
+
+### Reason for this checkpoint
+The §11 acceptance matrix recorded the Open Design payload step as `Pass` based on the worklog author's local machine, where `/Applications/Open Design.app/Contents/Resources` was available and the payload had been hand-copied into `apps/electron/resources/rox-design/`. On a clean checkout the payload directory is empty (only `README.md` is committed), there was no discoverable `package.json` script that wraps `scripts/prepare-rox-design-runtime.ts`, and electron-builder would happily package a hollow payload — producing a `.app` whose Rox Design tab is broken at launch with no early signal. This checkpoint closes that reproducibility gap without retroactively invalidating the original evidence.
+
+### What changed in this checkpoint
+- `package.json`:
+  - Added `rox-design:prepare` → `bun run scripts/prepare-rox-design-runtime.ts` (passes through `-- --force` / `-- --check`).
+  - Added `rox-design:prepare:check` → source-side `--check` (validates `ROX_DESIGN_SOURCE_RESOURCES`).
+  - Added `rox-design:payload:verify` → target-side preflight (new script below).
+  - Prepended `bun run rox-design:payload:verify &&` to every `electron:dist*` script (`electron:dist`, `electron:dist:{mac,win,linux}`, and the `:dev` variants).
+- `scripts/check-rox-design-runtime-payload.ts` (new):
+  - Validates `apps/electron/resources/rox-design/MANIFEST.json` matches schema `rox-design-runtime-manifest.v1` and has a `version`.
+  - Validates the same `REQUIRED_PATHS` set that `prepare-rox-design-runtime.ts` requires at the source, applied to the target.
+  - Emits actionable next-step instructions and a `ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY=1` bypass for dev smokes that intentionally skip the runtime payload.
+- `scripts/electron-dist-dev-mac-arm64.ts`:
+  - Calls `bun run rox-design:payload:verify` as the first step (before `downloadBun` and `electron:build`) so the gate fails fast on a clean machine.
+- `.gitignore`:
+  - Added `apps/electron/resources/rox-design/*` with a `!apps/electron/resources/rox-design/README.md` negation so the bootstrap doc stays committed but the generated payload (incl. `MANIFEST.json`, `app/`, `open-design/`, `open-design-web-standalone/`) is never accidentally committed.
+
+### Validation
+- `bun run rox-design:payload:verify` against an empty target (clean checkout state) — exits with code `1` and prints the prepare command and bypass instructions; verified inline during this session.
+- `ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY=1 bun run rox-design:payload:verify` — exits `0` with a SKIPPED warning; verified inline.
+- `git check-ignore -v apps/electron/resources/rox-design/MANIFEST.json` — matches `.gitignore` line, confirming generated payload is ignored.
+- `git check-ignore -v apps/electron/resources/rox-design/README.md` — no match, confirming the README stays committed.
+
+### Updated restore commands for a fresh VPS/session
+```bash
+git clone https://github.com/agisota/rox-one-terminal.git
+cd rox-one-terminal
+git checkout feat/rox-design-clean
+bun install
+
+# Prepare the Open Design runtime payload (must point at Open Design 0.7.0 resources):
+ROX_DESIGN_SOURCE_RESOURCES="/Applications/Open Design.app/Contents/Resources" \
+  bun run rox-design:prepare -- --force
+
+# Confirm the packaging preflight is happy before triggering electron-builder:
+bun run rox-design:payload:verify
+
+# Then build/package:
+bun run electron:dist:dev:mac:arm64
+EVID="$HOME/.ai-agent-hub/evidence/playwright-smoke/rox-design-visual-final-$(date +%Y%m%d%H%M%S)" \
+  ROX_UI_SMOKE_EVIDENCE_DIR="$EVID" bun run electron:ui-smoke:packaged:mac
+```
+
+### Boundaries / what this checkpoint does NOT do
+- It does not change any runtime code in `apps/electron/src/main/rox-design-*` or `RoxDesignPage`.
+- It does not re-run packaged UI/headless smoke on this Linux host — Open Design 0.7.0 ships only as a macOS app, so the payload cannot be prepared from this workstation. Linux/Windows packaging paths inherit the same preflight but require a macOS or vendor-distributed payload archive to be staged before packaging (`ROX_DESIGN_SOURCE_RESOURCES` accepts any directory with the same layout).
+- It does not change the §11 acceptance matrix verdicts beyond a clarifying note on the payload-copy row — the original packaged smoke evidence on the author's machine remains valid for that machine.

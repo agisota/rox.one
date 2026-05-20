@@ -68,6 +68,12 @@ pnpm-lock.yaml
 # ROX local data (sessions, credentials, config)
 .rox/
 
+# Rox Design runtime payload (~251MB Open Design 0.7.0 bundle).
+# Generated locally / at release time by `bun run rox-design:prepare`.
+# Keep README.md committed so the bootstrap workflow stays discoverable.
+apps/electron/resources/rox-design/*
+!apps/electron/resources/rox-design/README.md
+
 # SSH keys and secrets
 *.pem
 *.key
