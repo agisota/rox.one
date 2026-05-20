@@ -22,13 +22,15 @@ Cherry-pick any local-only commits onto the new `main` after the reset.
 
 ## Install
 
-**macOS / Linux**
+> **Note on code signing.** ROX.ONE is currently distributed as ad-hoc-signed builds (no Apple Developer Program / Windows EV certificate). The install scripts below handle the OS trust prompts automatically and are the recommended path. Direct DMG/EXE downloads work too, but require a manual one-time bypass — see [Manual install fallback](#manual-install-fallback) below.
+
+**macOS / Linux** — recommended (auto-handles macOS quarantine):
 
 ```bash
 curl -fsSL https://app.rox.one/install-app.sh | bash
 ```
 
-**Windows (PowerShell)**
+**Windows (PowerShell)** — recommended (auto-unblocks downloaded EXE):
 
 ```powershell
 irm https://app.rox.one/install-app.ps1 | iex
@@ -50,6 +52,16 @@ the checkout:
 alias rox-cli="bun run $(pwd)/apps/cli/src/index.ts"
 rox-cli ping
 ```
+
+### Manual install fallback
+
+If you prefer to download the installer directly from the [Releases](https://github.com/agisota/rox.one/releases/latest) page:
+
+- **macOS:** double-clicking the `.dmg` will trigger Gatekeeper because the build is not notarized. Either:
+  - **Right-click → Open** the first time, then click **Open** in the dialog, _or_
+  - Run `xattr -dr com.apple.quarantine /Applications/ROX.ONE.app` after dragging it to Applications.
+- **Windows:** SmartScreen will flag the unsigned `.exe`. Click **More info → Run anyway**.
+- **Linux:** AppImage / `.deb` / `.rpm` work without bypasses; ensure FUSE is installed for AppImage.
 
 ## System Requirements
 
