@@ -176,6 +176,7 @@ export interface TransportConnectionState {
 
 // Re-import types for ElectronAPI
 import type { WorkspaceInfo, Workspace, SessionMetadata, StoredAttachment as StoredAttachmentType } from '@rox-one/core/types';
+import type { OpenDesignRequest, OpenDesignResult } from '@rox-one/design-contract';
 
 // Import protocol types used by ElectronAPI (they come through the `export *` above,
 // but we need them in scope for the interface definition)
@@ -255,6 +256,9 @@ export interface ElectronAPI {
   roxDesign?: RoxDesignApi
   /** Subscribe to runtime status changes broadcast by the main process. */
   onRoxDesignStatusChanged(callback: (status: RoxDesignStatus) => void): () => void
+
+  // Design IPC — T537 Phase B
+  openWithContext(req: OpenDesignRequest): Promise<OpenDesignResult>
 
   // Session management
   getSessions(): Promise<Session[]>
