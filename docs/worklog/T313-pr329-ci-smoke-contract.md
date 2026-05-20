@@ -67,4 +67,3 @@ that were outside the artifact panel runtime itself:
 - PR #329 still needs the larger product-level follow-up that wires real
   chat/agent artifact production into `artifacts:upsert` and opens the panel
   from user-visible chat flow.
-

@@ -22,4 +22,3 @@ exposed two CI contract drifts:
 - `git diff --check` passes.
 - PR #329 CI no longer fails on validate workflow-contract drift or macOS
   Sequoia dev-smoke payload verification.
-
