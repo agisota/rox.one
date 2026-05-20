@@ -41,7 +41,12 @@ jobs:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
       ROX_DEV_RUNTIME: "1"
       ROX_DIAG: "1"
-      ROX_HEADLESS: "0"
+      # ROX_HEADLESS intentionally NOT set. The runtime treats it as
+      # `!!process.env.ROX_HEADLESS`, which makes ANY non-empty string truthy
+      # — including the string "0". Setting `ROX_HEADLESS: "0"` here in YAML
+      # would force the app into headless mode and skip createInitialWindows(),
+      # which is exactly the false-hang we chased through iter 5-6.
+      # Leaving it unset (env-var absent) = !!undefined = false = window mode.
       # @vscode/ripgrep downloads from GitHub Releases during postinstall;
       # authenticate to avoid unauthenticated API 403/rate-limit failures on macOS runners.
       GITHUB_TOKEN: ${{ github.token }}
