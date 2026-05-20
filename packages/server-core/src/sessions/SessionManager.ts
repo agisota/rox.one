@@ -89,7 +89,7 @@ import { McpClientPool, McpPoolServer } from '@rox-one/shared/mcp'
 import { type Session, type SessionEvent, type FileAttachment, type SendMessageOptions, type UnreadSummary, type RemoteSessionTransferPayload, type ImportRemoteSessionTransferResult, RPC_CHANNELS, generateMessageId } from '@rox-one/shared/protocol'
 import { messageToStored, storedToMessage, type Message, type StoredAttachment, type ToolDisplayMeta } from '@rox-one/core/types'
 import { formatPathsToRelative, formatToolInputPaths, perf, encodeIconToDataUrlAsync, getEmojiIcon, resetSummarizationClient, resolveToolIcon, readFileAttachment, selectSpreadMessages, normalizePath } from '@rox-one/shared/utils'
-import { loadAllSkills, loadSkillBySlug, invalidateSkillsCache, type LoadedSkill } from '@rox-one/shared/skills'
+import { invalidateSkillsCache, type LoadedSkill } from '@rox-one/shared/skills'
 import { invalidateContextFileCache } from '@rox-one/shared/prompts/system'
 import { getToolIconsDir, getMiniModel } from '@rox-one/shared/config'
 import { getDefaultSummarizationModel } from '@rox-one/shared/config/models'
@@ -140,6 +140,7 @@ import {
 import { SessionIPC } from './session-ipc'
 import { SessionPersistence } from './session-persistence'
 import { SessionAuth } from './session-auth'
+import { AgentAnswerEmitter } from './agent-answer-emitter'
 // Re-exports for callers that imported these symbols from SessionManager before the extraction.
 export { AGENT_FLAGS, createManagedSession }
 export type { ManagedSession, AgentInstance }
@@ -231,6 +232,8 @@ export class SessionManager implements ISessionManager {
   // OAuth/auth lifecycle, attempt-retry). Top of helper graph — depends on
   // both IPC (1/3) and Persistence (2/3) plus SM coordinator callbacks.
   private auth!: SessionAuth
+  // AAP emitter — builds, validates, and dispatches AgentAnswerPackage on every turn completion.
+  private answerEmitter!: AgentAnswerEmitter
   // Config watchers for live updates (sources, etc.) - one per workspace
   private configWatchers: Map<string, ConfigWatcher> = new Map()
   // Automation systems for workspace event automations - one per workspace (includes scheduler, diffing, and handlers)
@@ -290,6 +293,14 @@ export class SessionManager implements ISessionManager {
       onProcessingStopped: (sid, reason) => this.onProcessingStopped(sid, reason),
       monotonic: () => this.monotonic(),
       captureException: (error, context) => sessionRuntimeHooks.captureException(error, context),
+    })
+    this.answerEmitter = new AgentAnswerEmitter({
+      bus: {
+        emit: () => {
+          // Step 3 will wire the real event-bus subscription; for now the dispatch
+          // is a no-op that satisfies the interface without breaking existing paths.
+        },
+      },
     })
   }
 
@@ -4073,6 +4084,7 @@ export class SessionManager implements ISessionManager {
     if (options?.skillSlugs?.length) {
       try {
         const workspaceRoot = managed.workspace.rootPath
+        const { loadSkillBySlug } = await import('@rox-one/shared/skills')
 
         const requiredSources = new Set<string>()
         for (const slug of options.skillSlugs) {
@@ -5124,6 +5136,18 @@ export class SessionManager implements ISessionManager {
 
         this.ipc.sendEvent({ type: 'text_complete', sessionId, text: event.text, isIntermediate: event.isIntermediate, turnId: event.turnId, parentToolUseId: event.parentToolUseId, timestamp: assistantMessage.timestamp, messageId: assistantMessage.id }, workspaceId)
 
+        // PZD-18 step 2: emit AgentAnswerPackage for every turn completion.
+        // Awaited so callers (tests + future subscribers) get synchronous ordering;
+        // errors are caught and logged so the chat-display path is never disrupted.
+        try {
+          await this.answerEmitter.emit(
+            { agentId: sessionId, sessionId, turnId: event.turnId ?? assistantMessage.id },
+            { text: event.text },
+          )
+        } catch (err: unknown) {
+          sessionLog.warn('[AgentAnswerEmitter] emit failed (non-fatal):', err)
+        }
+
         // Persist session after complete message to prevent data loss on quit
         this.persistence.persistSession(managed)
         break
@@ -5697,7 +5721,7 @@ export class SessionManager implements ISessionManager {
     }
 
     // Resolve @mentions to source/skill slugs
-    const resolved = mentions ? this.resolveAutomationMentions(workspaceRootPath, mentions) : undefined
+    const resolved = mentions ? await this.resolveAutomationMentions(workspaceRootPath, mentions) : undefined
 
     // Ensure labels exist in workspace config before assigning to session
     const resolvedLabels = labels?.length
@@ -5763,8 +5787,9 @@ export class SessionManager implements ISessionManager {
   /**
    * Resolve @mentions in automation prompts to source and skill slugs
    */
-  private resolveAutomationMentions(workspaceRootPath: string, mentions: string[]): { sourceSlugs: string[]; skillSlugs: string[] } | undefined {
+  private async resolveAutomationMentions(workspaceRootPath: string, mentions: string[]): Promise<{ sourceSlugs: string[]; skillSlugs: string[] } | undefined> {
     const sources = loadWorkspaceSources(workspaceRootPath)
+    const { loadAllSkills } = await import('@rox-one/shared/skills')
     const skills = loadAllSkills(workspaceRootPath)
     const sourceSlugs: string[] = []
     const skillSlugs: string[] = []

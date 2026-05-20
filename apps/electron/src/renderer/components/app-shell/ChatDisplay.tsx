@@ -63,6 +63,8 @@ import {
   type AuthRequestTurn,
 } from "@rox-one/ui"
 import { MemoizedAuthRequestCard } from "@/components/chat/AuthRequestCard"
+import { AgentAnswerAttachment } from "@/components/chat/AgentAnswerAttachment"
+import { useAgentAnswerStream } from "@/hooks/useAgentAnswerStream"
 import { ChatInputZone, type StructuredInputState, type StructuredResponse, type PermissionResponse, type AdminApprovalResponse } from "./input"
 import type { RichTextInputHandle } from "@/components/ui/rich-text-input"
 import { useBackgroundTasks } from "@/hooks/useBackgroundTasks"
@@ -548,6 +550,9 @@ export const ChatDisplay = React.forwardRef<ChatDisplayHandle, ChatDisplayProps>
       }
     },
   })
+
+  // Subscribe to AAP push stream — PZD-18 step 4
+  useAgentAnswerStream()
 
   // Background tasks management
   const { tasks: backgroundTasks, killTask } = useBackgroundTasks({
@@ -1873,6 +1878,9 @@ export const ChatDisplay = React.forwardRef<ChatDisplayHandle, ChatDisplayProps>
                           }
                         }}
                       />
+                      {turn.turnId && (
+                        <AgentAnswerAttachment turnId={turn.turnId} />
+                      )}
                       </div>
                     )
                   })}

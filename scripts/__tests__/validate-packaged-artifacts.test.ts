@@ -213,11 +213,11 @@ describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
     expect(combined).toContain('CFBundleIdentifier=com.rox.one');
   });
 
-  test('fails Mac validation when the minimum-system floor drifts above Sonoma', () => {
+  test('fails Mac validation when LSMinimumSystemVersion drifts below Sonoma', () => {
     const cwd = fixture({ mac: true });
     writeFileSync(
       join(cwd, 'apps', 'electron', 'release', 'mac-arm64', 'ROX.ONE.app', 'Contents', 'Info.plist'),
-      macInfoPlist('15.0'),
+      macInfoPlist('12.0'),
     );
     const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'mac' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;

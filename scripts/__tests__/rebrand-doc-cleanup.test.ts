@@ -29,8 +29,8 @@ describe("R.4 documentation rebrand cleanup", () => {
     const readme = readText("README.md");
     const contributing = readText("CONTRIBUTING.md");
 
-    expect(readme).toContain("git clone https://github.com/agisota/rox-one-terminal.git");
-    expect(readme).toContain("cd rox-one-terminal");
+    expect(readme).toContain("git clone https://github.com/agisota/rox.one.git");
+    expect(readme).toContain("cd rox.one");
     expect(readme).not.toContain(`git clone ${upstreamRepoUrl}.git`);
     expect(readme).not.toContain(`cd ${legacyRepo}`);
 
@@ -42,14 +42,14 @@ describe("R.4 documentation rebrand cleanup", () => {
     expect(readme).not.toContain(`${legacyCli} ping`);
     expect(readme).toContain("rox-cli ping");
 
-    expect(readme).toContain("rox-one-terminal/");
+    expect(readme).toContain("rox.one/");
     expect(readme).not.toContain(`${legacyStem}-agent/`);
 
-    expect(contributing).toContain("git clone https://github.com/agisota/rox-one-terminal.git");
-    expect(contributing).toContain("cd rox-one-terminal");
+    expect(contributing).toContain("git clone https://github.com/agisota/rox.one.git");
+    expect(contributing).toContain("cd rox.one");
     expect(contributing).not.toContain(`git clone ${upstreamRepoUrl}.git`);
     expect(contributing).not.toContain(`cd ${legacyRepo}`);
-    expect(contributing).toContain("rox-one-terminal/");
+    expect(contributing).toContain("rox.one/");
     expect(contributing).toContain("@rox-one/core");
     expect(contributing).not.toContain(`${legacyPackageScope}/`);
   });

@@ -1,0 +1,257 @@
+name: Windows Cert Renewal Reminder
+
+# PZD-33 followup: Self-signed Win cert expires 2027-05-20.
+# This workflow fires every Monday at 09:00 UTC and computes days-until-expiry
+# from the live PFX stored in secrets. If <= 30 days remain it opens a GH issue
+# (idempotent) and a Linear issue (Urgent/Todo) so the cert is renewed before a
+# silent unsigned-build regression occurs.
+#
+# Security posture:
+#   - The PFX bytes and password NEVER appear in any log line or echo statement.
+#   - The PFX is piped to openssl via stdin; the password is supplied via the
+#     PKCS12_PASS env var using the `env:` passin form so it never lands in
+#     the process argument list.
+#   - Both secrets are gated at job start; the job exits cleanly if either is
+#     absent (e.g. fork PRs, external contributor runs).
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'   # Every Monday 09:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: win-cert-renewal-reminder-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write   # Required for `gh issue create` / `gh issue list`
+
+jobs:
+  check-cert-expiry:
+    name: Check Windows self-signed cert expiry
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+
+    steps:
+      # -----------------------------------------------------------------------
+      # Gate: skip cleanly when either required secret is absent.
+      # This covers fork PRs and runs where billing/secrets are unavailable.
+      # -----------------------------------------------------------------------
+      - name: Gate — verify required secrets are present
+        id: gate
+        env:
+          HAS_PFX: ${{ secrets.WIN_SELF_SIGNED_CERT_PFX != '' }}
+          HAS_KEY: ${{ secrets.LINEAR_API_KEY != '' }}
+        run: |
+          if [ "$HAS_PFX" != "true" ]; then
+            echo "WIN_SELF_SIGNED_CERT_PFX secret is absent — skipping cert check."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$HAS_KEY" != "true" ]; then
+            echo "LINEAR_API_KEY secret is absent — skipping cert check."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      # -----------------------------------------------------------------------
+      # Parse expiry from the live PFX.
+      # The PFX (base64) is decoded to a chmod-600 tempfile, piped to openssl,
+      # and the tempfile is shredded immediately after. The password is passed
+      # via the PKCS12_PASS env var using openssl's `env:` passin form so it
+      # is never echoed to the shell command line or captured in /proc listings.
+      # -----------------------------------------------------------------------
+      - name: Parse cert expiry date
+        if: steps.gate.outputs.skip == 'false'
+        id: parse-expiry
+        env:
+          WIN_SELF_SIGNED_CERT_PFX: ${{ secrets.WIN_SELF_SIGNED_CERT_PFX }}
+          PKCS12_PASS: ${{ secrets.WIN_SELF_SIGNED_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          # Decode base64 PFX to a restricted tempfile.
+          PFX_TMP="$(mktemp)"
+          chmod 600 "$PFX_TMP"
+          printf '%s' "$WIN_SELF_SIGNED_CERT_PFX" | base64 -d > "$PFX_TMP"
+
+          # Extract end-date. Password via env: — never via positional arg.
+          END_DATE_RAW="$(
+            openssl pkcs12 \
+              -in "$PFX_TMP" \
+              -passin "env:PKCS12_PASS" \
+              -nokeys -clcerts -nodes 2>/dev/null \
+            | openssl x509 -noout -enddate 2>/dev/null
+          )"
+
+          # Scrub tempfile immediately.
+          rm -f "$PFX_TMP"
+
+          # END_DATE_RAW shape: notAfter=May 20 00:00:00 2027 GMT
+          EXPIRY_STR="${END_DATE_RAW#notAfter=}"
+          echo "Cert expiry string: $EXPIRY_STR"
+
+          EXPIRY_EPOCH="$(date -d "$EXPIRY_STR" +%s)"
+          NOW_EPOCH="$(date +%s)"
+          DAYS_REMAINING="$(( (EXPIRY_EPOCH - NOW_EPOCH) / 86400 ))"
+
+          echo "days_remaining=$DAYS_REMAINING" >> "$GITHUB_OUTPUT"
+          echo "expiry_str=$EXPIRY_STR"         >> "$GITHUB_OUTPUT"
+
+          echo "Windows self-signed cert: $DAYS_REMAINING days remaining (expires $EXPIRY_STR)."
+
+      # -----------------------------------------------------------------------
+      # Branch A: cert is healthy — log and exit clean.
+      # -----------------------------------------------------------------------
+      - name: Log OK — cert is healthy
+        if: |
+          steps.gate.outputs.skip == 'false' &&
+          steps.parse-expiry.outputs.days_remaining != '' &&
+          fromJSON(steps.parse-expiry.outputs.days_remaining) > 30
+        run: |
+          echo "OK: Windows self-signed cert has ${{ steps.parse-expiry.outputs.days_remaining }} days remaining. No action required."
+
+      # -----------------------------------------------------------------------
+      # Branch B: cert expires within 30 days — open GH + Linear issues.
+      # Checkout is required so the gh CLI can infer the repository context.
+      # -----------------------------------------------------------------------
+      - name: Checkout (gh CLI auth context)
+        if: |
+          steps.gate.outputs.skip == 'false' &&
+          steps.parse-expiry.outputs.days_remaining != '' &&
+          fromJSON(steps.parse-expiry.outputs.days_remaining) <= 30
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 1
+
+      - name: Open GH issue — cert expiring (idempotent)
+        if: |
+          steps.gate.outputs.skip == 'false' &&
+          steps.parse-expiry.outputs.days_remaining != '' &&
+          fromJSON(steps.parse-expiry.outputs.days_remaining) <= 30
+        id: gh-issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXPIRY_STR: ${{ steps.parse-expiry.outputs.expiry_str }}
+          DAYS_REMAINING: ${{ steps.parse-expiry.outputs.days_remaining }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          TITLE="[PZD-33 followup] Win self-signed cert expires ${EXPIRY_STR}"
+
+          # Idempotency: skip if an open issue with this exact title already exists.
+          EXISTING="$(gh issue list \
+            --state open \
+            --search "$TITLE" \
+            --json number,title \
+            --jq '.[0].number // ""' 2>/dev/null || true)"
+
+          if [ -n "$EXISTING" ]; then
+            echo "GH issue #${EXISTING} already open — skipping duplicate creation."
+            echo "gh_issue_url=https://github.com/${REPO}/issues/${EXISTING}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BODY="## Windows self-signed cert renewal required
+
+The self-signed PFX used for Windows builds (**WIN_SELF_SIGNED_CERT_PFX** /
+**WIN_SELF_SIGNED_CERT_PASSWORD** GitHub Secrets) is expiring.
+
+**Expiry date:** ${EXPIRY_STR}
+**Days remaining:** ${DAYS_REMAINING}
+
+### Renewal steps
+
+1. On a Windows machine (or via PowerShell in WSL2), regenerate the cert:
+   \`\`\`powershell
+   ./scripts/generate-self-signed-win-cert.ps1
+   \`\`\`
+   The script writes a new \`.pfx\` to \`packaging/win/cert.pfx\` and prints the base64 blob.
+
+2. Update the two GitHub repository Secrets:
+   - **WIN_SELF_SIGNED_CERT_PFX** — paste the new base64 blob.
+   - **WIN_SELF_SIGNED_CERT_PASSWORD** — paste the password chosen during generation.
+
+3. Trigger a test run of \`windows-unsigned-release.yml\` to verify the new cert is picked up.
+
+4. Close this issue once the new cert is confirmed working.
+
+---
+*Auto-opened by \`win-cert-renewal-reminder.yml\` (PZD-33 followup).*"
+
+          ISSUE_URL="$(gh issue create \
+            --title "$TITLE" \
+            --body "$BODY" 2>/dev/null)"
+
+          echo "GH issue created: $ISSUE_URL"
+          echo "gh_issue_url=$ISSUE_URL" >> "$GITHUB_OUTPUT"
+
+      # -----------------------------------------------------------------------
+      # Open Linear issue linked to the GH issue.
+      # All secret values are consumed only via env vars; jq builds the JSON
+      # payload so no shell interpolation touches the LINEAR_API_KEY value.
+      # -----------------------------------------------------------------------
+      - name: Open Linear issue — cert expiring
+        if: |
+          steps.gate.outputs.skip == 'false' &&
+          steps.parse-expiry.outputs.days_remaining != '' &&
+          fromJSON(steps.parse-expiry.outputs.days_remaining) <= 30
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          EXPIRY_STR: ${{ steps.parse-expiry.outputs.expiry_str }}
+          DAYS_REMAINING: ${{ steps.parse-expiry.outputs.days_remaining }}
+          GH_ISSUE_URL: ${{ steps.gh-issue.outputs.gh_issue_url }}
+        run: |
+          set -euo pipefail
+
+          TITLE="[PZD-33 followup] Win self-signed cert expires ${EXPIRY_STR}"
+
+          DESCRIPTION="The self-signed PFX used for Windows builds is expiring in **${DAYS_REMAINING} days** (${EXPIRY_STR}).
+
+Renewal: run \`scripts/generate-self-signed-win-cert.ps1\` on Windows, then update \
+**WIN_SELF_SIGNED_CERT_PFX** and **WIN_SELF_SIGNED_CERT_PASSWORD** GitHub Secrets.
+
+GitHub issue: ${GH_ISSUE_URL}
+
+*Auto-opened by win-cert-renewal-reminder.yml (PZD-33 followup).*"
+
+          # jq builds the full payload; LINEAR_API_KEY is only referenced via
+          # the Authorization header env expansion — never echoed.
+          PAYLOAD="$(jq -n \
+            --arg title     "$TITLE" \
+            --arg desc      "$DESCRIPTION" \
+            --arg teamId    "e111fcdf-2928-4b54-9151-01546a6da899" \
+            --arg projectId "065997f9-3b9f-4dec-893e-81a36e754c48" \
+            '{
+              query: "mutation IssueCreate($input: IssueCreateInput!) { issueCreate(input: $input) { success issue { id identifier url } } }",
+              variables: {
+                input: {
+                  title: $title,
+                  description: $desc,
+                  teamId: $teamId,
+                  projectId: $projectId,
+                  priority: 1
+                }
+              }
+            }'
+          )"
+
+          RESPONSE="$(curl -fsSL \
+            -H "Authorization: ${LINEAR_API_KEY}" \
+            -H "Content-Type: application/json" \
+            --data-raw "$PAYLOAD" \
+            https://api.linear.app/graphql
+          )"
+
+          SUCCESS="$(echo "$RESPONSE" | jq -r '.data.issueCreate.success // false')"
+          if [ "$SUCCESS" != "true" ]; then
+            echo "Linear issue creation failed. Response (key redacted): $(echo "$RESPONSE" | jq '.')"
+            exit 1
+          fi
+
+          LINEAR_URL="$(echo "$RESPONSE" | jq -r '.data.issueCreate.issue.url')"
+          LINEAR_ID="$(echo "$RESPONSE" | jq -r '.data.issueCreate.issue.identifier')"
+          echo "Linear issue created: $LINEAR_ID — $LINEAR_URL"

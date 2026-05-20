@@ -15,6 +15,11 @@ function installFetchStub(stub: FetchStub): () => void {
 }
 
 const ENV = { GITHUB_RELEASE_TOKEN: 'test-token' }
+const ENV_R2 = {
+  GITHUB_RELEASE_TOKEN: 'test-token',
+  R2_PUBLIC_BASE_URL: 'https://pub-abc123.r2.dev',
+  R2_PRIMARY: 'true',
+}
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -337,12 +342,6 @@ describe('rox-one release feed worker v2', () => {
   })
 
   test('does NOT forward GITHUB_RELEASE_TOKEN to the S3 redirect target (security)', async () => {
-    // Track every fetch call so we can assert:
-    //   (a) the asset API call was issued with redirect: 'manual'
-    //       — the actual safeguard against the PAT leak; without it the
-    //       fetch runtime auto-follows and retains the Authorization header.
-    //   (b) the second hop to S3 carries NO Authorization header.
-    //   (c) the first hop to the GitHub API DID carry the Authorization header.
     const calls: Array<{ url: string; authorization: string | null; redirect: RequestRedirect | undefined }> = []
     const restore = installFetchStub(async (input, init) => {
       const url = String(input)
@@ -352,8 +351,6 @@ describe('rox-one release feed worker v2', () => {
       if (url.endsWith('/releases/latest')) return jsonResponse({ tag_name: 'v1.3.0' })
       if (url.endsWith('/releases/tags/v1.3.0'))
         return jsonResponse(makeRelease('v1.3.0', ['ROX-ONE-arm64.dmg']))
-      // The assets endpoint returns a 302 to a presigned S3 URL — same shape
-      // as the real GitHub API.
       if (url.endsWith('/releases/assets/ROX-ONE-arm64.dmg')) {
         return new Response(null, {
           status: 302,
@@ -375,15 +372,11 @@ describe('rox-one release feed worker v2', () => {
 
       const apiCall = calls.find((c) => c.url.endsWith('/releases/assets/ROX-ONE-arm64.dmg'))
       expect(apiCall).toBeDefined()
-      // (a) the assets fetch must opt out of redirect-following — if anyone
-      // ever removes this, the GitHub PAT would silently leak to S3.
       expect(apiCall!.redirect).toBe('manual')
-      // (c) the GitHub API call carries the Bearer token.
       expect(apiCall!.authorization).toBe('Bearer test-token')
 
       const s3Call = calls.find((c) => c.url.startsWith('https://objects.githubusercontent.com/'))
       expect(s3Call).toBeDefined()
-      // (b) the S3 hop must not carry the GitHub PAT.
       expect(s3Call!.authorization).toBeNull()
     } finally {
       restore()
@@ -455,9 +448,6 @@ describe('rox-one release feed worker v2', () => {
   })
 
   test('HEAD returns metadata-only without touching the asset URL', async () => {
-    // Prove: HEAD must NOT call the GitHub asset URL (no 302 dance, no S3 fetch).
-    // The worker uses release metadata (already in releaseCache) to synthesize
-    // Content-Type / Content-Length / Content-Disposition headers.
     const calls: string[] = []
     const restore = installFetchStub(async (input) => {
       const url = String(input)
@@ -465,7 +455,6 @@ describe('rox-one release feed worker v2', () => {
       if (url.endsWith('/releases/latest')) return jsonResponse({ tag_name: 'v1.8.0' })
       if (url.endsWith('/releases/tags/v1.8.0'))
         return jsonResponse(makeRelease('v1.8.0', ['ROX-ONE-arm64.dmg']))
-      // If we ever hit this in a HEAD test, the worker is wrong.
       if (url.endsWith('/releases/assets/ROX-ONE-arm64.dmg')) {
         return new Response('should-not-be-called-for-HEAD', { status: 500 })
       }
@@ -479,13 +468,11 @@ describe('rox-one release feed worker v2', () => {
       )
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toBe('application/x-apple-diskimage')
-      expect(response.headers.get('content-length')).toBe('100') // makeRelease sets size: 100 + i for first asset
+      expect(response.headers.get('content-length')).toBe('100')
       expect(response.headers.get('content-disposition')).toContain('ROX-ONE-arm64.dmg')
       expect(response.headers.get('accept-ranges')).toBe('bytes')
-      // Crucial: no body
       const body = await response.text()
       expect(body).toBe('')
-      // Crucial: did NOT call the asset URL
       expect(calls.some((u) => u.endsWith('/releases/assets/ROX-ONE-arm64.dmg'))).toBe(false)
     } finally {
       restore()
@@ -500,8 +487,6 @@ describe('rox-one release feed worker v2', () => {
       )
       expect(response.status).toBe(405)
       expect(response.headers.get('allow')).toBe('GET, HEAD, OPTIONS')
-      // 405 errors must also carry CORS so the browser doesn't show an
-      // opaque cross-origin error in the console.
       expect(response.headers.get('access-control-allow-origin')).toBe('*')
     }
   })
@@ -524,9 +509,7 @@ describe('rox-one release feed worker v2', () => {
       )
       expect(response.status).toBe(200)
       expect(response.headers.get('content-type')).toBe('application/json; charset=utf-8')
-      // text-like asset → 60s cache, not 300s
       expect(response.headers.get('cache-control')).toBe('public, max-age=60')
-      // HEAD must not hit the upstream asset URL
       expect(calls.some((u) => u.includes('manifest.json') && u.includes('assets'))).toBe(false)
     } finally {
       restore()
@@ -614,6 +597,177 @@ describe('rox-one release feed worker v2', () => {
     expect(response.headers.get('access-control-allow-methods')).toContain('GET')
   })
 
+  // ---------------------------------------------------------------------------
+  // R2 Phase 5 tests
+  // ---------------------------------------------------------------------------
+
+  test('R2_PRIMARY=true: serves asset from R2 when R2 returns 200 (no GH asset hit)', async () => {
+    // Tag resolution still contacts GH (to know which channel/tag to use for R2).
+    // The asset body fetch goes to R2 only — the GH asset/S3 path is bypassed.
+    const calls: string[] = []
+    const restore = installFetchStub(async (input) => {
+      const url = String(input)
+      calls.push(url)
+      if (url.startsWith('https://pub-abc123.r2.dev/')) {
+        return new Response('{"version":"2.0.0","binaries":{}}', { status: 200 })
+      }
+      if (url.endsWith('/releases/latest')) return jsonResponse({ tag_name: 'v2.0.0' })
+      if (url.endsWith('/releases/tags/v2.0.0')) return jsonResponse(makeRelease('v2.0.0', ['manifest.json']))
+      return new Response('unexpected-gh-asset', { status: 500 })
+    })
+
+    try {
+      const response = await handleReleaseFeedRequest(
+        new Request('https://app.rox.one/electron/latest/manifest.json'),
+        ENV_R2,
+      )
+      expect(calls.some((u) => u.startsWith('https://pub-abc123.r2.dev/'))).toBe(true)
+      expect(calls.some((u) => u.includes('/releases/assets/'))).toBe(false)
+      expect(response.status).toBe(200)
+      expect(response.headers.get('x-source')).toBe('r2')
+      const body = await response.json()
+      expect(body.version).toBe('2.0.0')
+    } finally {
+      restore()
+    }
+  })
+
+  test('R2_PRIMARY=true: falls back to GH on R2 404', async () => {
+    const calls: string[] = []
+    const restore = installFetchStub(async (input) => {
+      const url = String(input)
+      calls.push(url)
+      if (url.startsWith('https://pub-abc123.r2.dev/')) {
+        return new Response('not found', { status: 404 })
+      }
+      if (url.endsWith('/releases/latest')) return jsonResponse({ tag_name: 'v1.0.0' })
+      if (url.endsWith('/releases/tags/v1.0.0')) return jsonResponse(makeRelease('v1.0.0', ['manifest.json']))
+      return new Response('{"version":"1.0.0-gh","binaries":{}}', { status: 200 })
+    })
+
+    try {
+      const response = await handleReleaseFeedRequest(
+        new Request('https://app.rox.one/electron/latest/manifest.json'),
+        ENV_R2,
+      )
+      expect(calls.some((u) => u.startsWith('https://pub-abc123.r2.dev/'))).toBe(true)
+      expect(calls.some((u) => u.endsWith('/releases/tags/v1.0.0'))).toBe(true)
+      expect(response.status).toBe(200)
+      expect(response.headers.get('x-source')).toBeNull()
+      const body = await response.json()
+      expect(body.version).toBe('1.0.0-gh')
+    } finally {
+      restore()
+    }
+  })
+
+  test('R2_PRIMARY unset: does NOT contact R2 even when R2_PUBLIC_BASE_URL is set', async () => {
+    const calls: string[] = []
+    const restore = installFetchStub(async (input) => {
+      const url = String(input)
+      calls.push(url)
+      if (url.startsWith('https://pub-abc123.r2.dev/')) {
+        return new Response('r2-unexpected', { status: 200 })
+      }
+      if (url.endsWith('/releases/latest')) return jsonResponse({ tag_name: 'v1.0.0' })
+      if (url.endsWith('/releases/tags/v1.0.0')) return jsonResponse(makeRelease('v1.0.0', ['manifest.json']))
+      return new Response('{"version":"1.0.0"}', { status: 200 })
+    })
+
+    try {
+      const response = await handleReleaseFeedRequest(
+        new Request('https://app.rox.one/electron/latest/manifest.json'),
+        { GITHUB_RELEASE_TOKEN: 'test-token', R2_PUBLIC_BASE_URL: 'https://pub-abc123.r2.dev', R2_PRIMARY: 'false' },
+      )
+      expect(response.status).toBe(200)
+      expect(calls.some((u) => u.startsWith('https://pub-abc123.r2.dev/'))).toBe(false)
+    } finally {
+      restore()
+    }
+  })
+
+  test('R2_PRIMARY=true: HEAD requests skip R2 and use GH metadata (HEAD is metadata-only)', async () => {
+    const calls: string[] = []
+    const restore = installFetchStub(async (input) => {
+      const url = String(input)
+      calls.push(url)
+      if (url.startsWith('https://pub-abc123.r2.dev/')) {
+        return new Response('should-not-be-called', { status: 500 })
+      }
+      if (url.endsWith('/releases/latest')) return jsonResponse({ tag_name: 'v2.1.0' })
+      if (url.endsWith('/releases/tags/v2.1.0')) return jsonResponse(makeRelease('v2.1.0', ['manifest.json']))
+      return new Response('should-not-be-called', { status: 500 })
+    })
+
+    try {
+      const response = await handleReleaseFeedRequest(
+        new Request('https://app.rox.one/electron/latest/manifest.json', { method: 'HEAD' }),
+        ENV_R2,
+      )
+      expect(response.status).toBe(200)
+      expect(response.headers.get('content-type')).toBe('application/json; charset=utf-8')
+      expect(calls.some((u) => u.startsWith('https://pub-abc123.r2.dev/'))).toBe(false)
+    } finally {
+      restore()
+    }
+  })
+
+  test('R2_PRIMARY=true: beta channel resolves to R2 beta/ prefix', async () => {
+    const calls: string[] = []
+    const restore = installFetchStub(async (input) => {
+      const url = String(input)
+      calls.push(url)
+      if (url.startsWith('https://pub-abc123.r2.dev/beta/')) {
+        return new Response('version: 2.0.0-beta.1\n', { status: 200 })
+      }
+      if (url.includes('/releases?')) {
+        return jsonResponse([
+          makeRelease('v2.0.0-beta.1', ['manifest.json', 'beta-mac.yml', 'beta.yml', 'beta-linux.yml'], {
+            prerelease: true,
+          }),
+        ])
+      }
+      return new Response('unexpected', { status: 500 })
+    })
+
+    try {
+      const response = await handleReleaseFeedRequest(
+        new Request('https://app.rox.one/electron/beta/beta-mac.yml'),
+        ENV_R2,
+      )
+      expect(response.status).toBe(200)
+      expect(calls.some((u) => u.startsWith('https://pub-abc123.r2.dev/beta/'))).toBe(true)
+      expect(response.headers.get('x-source')).toBe('r2')
+    } finally {
+      restore()
+    }
+  })
+
+  test('R2_PRIMARY=true: R2 non-404 error surfaces as 502 (no GH asset fallback)', async () => {
+    // Tag resolution still contacts GH; only the asset fetch is short-circuited.
+    const calls: string[] = []
+    const restore = installFetchStub(async (input) => {
+      const url = String(input)
+      calls.push(url)
+      if (url.startsWith('https://pub-abc123.r2.dev/')) {
+        return new Response('internal error', { status: 503 })
+      }
+      if (url.endsWith('/releases/latest')) return jsonResponse({ tag_name: 'v1.0.0' })
+      return new Response('should-not-reach', { status: 500 })
+    })
+
+    try {
+      const response = await handleReleaseFeedRequest(
+        new Request('https://app.rox.one/electron/latest/manifest.json'),
+        ENV_R2,
+      )
+      expect(response.status).toBe(502)
+      expect(calls.some((u) => u.includes('/releases/assets/'))).toBe(false)
+    } finally {
+      restore()
+    }
+  })
+
   test('passes 304 Not Modified through instead of treating it as a redirect', async () => {
     const restore = installFetchStub(async (input) => {
       const url = String(input)
@@ -631,10 +785,6 @@ describe('rox-one release feed worker v2', () => {
         new Request('https://app.rox.one/electron/latest/ROX-ONE-arm64.dmg'),
         ENV,
       )
-      // 304 has no body; the worker should NOT mislabel this as a broken redirect.
-      // streamAsset treats non-ok upstream as 502, so the asserted status here
-      // is 502 with a clear "fetch failed" message — NOT "redirect missing
-      // Location". The key thing is we did not attempt a second fetch.
       expect(response.status).toBe(502)
       const body = await response.text()
       expect(body).toContain('fetch failed')

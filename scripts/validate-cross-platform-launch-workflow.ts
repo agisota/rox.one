@@ -41,6 +41,14 @@ if (!String(scripts['validate:ci'] ?? '').includes('validate:cross-platform-laun
   fail('validate:ci does not include validate:cross-platform-launch-workflow');
 }
 
+const macPayloadPrepareIndex = workflow.indexOf('Prepare Rox Design runtime payload');
+const macPackageIndex = workflow.indexOf('Package ROX.ONE for macOS ARM64');
+if (macPayloadPrepareIndex === -1) fail('macOS launch job does not prepare the Rox Design runtime payload');
+if (macPackageIndex === -1) fail('macOS launch job is missing the package step');
+if (macPayloadPrepareIndex > macPackageIndex) {
+  fail('macOS launch job prepares the Rox Design runtime payload after packaging');
+}
+
 for (const required of [
   'name: Cross Platform Launch Smoke',
   'workflow_dispatch:',
@@ -59,7 +67,13 @@ for (const required of [
   'ROX_ARTIFACT_PLATFORM: mac',
   'ROX_ARTIFACT_PLATFORM: linux',
   'ROX_ARTIFACT_PLATFORM: windows',
-  'ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY: "1"',
+  'Prepare Rox Design runtime payload',
+  'OPEN_DESIGN_VERSION="0.7.0"',
+  'OPEN_DESIGN_ASSET="open-design-${OPEN_DESIGN_VERSION}-mac-arm64.zip"',
+  'shasum -a 256 -c',
+  'ROX_DESIGN_SOURCE_RESOURCES="${OPEN_DESIGN_RESOURCES}"',
+  'bun run rox-design:prepare -- --force',
+  'bun run rox-design:payload:verify',
 ]) {
   requireText(workflow, required, 'cross-platform launch workflow contract');
 }

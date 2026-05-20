@@ -14,8 +14,8 @@ Thank you for your interest in contributing to ROX.ONE! This document provides g
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/agisota/rox-one-terminal.git
-   cd rox-one-terminal
+   git clone https://github.com/agisota/rox.one.git
+   cd rox.one
    ```
 
 2. Install dependencies:
@@ -93,7 +93,7 @@ How you tested these changes
 ## Project Structure
 
 ```
-rox-one-terminal/
+rox.one/
 ├── apps/
 │   ├── electron/    # Desktop GUI (primary interface)
 │   └── cli/         # Terminal CLI

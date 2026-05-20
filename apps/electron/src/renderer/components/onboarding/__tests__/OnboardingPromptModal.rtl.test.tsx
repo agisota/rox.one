@@ -36,7 +36,7 @@ const DEFAULT_PROPS = {
     close: 'Close',
   },
   onChoice: vi.fn<(choice: AutoLaunchDesignChoice) => void>(),
-  onClose: vi.fn(),
+  onClose: vi.fn<() => void>(),
 }
 
 afterEach(() => {
@@ -97,14 +97,14 @@ describe('OnboardingPromptModal', () => {
   })
 
   it('calls onClose when the close button is clicked', () => {
-    const onClose = vi.fn()
+    const onClose = vi.fn<() => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onClose={onClose} />)
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('calls onClose when backdrop is clicked', () => {
-    const onClose = vi.fn()
+    const onClose = vi.fn<() => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onClose={onClose} />)
     // Backdrop is the aria-hidden div behind the panel
     const backdrop = document.querySelector('[aria-hidden="true"]') as HTMLElement
