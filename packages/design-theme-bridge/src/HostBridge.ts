@@ -26,7 +26,9 @@ export class HostBridge {
     const root = document.documentElement
     const computed = getComputedStyle(root)
 
-    for (const name of root.style) {
+    // CSSStyleDeclaration is iterable at runtime but TypeScript's lib does not
+    // always declare Symbol.iterator on it; cast to Iterable to satisfy strict mode.
+    for (const name of root.style as unknown as Iterable<string>) {
       if (!name.startsWith('--rox-')) continue
       const value = computed.getPropertyValue(name).trim()
       if (value) result[name] = value
