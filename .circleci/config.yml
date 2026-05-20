@@ -179,6 +179,18 @@ jobs:
           name: Build Electron app
           command: bun run electron:build
       - run:
+          name: Prepare Rox Design payload
+          command: |
+            set -euo pipefail
+            CURRENT="$(jq -r '.current // empty' runtime-payload-versions.json)"
+            if [ -z "$CURRENT" ]; then
+              echo "runtime-payload-versions.json has no current entry"
+              exit 1
+            fi
+            ARCHIVE_URL="$(jq -r ".versions[\"$CURRENT\"].archiveUrl" runtime-payload-versions.json)"
+            ARCHIVE_SHA="$(jq -r ".versions[\"$CURRENT\"].archiveSha256" runtime-payload-versions.json)"
+            bun run rox-design:prepare -- --from-archive="$ARCHIVE_URL" --expected-sha256="$ARCHIVE_SHA" --force
+      - run:
           name: Package ROX ONE for macOS ARM64
           command: bun run electron:dist:dev:mac:arm64
       - run:

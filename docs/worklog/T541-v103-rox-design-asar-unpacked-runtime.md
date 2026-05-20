@@ -69,6 +69,8 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
 - `bun install --frozen-lockfile`
 - `bun run typecheck:electron`
 - `bun run validate:mac-arm-build-workflow`
+- `bun run validate:ci-contract`
+- `bun run typecheck:all`
 
 ## 8. Passing Test Output Summary
 
@@ -78,6 +80,9 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
   `bun install --frozen-lockfile`.
 - Mac ARM workflow contract validator passed after aligning the minimum system
   version contract to `12.0`.
+- CI contract validator passed after adding the CircleCI Rox Design payload
+  preparation guard.
+- Full workspace typecheck passed.
 - Installed v1.0.3 headless packaged smoke passed.
 - Installed v1.0.3 full UI smoke passed with evidence in
   `/tmp/rox-one-v1.0.3-release/ui-smoke`.
@@ -97,6 +102,10 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
   `scripts/validate-mac-arm-build-workflow.ts` still enforced the older
   Sonoma-only `minimumSystemVersion: "14.0"` contract. The validator has been
   realigned to the current Monterey/Ventura-compatible `12.0` release floor.
+- The next CircleCI `mac-arm-build` reached packaging and failed because it did
+  not prepare the Rox Design payload before `electron:dist:dev:mac:arm64`.
+  `.circleci/config.yml` now prepares the SHA-pinned payload from
+  `runtime-payload-versions.json`, and `validate-ci-contract` guards that step.
 
 ## 9. Build Output Summary
 
