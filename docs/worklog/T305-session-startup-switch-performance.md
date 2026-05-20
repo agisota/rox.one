@@ -107,6 +107,10 @@ bun test apps/electron/src/renderer/components/ui/__tests__/rich-text-input.test
 bun run typecheck:electron
 bun test /tmp/rox-mention-perf.test.ts
 git diff --check -- apps/electron/src/renderer/components/ui/rich-text-input.tsx apps/electron/src/renderer/components/ui/mention-menu.tsx apps/electron/src/renderer/components/ui/__tests__/rich-text-input.test.ts apps/electron/src/renderer/components/ui/__tests__/mention-menu.test.ts
+git fetch https://github.com/agisota/rox.one.git main
+git diff --check origin/main..HEAD
+bun install --frozen-lockfile
+gh pr checks 303 --repo agisota/rox.one
 ```
 
 ## 8. Passing test output summary
@@ -114,12 +118,26 @@ git diff --check -- apps/electron/src/renderer/components/ui/rich-text-input.tsx
 - `bun test packages/shared/src/skills/__tests__/storage.test.ts`: `35 pass`, `0 fail`, `799 expect()` calls.
 - `bun run typecheck:shared`: passed (`tsc --noEmit`, no diagnostics).
 - `bun test apps/electron/src/renderer/components/ui/__tests__/rich-text-input.test.ts apps/electron/src/renderer/components/ui/__tests__/mention-menu.test.ts`: `28 pass`, `0 fail`, `57 expect()` calls.
-- `bun run typecheck:electron`: passed (`tsc --noEmit`, no diagnostics).
+- `bun run typecheck:electron`: passed on the original task branch before rebasing the renderer-only PR branch.
+- `bun run typecheck:electron` on the current `agisota/rox.one` PR branch fails on existing main-branch diagnostics outside the T305 files:
+  - `src/main/__tests__/rox-design-view-manager.partition.test.ts` `WindowManager` test-stub shape;
+  - `src/renderer/components/onboarding/__tests__/OnboardingPromptModal.rtl.test.tsx` `Mock<[AutoLaunchDesignChoice]>` typing;
+  - `src/shared/menu-schema.ts` missing `behavior` title key;
+  - `src/transport/__tests__/channel-map-parity.test.ts` auto-launch channel parity.
 - `git diff --check` for renderer files: passed, no whitespace errors.
+- `git diff --check origin/main..HEAD`: passed, no whitespace errors.
+- `bun install --frozen-lockfile`: initially failed in PR CI because `bun.lock` was stale after main upgraded `@rox-one/server` `ws` from `8.20.0` to `8.20.1`; rerunning `bun install --lockfile-only` updated only `bun.lock`, and the frozen install now passes locally.
 
 ## 9. Build output summary
 
-Full Electron build was not run. Source/runtime behavior changed in renderer helpers, so targeted renderer unit tests and `bun run typecheck:electron` were run. Backend package surface was covered by targeted shared tests and `bun run typecheck:shared`.
+Full Electron build was not run. Source/runtime behavior changed in renderer helpers, so targeted renderer unit tests were run. Backend package surface was covered by targeted shared tests and `bun run typecheck:shared` in the original task branch; the backend cache commit is already present on current `origin/main` as `1c9749e3`, so PR #303 carries only the renderer hot-path delta plus the lockfile sync needed for frozen CI installs.
+
+Current PR #303 CI state before the lockfile sync commit:
+
+- `validate`, `bundle-budget`, `ROX ONE core scenario suite`, and macOS/Windows/Linux packaged launch jobs all failed before test execution at `bun install --frozen-lockfile`.
+- Failure text: `lockfile had changes, but lockfile is frozen`.
+- `Gitleaks secret scan` passed.
+- Linux installer launcher guard jobs passed.
 
 Synthetic backend post-fix benchmark:
 
@@ -160,5 +178,6 @@ Baseline from before this task was backend `secondProject` ~931ms and first proj
 | Mention menu does not allocate skill/source sections while closed | PASS | `buildMentionSections({ isOpen: false, ... })` test returns `[]`; perf probe shows `items: 0`, `ms: 0`. |
 | Mention menu caps unfiltered visible skills | PASS | `MAX_MENTION_SKILL_ITEMS` test and perf probe show `items: 50`. |
 | Mention menu still searches the full catalog for typed skill filters | PASS | Filter regression finds `skill-999` / `Needle Workflow` beyond the initial cap; perf probe found `skill-10147`. |
-| Electron renderer typecheck passes | PASS | `bun run typecheck:electron` exit 0. |
-| Renderer whitespace diff check passes | PASS | `git diff --check -- ...` exit 0. |
+| Electron renderer typecheck passes | BLOCKED-BY-BASELINE | Passed on the original task branch; current PR branch fails on unrelated current-main diagnostics outside T305 listed above. |
+| Renderer whitespace diff check passes | PASS | `git diff --check -- ...` and `git diff --check origin/main..HEAD` exit 0. |
+| PR branch frozen install passes | PASS | Local `bun install --frozen-lockfile` passes after committing the one-line lockfile sync. |
