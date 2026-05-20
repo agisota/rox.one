@@ -1415,7 +1415,13 @@ app.on('before-quit', async (event) => {
       try {
         await roxDesignRuntimeManager.stop()
       } catch (err) {
-        mainLog.error('[rox-design] failed to stop runtime during quit:', err)
+        const { recordRoxDesignError } = await import('./rox-design-telemetry')
+        recordRoxDesignError({
+          phase: 'before-quit-cleanup',
+          error: err,
+          logger: mainLog,
+          context: { stage: 'runtime-stop' },
+        })
       }
     }
 

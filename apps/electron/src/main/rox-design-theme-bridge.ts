@@ -15,6 +15,7 @@
 
 import type { WebContents } from 'electron'
 import { HostBridge } from '@rox-one/design-theme-bridge/HostBridge'
+import { catchRoxDesignError, recordRoxDesignError, type RoxDesignTelemetryLogger } from './rox-design-telemetry'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -23,6 +24,9 @@ export interface I18nEmitter {
   on(event: 'languageChanged', cb: (lng: string) => void): void
   off(event: 'languageChanged', cb: (lng: string) => void): void
 }
+
+/** Optional telemetry sink threaded through every bridge entrypoint. */
+export type ThemeBridgeLogger = RoxDesignTelemetryLogger
 
 // ── Icon registry ─────────────────────────────────────────────────────────
 
@@ -72,7 +76,7 @@ export function resolveIconHref(href: string): string {
  * Start the nativeTheme → CSS-var bridge for the given Design webContents.
  * Returns a dispose function that removes all listeners.
  */
-export function startThemeBridge(designWc: WebContents): () => void {
+export function startThemeBridge(designWc: WebContents, logger?: ThemeBridgeLogger): () => void {
   // Import nativeTheme lazily so this module can be loaded in test environments
   // that don't have a full Electron runtime available.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -90,7 +94,12 @@ export function startThemeBridge(designWc: WebContents): () => void {
       .join('\n')
 
     const code = `(function() {\n${assignments}\n})();`
-    designWc.executeJavaScript(code).catch(() => undefined)
+    designWc.executeJavaScript(code).catch(catchRoxDesignError({
+      phase: 'theme-bridge-post-snapshot',
+      logger,
+      level: 'warn',
+      context: { webContentsId: designWc.id, varCount: entries.length },
+    }))
   }
 
   bridge.startNativeThemeWatch(nativeTheme, postSnapshot)
@@ -98,8 +107,15 @@ export function startThemeBridge(designWc: WebContents): () => void {
   // Post initial snapshot immediately
   try {
     postSnapshot(bridge.snapshot())
-  } catch {
-    // snapshot() may fail in non-browser test environments; ignore
+  } catch (error) {
+    // snapshot() may fail in non-browser test environments; record without
+    // throwing so headless bun tests still build the bridge.
+    recordRoxDesignError({
+      phase: 'theme-bridge-initial-snapshot',
+      error,
+      logger,
+      level: 'warn',
+    })
   }
 
   return () => bridge.dispose()
@@ -116,7 +132,7 @@ export function startThemeBridge(designWc: WebContents): () => void {
  *
  * Returns a dispose function.
  */
-export function startI18nBridge(i18n: I18nEmitter, designWc: WebContents): () => void {
+export function startI18nBridge(i18n: I18nEmitter, designWc: WebContents, logger?: ThemeBridgeLogger): () => void {
   const handler = (lng: string) => {
     if (designWc.isDestroyed()) return
 
@@ -131,7 +147,12 @@ export function startI18nBridge(i18n: I18nEmitter, designWc: WebContents): () =>
   } catch(e) {}
 })();`
 
-    designWc.executeJavaScript(code).catch(() => undefined)
+    designWc.executeJavaScript(code).catch(catchRoxDesignError({
+      phase: 'theme-bridge-i18n-inject',
+      logger,
+      level: 'warn',
+      context: { webContentsId: designWc.id, language: lng },
+    }))
   }
 
   i18n.on('languageChanged', handler)
@@ -151,7 +172,7 @@ export function startI18nBridge(i18n: I18nEmitter, designWc: WebContents): () =>
  *
  * Returns a dispose function (removes the observer via executeJavaScript).
  */
-export function startIconObserver(designWc: WebContents): () => void {
+export function startIconObserver(designWc: WebContents, logger?: ThemeBridgeLogger): () => void {
   if (designWc.isDestroyed()) return () => undefined
 
   const iconMap = JSON.stringify(OD_TO_LUCIDE)
@@ -186,7 +207,12 @@ export function startIconObserver(designWc: WebContents): () => void {
   swapIcons();
 })();`
 
-  designWc.executeJavaScript(code).catch(() => undefined)
+  designWc.executeJavaScript(code).catch(catchRoxDesignError({
+    phase: 'theme-bridge-icon-observer-install',
+    logger,
+    level: 'warn',
+    context: { webContentsId: designWc.id },
+  }))
 
   return () => {
     if (designWc.isDestroyed()) return
@@ -195,7 +221,12 @@ export function startIconObserver(designWc: WebContents): () => void {
     window.__ROX_ICON_OBSERVER__.disconnect();
     window.__ROX_ICON_OBSERVER__ = undefined;
   }
-})();`).catch(() => undefined)
+})();`).catch(catchRoxDesignError({
+      phase: 'theme-bridge-icon-observer-dispose',
+      logger,
+      level: 'warn',
+      context: { webContentsId: designWc.id },
+    }))
   }
 }
 
@@ -208,10 +239,11 @@ export function startIconObserver(designWc: WebContents): () => void {
 export function startDesignThemeBridge(
   designWc: WebContents,
   i18n?: I18nEmitter,
+  logger?: ThemeBridgeLogger,
 ): () => void {
-  const disposeTheme = startThemeBridge(designWc)
-  const disposeI18n = i18n ? startI18nBridge(i18n, designWc) : () => undefined
-  const disposeIcons = startIconObserver(designWc)
+  const disposeTheme = startThemeBridge(designWc, logger)
+  const disposeI18n = i18n ? startI18nBridge(i18n, designWc, logger) : () => undefined
+  const disposeIcons = startIconObserver(designWc, logger)
 
   return () => {
     disposeTheme()
