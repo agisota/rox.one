@@ -18,4 +18,3 @@ failures.
   isolation assertions.
 - Onboarding modal RTL tests use the current Vitest mock function type shape.
 - PZD-10 artifact-panel targeted tests still pass.
-

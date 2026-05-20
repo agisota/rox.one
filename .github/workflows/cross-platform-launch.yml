@@ -39,6 +39,9 @@ jobs:
       ROX_ARTIFACT_PLATFORM: mac
       ROX_ARTIFACT_ARCH: arm64
       ROX_RC_MODE: unsigned
+      # Cross-platform smoke verifies launchability, not the optional packaged
+      # Rox Design runtime payload. Keep release workflows responsible for that.
+      ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY: "1"
 
     steps:
       - name: Checkout

@@ -13,6 +13,7 @@ mock.module('electron', () => ({
   app: {
     isPackaged: false,
     getAppPath: () => '/',
+    getPath: () => '/',
     quit: () => {},
     dock: { setIcon: () => {}, setBadge: () => {} },
   },
@@ -92,6 +93,7 @@ async function getExpectedChannels(): Promise<Set<string>> {
   const [
     auth,
     automations,
+    artifacts,
     files,
     labels,
     llm,
@@ -109,6 +111,7 @@ async function getExpectedChannels(): Promise<Set<string>> {
   ] = await Promise.all([
     import('@rox-one/server-core/handlers/rpc/auth'),
     import('@rox-one/server-core/handlers/rpc/automations'),
+    import('@rox-one/server-core/handlers/rpc/artifacts'),
     import('@rox-one/server-core/handlers/rpc/files'),
     import('@rox-one/server-core/handlers/rpc/labels'),
     import('@rox-one/server-core/handlers/rpc/llm-connections'),
@@ -126,16 +129,18 @@ async function getExpectedChannels(): Promise<Set<string>> {
   ])
 
   // GUI handler channels (remain in electron)
-  const [browser, guiSystem, guiWorkspace, guiSettings] = await Promise.all([
+  const [browser, guiSystem, guiWorkspace, guiSettings, preferences] = await Promise.all([
     import('../browser'),
     import('../system'),
     import('../workspace'),
     import('../settings'),
+    import('../preferences-ipc'),
   ])
 
   return new Set([
     ...auth.HANDLED_CHANNELS,
     ...automations.HANDLED_CHANNELS,
+    ...artifacts.HANDLED_CHANNELS,
     ...files.HANDLED_CHANNELS,
     ...labels.HANDLED_CHANNELS,
     ...llm.HANDLED_CHANNELS,
@@ -154,6 +159,7 @@ async function getExpectedChannels(): Promise<Set<string>> {
     ...guiSystem.GUI_HANDLED_CHANNELS,
     ...guiWorkspace.GUI_HANDLED_CHANNELS,
     ...guiSettings.GUI_HANDLED_CHANNELS,
+    ...Object.values(preferences.PREFERENCES_IPC_CHANNELS),
   ])
 }
 

@@ -50,7 +50,7 @@ for (const required of [
   'FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"',
   'bun run electron:build',
   'bunx electron-builder --mac --arm64 --x64 --dir --publish=never',
-  'node /tmp/diag-launch.mjs',
+  'node /tmp/pw/diag-launch.mjs',
   'actions/upload-artifact',
   '/tmp/diag-${{ matrix.os }}.png',
   '/tmp/electron-builder-${{ matrix.os }}.log',

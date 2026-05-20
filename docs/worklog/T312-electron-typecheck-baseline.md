@@ -121,4 +121,3 @@ Initial `bun run typecheck:electron` failed with:
 | Rox Design partition test still asserts sandbox isolation | PASS | partition test target passed |
 | Onboarding modal test typing current | PASS | Vitest target passed |
 | PZD-10 artifact-panel tests still pass | PASS | 24 targeted artifact tests passed |
-
