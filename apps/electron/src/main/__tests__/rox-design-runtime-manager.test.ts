@@ -8,6 +8,13 @@ mock.module('electron', () => ({
   BrowserWindow: {
     getAllWindows: () => [{ webContents: { send: mockSend } }],
   },
+  dialog: {
+    showOpenDialog: mock(async () => ({ canceled: true, filePaths: [] })),
+  },
+  shell: {
+    openExternal: mock(async () => undefined),
+    openPath: mock(async () => ''),
+  },
 }))
 
 const { RoxDesignRuntimeManager } = await import('../rox-design-runtime-manager') as typeof import('../rox-design-runtime-manager')
