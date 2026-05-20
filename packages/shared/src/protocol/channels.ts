@@ -230,10 +230,10 @@ export const RPC_CHANNELS = {
     OPEN_FOLDER: 'dialog:openFolder',
   },
   preferences: {
-    READ: 'preferences:read',
-    WRITE: 'preferences:write',
     GET_AUTO_LAUNCH_DESIGN: 'preferences:get-auto-launch-design',
+    READ: 'preferences:read',
     SET_AUTO_LAUNCH_DESIGN: 'preferences:set-auto-launch-design',
+    WRITE: 'preferences:write',
   },
   drafts: {
     GET: 'drafts:get',

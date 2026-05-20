@@ -3,8 +3,10 @@
  * Mac private-release trust-boundary validator (M.18 T250).
  *
  * Boundary contract:
- *  - Private/local RC builds: ad-hoc signed, not notarized, hardened runtime ON,
- *    minimal entitlements (no library-validation disable, no network server).
+ *  - Private/local RC builds: ad-hoc signed, not notarized, hardened runtime ON.
+ *    Entitlements stay limited to the runtime surface ROX.ONE actually needs:
+ *    JIT/unsigned executable memory, outbound network, third-party native
+ *    module loading, and login-shell environment propagation.
  *  - Public production: blocked until signed/notarized pipeline lands (T261+).
  *
  * Runs cross-platform: the static config/doc + entitlements + fixture checks
@@ -43,11 +45,15 @@ for (let index = 0; index < argv.length; index += 1) {
 /** Canonical bundle-id pattern. `com.rox.one` is the registered base scope;
  *  helper apps and downstream tools may extend with `.helper`, etc. */
 const BUNDLE_ID_PATTERN = /^com\.rox\.one(\.[A-Za-z0-9-]+)*$/;
-const REQUIRED_CLIENT_ENTITLEMENTS = new Set(['com.apple.security.network.client']);
-const FORBIDDEN_ENTITLEMENTS = new Set([
+const REQUIRED_CLIENT_ENTITLEMENTS = new Set([
+  'com.apple.security.cs.allow-jit',
+  'com.apple.security.cs.allow-unsigned-executable-memory',
   'com.apple.security.cs.disable-library-validation',
-  'com.apple.security.network.server',
   'com.apple.security.cs.allow-dyld-environment-variables',
+  'com.apple.security.network.client',
+]);
+const FORBIDDEN_ENTITLEMENTS = new Set([
+  'com.apple.security.network.server',
 ]);
 
 function fail(message: string): never {
@@ -277,9 +283,26 @@ requireText(afterSignHook, 'build/entitlements.mac.plist', 'afterSign entitlemen
 requireText(afterSignHook, 'collectSignablePaths', 'afterSign explicit nested signing plan');
 refuseText(afterSignHook, "'--deep'", 'afterSign must not blanket-sign nested code');
 
-// 3. Entitlements plist: hardened minimum surface.
+// 3. Entitlements plist: hardened-runtime surface required by the current
+//    white-window fix. Keep inbound network forbidden; re-evaluate the
+//    native-loader/dyld entitlements when the notarized production track lands.
 const entitlements = read('apps/electron/build/entitlements.mac.plist');
 requireText(entitlements, '<key>com.apple.security.cs.allow-jit</key>', 'JIT entitlement');
+requireText(
+  entitlements,
+  '<key>com.apple.security.cs.allow-unsigned-executable-memory</key>',
+  'unsigned executable memory entitlement',
+);
+requireText(
+  entitlements,
+  '<key>com.apple.security.cs.disable-library-validation</key>',
+  'third-party native module loading entitlement',
+);
+requireText(
+  entitlements,
+  '<key>com.apple.security.cs.allow-dyld-environment-variables</key>',
+  'login-shell dyld environment propagation entitlement',
+);
 requireText(
   entitlements,
   '<key>com.apple.security.network.client</key>',
@@ -287,18 +310,8 @@ requireText(
 );
 refuseText(
   entitlements,
-  '<key>com.apple.security.cs.disable-library-validation</key>',
-  'disable-library-validation is dropped in T250',
-);
-refuseText(
-  entitlements,
   '<key>com.apple.security.network.server</key>',
   'no inbound-network entitlement allowed',
-);
-refuseText(
-  entitlements,
-  '<key>com.apple.security.cs.allow-dyld-environment-variables</key>',
-  'no dyld env-variable entitlement allowed',
 );
 
 // 4. Release readiness docs.

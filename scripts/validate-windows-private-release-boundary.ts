@@ -2,8 +2,9 @@
 /**
  * Windows private-release trust-boundary validator (M.18 T252).
  * Mirror of the Mac validator (T250) for Windows NSIS installers.
- * Boundary contract: private/local RC unsigned, pinned canonical
- * `one.rox.workbench.*` AppUserModelID, monotonic dotted FileVersion,
+ * Boundary contract: private/local RC may be unsigned, CI release builds sign
+ * through electron-builder's env-driven CSC_LINK/CSC_KEY_PASSWORD flow, pinned
+ * canonical `one.rox.workbench.*` AppUserModelID, monotonic dotted FileVersion,
  * no symlinks escaping install dir. Public prod blocked until T254+.
  * Cross-platform. Setting `WIN_BOUNDARY_FIXTURE_DIR=<path>` or
  * `--fixture <path>` forces fixture-mode regardless of host.
@@ -225,8 +226,20 @@ requireText(builderConfig, 'oneClick: true', 'nsis oneClick installer flag');
 requireText(builderConfig, 'perMachine: false', 'nsis perMachine=false (per-user install)');
 requireText(
   builderConfig,
-  'T252: trust-boundary signing placeholder',
-  'win: signing-placeholder boundary comment',
+  'Authenticode signing behavior:',
+  'win: env-driven Authenticode signing boundary comment',
+);
+requireText(builderConfig, 'CSC_LINK env var unset', 'win: unsigned local build posture');
+requireText(builderConfig, 'WIN_SELF_SIGNED_CERT_PFX', 'win: CI signing secret gate');
+requireText(
+  builderConfig,
+  'electron-builder then picks up those env vars and signs with SHA-256',
+  'win: electron-builder default signing flow',
+);
+requireText(
+  builderConfig,
+  'actively BLOCKED signing',
+  'win: regression guard against disabling electron-builder signing',
 );
 
 // 3. Release readiness docs: blocker still recorded.

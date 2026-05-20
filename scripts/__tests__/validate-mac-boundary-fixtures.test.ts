@@ -67,28 +67,27 @@ describe('validate-mac-boundary-fixtures contract (M.18 T251)', () => {
     expect(combined).toContain('does not match');
   });
 
-  test('bad fixture signing-output sidecar contains the forbidden entitlements (defensive)', () => {
+  test('bad fixture signing-output sidecar contains the forbidden server entitlement (defensive)', () => {
     const result = runValidator(badFixture);
-    // The validator now exits before the entitlement asserts (the bundle-id
+    // The validator exits before the entitlement asserts (the bundle-id
     // check trips first), but the fixture content itself still needs to
-    // include the forbidden tokens so later validator passes that get past
-    // the bundle-id check will keep catching them. We simply re-read the
-    // fixture sidecar and assert the forbidden keys are present.
+    // include the forbidden inbound-network token so later validator passes
+    // that get past the bundle-id check will keep catching it.
     const sidecar = Bun.file(join(badFixture, 'signing-output.txt'));
     return sidecar.text().then((text) => {
-      expect(text).toContain('com.apple.security.cs.disable-library-validation');
       expect(text).toContain('com.apple.security.network.server');
       // Sanity: result is wired so test runner records this branch.
       expect(typeof result.status).toBe('number');
     });
   });
 
-  test('good fixture signing-output sidecar lacks every forbidden entitlement', async () => {
+  test('good fixture signing-output sidecar matches the current hardened-runtime entitlements', async () => {
     const text = await Bun.file(join(goodFixture, 'signing-output.txt')).text();
-    expect(text).not.toContain('com.apple.security.cs.disable-library-validation');
     expect(text).not.toContain('com.apple.security.network.server');
-    expect(text).not.toContain('com.apple.security.cs.allow-dyld-environment-variables');
-    // Must list the required outbound-network entitlement.
+    expect(text).toContain('com.apple.security.cs.allow-jit');
+    expect(text).toContain('com.apple.security.cs.allow-unsigned-executable-memory');
+    expect(text).toContain('com.apple.security.cs.disable-library-validation');
+    expect(text).toContain('com.apple.security.cs.allow-dyld-environment-variables');
     expect(text).toContain('com.apple.security.network.client');
   });
 

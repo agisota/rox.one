@@ -2,7 +2,7 @@
  * SQLite manifest for design artifacts.
  * Uses bun:sqlite for zero-dependency embedded storage.
  */
-import { Database } from 'bun:sqlite'
+import type { Database as BunSqliteDatabase } from 'bun:sqlite'
 import type { DesignArtifact } from '@rox-one/design-contract'
 
 const MIGRATION_V1 = `
@@ -51,11 +51,21 @@ function rowToArtifact(row: ArtifactRow): DesignArtifact {
   }
 }
 
+function openDatabase(dbPath: string): BunSqliteDatabase {
+  // Keep bun:sqlite out of Electron's esbuild graph; Bun resolves it at runtime
+  // when tests or Bun-hosted tools actually open a manifest.
+  const requireBunSqlite = (
+    typeof require === 'function' ? require : import.meta.require
+  ) as (specifier: 'bun:sqlite') => typeof import('bun:sqlite')
+  const { Database } = requireBunSqlite('bun:sqlite')
+  return new Database(dbPath, { create: true })
+}
+
 export class DesignManifest {
-  private readonly db: Database
+  private readonly db: BunSqliteDatabase
 
   constructor(dbPath: string) {
-    this.db = new Database(dbPath, { create: true })
+    this.db = openDatabase(dbPath)
     this.db.exec('PRAGMA journal_mode = WAL;')
     this.db.exec('PRAGMA foreign_keys = ON;')
     this.db.exec(MIGRATION_V1)

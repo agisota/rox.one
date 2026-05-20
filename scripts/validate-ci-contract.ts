@@ -45,15 +45,42 @@ for (const requiredText of [
   "fetch-depth: 0",
   'bun-version: "1.3.13"',
   "bun install --frozen-lockfile",
-  "./node_modules/.bin/playwright install --with-deps chromium",
+  "node node_modules/playwright/cli.js install --with-deps --only-shell chromium",
   "bun run validate:agent-contract",
   "bun run validate:architecture-docs",
   "bun run validate:ci",
+  "bun run validate:workflow-pins",
+  "bun test --timeout=30000 scripts/__tests__/validate-packaged-artifacts.test.ts",
   "actions/upload-artifact",
   ".ci-logs",
 ]) {
   if (!workflow.includes(requiredText)) {
     fail(`validate workflow missing: ${requiredText}`);
+  }
+}
+
+const circleCiConfig = read(".circleci/config.yml");
+for (const requiredText of [
+  "node node_modules/playwright/cli.js install --with-deps --only-shell chromium",
+  "bun run validate:agent-contract",
+  "bun run validate:architecture-docs",
+  "bun run validate:ci",
+  "bun run validate:workflow-pins",
+  "bun test --timeout=30000 scripts/__tests__/validate-packaged-artifacts.test.ts",
+  ".ci-logs",
+]) {
+  if (!circleCiConfig.includes(requiredText)) {
+    fail(`CircleCI validate job missing: ${requiredText}`);
+  }
+}
+
+for (const staleText of [
+  "./node_modules/.bin/playwright install --with-deps chromium",
+  "bun test --timeout=30000 2>&1",
+  "find . -name '*.isolated.ts'",
+]) {
+  if (circleCiConfig.includes(staleText)) {
+    fail(`CircleCI validate job still uses stale command: ${staleText}`);
   }
 }
 

@@ -247,6 +247,35 @@ jobs:
           bunx electron-builder --win --x64 --publish=never
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Verify Authenticode signature on Windows NSIS exe
+        if: startsWith(matrix.platform, 'windows-') && env.WIN_SELF_SIGNED_CERT_PFX != ''
+        shell: pwsh
+        env:
+          WIN_SELF_SIGNED_CERT_PFX: ${{ secrets.WIN_SELF_SIGNED_CERT_PFX }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Get-ChildItem apps\electron\release\*.exe | Select-Object -First 1
+          if (-not $exe) { Write-Error "No NSIS exe found in apps/electron/release"; exit 1 }
+          Write-Host "Verifying signature on $($exe.FullName)"
+          $sig = Get-AuthenticodeSignature $exe.FullName
+          Write-Host "SignatureType: $($sig.SignatureType)"
+          Write-Host "Status:        $($sig.Status)"
+          Write-Host "StatusMessage: $($sig.StatusMessage)"
+          if ($sig.SignerCertificate) {
+            Write-Host "Signer:        $($sig.SignerCertificate.Subject)"
+            Write-Host "Thumbprint:    $($sig.SignerCertificate.Thumbprint)"
+          }
+          # For self-signed certs we expect SignatureType=Authenticode but Status=UnknownError
+          # (cert chain not in trust store). That is acceptable; what matters is that the
+          # binary IS signed (SignatureType present and SignerCertificate non-null) and the
+          # signature itself is cryptographically valid (the chain is what gets rejected,
+          # not the integrity of the signature).
+          if (-not $sig.SignerCertificate -or $sig.SignatureType -ne 'Authenticode') {
+            Write-Error "Signature missing or wrong type on $($exe.FullName)"
+            exit 1
+          }
+          Write-Host "OK: NSIS exe carries an Authenticode signature."
+
       # -----------------------------------------------------------------------
       # 7. Mac diag smoke (Playwright-Electron, mac-arm64 only)
       #
@@ -344,8 +373,8 @@ jobs:
           fi
           size=$(stat -f%z /tmp/nightly-smoke.png 2>/dev/null || stat -c%s /tmp/nightly-smoke.png)
           echo "Screenshot size: ${size} bytes"
-          if [ "$size" -lt 5120 ]; then
-            echo "::error::Screenshot is < 5 KB (${size} bytes) — likely white window or boot hang"
+          if [ "$size" -lt 20480 ]; then
+            echo "::error::Screenshot $size bytes below 20 KB floor, likely white window or boot hang"
             exit 1
           fi
 

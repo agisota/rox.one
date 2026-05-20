@@ -122,7 +122,7 @@ function assertMacMinimumSystemVersion(): void {
   const actual = plistStringValue(plist, 'LSMinimumSystemVersion');
   if (actual !== MAC_MIN_SYSTEM_VERSION) {
     fail(
-      `LSMinimumSystemVersion must be ${MAC_MIN_SYSTEM_VERSION} for Sonoma-through-Tahoe compatibility; got: ${actual ?? 'missing'}`,
+      `LSMinimumSystemVersion must be ${MAC_MIN_SYSTEM_VERSION} for Sonoma-and-newer compatibility; got: ${actual ?? 'missing'}`,
     );
   }
 

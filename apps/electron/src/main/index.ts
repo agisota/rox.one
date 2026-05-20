@@ -128,6 +128,8 @@ import { RoxDesignRuntimeManager } from './rox-design-runtime-manager'
 import { RoxDesignViewManager } from './rox-design-view-manager'
 import { RoxDesignDesktopBridge } from './rox-design-desktop-bridge'
 import { registerDesignHotkeyOnWebContents } from './rox-design-hotkey'
+import { buildQuitOrchestrator } from './quit-orchestrator'
+import { AgentAnswerRouter, registerAgentAnswerRouter } from './agent-answer-router'
 
 // Initialize electron-log for renderer process support
 log.initialize()
@@ -712,6 +714,9 @@ app.whenReady().then(async () => {
       const result = await dialog.showOpenDialog(win, spec)
       return { canceled: result.canceled, filePaths: result.filePaths }
     })
+
+    // PZD-18 step 3: agent answer router — routes AAP by kind to appropriate handler
+    registerAgentAnswerRouter(ipcMain, new AgentAnswerRouter())
 
     if (!isClientOnly) {
       // Restore persisted Git Bash path on Windows (must happen before any SDK subprocess spawn)
@@ -1387,64 +1392,47 @@ app.on('before-quit', async (event) => {
     mainLog.info('Saved window state:', windows.length, 'windows')
   }
 
-  // Flush all pending session writes before quitting
+  // Flush all pending session writes and clean up all resources before quitting.
   if (sessionManager) {
-    // Prevent quit until sessions are flushed
+    // Prevent quit until async cleanup completes.
     event.preventDefault()
-    try {
-      await sessionManager.flushAllSessions()
-      mainLog.info('Flushed all pending session writes')
-    } catch (error) {
-      mainLog.error('Failed to flush sessions:', error)
-    }
-    // Clean up SessionManager resources (file watchers, timers, etc.)
-    sessionManager.cleanup()
 
-    // Clean up browser pane instances
-    if (browserPaneManager) {
-      browserPaneManager.destroyAll()
-    }
-
-    // Stop Rox Design native view and sidecars if they were started.
-    if (roxDesignViewManager) {
-      roxDesignViewManager.destroyAll()
-      roxDesignViewManager = null
-    }
-
-    if (roxDesignRuntimeManager) {
-      try {
-        await roxDesignRuntimeManager.stop()
-      } catch (err) {
-        mainLog.error('[rox-design] failed to stop runtime during quit:', err)
-      }
-    }
-
-    // Clean up OAuth flow store (stop periodic cleanup timer)
-    if (oauthFlowStore) {
-      oauthFlowStore.dispose()
-    }
-
-    // Stop all model refresh timers
-    getModelRefreshService().stopAll()
-
-    // Stop messaging gateways so the WhatsApp worker subprocess exits cleanly.
-    if (messagingHandle) {
-      try {
-        await messagingHandle.dispose()
-      } catch (err) {
-        mainLog.error('[messaging] dispose failed:', err)
-      }
-    }
-
-    // Clean up power manager (release power blocker)
     const { cleanup: cleanupPowerManager } = await import('./power-manager')
-    cleanupPowerManager()
 
-    // Release the server lock file so the next launch doesn't see a stale PID.
-    // This must happen regardless of the exit path (normal quit or update quit).
-    releaseServerLock()
+    const orchestrator = buildQuitOrchestrator({
+      sessionManager,
+      browserPaneManager,
+      roxDesignViewManager,
+      roxDesignRuntimeManager,
+      oauthFlowStore,
+      modelRefreshService: getModelRefreshService(),
+      messagingHandle,
+      powerManagerCleanup: cleanupPowerManager,
+      releaseServerLock,
+    })
 
-    // Now actually quit
+    const result = await orchestrator.shutdown(15_000)
+
+    // Null out the view manager reference after its handler ran.
+    roxDesignViewManager = null
+
+    // Structured log summary.
+    mainLog.info('[quit] cleanup complete', {
+      completed: result.completed,
+      failed: result.failed.map((f) => ({ name: f.name, error: String(f.error), critical: f.critical })),
+      timedOut: result.timedOut,
+    })
+
+    if (result.failed.length > 0) {
+      for (const f of result.failed) {
+        mainLog.error(`[quit] handler "${f.name}" failed:`, f.error)
+      }
+    }
+    if (result.timedOut.length > 0) {
+      mainLog.warn('[quit] handlers timed out:', result.timedOut)
+    }
+
+    // Now actually quit.
     app.exit(0)
   }
 })

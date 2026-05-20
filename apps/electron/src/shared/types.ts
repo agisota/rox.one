@@ -262,6 +262,9 @@ export interface ElectronAPI {
   // Design IPC — T537 Phase B
   openWithContext(req: OpenDesignRequest): Promise<OpenDesignResult>
 
+  // AAP — PZD-18 step 4: subscribe to agent-answer:received push events
+  onAgentAnswerReceived?(callback: (pkg: import('@rox-one/agent-contract').AgentAnswerPackage) => void): () => void
+
   // Session management
   getSessions(): Promise<Session[]>
   getUnreadSummary(): Promise<UnreadSummary>

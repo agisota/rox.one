@@ -61,6 +61,34 @@ jobs:
       - name: Validate cross-platform launch workflow contract
         run: bun run validate:cross-platform-launch-workflow
 
+      - name: Prepare Rox Design runtime payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          OPEN_DESIGN_VERSION="0.7.0"
+          OPEN_DESIGN_TAG="open-design-v${OPEN_DESIGN_VERSION}"
+          OPEN_DESIGN_ASSET="open-design-${OPEN_DESIGN_VERSION}-mac-arm64.zip"
+          OPEN_DESIGN_RELEASE="https://github.com/nexu-io/open-design/releases/download/${OPEN_DESIGN_TAG}"
+
+          curl -fsSLo "/tmp/${OPEN_DESIGN_ASSET}" "${OPEN_DESIGN_RELEASE}/${OPEN_DESIGN_ASSET}"
+          curl -fsSLo "/tmp/${OPEN_DESIGN_ASSET}.sha256" "${OPEN_DESIGN_RELEASE}/${OPEN_DESIGN_ASSET}.sha256"
+          (cd /tmp && shasum -a 256 -c "${OPEN_DESIGN_ASSET}.sha256")
+
+          rm -rf /tmp/open-design-runtime
+          mkdir -p /tmp/open-design-runtime
+          ditto -x -k "/tmp/${OPEN_DESIGN_ASSET}" /tmp/open-design-runtime
+
+          OPEN_DESIGN_RESOURCES="$(find /tmp/open-design-runtime -type d -path '*/Open Design.app/Contents/Resources' | head -n 1)"
+          if [ -z "$OPEN_DESIGN_RESOURCES" ]; then
+            echo "Open Design.app/Contents/Resources not found in ${OPEN_DESIGN_ASSET}"
+            find /tmp/open-design-runtime -maxdepth 4 -type d | sort | head -80
+            exit 1
+          fi
+
+          ROX_DESIGN_SOURCE_RESOURCES="${OPEN_DESIGN_RESOURCES}" \
+            bun run rox-design:prepare -- --force
+          bun run rox-design:payload:verify
+
       - name: Build Electron app
         run: bun run electron:build
 
