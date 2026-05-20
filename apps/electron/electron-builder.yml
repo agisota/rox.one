@@ -70,6 +70,9 @@ files:
   - vendor/copilot/**/*
   # Exclude everything from node_modules (will use extraResources for SDK)
   - "!node_modules/**/*"
+  # B-H1 (PZD audit): re-include Rox Design's nested node_modules; the broad
+  # node_modules exclusion above would otherwise drop better-sqlite3 + blake3-wasm.
+  - resources/rox-design/**/node_modules/**/*
 
 # Since SDK 0.2.113 the SDK ships a thin core (`@anthropic-ai/claude-agent-sdk`)
 # and a per-platform optional dependency (`-darwin-arm64`, `-darwin-x64`, etc.)
