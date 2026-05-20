@@ -38,6 +38,30 @@ module.exports = async function afterPack(context) {
     fs.rmSync(duplicateRoxDesignPayload, { recursive: true, force: true });
     console.log(`afterPack: removed duplicate Rox Design payload at ${duplicateRoxDesignPayload}`);
   }
+  // B-H1 (PZD audit): assert that Rox Design native deps were not silently dropped
+  // by the broad !node_modules/**/* exclusion in electron-builder.yml.
+  // Skipped when ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY=1 (CI smoke without payload)
+  // or when the rox-design payload directory is absent (not-yet-bundled builds).
+  const roxDesignPayloadDir = path.join(resourcesDir, 'app', 'resources', 'rox-design', 'app', 'node_modules');
+  if (process.env.ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY !== '1' && fs.existsSync(roxDesignPayloadDir)) {
+    const requiredNativeDeps = ['better-sqlite3', 'blake3-wasm'];
+    for (const dep of requiredNativeDeps) {
+      const depPath = path.join(roxDesignPayloadDir, dep);
+      if (!fs.existsSync(depPath)) {
+        throw new Error(
+          `[B-H1] Rox Design native dep missing from packaged app: ${depPath}\n` +
+          `Expected: resources/rox-design/**/node_modules/${dep}\n` +
+          `The broad !node_modules/**/* exclusion in electron-builder.yml may have ` +
+          `dropped this directory. Verify that the re-include glob ` +
+          `"resources/rox-design/**/node_modules/**/*" appears AFTER the exclusion rule.`
+        );
+      }
+      console.log(`afterPack [B-H1]: verified ${dep} present in packaged rox-design payload`);
+    }
+  } else {
+    console.log('afterPack [B-H1]: skipping rox-design payload verification (payload absent or ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY=1)');
+  }
+
   const precompiledAssets = path.join(context.packager.projectDir, 'resources', 'Assets.car');
   const rootIconSvg = path.join(context.packager.projectDir, 'resources', 'icon.svg');
   const rootIconPng = path.join(context.packager.projectDir, 'resources', 'icon.png');
