@@ -1,0 +1,19 @@
+{
+  "name": "@rox-one/design-classifier",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Keyword-based bilingual (RU+EN) design-task classifier for ROX.ONE",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
