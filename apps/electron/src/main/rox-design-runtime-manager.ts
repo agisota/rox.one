@@ -279,6 +279,7 @@ export class RoxDesignRuntimeManager {
   private ipcBase: string | null = null
   private daemonIpcPath: string | null = null
   private desktopAuthSecret: Buffer | null = null
+  private startPromise: Promise<RoxDesignStatus> | null = null
 
   constructor(options: RoxDesignRuntimeManagerOptions) {
     this.resourcesRoot = options.resourcesRoot
@@ -300,10 +301,16 @@ export class RoxDesignRuntimeManager {
 
   async start(): Promise<RoxDesignStatus> {
     if (this.status.status === 'running') return this.getStatus()
-    if (this.status.status === 'starting') return this.getStatus()
+    if (this.startPromise) return this.startPromise
 
     this.status = { status: 'starting' }
+    this.startPromise = this._doStart().finally(() => {
+      this.startPromise = null
+    })
+    return this.startPromise
+  }
 
+  private async _doStart(): Promise<RoxDesignStatus> {
     const explicitWebUrl = process.env.ROX_DESIGN_WEB_URL?.trim()
     if (explicitWebUrl) {
       try {

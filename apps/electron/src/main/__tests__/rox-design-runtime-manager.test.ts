@@ -122,4 +122,23 @@ describe('RoxDesignRuntimeManager', () => {
 
     await manager.stop()
   })
+
+  test('concurrent start() calls share a single in-flight promise', async () => {
+    const resourcesRoot = tempRoot()
+    createMockOpenDesignRuntime(resourcesRoot)
+    const manager = new RoxDesignRuntimeManager({ resourcesRoot, dataRoot: join(resourcesRoot, 'data') })
+
+    // Fire 3 concurrent start() calls before any can complete
+    const calls: Array<Promise<import('../../shared/types').RoxDesignStatus>> = [
+      manager.start(), manager.start(), manager.start(),
+    ]
+    const results = await Promise.all(calls)
+
+    // All 3 must resolve to the same final running status (not 'starting')
+    expect(results[0]).toEqual(results[1])
+    expect(results[1]).toEqual(results[2])
+    expect(results[0].status).toBe('running')
+
+    await manager.stop()
+  })
 })
