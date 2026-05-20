@@ -59,6 +59,28 @@ for (const requiredText of [
   }
 }
 
+const circleci = read(".circleci/config.yml");
+for (const requiredText of [
+  "bun run validate:agent-contract",
+  "bun run validate:architecture-docs",
+  "bun run validate:ci",
+  "bun run validate:workflow-pins",
+  "bun test --timeout=30000 scripts/__tests__/validate-packaged-artifacts.test.ts",
+]) {
+  if (!circleci.includes(requiredText)) {
+    fail(`CircleCI validate job missing: ${requiredText}`);
+  }
+}
+
+for (const staleCommand of [
+  "bun test --timeout=30000 2>&1",
+  "find . -name '*.isolated.ts'",
+]) {
+  if (circleci.includes(staleCommand)) {
+    fail(`CircleCI validate job still includes stale broad test discovery: ${staleCommand}`);
+  }
+}
+
 const requiredSkills = [
   "repo-cartographer",
   "tdd-loop",

@@ -453,6 +453,27 @@ same missing executable path without downloading browsers. The direct
 command targets `chromium_headless_shell-1193`, so the validate workflow now
 installs the browser artifact used by the package that launches Chromium.
 
+## 9i. CircleCI validate parity repair
+After GitHub Actions went green on PR #330 head `c7c801099`, CircleCI
+`validate` failed because `.circleci/config.yml` still ran the stale broad
+`bun test --timeout=30000` discovery pass that the GitHub Validate workflow had
+already replaced with maintained validation gates.
+
+The CircleCI validate job is now aligned with GitHub Actions:
+
+```text
+bun run validate:agent-contract
+bun run validate:architecture-docs
+bun run validate:ci
+bun run validate:workflow-pins
+bun test --timeout=30000 scripts/__tests__/validate-packaged-artifacts.test.ts
+```
+
+`scripts/validate-ci-contract.ts` now also checks CircleCI parity and rejects
+reintroducing the stale bare test discovery or `.isolated.ts` discovery loop.
+This keeps the CI unblock branch scoped to maintained gates while preserving the
+package-level regression test touched by this PR.
+
 ## 10. Remaining risks
 - Local machine can directly prove only the local macOS ARM64 artifact; PR CI now proves macOS Sequoia ARM64 packaged launch and diagnostic smoke proves Sonoma/Sequoia on GitHub-hosted runners. Monterey/Ventura are no longer supported release targets after the Sonoma 14.0 floor change.
 - GitHub-hosted Windows runners are Windows Server images, not literal Windows 10/11 consumer desktops. They now prove Windows x64 Electron packaging/startup class on `windows-latest` and `windows-2022`, not the exact consumer SKU UX.
