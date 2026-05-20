@@ -59,6 +59,7 @@ for (const required of [
   'ROX_ARTIFACT_PLATFORM: mac',
   'ROX_ARTIFACT_PLATFORM: linux',
   'ROX_ARTIFACT_PLATFORM: windows',
+  'ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY: "1"',
 ]) {
   requireText(workflow, required, 'cross-platform launch workflow contract');
 }

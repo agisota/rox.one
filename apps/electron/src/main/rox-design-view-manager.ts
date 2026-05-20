@@ -19,6 +19,7 @@ import type { WindowManager } from './window-manager'
 type RoxDesignViewKind = 'webContentsView' | 'browserView'
 
 type NativeRoxDesignView = BrowserView | WebContentsView
+type RoxDesignWindowResolver = Pick<WindowManager, 'getWindowByWebContentsId'>
 
 interface ManagedRoxDesignView {
   hostWindow: BrowserWindow
@@ -35,7 +36,7 @@ interface ManagedRoxDesignView {
 }
 
 export interface RoxDesignViewManagerOptions {
-  windowManager?: WindowManager | null
+  windowManager?: RoxDesignWindowResolver | null
   preloadPath?: string
   logger?: {
     info?: (message: string, meta?: Record<string, unknown>) => void
@@ -45,7 +46,7 @@ export interface RoxDesignViewManagerOptions {
 }
 
 export class RoxDesignViewManager {
-  private readonly windowManager?: WindowManager | null
+  private readonly windowManager?: RoxDesignWindowResolver | null
   private readonly preloadPath: string
   private readonly logger: RoxDesignViewManagerOptions['logger']
   private readonly entries = new Map<number, ManagedRoxDesignView>()

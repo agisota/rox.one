@@ -153,6 +153,10 @@ export const LOCAL_ONLY_CHANNELS = new Set<string>([
   RPC_CHANNELS.appearance.GET_RICH_TOOL_DESCRIPTIONS,
   RPC_CHANNELS.appearance.SET_RICH_TOOL_DESCRIPTIONS,
 
+  // preferences — local app preferences
+  RPC_CHANNELS.preferences.GET_AUTO_LAUNCH_DESIGN,
+  RPC_CHANNELS.preferences.SET_AUTO_LAUNCH_DESIGN,
+
   // caching — prompt cache and context settings
   RPC_CHANNELS.caching.GET_EXTENDED_PROMPT_CACHE,
   RPC_CHANNELS.caching.SET_EXTENDED_PROMPT_CACHE,
