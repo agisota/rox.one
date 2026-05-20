@@ -270,6 +270,19 @@
         "react": ">=18.0.0",
       },
     },
+    "packages/artifact-viewer-figma": {
+      "name": "@rox-one/artifact-viewer-figma",
+      "version": "0.1.0",
+      "dependencies": {
+        "@rox-one/artifact-viewer-core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/react": "^18.3.28",
+      },
+      "peerDependencies": {
+        "react": ">=18.0.0",
+      },
+    },
     "packages/artifact-viewer-md": {
       "name": "@rox-one/artifact-viewer-md",
       "version": "0.1.0",
@@ -1320,6 +1333,8 @@
     "@rox-one/artifact-viewer-browser": ["@rox-one/artifact-viewer-browser@workspace:packages/artifact-viewer-browser"],
 
     "@rox-one/artifact-viewer-core": ["@rox-one/artifact-viewer-core@workspace:packages/artifact-viewer-core"],
+
+    "@rox-one/artifact-viewer-figma": ["@rox-one/artifact-viewer-figma@workspace:packages/artifact-viewer-figma"],
 
     "@rox-one/artifact-viewer-md": ["@rox-one/artifact-viewer-md@workspace:packages/artifact-viewer-md"],
 
