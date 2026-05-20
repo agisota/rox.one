@@ -7,18 +7,25 @@ name: Mac White-Window Diag Smoke
 #   - workflow_dispatch: manual dispatch from the Actions tab
 #   - push to branches matching fix/multiplatform-mac-* (auto-run on fix branches)
 #
-# Auto matrix: macos-14 (Sonoma), macos-15 (Sequoia).
+# Auto matrix: macos-14 (Sonoma) x [arm64, x64], macos-15 (Sequoia) x [arm64, x64].
+# Total: 4 jobs — both arches on both OS generations.
 # Ventura (macos-13) is intentionally not in the push matrix: GitHub-hosted
 # macos-13 jobs can remain queued without allocating a runner, which blocks PRs
 # without producing launch evidence. Use a VM/self-hosted Ventura runner for exact
 # Ventura GUI proof if needed.
-# Artefacts: per-OS screenshot + diag.log + DiagnosticReports uploaded always.
+#
+# x64 jobs run on arm64 GitHub runners via Rosetta 2. Startup is ~10-15 % slower
+# under translation; the 90 s Playwright timeout accommodates this. The x64
+# binary is the ROX-ONE-x64.dmg artefact shipped to Intel Mac users — having
+# Rosetta smoke confirms the same source-level runtime fixes apply to both arches.
+# Artefacts: per-OS/arch screenshot + diag.log + DiagnosticReports uploaded always.
 
 on:
   workflow_dispatch:
   push:
     branches:
       - "fix/multiplatform-mac-*"
+      - "feat/mac-x64-intel-smoke"
 
 concurrency:
   group: mac-diag-smoke-${{ github.ref }}
@@ -29,13 +36,14 @@ permissions:
 
 jobs:
   diag-smoke:
-    name: Diag smoke — ${{ matrix.os }}
+    name: Diag smoke — ${{ matrix.os }} (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
         os: [macos-14, macos-15]
+        arch: [arm64, x64]
 
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
@@ -97,6 +105,21 @@ jobs:
           bunx electron-builder --mac --arm64 --x64 --dir --publish=never \
             2>&1 | tee /tmp/electron-builder-${{ matrix.os }}.log
 
+      - name: Install Rosetta 2 (x64 jobs only)
+        if: matrix.arch == 'x64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Rosetta 2 allows arm64 GitHub runners (macos-14/15) to execute x64
+          # Mach-O binaries via binary translation. Required for x64 smoke jobs.
+          # softwareupdate exits 0 if Rosetta is already installed.
+          if ! /usr/bin/pgrep -q oahd 2>/dev/null; then
+            echo "Installing Rosetta 2..."
+            softwareupdate --install-rosetta --agree-to-license
+          else
+            echo "Rosetta 2 already running (oahd present)"
+          fi
+
       - name: Install Playwright (ad-hoc, isolated tree)
         shell: bash
         run: |
@@ -115,21 +138,29 @@ jobs:
         shell: bash
         env:
           OS_LABEL: ${{ matrix.os }}
+          MATRIX_ARCH: ${{ matrix.arch }}
         run: |
           set +e
-          # Prefer arm64 build on Apple-silicon runners. The original alphabetic
-          # `find | head -1` selected release/mac/ (x86_64), which executes under
-          # Rosetta on macos-14/15-xlarge (both arm64) and hangs silently under
-          # ad-hoc hardened runtime — see iterations 1-5 of this workflow.
-          HOST_ARCH=$(uname -m)
-          if [ "$HOST_ARCH" = "arm64" ] && [ -d "apps/electron/release/mac-arm64/ROX.ONE.app" ]; then
-            APP_PATH="apps/electron/release/mac-arm64/ROX.ONE.app"
-          elif [ -d "apps/electron/release/mac/ROX.ONE.app" ]; then
-            APP_PATH="apps/electron/release/mac/ROX.ONE.app"
+          # For x64 jobs: force-select release/mac/ROX.ONE.app (x86_64 build) even
+          # on arm64 hosts — this is the artefact that ships as ROX-ONE-x64.dmg.
+          # For arm64 jobs: prefer the native arm64 build.
+          if [ "$MATRIX_ARCH" = "x64" ]; then
+            if [ -d "apps/electron/release/mac/ROX.ONE.app" ]; then
+              APP_PATH="apps/electron/release/mac/ROX.ONE.app"
+            else
+              APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+            fi
           else
-            APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+            HOST_ARCH=$(uname -m)
+            if [ "$HOST_ARCH" = "arm64" ] && [ -d "apps/electron/release/mac-arm64/ROX.ONE.app" ]; then
+              APP_PATH="apps/electron/release/mac-arm64/ROX.ONE.app"
+            elif [ -d "apps/electron/release/mac/ROX.ONE.app" ]; then
+              APP_PATH="apps/electron/release/mac/ROX.ONE.app"
+            else
+              APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+            fi
           fi
-          echo "Host arch=$HOST_ARCH, selected APP_PATH=$APP_PATH"
+          echo "Matrix arch=$MATRIX_ARCH, selected APP_PATH=$APP_PATH"
           {
             echo "=== APP_PATH: $APP_PATH ==="
             echo
@@ -144,7 +175,7 @@ jobs:
             echo
             echo "=== exe permissions ==="
             ls -la "$APP_PATH/Contents/MacOS/" 2>&1
-          } | tee /tmp/diag-${OS_LABEL}-codesign.log
+          } | tee /tmp/diag-${OS_LABEL}-${{ matrix.arch }}-codesign.log
 
       - name: Launch app and capture screenshot + diag log
         shell: bash
@@ -152,23 +183,32 @@ jobs:
           ROX_DIAG: "1"
           ROX_SMOKE_EXIT_ON_READY: "0"
           OS_LABEL: ${{ matrix.os }}
+          MATRIX_ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
 
-          # Locate the built .app (prefer arm64, fall back to x64)
-          # Prefer arm64 build on Apple-silicon runners. The original alphabetic
-          # `find | head -1` selected release/mac/ (x86_64), which executes under
-          # Rosetta on macos-14/15-xlarge (both arm64) and hangs silently under
-          # ad-hoc hardened runtime — see iterations 1-5 of this workflow.
-          HOST_ARCH=$(uname -m)
-          if [ "$HOST_ARCH" = "arm64" ] && [ -d "apps/electron/release/mac-arm64/ROX.ONE.app" ]; then
-            APP_PATH="apps/electron/release/mac-arm64/ROX.ONE.app"
-          elif [ -d "apps/electron/release/mac/ROX.ONE.app" ]; then
-            APP_PATH="apps/electron/release/mac/ROX.ONE.app"
+          # Locate the built .app based on matrix.arch.
+          # x64 jobs: force release/mac/ROX.ONE.app (x86_64 binary that ships as ROX-ONE-x64.dmg).
+          #   Runs under Rosetta 2 on the arm64 GitHub runner — valid smoke for Intel Mac users.
+          #   Startup is ~10-15 % slower under translation; 90 s Playwright timeout accommodates.
+          # arm64 jobs: prefer mac-arm64 build, fall back to x64 if not found.
+          if [ "$MATRIX_ARCH" = "x64" ]; then
+            if [ -d "apps/electron/release/mac/ROX.ONE.app" ]; then
+              APP_PATH="apps/electron/release/mac/ROX.ONE.app"
+            else
+              APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+            fi
           else
-            APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+            HOST_ARCH=$(uname -m)
+            if [ "$HOST_ARCH" = "arm64" ] && [ -d "apps/electron/release/mac-arm64/ROX.ONE.app" ]; then
+              APP_PATH="apps/electron/release/mac-arm64/ROX.ONE.app"
+            elif [ -d "apps/electron/release/mac/ROX.ONE.app" ]; then
+              APP_PATH="apps/electron/release/mac/ROX.ONE.app"
+            else
+              APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+            fi
           fi
-          echo "Host arch=$HOST_ARCH, selected APP_PATH=$APP_PATH"
+          echo "Matrix arch=$MATRIX_ARCH, selected APP_PATH=$APP_PATH"
           if [ -z "$APP_PATH" ]; then
             echo "ERROR: Could not find ROX.ONE.app in apps/electron/release"
             find apps/electron/release -type d | head -20
@@ -188,12 +228,13 @@ jobs:
           const stderrLogPath = process.env.ROX_STDERR_LOG
           const stdoutLogPath = process.env.ROX_STDOUT_LOG
           console.log('Launching app:', appPath)
-          console.log('stderr capture →', stderrLogPath)
-          console.log('stdout capture →', stdoutLogPath)
+          console.log('stderr capture ->', stderrLogPath)
+          console.log('stdout capture ->', stdoutLogPath)
 
           // M.18 white-window diag: 90 s launch timeout (was 30 s) — child
           // processes spawned during init can stretch wall-clock past 30 s
           // when shell-env.ts shells out to login zsh on a fresh runner.
+          // x64 jobs under Rosetta 2 may need the full 90 s on first run.
           const electronApp = await electron.launch({
             executablePath: join(appPath, 'Contents/MacOS/ROX.ONE'),
             env: {
@@ -243,14 +284,14 @@ jobs:
           # M.18 white-window diag: also expose ROX_STARTUP_LOG_PATH so the
           # main process appends a per-stage marker line to disk (path
           # survives Playwright stderr-piping limitations on macOS runners).
-          STARTUP_LOG="/tmp/diag-${OS_LABEL}-rox-startup.log"
+          STARTUP_LOG="/tmp/diag-${OS_LABEL}-${MATRIX_ARCH}-rox-startup.log"
           rm -f "$STARTUP_LOG"
 
           set +e
           ROX_APP_PATH="$APP_PATH" \
-          ROX_SCREENSHOT_PATH="/tmp/diag-${OS_LABEL}.png" \
-          ROX_STDERR_LOG="/tmp/diag-${OS_LABEL}-stderr.log" \
-          ROX_STDOUT_LOG="/tmp/diag-${OS_LABEL}-stdout.log" \
+          ROX_SCREENSHOT_PATH="/tmp/diag-${OS_LABEL}-${MATRIX_ARCH}.png" \
+          ROX_STDERR_LOG="/tmp/diag-${OS_LABEL}-${MATRIX_ARCH}-stderr.log" \
+          ROX_STDOUT_LOG="/tmp/diag-${OS_LABEL}-${MATRIX_ARCH}-stdout.log" \
           ROX_STARTUP_LOG_PATH="$STARTUP_LOG" \
             node /tmp/pw/diag-launch.mjs
           NODE_RC=$?
@@ -259,9 +300,9 @@ jobs:
           echo "=== ROX_STARTUP markers (disk) ==="
           cat "$STARTUP_LOG" 2>/dev/null || echo "(no startup log)"
           echo "=== stderr log (first 200 lines) ==="
-          head -n 200 "/tmp/diag-${OS_LABEL}-stderr.log" 2>/dev/null || echo "(no stderr log)"
+          head -n 200 "/tmp/diag-${OS_LABEL}-${MATRIX_ARCH}-stderr.log" 2>/dev/null || echo "(no stderr log)"
           echo "=== stdout log (first 80 lines) ==="
-          head -n 80 "/tmp/diag-${OS_LABEL}-stdout.log" 2>/dev/null || echo "(no stdout log)"
+          head -n 80 "/tmp/diag-${OS_LABEL}-${MATRIX_ARCH}-stdout.log" 2>/dev/null || echo "(no stdout log)"
 
           if [ "$NODE_RC" -ne 0 ]; then
             echo "ERROR: Playwright launch script exited with code $NODE_RC"
@@ -271,16 +312,18 @@ jobs:
           # Hard assertion: the screenshot MUST exist and be non-trivially sized.
           # Without this, a silently broken Playwright run would still mark the
           # job green (see prior incident with @playwright/test missing).
-          if [ ! -s "/tmp/diag-${OS_LABEL}.png" ]; then
-            echo "ERROR: screenshot /tmp/diag-${OS_LABEL}.png missing or empty"
+          if [ ! -s "/tmp/diag-${OS_LABEL}-${MATRIX_ARCH}.png" ]; then
+            echo "ERROR: screenshot /tmp/diag-${OS_LABEL}-${MATRIX_ARCH}.png missing or empty"
             exit 1
           fi
-          SIZE=$(stat -f%z "/tmp/diag-${OS_LABEL}.png" 2>/dev/null || stat -c%s "/tmp/diag-${OS_LABEL}.png")
+          SIZE=$(stat -f%z "/tmp/diag-${OS_LABEL}-${MATRIX_ARCH}.png" 2>/dev/null || stat -c%s "/tmp/diag-${OS_LABEL}-${MATRIX_ARCH}.png")
           echo "Screenshot size: $SIZE bytes"
           # Floor 20 KB. Empirical: real-UI screenshots from Sonoma + Sequoia
           # in run 26139026981 came in at 71568 + 64508 bytes. A pure-white
           # 1280x720 PNG compresses to ~1-2 KB; a white window with chrome
           # to ~5-8 KB. 20 KB catches both failure modes without false negatives.
+          # x64/Rosetta jobs are expected to produce screenshots of the same
+          # size range — the rendering stack is identical.
           if [ "$SIZE" -lt 20000 ]; then
             echo "ERROR: screenshot $SIZE bytes is below 20 KB floor (likely white window or boot hang)"
             exit 1
@@ -291,10 +334,11 @@ jobs:
         shell: bash
         env:
           OS_LABEL: ${{ matrix.os }}
+          MATRIX_ARCH: ${{ matrix.arch }}
         run: |
           LOG_DIR=~/Library/Logs/ROX.ONE
           if [ -d "$LOG_DIR" ]; then
-            cp "$LOG_DIR/diag.log" "/tmp/diag-${OS_LABEL}.log" 2>/dev/null || true
+            cp "$LOG_DIR/diag.log" "/tmp/diag-${OS_LABEL}-${MATRIX_ARCH}.log" 2>/dev/null || true
             echo "Copied diag.log from $LOG_DIR"
           else
             echo "No diag log dir at $LOG_DIR — listing ~/Library/Logs/:"
@@ -305,14 +349,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: diag-${{ matrix.os }}
+          name: diag-${{ matrix.os }}-${{ matrix.arch }}
           path: |
-            /tmp/diag-${{ matrix.os }}.png
-            /tmp/diag-${{ matrix.os }}.log
-            /tmp/diag-${{ matrix.os }}-stderr.log
-            /tmp/diag-${{ matrix.os }}-stdout.log
-            /tmp/diag-${{ matrix.os }}-codesign.log
-            /tmp/diag-${{ matrix.os }}-rox-startup.log
+            /tmp/diag-${{ matrix.os }}-${{ matrix.arch }}.png
+            /tmp/diag-${{ matrix.os }}-${{ matrix.arch }}.log
+            /tmp/diag-${{ matrix.os }}-${{ matrix.arch }}-stderr.log
+            /tmp/diag-${{ matrix.os }}-${{ matrix.arch }}-stdout.log
+            /tmp/diag-${{ matrix.os }}-${{ matrix.arch }}-codesign.log
+            /tmp/diag-${{ matrix.os }}-${{ matrix.arch }}-rox-startup.log
             /tmp/electron-builder-${{ matrix.os }}.log
           if-no-files-found: warn
           retention-days: 14
@@ -321,7 +365,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: crash-reports-${{ matrix.os }}
+          name: crash-reports-${{ matrix.os }}-${{ matrix.arch }}
           path: ~/Library/Logs/DiagnosticReports/
           if-no-files-found: ignore
           retention-days: 14

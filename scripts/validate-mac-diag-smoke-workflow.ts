@@ -45,14 +45,16 @@ for (const required of [
   'fix/multiplatform-mac-*',
   'runs-on: ${{ matrix.os }}',
   'os: [macos-14, macos-15]',
+  'arch: [arm64, x64]',
   'Ventura (macos-13) is intentionally not in the push matrix',
   'GITHUB_TOKEN: ${{ github.token }}',
   'FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"',
   'bun run electron:build',
   'bunx electron-builder --mac --arm64 --x64 --dir --publish=never',
-  'node /tmp/diag-launch.mjs',
+  'softwareupdate --install-rosetta --agree-to-license',
+  'node /tmp/pw/diag-launch.mjs',
   'actions/upload-artifact',
-  '/tmp/diag-${{ matrix.os }}.png',
+  '/tmp/diag-${{ matrix.os }}-${{ matrix.arch }}.png',
   '/tmp/electron-builder-${{ matrix.os }}.log',
 ]) {
   requireText(workflow, required, 'mac diag smoke workflow contract');
@@ -62,4 +64,4 @@ if (workflow.includes('os: [macos-13, macos-14, macos-15]')) {
   fail('push matrix still includes macos-13, which can queue indefinitely and block PRs');
 }
 
-console.log('[mac-diag-smoke-workflow] ok: Sonoma/Sequoia diag smoke workflow is wired; Ventura proof remains VM/self-hosted');
+console.log('[mac-diag-smoke-workflow] ok: Sonoma/Sequoia diag smoke workflow is wired (arm64 + x64 via Rosetta); Ventura proof remains VM/self-hosted');
