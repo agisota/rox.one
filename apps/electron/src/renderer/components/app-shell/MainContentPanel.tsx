@@ -32,6 +32,7 @@ import {
   isSkillsNavigation,
   isAutomationsNavigation,
   isWorkbenchNavigation,
+  isDesignNavigation,
 } from '@/contexts/NavigationContext'
 import { useSessionSelection, useIsMultiSelectActive, useSelectedIds, useSelectionCount } from '@/hooks/useSession'
 import { sourceSelection, skillSelection, automationSelection } from '@/hooks/useEntitySelection'
@@ -52,6 +53,12 @@ import { SendResourceToWorkspaceDialog, type SendResourceType } from './SendReso
 const WorkbenchRoutePage = React.lazy(() =>
   import(/* webpackChunkName: 'workbench' */ '../workbench/WorkbenchRoutePage').then((m) => ({ default: m.WorkbenchRoutePage }))
 )
+
+// T537 PR#5a: lazy-load RoxDesignPage — only loads when user opens the Design panel
+import {
+  LazyRoxDesignPage,
+  RoxDesignSuspenseFallback,
+} from '@/pages/rox-design/RoxDesignPage.lazy'
 
 const EMPTY_EXPERIENCE_RUNTIME_STATE = createInitialExperienceRuntimeState()
 
@@ -252,6 +259,19 @@ export function MainContentPanel({
         <React.Suspense fallback={<div className="flex h-full w-full bg-background" />}>
           <WorkbenchRoutePage screen={navState.screen} />
         </React.Suspense>
+      </Panel>
+    )
+  }
+
+  // T537 PR#5a: Design navigator — lazy-load RoxDesignPage so it is NOT in the initial bundle
+  if (isDesignNavigation(navState)) {
+    return wrapWithStoplight(
+      <Panel variant="grow" className={className}>
+        <RouteErrorBoundary name="rox-design">
+          <React.Suspense fallback={<RoxDesignSuspenseFallback />}>
+            <LazyRoxDesignPage />
+          </React.Suspense>
+        </RouteErrorBoundary>
       </Panel>
     )
   }
