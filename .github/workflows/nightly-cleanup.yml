@@ -1,0 +1,236 @@
+name: Nightly Cleanup
+
+# Daily cleanup of nightly pre-releases and their R2 mirror objects.
+#
+# Retention: 7 days. Older `nightly-*` releases are deleted from GitHub
+# (release + tag) and the matching R2 prefix is removed. Stable / beta
+# releases (`v*`) are NEVER touched — the guard `if [[ "$tag" =~ ^nightly- ]]`
+# is load-bearing.
+#
+# Triggers:
+#   - schedule: daily at 03:00 UTC (low-traffic window in MSK/EU/US)
+#   - workflow_dispatch: manual for ad-hoc cleanup runs
+#
+# Safety:
+#   - Releases must match `^nightly-` literally before any delete call.
+#   - R2 deletion is gated on R2_ACCESS_KEY_ID presence (no-op if secrets
+#     are unprovisioned).
+#   - Dry-run flag via workflow_dispatch input lets operators preview
+#     deletions without acting.
+#
+# Untrusted-input safety: workflow_dispatch input `dry_run` is fed
+# through env var (never inline). The tag names listed by `gh release
+# list` are GH-validated and additionally pattern-checked before any
+# delete call.
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview deletions without acting (true/false)"
+        required: false
+        default: "false"
+        type: string
+
+concurrency:
+  group: nightly-cleanup-${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    name: Delete nightlies older than 7 days
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+
+    env:
+      DRY_RUN: ${{ inputs.dry_run || 'false' }}
+      RETENTION_DAYS: "7"
+      REPO_NAME: ${{ github.repository }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      # -----------------------------------------------------------------------
+      # 1. Enumerate nightly GH pre-releases
+      # -----------------------------------------------------------------------
+      - name: List nightly pre-releases
+        id: list-releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Pull a generous page size; we only filter client-side. JSON
+          # fields: tagName, createdAt (ISO 8601), isPrerelease.
+          gh release list \
+            --repo "${REPO_NAME}" \
+            --limit 200 \
+            --json tagName,createdAt,isPrerelease \
+            > /tmp/all-releases.json
+          echo "Total releases listed: $(jq 'length' /tmp/all-releases.json)"
+
+      # -----------------------------------------------------------------------
+      # 2. Compute cutoff timestamp and partition releases
+      # -----------------------------------------------------------------------
+      - name: Compute cutoff and partition
+        id: partition
+        shell: bash
+        run: |
+          set -euo pipefail
+          # cutoff = now - RETENTION_DAYS days, in ISO 8601 UTC.
+          cutoff=$(date -u -d "${RETENTION_DAYS} days ago" +%Y-%m-%dT%H:%M:%SZ)
+          echo "Cutoff: ${cutoff}"
+          echo "CUTOFF=${cutoff}" >> "$GITHUB_ENV"
+
+          # Filter: only nightly-* prereleases older than cutoff.
+          jq -r --arg cutoff "$cutoff" '
+            .[]
+            | select(.isPrerelease == true)
+            | select(.tagName | startswith("nightly-"))
+            | select(.createdAt < $cutoff)
+            | .tagName
+          ' /tmp/all-releases.json > /tmp/to-delete.txt
+
+          to_delete_count=$(wc -l < /tmp/to-delete.txt | tr -d ' ')
+          echo "Releases to delete: ${to_delete_count}"
+          if [ "${to_delete_count}" -gt 0 ]; then
+            echo "--- candidates ---"
+            cat /tmp/to-delete.txt
+          fi
+
+      # -----------------------------------------------------------------------
+      # 3. Delete GH releases + tags (with guard)
+      # -----------------------------------------------------------------------
+      - name: Delete nightly GH releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ ! -s /tmp/to-delete.txt ]; then
+            echo "No nightly releases to delete."
+            exit 0
+          fi
+
+          while IFS= read -r tag; do
+            # Hard guard: only touch tags matching ^nightly-. Defensive
+            # against any drift in the upstream JSON filter.
+            if [[ ! "$tag" =~ ^nightly- ]]; then
+              echo "::error::Refusing to delete non-nightly tag: ${tag}"
+              exit 1
+            fi
+
+            if [ "${DRY_RUN}" = "true" ]; then
+              echo "[DRY RUN] would delete release + tag: ${tag}"
+              continue
+            fi
+
+            echo "Deleting release + tag: ${tag}"
+            gh release delete "${tag}" \
+              --repo "${REPO_NAME}" \
+              --yes \
+              --cleanup-tag \
+              || echo "::warning::failed to delete ${tag} (already deleted?)"
+          done < /tmp/to-delete.txt
+
+      # -----------------------------------------------------------------------
+      # 4. Delete matching R2 objects (gated)
+      # -----------------------------------------------------------------------
+      - name: Delete matching R2 objects
+        if: env.R2_ACCESS_KEY_ID != ''
+        shell: bash
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          set -euo pipefail
+          export AWS_ACCESS_KEY_ID="${R2_ACCESS_KEY_ID}"
+          export AWS_SECRET_ACCESS_KEY="${R2_SECRET_ACCESS_KEY}"
+          export AWS_DEFAULT_REGION="auto"
+          endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+
+          # List every nightly-* prefix under electron/. R2's S3 API
+          # returns keys as `electron/<NIGHTLY_TAG>/<filename>` and
+          # `electron/nightly/<NIGHTLY_TAG>/<filename>` for the
+          # versioned layout used by upload.ts.
+          aws --endpoint-url "${endpoint}" s3 ls \
+            "s3://${R2_BUCKET_NAME}/electron/" \
+            --recursive \
+            > /tmp/r2-listing.txt || true
+
+          if [ ! -s /tmp/r2-listing.txt ]; then
+            echo "R2 listing empty; nothing to clean."
+            exit 0
+          fi
+
+          # Parse aws-cli output: "<date> <time>   <size> <key>".
+          # We only delete keys whose path contains /nightly-<sha>/.
+          # Cutoff comparison: aws s3 ls returns YYYY-MM-DD HH:MM:SS; build
+          # an ISO timestamp for date comparison.
+          cutoff_epoch=$(date -u -d "${RETENTION_DAYS} days ago" +%s)
+
+          to_remove=0
+          while IFS= read -r line; do
+            # Skip empty lines.
+            [ -z "$line" ] && continue
+            ts_date=$(echo "$line" | awk '{print $1}')
+            ts_time=$(echo "$line" | awk '{print $2}')
+            key=$(echo "$line" | awk '{for (i=4; i<=NF; i++) printf "%s%s", $i, (i<NF ? " " : "")}')
+
+            # Hard guard: only touch keys whose path contains a nightly-* segment.
+            if [[ ! "$key" =~ /nightly-[0-9a-f]+/ ]] && [[ ! "$key" =~ ^electron/nightly-[0-9a-f]+/ ]]; then
+              continue
+            fi
+
+            key_epoch=$(date -u -d "${ts_date} ${ts_time}" +%s 2>/dev/null || echo 0)
+            if [ "${key_epoch}" = "0" ] || [ "${key_epoch}" -ge "${cutoff_epoch}" ]; then
+              continue
+            fi
+
+            if [ "${DRY_RUN}" = "true" ]; then
+              echo "[DRY RUN] would delete R2 key: ${key}"
+            else
+              echo "Deleting R2 key: ${key}"
+              aws --endpoint-url "${endpoint}" s3 rm \
+                "s3://${R2_BUCKET_NAME}/${key}" \
+                || echo "::warning::failed to delete ${key}"
+            fi
+            to_remove=$((to_remove + 1))
+          done < /tmp/r2-listing.txt
+
+          echo "R2 keys processed: ${to_remove}"
+
+      # -----------------------------------------------------------------------
+      # 5. Summary
+      # -----------------------------------------------------------------------
+      - name: Write step summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          deleted=0
+          if [ -f /tmp/to-delete.txt ]; then
+            deleted=$(wc -l < /tmp/to-delete.txt | tr -d ' ')
+          fi
+          {
+            echo "## Nightly cleanup"
+            echo ""
+            echo "- **Cutoff (UTC):** ${CUTOFF:-n/a}"
+            echo "- **Dry run:** ${DRY_RUN}"
+            echo "- **Nightly GH releases marked for deletion:** ${deleted}"
+            if [ "${deleted}" -gt 0 ] && [ -f /tmp/to-delete.txt ]; then
+              echo ""
+              echo "Deleted tags:"
+              while IFS= read -r tag; do echo "- \`${tag}\`"; done < /tmp/to-delete.txt
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

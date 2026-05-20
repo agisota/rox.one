@@ -1,0 +1,691 @@
+name: Multi-Platform On-Merge
+
+# Auto-build pipeline that triggers on every merge to main.
+#
+# Goal: every push to main produces a `nightly-<short-sha>` GitHub
+# pre-release containing artefacts for all 4 platforms (mac-arm64,
+# linux-x64, windows-x64, windows-x64-2025), each with SBOM + SHA-256
+# sidecar, mirrored to Cloudflare R2 so the rox.one website can serve
+# them publicly.
+#
+# Relationship to existing workflows:
+#   - release-all-platforms.yml runs on tag push (v*) for stable / beta
+#     releases. UNCHANGED by this workflow; both can coexist.
+#   - mac-diag-smoke.yml runs on fix/multiplatform-mac-* branches. The
+#     Playwright launch pattern in step "Mac diag smoke" was lifted
+#     verbatim from that file.
+#   - The cache@v4 blocks immediately after setup-bun mirror the three
+#     blocks added in PR #277 (commit 679f258e) to release-all-platforms.yml.
+#
+# Private-repo-aware constraints:
+#   - R2 secrets (R2_*) and Windows self-signed cert (WIN_SELF_SIGNED_CERT_*)
+#     may not be provisioned yet. Each gated step checks for the secret's
+#     presence via env-var and skips silently if absent. This means a fresh
+#     fork of the repo can run the workflow end-to-end; unsigned Win and
+#     no-mirror behaviour matches today's release pipeline.
+#   - This workflow file is excluded from its own trigger via paths-ignore
+#     to avoid a feedback loop on self-edits.
+#
+# Concurrency: cancel-in-progress is true so if 3 merges land in 5
+# minutes only the last build runs to completion. This is the opposite
+# of release-all-platforms.yml where cancellation would leave a partial
+# release on GitHub.
+#
+# Untrusted-input safety: this workflow only consumes `github.sha`
+# (always 40-char hex) and `github.repository` (org/repo, GH-validated).
+# Both are passed through `env:` vars to shell consumers as a defence-
+# in-depth measure even though they are not user-controllable.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - "apps/online-docs/**"
+      - "apps/marketing/**"
+      - ".github/workflows/multi-platform-on-merge.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: multi-platform-on-merge-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: "ROX ONE ${{ matrix.platform }} nightly"
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: mac-arm64
+            runs-on: macos-15-xlarge
+          - platform: linux-x64
+            runs-on: ubuntu-22.04
+          - platform: windows-x64
+            runs-on: windows-2022
+          - platform: windows-x64-2025
+            runs-on: windows-2025
+
+    runs-on: ${{ matrix.runs-on }}
+
+    env:
+      ROX_HEADLESS: "1"
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+    outputs:
+      nightly_tag: ${{ steps.compute-tag.outputs.nightly_tag }}
+      release_name: ${{ steps.compute-tag.outputs.release_name }}
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Compute nightly tag + release name
+      # -----------------------------------------------------------------------
+      - name: Compute nightly tag and release name
+        id: compute-tag
+        shell: bash
+        env:
+          FULL_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${FULL_SHA:0:7}"
+          NIGHTLY_TAG="nightly-${SHORT_SHA}"
+          DATE_STAMP="$(date -u +%Y-%m-%d)"
+          RELEASE_NAME="Nightly ${DATE_STAMP} (${SHORT_SHA})"
+          echo "NIGHTLY_TAG=${NIGHTLY_TAG}" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=${RELEASE_NAME}" >> "$GITHUB_ENV"
+          echo "SHORT_SHA=${SHORT_SHA}" >> "$GITHUB_ENV"
+          echo "nightly_tag=${NIGHTLY_TAG}" >> "$GITHUB_OUTPUT"
+          echo "release_name=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
+
+      # -----------------------------------------------------------------------
+      # 2. Checkout the merge commit
+      # -----------------------------------------------------------------------
+      - name: Checkout merge commit
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # -----------------------------------------------------------------------
+      # 3. Toolchain setup
+      # -----------------------------------------------------------------------
+      - name: Setup Bun 1.3.11
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.3.11"
+
+      # Cache blocks lifted from PR #277 (commit 679f258e). SHA pin and
+      # path layout are identical to release-all-platforms.yml so cache
+      # entries are shared between tag and on-merge builds when keys overlap.
+      - name: Cache bun store
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Cache Electron prebuilt binaries
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            ~/.cache/electron
+            ~/Library/Caches/electron
+            ${{ env.LOCALAPPDATA }}/electron/Cache
+          key: electron-39.8.9-${{ runner.os }}-${{ runner.arch }}
+          restore-keys: |
+            electron-39.8.9-${{ runner.os }}-
+
+      - name: Cache Vite/tsc build output
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            apps/electron/dist/.vite-cache
+            apps/electron/.vite
+            packages/**/.tsbuildinfo
+            apps/**/.tsbuildinfo
+          key: build-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('apps/electron/src/**', 'packages/*/src/**', 'apps/electron/vite.config.ts') }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Install dependencies
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun install --frozen-lockfile
+
+      # -----------------------------------------------------------------------
+      # 4. Build Electron app (cross-platform)
+      # -----------------------------------------------------------------------
+      - name: Build Electron app (Mac / Linux)
+        if: matrix.platform == 'mac-arm64' || matrix.platform == 'linux-x64'
+        shell: bash
+        run: bun run electron:build
+
+      - name: Build Electron app (Windows)
+        if: startsWith(matrix.platform, 'windows-')
+        shell: pwsh
+        working-directory: apps/electron
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun run build:win
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # -----------------------------------------------------------------------
+      # 5. Windows self-signed prep (gated on secret presence)
+      #
+      # If WIN_SELF_SIGNED_CERT_PFX is absent the build still runs but skips
+      # signing, matching today's unsigned-beta behaviour. When the secret is
+      # provisioned, write the PFX to a temp file and set CSC_LINK +
+      # CSC_KEY_PASSWORD so electron-builder picks them up automatically.
+      # -----------------------------------------------------------------------
+      - name: Prepare Windows self-signed cert
+        if: startsWith(matrix.platform, 'windows-') && env.WIN_SELF_SIGNED_CERT_PFX != ''
+        shell: pwsh
+        env:
+          WIN_SELF_SIGNED_CERT_PFX: ${{ secrets.WIN_SELF_SIGNED_CERT_PFX }}
+          WIN_SELF_SIGNED_CERT_PASSWORD: ${{ secrets.WIN_SELF_SIGNED_CERT_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pfxBytes = [System.Convert]::FromBase64String($env:WIN_SELF_SIGNED_CERT_PFX)
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'rox-one-codesign.pfx'
+          [System.IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+          "CSC_LINK=$pfxPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "CSC_KEY_PASSWORD=$($env:WIN_SELF_SIGNED_CERT_PASSWORD)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Self-signed PFX staged at $pfxPath"
+
+      # -----------------------------------------------------------------------
+      # 6. Package with electron-builder
+      # -----------------------------------------------------------------------
+
+      # Mac ARM64: directory mode first for smoke launch, then re-pack DMG.
+      - name: Package macOS ARM64 (dir for smoke)
+        if: matrix.platform == 'mac-arm64'
+        shell: bash
+        working-directory: apps/electron
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          ROX_DEV_RUNTIME: "1"
+        run: |
+          set -o pipefail
+          bunx electron-builder --mac --arm64 --x64 --dir --publish=never
+
+      # Linux x64
+      - name: Package Linux x64 AppImage + deb + rpm
+        if: matrix.platform == 'linux-x64'
+        shell: bash
+        working-directory: apps/electron
+        run: |
+          set -o pipefail
+          bunx electron-builder --linux --x64 --publish=never
+
+      # Windows x64 (both windows-2022 and windows-2025 runners use same
+      # electron-builder invocation; only the underlying runner image differs).
+      - name: Package Windows x64 NSIS installer
+        if: startsWith(matrix.platform, 'windows-')
+        shell: pwsh
+        working-directory: apps/electron
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bunx electron-builder --win --x64 --publish=never
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # -----------------------------------------------------------------------
+      # 7. Mac diag smoke (Playwright-Electron, mac-arm64 only)
+      #
+      # Launch the packaged app with ROX_DIAG=1, capture a screenshot.
+      # Fail the job if the screenshot is smaller than 5 KB (a sub-5KB
+      # screenshot indicates a white window or boot hang). Pattern is
+      # lifted verbatim from .github/workflows/mac-diag-smoke.yml.
+      # -----------------------------------------------------------------------
+      - name: Install Playwright (Mac smoke)
+        if: matrix.platform == 'mac-arm64'
+        shell: bash
+        run: bunx playwright install chromium --with-deps || true
+
+      - name: Mac diag smoke (launch + screenshot)
+        if: matrix.platform == 'mac-arm64'
+        shell: bash
+        env:
+          ROX_DIAG: "1"
+          ROX_SMOKE_EXIT_ON_READY: "0"
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::Could not find ROX.ONE.app in apps/electron/release"
+            find apps/electron/release -type d | head -20
+            exit 1
+          fi
+          echo "Found app at: $APP_PATH"
+
+          cat > /tmp/nightly-smoke.mjs << 'PLAYWRIGHT_SCRIPT'
+          import { _electron as electron } from '@playwright/test'
+          import { join } from 'path'
+
+          const appPath = process.env.ROX_APP_PATH
+          const screenshotPath = process.env.ROX_SCREENSHOT_PATH
+          console.log('Launching app:', appPath)
+
+          const electronApp = await electron.launch({
+            executablePath: join(appPath, 'Contents/MacOS/ROX.ONE'),
+            env: {
+              ...process.env,
+              ROX_DIAG: '1',
+              ROX_SMOKE_EXIT_ON_READY: '0',
+            },
+            timeout: 30000,
+          })
+
+          let page
+          try {
+            page = await electronApp.firstWindow()
+            console.log('First window URL:', page.url())
+          } catch (err) {
+            console.error('firstWindow() failed:', err.message)
+            await electronApp.close()
+            process.exit(1)
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 10000))
+
+          await page.screenshot({ path: screenshotPath, fullPage: true })
+          console.log('Screenshot saved to:', screenshotPath)
+          console.log('Page title:', await page.title(), '| URL:', page.url())
+
+          await electronApp.close()
+          PLAYWRIGHT_SCRIPT
+
+          ROX_APP_PATH="$APP_PATH" \
+          ROX_SCREENSHOT_PATH="/tmp/nightly-smoke.png" \
+            node /tmp/nightly-smoke.mjs
+
+          if [ ! -f /tmp/nightly-smoke.png ]; then
+            echo "::error::No screenshot produced"
+            exit 1
+          fi
+          size=$(stat -f%z /tmp/nightly-smoke.png 2>/dev/null || stat -c%s /tmp/nightly-smoke.png)
+          echo "Screenshot size: ${size} bytes"
+          if [ "$size" -lt 5120 ]; then
+            echo "::error::Screenshot is < 5 KB (${size} bytes) — likely white window or boot hang"
+            exit 1
+          fi
+
+      # Re-pack DMG/zip after directory-mode smoke succeeded.
+      - name: Re-pack macOS DMG + zip
+        if: matrix.platform == 'mac-arm64'
+        shell: bash
+        working-directory: apps/electron
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          ROX_DEV_RUNTIME: "1"
+        run: |
+          set -o pipefail
+          bunx electron-builder --mac --arm64 --x64 --publish=never
+
+      # -----------------------------------------------------------------------
+      # 8. Generate CycloneDX SBOM
+      # -----------------------------------------------------------------------
+      - name: Generate CycloneDX SBOM
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          npx -y @cyclonedx/cdxgen@12.4.0 -t bun -o "sbom-${PLATFORM}.json"
+          echo "SBOM generated: $(wc -c < "sbom-${PLATFORM}.json") bytes"
+
+      # -----------------------------------------------------------------------
+      # 9. Compute SHA-256 sidecars
+      # -----------------------------------------------------------------------
+      - name: Compute SHA-256 sidecars (Mac / Linux)
+        if: matrix.platform == 'mac-arm64' || matrix.platform == 'linux-x64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd apps/electron/release
+          shopt -s nullglob
+          for f in *.dmg *.zip *.AppImage *.deb *.rpm *.blockmap; do
+            if [ -f "$f" ]; then
+              shasum -a 256 "$f" | awk '{print $1}' > "${f}.sha256"
+              echo "Hashed: $f"
+            fi
+          done
+
+      - name: Compute SHA-256 sidecars (Windows)
+        if: startsWith(matrix.platform, 'windows-')
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $releaseDir = 'apps\electron\release'
+          foreach ($pat in @('*.exe', '*.blockmap')) {
+            $files = Get-ChildItem -Path $releaseDir -Filter $pat -ErrorAction SilentlyContinue
+            foreach ($f in $files) {
+              $hash = (Get-FileHash -Algorithm SHA256 -Path $f.FullName).Hash.ToLower()
+              $hash | Out-File -FilePath "$($f.FullName).sha256" -Encoding ascii -NoNewline
+              Write-Host "Hashed: $($f.Name)"
+            }
+          }
+
+      # -----------------------------------------------------------------------
+      # 10. windows-2025 ABI-suffix rename
+      #
+      # Both windows jobs build identical NSIS exes. To avoid double-publish
+      # collision on the nightly release, the windows-2025 job suffixes its
+      # filenames with `-w2025` so the windows-2022 artefacts remain the
+      # canonical x64 binary.
+      # -----------------------------------------------------------------------
+      - name: Rename windows-2025 artefacts with -w2025 suffix
+        if: matrix.platform == 'windows-x64-2025'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $releaseDir = 'apps\electron\release'
+          $files = Get-ChildItem -Path $releaseDir -File | Where-Object {
+            $_.Extension -in '.exe', '.blockmap', '.yml', '.sha256'
+          }
+          foreach ($f in $files) {
+            $newName = $f.BaseName + '-w2025' + $f.Extension
+            $newPath = Join-Path $f.DirectoryName $newName
+            Move-Item -Path $f.FullName -Destination $newPath -Force
+            Write-Host "Renamed: $($f.Name) -> $newName"
+          }
+
+      # -----------------------------------------------------------------------
+      # 11. Publish to GitHub pre-release
+      #
+      # softprops/action-gh-release is idempotent on tag_name — the first
+      # job to finish creates the pre-release; subsequent jobs append.
+      # -----------------------------------------------------------------------
+      - name: Publish to nightly GH pre-release
+        if: success()
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
+        with:
+          tag_name: ${{ env.NIGHTLY_TAG }}
+          name: ${{ env.RELEASE_NAME }}
+          draft: false
+          prerelease: true
+          generate_release_notes: false
+          fail_on_unmatched_files: false
+          body: |
+            Automated nightly build from commit `${{ github.sha }}` on `main`.
+
+            **WARNING**: pre-release build. Not for production. Auto-deleted after 7 days.
+
+            See `docs/release/rox-one-site-handoff.md` for download URL pattern.
+          files: |
+            apps/electron/release/*.dmg
+            apps/electron/release/*.zip
+            apps/electron/release/*.exe
+            apps/electron/release/*.AppImage
+            apps/electron/release/*.deb
+            apps/electron/release/*.rpm
+            apps/electron/release/*.blockmap
+            apps/electron/release/*.yml
+            apps/electron/release/*.sha256
+            sbom-${{ matrix.platform }}.json
+
+      # -----------------------------------------------------------------------
+      # 12. R2 mirror (gated on R2 secret presence)
+      #
+      # Uses the existing scripts/upload.ts which is already R2-compatible
+      # (S3 v3 SDK + env-var driven). If R2_ACCESS_KEY_ID is unset, the
+      # whole step is skipped silently — matches today's behaviour where
+      # no mirror runs.
+      # -----------------------------------------------------------------------
+      - name: Mirror artefacts to Cloudflare R2
+        if: success() && env.R2_ACCESS_KEY_ID != ''
+        shell: bash
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          S3_VERSIONS_BUCKET_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          S3_VERSIONS_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          S3_VERSIONS_BUCKET_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          S3_VERSIONS_BUCKET_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          S3_VERSIONS_BUCKET_REGION: auto
+          PUBLIC_VERSIONS_URL: https://app.rox.one/electron
+          NIGHTLY_TAG: ${{ env.NIGHTLY_TAG }}
+        run: |
+          set -euo pipefail
+          # The existing upload.ts expects a .build/upload/manifest.json with
+          # a `version` key. Stamp the nightly tag in there so files are
+          # uploaded under electron/<NIGHTLY_TAG>/ on R2.
+          mkdir -p .build/upload
+          jq -n --arg v "${NIGHTLY_TAG}" '{version:$v}' > .build/upload/manifest.json
+          bun run scripts/upload.ts --electron
+
+  # ---------------------------------------------------------------------------
+  # Aggregate job: build manifest.json + release-notes.json, attach to the
+  # same nightly pre-release, mirror to R2, ping Cloudflare cache-bust.
+  # ---------------------------------------------------------------------------
+  aggregate:
+    name: Build aggregate manifest
+    needs: build
+    if: success()
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    env:
+      NIGHTLY_TAG: ${{ needs.build.outputs.nightly_tag }}
+      RELEASE_NAME: ${{ needs.build.outputs.release_name }}
+      REPO_NAME: ${{ github.repository }}
+      COMMIT_SHA: ${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Bun 1.3.11
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.3.11"
+
+      # Download all assets attached to the nightly pre-release so we can
+      # compute the aggregate manifest from authoritative bytes.
+      - name: Download nightly release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p .nightly-bin
+          # Wait briefly for the release to be visible (the build matrix
+          # finishes asynchronously w.r.t. GH release indexing).
+          for attempt in 1 2 3 4 5; do
+            if gh release view "${NIGHTLY_TAG}" --repo "${REPO_NAME}" >/dev/null 2>&1; then
+              break
+            fi
+            echo "Attempt ${attempt}: release ${NIGHTLY_TAG} not yet visible, waiting 5s..."
+            sleep 5
+          done
+          gh release download "${NIGHTLY_TAG}" --repo "${REPO_NAME}" --dir .nightly-bin --pattern '*' || true
+          ls -la .nightly-bin
+
+      - name: Build aggregate manifest.json
+        shell: bash
+        env:
+          PUBLIC_VERSIONS_URL: https://app.rox.one/electron
+        run: |
+          set -euo pipefail
+          mkdir -p .manifest-out
+
+          VERSION="${NIGHTLY_TAG}"
+          CHANNEL="nightly"
+
+          pick_one() {
+            local dir="$1" pattern="$2"
+            find "$dir" -type f -name "$pattern" \
+              ! -name "*.blockmap" \
+              ! -name "*.sha256" \
+              -print | LC_ALL=C sort | head -n 1
+          }
+
+          MAC_FILE=$(pick_one   .nightly-bin 'ROX-ONE-*arm64*.zip')
+          if [ -z "$MAC_FILE" ]; then
+            MAC_FILE=$(pick_one .nightly-bin 'ROX-ONE-*arm64*.dmg')
+          fi
+          LINUX_FILE=$(pick_one .nightly-bin 'ROX-ONE-*x86_64*.AppImage')
+          if [ -z "$LINUX_FILE" ]; then
+            LINUX_FILE=$(pick_one .nightly-bin 'ROX-ONE-*.AppImage')
+          fi
+          # Prefer canonical win artefact (not the -w2025 ABI smoke).
+          WIN_FILE=$(pick_one .nightly-bin 'ROX-ONE-*x64.exe')
+          if [ -z "$WIN_FILE" ]; then
+            WIN_FILE=$(pick_one .nightly-bin 'ROX-ONE-*.exe')
+          fi
+
+          build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          build_ts=$(python3 -c 'import time; print(int(time.time()*1000))')
+          base_url="${PUBLIC_VERSIONS_URL}/${CHANNEL}/${NIGHTLY_TAG}"
+
+          # Construct binaries object only with platforms that produced an
+          # artefact so the manifest stays valid even if a platform job is
+          # skipped or fails in a future iteration.
+          binaries='{}'
+          for tuple in \
+            "darwin-arm64|$MAC_FILE" \
+            "linux-x64|$LINUX_FILE" \
+            "win32-x64|$WIN_FILE"; do
+            key="${tuple%%|*}"
+            file="${tuple##*|}"
+            if [ -z "$file" ] || [ ! -f "$file" ]; then
+              echo "::warning::no artefact for $key (skipping manifest entry)"
+              continue
+            fi
+            name=$(basename "$file")
+            sha=$(sha256sum "$file" | awk '{print $1}')
+            size=$(stat -c%s "$file")
+            binaries=$(echo "$binaries" | jq \
+              --arg key "$key" \
+              --arg name "$name" \
+              --arg sha "$sha" \
+              --argjson size "$size" \
+              --arg base "$base_url" \
+              '. + {($key): {url:($base + "/" + $name), sha256:$sha, size:$size, filename:$name}}')
+          done
+
+          jq -n \
+            --arg version "$VERSION" \
+            --arg channel "$CHANNEL" \
+            --arg build_time "$build_time" \
+            --argjson build_timestamp "$build_ts" \
+            --argjson binaries "$binaries" \
+            --arg commit "$COMMIT_SHA" \
+            '{version:$version, channel:$channel, commit:$commit, build_time:$build_time, build_timestamp:$build_timestamp, binaries:$binaries}' \
+            > .manifest-out/manifest.json
+
+          echo "--- manifest.json ---"
+          cat .manifest-out/manifest.json
+          jq -e . .manifest-out/manifest.json > /dev/null
+
+      - name: Build release-notes.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          released_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          jq -n \
+            --arg version "$NIGHTLY_TAG" \
+            --arg channel "nightly" \
+            --arg releasedAt "$released_at" \
+            --arg commit "$COMMIT_SHA" \
+            '{version:$version, channel:$channel, releasedAt:$releasedAt, releases:[{version:$version, channel:$channel, releasedAt:$releasedAt, title:("ROX.ONE " + $version), commit:$commit, content:"Automated nightly build. See GitHub release for asset list."}]}' \
+            > .manifest-out/release-notes.json
+
+      - name: Attach manifest + release-notes to GH pre-release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Replace any prior copies so manifest reflects the latest build.
+          gh release upload "${NIGHTLY_TAG}" --repo "${REPO_NAME}" \
+            .manifest-out/manifest.json \
+            .manifest-out/release-notes.json \
+            --clobber
+
+      - name: Mirror manifest to Cloudflare R2
+        if: env.R2_ACCESS_KEY_ID != ''
+        shell: bash
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          set -euo pipefail
+          # Lightweight aws-cli upload (no need to invoke upload.ts for two
+          # JSON files). Configure aws-cli to talk to R2 via env vars.
+          export AWS_ACCESS_KEY_ID="${R2_ACCESS_KEY_ID}"
+          export AWS_SECRET_ACCESS_KEY="${R2_SECRET_ACCESS_KEY}"
+          export AWS_DEFAULT_REGION="auto"
+          endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+
+          for f in manifest.json release-notes.json; do
+            aws --endpoint-url "${endpoint}" s3 cp \
+              ".manifest-out/${f}" \
+              "s3://${R2_BUCKET_NAME}/electron/nightly/${NIGHTLY_TAG}/${f}" \
+              --content-type "application/json"
+            aws --endpoint-url "${endpoint}" s3 cp \
+              ".manifest-out/${f}" \
+              "s3://${R2_BUCKET_NAME}/electron/nightly/${f}" \
+              --content-type "application/json"
+          done
+
+      # Best-effort cache bust on the rox.one Worker. Skipped silently when
+      # CLOUDFLARE_API_TOKEN is absent.
+      - name: Ping Cloudflare Worker cache-bust
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CF_ZONE_ID:-}" ]; then
+            echo "::warning::CF_ZONE_ID not set; skipping cache purge"
+            exit 0
+          fi
+          curl -fsS -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"files":["https://app.rox.one/electron/nightly/manifest.json","https://app.rox.one/electron/nightly/release-notes.json"]}' \
+            || echo "::warning::cache purge failed (non-fatal)"
+
+      - name: Write step summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "## Nightly build — \`${NIGHTLY_TAG}\`"
+            echo ""
+            echo "- **GitHub pre-release:** https://github.com/${REPO_NAME}/releases/tag/${NIGHTLY_TAG}"
+            echo "- **Manifest URL (live):** https://app.rox.one/electron/nightly/manifest.json"
+            echo "- **Manifest URL (pinned):** https://app.rox.one/electron/nightly/${NIGHTLY_TAG}/manifest.json"
+            echo ""
+            echo "| Platform | Filename | Size | SHA-256 |"
+            echo "|----------|----------|-----:|---------|"
+            jq -r '
+              .binaries
+              | to_entries[]
+              | "| \(.key) | `\(.value.filename)` | \(.value.size) B | `\(.value.sha256)` |"
+            ' .manifest-out/manifest.json
+          } >> "$GITHUB_STEP_SUMMARY"
