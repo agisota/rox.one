@@ -253,6 +253,8 @@ export interface RoxDesignApi {
 export interface ElectronAPI {
   // Rox Design embedded runtime control
   roxDesign?: RoxDesignApi
+  /** Subscribe to runtime status changes broadcast by the main process. */
+  onRoxDesignStatusChanged(callback: (status: RoxDesignStatus) => void): () => void
 
   // Session management
   getSessions(): Promise<Session[]>
@@ -417,6 +419,9 @@ export interface ElectronAPI {
   onMenuKeyboardShortcuts(callback: () => void): () => void
   onMenuToggleFocusMode(callback: () => void): () => void
   onMenuToggleSidebar(callback: () => void): () => void
+
+  // Design hotkey (⌘⇧D / Ctrl+Shift+D) toggle listener
+  onDesignToggle(callback: () => void): () => void
 
   // Deep link navigation listener (for external rox:// URLs)
   onDeepLinkNavigate(callback: (nav: DeepLinkNavigation) => void): () => void

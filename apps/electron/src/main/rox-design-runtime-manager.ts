@@ -313,6 +313,7 @@ export class RoxDesignRuntimeManager {
     if (this.startPromise) return this.startPromise
 
     this.status = { status: 'starting' }
+    this.broadcastStatus()
     this.startPromise = this._doStart().finally(() => {
       this.startPromise = null
     })
@@ -329,12 +330,14 @@ export class RoxDesignRuntimeManager {
           version: process.env.ROX_DESIGN_VERSION?.trim() || 'dev',
         }
         this.logger?.info?.('[rox-design] using explicit web URL', { webUrl: this.status.webUrl })
+        this.broadcastStatus()
         return this.getStatus()
       } catch (error) {
         this.status = {
           status: 'failed',
           error: `Invalid ROX_DESIGN_WEB_URL: ${error instanceof Error ? error.message : String(error)}`,
         }
+        this.broadcastStatus()
         return this.getStatus()
       }
     }
@@ -348,6 +351,7 @@ export class RoxDesignRuntimeManager {
         error: `Rox Design runtime bundle is incomplete: ${error instanceof Error ? error.message : String(error)}`,
       }
       this.logger?.error?.('[rox-design] bundled runtime bundle is incomplete', { error: this.status.error })
+      this.broadcastStatus()
       return this.getStatus()
     }
 
@@ -357,12 +361,14 @@ export class RoxDesignRuntimeManager {
         error: `Rox Design runtime is not bundled yet. Expected Open Design resources under ${join(this.resourcesRoot, 'resources', 'rox-design')}.`,
       }
       this.logger?.warn?.('[rox-design] bundled runtime missing', { resourcesRoot: this.resourcesRoot })
+      this.broadcastStatus()
       return this.getStatus()
     }
 
     try {
       const started = await this.startBundledRuntime(bundledLayout)
       this.status = started
+      this.broadcastStatus()
       return this.getStatus()
     } catch (error) {
       await this.stopProcesses()
@@ -371,6 +377,7 @@ export class RoxDesignRuntimeManager {
         error: `Rox Design runtime failed to start: ${error instanceof Error ? error.message : String(error)}`,
       }
       this.logger?.error?.('[rox-design] bundled runtime failed to start', { error: this.status.error })
+      this.broadcastStatus()
       return this.getStatus()
     }
   }
@@ -378,7 +385,18 @@ export class RoxDesignRuntimeManager {
   async stop(): Promise<RoxDesignStatus> {
     await this.stopProcesses()
     this.status = { status: 'idle' }
+    this.broadcastStatus()
     return this.getStatus()
+  }
+
+  private broadcastStatus(): void {
+    const status = this.getStatus()
+    const windows = BrowserWindow.getAllWindows()
+    for (const win of windows) {
+      if (!(win.isDestroyed?.() ?? false)) {
+        win.webContents.send('rox-design:status-changed', status)
+      }
+    }
   }
 
   private findBundledRuntimeLayout(): OpenDesignRuntimeLayout | null {
@@ -519,6 +537,7 @@ export class RoxDesignRuntimeManager {
           status: 'failed',
           error: `Rox Design ${app} sidecar exited unexpectedly (code=${code ?? 'null'}, signal=${signal ?? 'null'}).`,
         }
+        this.broadcastStatus()
         const payload: SidecarExitedPayload = {
           reason: `${app} sidecar exited unexpectedly (code=${code ?? 'null'}, signal=${signal ?? 'null'})`,
           code: typeof code === 'number' ? code : null,

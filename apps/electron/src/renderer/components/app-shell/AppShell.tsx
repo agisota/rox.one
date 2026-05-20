@@ -1703,6 +1703,7 @@ function AppShellContent({
     return cleanup
   }, [handleToggleSidebar])
 
+
   // Persist per-view filter map to localStorage (workspace-scoped)
   React.useEffect(() => {
     if (!activeWorkspaceId) return
@@ -1796,6 +1797,14 @@ function AppShellContent({
   const handleRoxDesignClick = useCallback(() => {
     navigate(routes.view.design())
   }, [])
+
+  // Listen for design toggle hotkey (⌘⇧D / Ctrl+Shift+D)
+  React.useEffect(() => {
+    const cleanup = window.electronAPI.onDesignToggle?.(() => {
+      handleRoxDesignClick()
+    })
+    return cleanup
+  }, [handleRoxDesignClick])
 
   // Handler for settings view
   const handleSettingsClick = useCallback((subpage: SettingsSubpage = 'app') => {

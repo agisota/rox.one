@@ -29,6 +29,8 @@ type ApiToChannelMapKeys = Exclude<
   | 'onTransferProgress' // direct IPC listener — chunk upload progress
   | 'changeLanguage' // direct IPC to main process — syncs i18n language
   | 'getFilePath' // renderer-local — webUtils.getPathForFile, no IPC round-trip
+  | 'onRoxDesignStatusChanged' // direct IPC listener — rox-design:status-changed push from main
+  | 'onDesignToggle' // direct IPC listener — design:toggle hotkey push from main
 > | BrowserPaneKeys
 type ChannelMapKeys = keyof typeof CHANNEL_MAP & string
 

@@ -110,6 +110,7 @@ import { createFileAccountSessionStore } from './account-session-store'
 import { RoxDesignRuntimeManager } from './rox-design-runtime-manager'
 import { RoxDesignViewManager } from './rox-design-view-manager'
 import { RoxDesignDesktopBridge } from './rox-design-desktop-bridge'
+import { registerDesignHotkeyOnWebContents } from './rox-design-hotkey'
 
 // Initialize electron-log for renderer process support
 log.initialize()
@@ -336,6 +337,13 @@ if (clientOnlyServerUrl) {
 // Register thumbnail:// custom protocol for file preview thumbnails in the sidebar.
 // Must happen before app.whenReady() — Electron requires early scheme registration.
 registerThumbnailScheme()
+
+// Register ⌘⇧D / Ctrl+Shift+D hotkey on every renderer webContents.
+// The handler checks BrowserWindow.getFocusedWindow() internally so it only
+// fires when the owning window has keyboard focus (not a global shortcut).
+app.on('web-contents-created', (_event, webContents) => {
+  registerDesignHotkeyOnWebContents(webContents)
+})
 
 // Handle deeplink on macOS (when app is already running)
 app.on('open-url', (event, url) => {
