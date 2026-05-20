@@ -12,6 +12,7 @@ mock.module('electron', () => ({
   app: {
     isPackaged: false,
     getAppPath: () => '/',
+    getPath: () => '/tmp/rox-one-registration-profiles-test',
     quit: () => {},
     dock: { setIcon: () => {}, setBadge: () => {} },
   },
@@ -145,11 +146,12 @@ async function getExpectedCoreChannels(): Promise<Set<string>> {
 }
 
 async function getExpectedGuiChannels(): Promise<Set<string>> {
-  const [browser, system, workspace, settings] = await Promise.all([
+  const [browser, system, workspace, settings, preferences] = await Promise.all([
     import('../browser'),
     import('../system'),
     import('../workspace'),
     import('../settings'),
+    import('../preferences-ipc'),
   ])
 
   return new Set([
@@ -157,6 +159,7 @@ async function getExpectedGuiChannels(): Promise<Set<string>> {
     ...system.GUI_HANDLED_CHANNELS,
     ...workspace.GUI_HANDLED_CHANNELS,
     ...settings.GUI_HANDLED_CHANNELS,
+    ...preferences.HANDLED_CHANNELS,
   ])
 }
 

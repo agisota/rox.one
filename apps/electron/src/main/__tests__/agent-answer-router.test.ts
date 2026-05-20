@@ -9,6 +9,7 @@
 
 import { describe, it, expect, mock, beforeEach } from 'bun:test'
 import { randomUUID } from 'crypto'
+import type { AgentAnswerPackage } from '@rox-one/agent-contract'
 
 // ── Electron mock ──────────────────────────────────────────────────────────────
 type IpcHandler = (_event: unknown, aap: unknown) => Promise<unknown>
@@ -20,16 +21,12 @@ mock.module('electron', () => ({
 }))
 
 // ── IPC invoke spy — simulates calling design:openWithContext ─────────────────
-// The router calls handleOpenWithContext directly (same process); we inject a
-// spy so tests can assert without a real storage dir.
+// Injected into AgentAnswerRouter so this test does not globally mock
+// rox-design-ipc.ts and leak into the real rox-design-ipc test file.
 type OpenWithContextResult =
   | { status: 'opened'; windowId: number }
   | { status: 'failed'; reason: string }
 const openWithContextSpy = mock(async (_raw: unknown): Promise<OpenWithContextResult> => ({ status: 'opened', windowId: 0 }))
-
-mock.module('../rox-design-ipc.ts', () => ({
-  handleOpenWithContext: openWithContextSpy,
-}))
 
 // ── Module under test ─────────────────────────────────────────────────────────
 const { AgentAnswerRouter, registerAgentAnswerRouter } =
@@ -89,13 +86,10 @@ function makeDesignAap() {
   }
 }
 
-type TestPayloadPart =
-  | { kind: 'text'; text: string }
-  | { kind: 'code'; language: string; text: string }
-  | { kind: 'design'; request: ReturnType<typeof makeDesignRequest> }
-  | { kind: 'mixed'; parts: TestPayloadPart[] }
+type MixedPayload = Extract<AgentAnswerPackage['payload'], { kind: 'mixed' }>
+type MixedPart = MixedPayload['parts'][number]
 
-function makeMixedAap(...payloadParts: TestPayloadPart[]) {
+function makeMixedAap(...payloadParts: MixedPart[]): AgentAnswerPackage {
   return {
     agentId: 'agent-1',
     sessionId: 'sess-1',
@@ -111,7 +105,7 @@ describe('AgentAnswerRouter · text passthrough', () => {
   let router: InstanceType<typeof AgentAnswerRouter>
 
   beforeEach(() => {
-    router = new AgentAnswerRouter()
+    router = new AgentAnswerRouter(openWithContextSpy)
     openWithContextSpy.mockClear()
   })
 
@@ -133,7 +127,7 @@ describe('AgentAnswerRouter · design routing', () => {
   let router: InstanceType<typeof AgentAnswerRouter>
 
   beforeEach(() => {
-    router = new AgentAnswerRouter()
+    router = new AgentAnswerRouter(openWithContextSpy)
     openWithContextSpy.mockClear()
     openWithContextSpy.mockImplementation(async (_raw: unknown) => ({ status: 'opened', windowId: 0 }))
   })
@@ -152,9 +146,9 @@ describe('AgentAnswerRouter · design validation failure', () => {
   let router: InstanceType<typeof AgentAnswerRouter>
 
   beforeEach(() => {
-    router = new AgentAnswerRouter()
+    router = new AgentAnswerRouter(openWithContextSpy)
     openWithContextSpy.mockClear()
-    openWithContextSpy.mockImplementation(async (_raw: unknown) => ({ status: 'failed', reason: 'invalid request' }))
+    openWithContextSpy.mockImplementation(async (_raw: unknown): Promise<OpenWithContextResult> => ({ status: 'failed', reason: 'invalid request' }))
   })
 
   it('returns { status: "failed" } when openWithContext returns failed', async () => {
@@ -169,7 +163,7 @@ describe('AgentAnswerRouter · mixed routing (2 text + 1 design)', () => {
   let router: InstanceType<typeof AgentAnswerRouter>
 
   beforeEach(() => {
-    router = new AgentAnswerRouter()
+    router = new AgentAnswerRouter(openWithContextSpy)
     openWithContextSpy.mockClear()
     openWithContextSpy.mockImplementation(async (_raw: unknown) => ({ status: 'opened', windowId: 0 }))
   })
@@ -199,7 +193,7 @@ describe('AgentAnswerRouter · nested mixed recursion', () => {
   let router: InstanceType<typeof AgentAnswerRouter>
 
   beforeEach(() => {
-    router = new AgentAnswerRouter()
+    router = new AgentAnswerRouter(openWithContextSpy)
     openWithContextSpy.mockClear()
     openWithContextSpy.mockImplementation(async (_raw: unknown) => ({ status: 'opened', windowId: 0 }))
   })
@@ -227,13 +221,13 @@ describe('AgentAnswerRouter · partial failure in mixed', () => {
   let router: InstanceType<typeof AgentAnswerRouter>
 
   beforeEach(() => {
-    router = new AgentAnswerRouter()
+    router = new AgentAnswerRouter(openWithContextSpy)
     openWithContextSpy.mockClear()
   })
 
   it('continues routing other parts and lists failed parts', async () => {
     let callCount = 0
-    openWithContextSpy.mockImplementation(async (_raw: unknown) => {
+    openWithContextSpy.mockImplementation(async (_raw: unknown): Promise<OpenWithContextResult> => {
       callCount++
       if (callCount === 1) return { status: 'failed', reason: 'design storage error' }
       return { status: 'opened', windowId: 0 }
@@ -256,7 +250,7 @@ describe('AgentAnswerRouter · partial failure in mixed', () => {
 describe('registerAgentAnswerRouter · ipcMain integration', () => {
   it('registers the agent-answer:dispatch handler on ipcMain', () => {
     handleMock.mockClear()
-    const router = new AgentAnswerRouter()
+    const router = new AgentAnswerRouter(openWithContextSpy)
     registerAgentAnswerRouter(ipcMainMock as Parameters<typeof registerAgentAnswerRouter>[0], router)
     expect(handleMock).toHaveBeenCalledTimes(1)
     expect(handleMock.mock.calls[0][0]).toBe('agent-answer:dispatch')
@@ -267,11 +261,11 @@ describe('registerAgentAnswerRouter · ipcMain integration', () => {
     openWithContextSpy.mockClear()
     openWithContextSpy.mockImplementation(async (_raw: unknown) => ({ status: 'opened', windowId: 0 }))
 
-    const router = new AgentAnswerRouter()
+    const router = new AgentAnswerRouter(openWithContextSpy)
     registerAgentAnswerRouter(ipcMainMock as Parameters<typeof registerAgentAnswerRouter>[0], router)
 
     // Simulate ipcMain invoke: grab the registered callback and call it
-    const registeredCallback = handleMock.mock.calls[0][1] as (_event: unknown, aap: unknown) => Promise<unknown>
+    const registeredCallback = handleMock.mock.calls[0][1] as unknown as (_event: unknown, aap: unknown) => Promise<unknown>
     const aap = makeDesignAap()
     const result = await registeredCallback({}, aap)
 

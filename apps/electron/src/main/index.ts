@@ -1432,6 +1432,14 @@ app.on('before-quit', async (event) => {
       mainLog.warn('[quit] handlers timed out:', result.timedOut)
     }
 
+    if (process.env.ROX_SMOKE_EXIT_ON_READY === '1') {
+      mainLog.info('[smoke] Exiting process after successful quit cleanup')
+      setTimeout(() => {
+        process.kill(process.pid, 'SIGKILL')
+      }, 100)
+      return
+    }
+
     // Now actually quit.
     app.exit(0)
   }

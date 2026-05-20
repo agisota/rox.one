@@ -248,3 +248,40 @@ Baseline from before this task was backend `secondProject` ~931ms and first proj
 | Current-main IPC registration and channel snapshot gates pass | PASS | `ipc-channels.test.ts` + handler registration + quit orchestrator: `24 pass`, `0 fail`. |
 | Mac workflow validators pass after current-main merge | PASS | `validate:mac-arm-build-workflow` and `validate:mac-diag-smoke-workflow` pass. |
 | Local Rox Design payload verification passes | PASS | `rox-design:prepare:check` + `rox-design:payload:verify` pass locally for Open Design `0.7.0`. |
+
+## 12. 2026-05-20 rescue/latest-main validation update
+
+Context:
+
+- Original PR worktree `/Users/marklindgreen/Projects/rox-one-terminal-t305-pr` had a broken gitdir pointer, so it was preserved untouched.
+- Active rescue worktree: `/Users/marklindgreen/Projects/rox-one-terminal-t305-rescue`.
+- Active branch: `mac/session-startup-switch-performance-pr-rescue`, tracking `origin/mac/session-startup-switch-performance-pr` and intended to push back to PR #303 without force.
+- Latest `origin/main` was merged into the rescue branch to keep PR #303 reviewable after current-main AAP/artifact-viewer/release-boundary changes.
+
+Changes made in this rescue pass:
+
+- Kept the AAP design router test-local by injecting `handleOpenWithContext` into `AgentAnswerRouter`, avoiding a global `rox-design-ipc` mock leak into the real IPC tests.
+- Reworked `@rox-one/design-storage` manifest loading so Electron main can bundle without a static `bun:sqlite` edge; non-Bun runtimes use a JSON fallback beside `manifest.db` (`manifest.db.json`) instead of overwriting an existing SQLite file.
+- Added a JSON fallback regression test proving an existing SQLite-like `manifest.db` is not overwritten.
+- Removed duplicate auto-launch preference channel entries from `RPC_CHANNELS`, protocol routing, and `CHANNEL_MAP` after current-main merge drift.
+- Aligned handler registration profile tests with the current preferences IPC registration surface.
+- Preserved current Windows signing boundary fixture expectations with a comment-only `electron-builder.yml` placeholder.
+- Made mac boundary fixture-mode validation exit after fixture success, instead of falling through into live packaged-app validation on Darwin.
+- Fixed the Electron startup smoke false-negative: the app reached ready markers and quit cleanup, but the smoke wrapper could hang after Electron logged clean shutdown. The smoke path now treats clean shutdown markers as proof and the app force-terminates only under `ROX_SMOKE_EXIT_ON_READY=1` after cleanup.
+- Increased the outer `electron-startup-smoke` e2e scenario budget from 90s to 180s because the scenario wraps a full Electron build plus launch.
+
+Fresh verification evidence:
+
+- `git diff --check`: pass.
+- `bun test scripts/__tests__/electron-smoke.test.ts packages/design-storage/src/__tests__/manifest.test.ts`: `13 pass`, `0 fail`, `34 expect()` calls.
+- `ROX_E2E_FAKE_PROVIDERS=1 ROX_HEADLESS=1 bun run electron:smoke`: pass; smoke output reached `App initialized successfully`, `[quit] cleanup complete`, and `[smoke] Electron headless startup passed`.
+- Targeted combined smoke/protocol/router/render tests: `101 pass`, `4 fail` due Bun mock contamination when registration tests were batched after other Electron mocks (`Export named 'Menu' not found`). The registration gates were rerun separately and passed.
+- `bun test apps/electron/src/main/handlers/__tests__/registration-profiles.test.ts apps/electron/src/main/handlers/__tests__/registration.test.ts apps/electron/src/shared/__tests__/ipc-channels.test.ts packages/shared/src/protocol/__tests__/routing.test.ts apps/electron/src/transport/__tests__/channel-map-parity.test.ts --timeout=30000`: `19 pass`, `0 fail`, `1518 expect()` calls.
+- `bun run typecheck:all`: pass.
+- `ROX_E2E_FAKE_PROVIDERS=1 ROX_HEADLESS=1 bun run e2e:core`: pass; all five core scenarios passed, including `electron-startup-smoke` (`88541ms`).
+
+Known gaps / risks:
+
+- The JSON manifest fallback does not migrate old SQLite rows when Electron runs without `bun:sqlite`; it intentionally writes to a sidecar JSON file to avoid corrupting an existing SQLite DB. If existing design artifacts must be migrated between runtimes, add an explicit migration tool rather than silent fallback conversion.
+- Full packaged cross-platform builds were not run locally in this rescue pass.
+- The batched Bun test command can still be order-sensitive when tests install different Electron module mocks; registration tests have passing evidence when run as their own group, matching prior repo practice.

@@ -341,6 +341,7 @@ if (fixtureDir) {
     signingOutputPath: sidecar,
   });
   console.log(`[mac-private-release-boundary] fixture-mode ok: ${fixtureBundlePath}`);
+  process.exit(0);
 }
 
 if (platform() !== 'darwin') {

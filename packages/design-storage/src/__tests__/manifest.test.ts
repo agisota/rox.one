@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
-import { mkdirSync, rmSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
@@ -107,5 +107,44 @@ describe('DesignManifest · insert + read (Zod validation)', () => {
     const list = manifest.listByTaskId(taskId)
     expect(list.length).toBe(2)
     expect(list.map(a => a.id).sort()).toEqual([a1.id, a2.id].sort())
+  })
+})
+
+describe('DesignManifest · JSON fallback', () => {
+  let tmpDir: string
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir()
+  })
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it('stores JSON fallback beside the sqlite path without overwriting an existing db file', () => {
+    const dbPath = join(tmpDir, 'manifest.db')
+    const sqliteHeader = 'SQLite format 3\u0000existing-data'
+    writeFileSync(dbPath, sqliteHeader)
+
+    const manifest = new DesignManifest(dbPath, { forceJson: true })
+    const artifact = {
+      id: randomUUID(),
+      taskId: randomUUID(),
+      type: 'html' as const,
+      uri: 'file:///fallback.html',
+      bytes: 64,
+      sha256: 'e'.repeat(64),
+      createdAt: new Date().toISOString(),
+    }
+
+    manifest.insert(artifact)
+    manifest.close()
+
+    expect(readFileSync(dbPath, 'utf8')).toBe(sqliteHeader)
+    expect(existsSync(`${dbPath}.json`)).toBe(true)
+
+    const reopened = new DesignManifest(dbPath, { forceJson: true })
+    expect(reopened.findById(artifact.id)?.id).toBe(artifact.id)
+    reopened.close()
   })
 })

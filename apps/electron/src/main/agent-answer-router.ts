@@ -18,6 +18,8 @@ export interface RouteResult {
   details?: unknown
 }
 
+type OpenWithContext = typeof handleOpenWithContext
+
 // Internal payload shapes (mirrors agent-contract without re-exporting)
 type PrimitivePayload =
   | { kind: 'text'; text: string }
@@ -31,6 +33,8 @@ type Payload = PrimitivePayload | MixedPayload
 // ── Router ────────────────────────────────────────────────────────────────────
 
 export class AgentAnswerRouter {
+  constructor(private readonly openWithContext: OpenWithContext = handleOpenWithContext) {}
+
   /**
    * Route a validated AgentAnswerPackage.
    * For `mixed` packages the top-level `payload` field is used directly.
@@ -45,7 +49,7 @@ export class AgentAnswerRouter {
     }
 
     if (payload.kind === 'design') {
-      const result = await handleOpenWithContext(payload.request)
+      const result = await this.openWithContext(payload.request)
       if (result.status === 'opened') {
         return { status: 'opened-design', details: result }
       }

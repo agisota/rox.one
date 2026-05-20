@@ -188,6 +188,9 @@ dmg:
 
 win:
   icon: resources/icon.ico
+  # T252: trust-boundary signing placeholder. Local Windows RC builds can stay
+  # unsigned, but CI/release builds must inject signing credentials via secrets
+  # and the afterPack Windows hook must emit the canonical boundary marker.
   target:
     - target: nsis
       arch:

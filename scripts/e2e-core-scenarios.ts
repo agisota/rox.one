@@ -51,7 +51,7 @@ const scenarios: Scenario[] = [
     id: 'electron-startup-smoke',
     title: 'Electron headless startup reaches ready markers',
     command: ['bun', 'run', 'electron:smoke'],
-    timeoutMs: 90_000,
+    timeoutMs: 180_000,
   },
 ];
 

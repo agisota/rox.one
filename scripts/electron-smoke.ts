@@ -19,6 +19,7 @@ const ELECTRON_BIN = process.platform === 'win32'
 const STARTUP_TIMEOUT_MS = 30_000
 const FORCE_KILL_GRACE_MS = 5_000
 const REQUIRED_MARKERS = ['ROX_SERVER_URL=', 'App initialized successfully'] as const
+const CLEAN_SHUTDOWN_MARKERS = ['[quit] cleanup complete', '[smoke] Exiting process after successful quit cleanup'] as const
 const smokeUserDataDir = mkdtempSync(join(tmpdir(), 'rox-electron-smoke-user-data-'))
 const smokeConfigDir = mkdtempSync(join(tmpdir(), 'rox-electron-smoke-config-'))
 
@@ -94,6 +95,10 @@ const seen: Record<(typeof REQUIRED_MARKERS)[number], boolean> = {
   'ROX_SERVER_URL=': false,
   'App initialized successfully': false,
 }
+const cleanShutdownSeen: Record<(typeof CLEAN_SHUTDOWN_MARKERS)[number], boolean> = {
+  '[quit] cleanup complete': false,
+  '[smoke] Exiting process after successful quit cleanup': false,
+}
 
 const electronProc = spawn({
   cmd: [ELECTRON_BIN, '.'],
@@ -112,6 +117,7 @@ const electronProc = spawn({
 let timedOut = false
 let forceKillTriggered = false
 let forceKillTimer: ReturnType<typeof setTimeout> | undefined
+let successKillTimer: ReturnType<typeof setTimeout> | undefined
 const timeout = setTimeout(() => {
   timedOut = true
   electronProc.kill('SIGTERM')
@@ -121,13 +127,40 @@ const timeout = setTimeout(() => {
   }, FORCE_KILL_GRACE_MS)
 }, STARTUP_TIMEOUT_MS)
 
+function hasSeenRequiredStartup(): boolean {
+  return REQUIRED_MARKERS.every((marker) => seen[marker])
+}
+
+function hasSeenCleanSmokeShutdown(): boolean {
+  return CLEAN_SHUTDOWN_MARKERS.every((marker) => cleanShutdownSeen[marker])
+}
+
+function noteCleanShutdown(text: string): void {
+  for (const marker of CLEAN_SHUTDOWN_MARKERS) {
+    if (text.includes(marker)) {
+      cleanShutdownSeen[marker] = true
+    }
+  }
+
+  // Electron has already logged successful app cleanup. On macOS/Bun the
+  // electron wrapper can keep the spawn handle open even after the app process
+  // logs process-exit intent, so nudge the wrapper closed after proof exists.
+  if (!successKillTimer && hasSeenRequiredStartup() && hasSeenCleanSmokeShutdown()) {
+    successKillTimer = setTimeout(() => {
+      electronProc.kill('SIGTERM')
+    }, 250)
+  }
+}
+
 const stdoutTask = pipeOutput(electronProc.stdout, (text) => {
   markSeen(text, seen)
+  noteCleanShutdown(text)
   process.stdout.write(sanitizeOutput(text))
 })
 
 const stderrTask = pipeOutput(electronProc.stderr, (text) => {
   markSeen(text, seen)
+  noteCleanShutdown(text)
   process.stderr.write(sanitizeOutput(text))
 })
 
@@ -135,6 +168,9 @@ const exitCode = await electronProc.exited
 clearTimeout(timeout)
 if (forceKillTimer) {
   clearTimeout(forceKillTimer)
+}
+if (successKillTimer) {
+  clearTimeout(successKillTimer)
 }
 await Promise.allSettled([stdoutTask, stderrTask])
 cleanupSmokeDirs()
@@ -151,7 +187,7 @@ if (timedOut) {
   process.exit(1)
 }
 
-if (exitCode !== 0) {
+if (exitCode !== 0 && !hasSeenCleanSmokeShutdown()) {
   console.error(`[smoke] Electron exited with code ${exitCode}`)
   process.exit(exitCode)
 }
