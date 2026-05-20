@@ -277,11 +277,12 @@ jobs:
           fi
           SIZE=$(stat -f%z "/tmp/diag-${OS_LABEL}.png" 2>/dev/null || stat -c%s "/tmp/diag-${OS_LABEL}.png")
           echo "Screenshot size: $SIZE bytes"
-          # Bumped floor from 2000 to 5000 bytes per M.18 fix scope: an all-white
-          # window encodes to ~2-3 KB PNG. A real-rendered UI on retina runners is
-          # ≥ ~50 KB. Keeps the assertion meaningful as evidence of UI render.
-          if [ "$SIZE" -lt 5000 ]; then
-            echo "ERROR: screenshot suspiciously small ($SIZE bytes) — likely all-white"
+          # Floor 20 KB. Empirical: real-UI screenshots from Sonoma + Sequoia
+          # in run 26139026981 came in at 71568 + 64508 bytes. A pure-white
+          # 1280x720 PNG compresses to ~1-2 KB; a white window with chrome
+          # to ~5-8 KB. 20 KB catches both failure modes without false negatives.
+          if [ "$SIZE" -lt 20000 ]; then
+            echo "ERROR: screenshot $SIZE bytes is below 20 KB floor (likely white window or boot hang)"
             exit 1
           fi
 

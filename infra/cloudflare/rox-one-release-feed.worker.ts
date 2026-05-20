@@ -13,14 +13,14 @@
 //
 //  Required environment:
 //    GITHUB_RELEASE_TOKEN — fine-grained PAT with "Contents: read" on the
-//                          agisota/rox-one-terminal repo.
+//                          agisota/rox.one repo.
 // =============================================================================
 
 export interface Env {
   GITHUB_RELEASE_TOKEN: string
 }
 
-const REPO = 'agisota/rox-one-terminal'
+const REPO = 'agisota/rox.one'
 const TAG_TTL_MS = 60_000 // cache the resolved "latest" tag for 60s
 const ASSET_TTL_MS = 60_000 // cache asset metadata lookups for 60s
 const BINARY_CACHE_MAX_AGE = 300 // public Cache-Control on streamed binaries
