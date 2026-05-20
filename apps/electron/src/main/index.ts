@@ -654,7 +654,9 @@ app.whenReady().then(async () => {
     })
 
     // Rox Design runtime/view control is app-local and stays on direct IPC.
+    roxStartup('before RoxDesignRuntimeManager initialization')
     roxDesignRuntimeManager = getRoxDesignRuntimeManager()
+    roxStartup('RoxDesignRuntimeManager initialized')
     roxDesignViewManager = getRoxDesignViewManager()
     ipcMain.handle('rox-design:start', async () => getRoxDesignRuntimeManager().start())
     ipcMain.handle('rox-design:get-status', async () => getRoxDesignRuntimeManager().getStatus())

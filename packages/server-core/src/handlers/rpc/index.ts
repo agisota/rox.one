@@ -4,6 +4,7 @@ import type { HandlerDeps } from '../handler-deps'
 import { registerAuditAdminHandlers } from './admin/audit-list'
 import { registerAuthHandlers } from './auth'
 import { registerAutomationsHandlers } from './automations'
+import { registerArtifactsHandlers } from './artifacts'
 import { registerFilesHandlers } from './files'
 import { registerLabelsHandlers } from './labels'
 import { registerLlmConnectionsHandlers } from './llm-connections'
@@ -39,6 +40,7 @@ export function registerCoreRpcHandlers(
   registerAuditAdminHandlers(server, deps)
   registerAuthHandlers(server, deps)
   registerAutomationsHandlers(server, deps)
+  registerArtifactsHandlers(server, deps)
   registerFilesHandlers(server, deps)
   registerLabelsHandlers(server, deps)
   registerLlmConnectionsHandlers(server, deps)

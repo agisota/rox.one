@@ -39,6 +39,9 @@ jobs:
       ROX_ARTIFACT_PLATFORM: mac
       ROX_ARTIFACT_ARCH: arm64
       ROX_RC_MODE: unsigned
+      # This PR smoke launches the shell only; release/package jobs still require
+      # a prepared Rox Design runtime payload.
+      ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY: "1"
 
     steps:
       - name: Checkout
@@ -53,6 +56,8 @@ jobs:
         uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
 
       - name: Install dependencies
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: bun install --frozen-lockfile
 
       - name: Validate cross-platform launch workflow contract
@@ -161,6 +166,8 @@ jobs:
             "$ASOUND_PKG"
 
       - name: Install dependencies
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: bun install --frozen-lockfile
 
       - name: Validate launcher + workflow contracts
@@ -233,6 +240,8 @@ jobs:
         uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
 
       - name: Install dependencies
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: bun install --frozen-lockfile
 
       - name: Validate cross-platform launch workflow contract

@@ -21,11 +21,11 @@ export const PREFERENCES_IPC_CHANNELS = {
 export function registerPreferencesIpcHandlers(server: RpcServer, _deps: HandlerDeps): void {
   const prefs = createAutoLaunchDesignPrefs(app.getPath('userData'))
 
-  server.handle(PREFERENCES_IPC_CHANNELS.GET_AUTO_LAUNCH_DESIGN, async () => {
+  server.handle(RPC_CHANNELS.preferences.GET_AUTO_LAUNCH_DESIGN, async () => {
     return prefs.readAutoLaunchDesignChoice()
   })
 
-  server.handle(PREFERENCES_IPC_CHANNELS.SET_AUTO_LAUNCH_DESIGN, async (_ctx, choice: AutoLaunchDesignChoice) => {
+  server.handle(RPC_CHANNELS.preferences.SET_AUTO_LAUNCH_DESIGN, async (_ctx, choice: AutoLaunchDesignChoice) => {
     await prefs.writeAutoLaunchDesignChoice(choice)
     return { success: true }
   })

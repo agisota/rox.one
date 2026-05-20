@@ -1,7 +1,7 @@
 # OS Lab Coverage — ROX.ONE Packaged Launch (PZD-54)
 
-**Generated:** 2026-05-20  
-**Branch:** `chore/pzd54-oslab`  
+**Generated:** 2026-05-20
+**Branch:** `chore/pzd54-oslab`
 **Source:** `.github/workflows/*.yml` read from `origin/main` (commit `31bbd5eb5`)
 
 ---

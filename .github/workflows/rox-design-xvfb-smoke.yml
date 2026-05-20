@@ -47,6 +47,8 @@ jobs:
           bun-version: "1.3.11"
 
       - name: Install dependencies
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: bun install --frozen-lockfile
 
       - name: Run AAP loop harness test
@@ -76,10 +78,38 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y xvfb x11-apps imagemagick libfuse2
+          sudo apt-get install -y xvfb x11-apps imagemagick libfuse2 unzip
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Prepare Rox Design runtime payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          OPEN_DESIGN_VERSION="0.7.0"
+          OPEN_DESIGN_TAG="open-design-v${OPEN_DESIGN_VERSION}"
+          OPEN_DESIGN_ASSET="open-design-${OPEN_DESIGN_VERSION}-mac-arm64.zip"
+          OPEN_DESIGN_RELEASE="https://github.com/nexu-io/open-design/releases/download/${OPEN_DESIGN_TAG}"
+
+          curl -fsSLo "/tmp/${OPEN_DESIGN_ASSET}" "${OPEN_DESIGN_RELEASE}/${OPEN_DESIGN_ASSET}"
+          curl -fsSLo "/tmp/${OPEN_DESIGN_ASSET}.sha256" "${OPEN_DESIGN_RELEASE}/${OPEN_DESIGN_ASSET}.sha256"
+          (cd /tmp && shasum -a 256 -c "${OPEN_DESIGN_ASSET}.sha256")
+
+          rm -rf /tmp/open-design-runtime
+          mkdir -p /tmp/open-design-runtime
+          unzip -q "/tmp/${OPEN_DESIGN_ASSET}" -d /tmp/open-design-runtime
+
+          OPEN_DESIGN_RESOURCES="$(find /tmp/open-design-runtime -type d -path '*/Open Design.app/Contents/Resources' | head -n 1)"
+          if [ -z "$OPEN_DESIGN_RESOURCES" ]; then
+            echo "Open Design.app/Contents/Resources not found in ${OPEN_DESIGN_ASSET}"
+            find /tmp/open-design-runtime -maxdepth 4 -type d | sort | head -80
+            exit 1
+          fi
+
+          ROX_DESIGN_SOURCE_RESOURCES="${OPEN_DESIGN_RESOURCES}" \
+            bun run rox-design:prepare -- --force
+          bun run rox-design:payload:verify
 
       - name: Build Linux AppImage
         shell: bash
@@ -122,13 +152,13 @@ jobs:
           set -euo pipefail
           SMOKE_LOG=/tmp/rox-design-smoke.log
 
-          if ! grep -q "RoxDesignRuntimeManager" "$SMOKE_LOG"; then
-            echo "FAIL: RoxDesignRuntimeManager markers not found in $SMOKE_LOG"
+          if ! grep -q "RoxDesignRuntimeManager initialized" "$SMOKE_LOG"; then
+            echo "FAIL: RoxDesignRuntimeManager initialized marker not found in $SMOKE_LOG"
             echo "=== Full smoke log ==="
             cat "$SMOKE_LOG" || echo "(empty)"
             exit 1
           fi
-          echo "PASS: RoxDesignRuntimeManager markers found in diag log"
+          echo "PASS: RoxDesignRuntimeManager initialized marker found in diag log"
 
       - name: Capture xvfb screenshot
         if: always()

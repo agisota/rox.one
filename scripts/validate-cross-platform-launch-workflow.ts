@@ -18,6 +18,21 @@ function requireText(source: string, expected: string, description: string): voi
   if (!source.includes(expected)) fail(`missing ${description}: ${expected}`);
 }
 
+function requireInstallStepToken(source: string): void {
+  const normalized = source.replace(/\r\n?/g, '\n');
+  const installSections = normalized.split(/\n\s+- name: Install dependencies\n/g).slice(1);
+  if (installSections.length < 3) {
+    fail(`expected at least 3 Install dependencies steps, found ${installSections.length}`);
+  }
+
+  for (const [index, section] of installSections.entries()) {
+    const stepBody = section.split(/\n\s+- name: /)[0] ?? section;
+    if (!stepBody.includes('GITHUB_TOKEN: ${{ github.token }}')) {
+      fail(`Install dependencies step ${index + 1} does not pass GITHUB_TOKEN for GitHub Release postinstall downloads`);
+    }
+  }
+}
+
 if (!existsSync(path.join(root, workflowPath))) {
   fail(`missing ${workflowPath}`);
 }
@@ -26,6 +41,8 @@ const workflow = read(workflowPath);
 const packagedSmoke = read('scripts/electron-smoke-packaged.ts');
 const packageJson = JSON.parse(read('package.json')) as { scripts?: Record<string, string> };
 const scripts = packageJson.scripts ?? {};
+
+requireInstallStepToken(workflow);
 
 for (const [scriptName, expected] of [
   ['electron:smoke:packaged', 'scripts/electron-smoke-packaged.ts'],

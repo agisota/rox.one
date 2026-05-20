@@ -16,6 +16,7 @@ import { describe, expect, test } from 'bun:test'
 
 const repoRoot = join(import.meta.dir, '../..')
 const workflowPath = join(repoRoot, '.github/workflows/rox-design-xvfb-smoke.yml')
+const mainIndexPath = join(repoRoot, 'apps/electron/src/main/index.ts')
 
 const SHA40 = /^[0-9a-f]{40}$/
 const USES_PATTERN = /^\s*uses:\s+([^\s#@]+)@([^\s#]+)(\s+#.*)?$/
@@ -54,6 +55,13 @@ describe('rox-design-xvfb-smoke.yml workflow (PZD-59)', () => {
     expect(content).toContain('RoxDesignRuntimeManager')
   })
 
+  test('workflow asserts the concrete runtime-manager initialization marker', () => {
+    const workflow = readFileSync(workflowPath, 'utf8')
+    const mainIndex = readFileSync(mainIndexPath, 'utf8')
+    expect(workflow).toContain('RoxDesignRuntimeManager initialized')
+    expect(mainIndex).toContain('RoxDesignRuntimeManager initialized')
+  })
+
   test('workflow uploads diag artifact', () => {
     const content = readFileSync(workflowPath, 'utf8')
     expect(content).toContain('upload-artifact')
@@ -84,6 +92,15 @@ describe('rox-design-xvfb-smoke.yml workflow (PZD-59)', () => {
     const content = readFileSync(workflowPath, 'utf8')
     expect(content).toContain('xvfb')
     expect(content).toContain('apt-get')
+  })
+
+  test('workflow prepares the Rox Design runtime payload before packaging', () => {
+    const content = readFileSync(workflowPath, 'utf8')
+    expect(content).toContain('Prepare Rox Design runtime payload')
+    expect(content).toContain('OPEN_DESIGN_VERSION="0.7.0"')
+    expect(content).toContain('ROX_DESIGN_SOURCE_RESOURCES="${OPEN_DESIGN_RESOURCES}"')
+    expect(content).toContain('bun run rox-design:prepare -- --force')
+    expect(content).toContain('bun run rox-design:payload:verify')
   })
 
   test('workflow builds AppImage via electron:build:linux', () => {

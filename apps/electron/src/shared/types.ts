@@ -216,6 +216,8 @@ import type {
   DirectoryListingResult,
   RemoteSessionTransferPayload,
   ImportRemoteSessionTransferResult,
+  AgentArtifact,
+  UpsertSessionArtifactInput,
 } from '@rox-one/shared/protocol'
 
 export type RoxDesignRuntimeStatus = 'idle' | 'starting' | 'running' | 'failed'
@@ -508,6 +510,13 @@ export interface ElectronAPI {
   watchSessionFiles(sessionId: string): Promise<void>
   unwatchSessionFiles(): Promise<void>
   onSessionFilesChanged(callback: (sessionId: string) => void): () => void
+
+  // Session Artifacts
+  listArtifacts(sessionId: string): Promise<AgentArtifact[]>
+  getArtifact(sessionId: string, artifactId: string): Promise<AgentArtifact | null>
+  upsertArtifact(sessionId: string, input: UpsertSessionArtifactInput): Promise<AgentArtifact>
+  deleteArtifact(sessionId: string, artifactId: string): Promise<boolean>
+  onArtifactsChanged(callback: (sessionId: string, artifactId: string) => void): () => void
 
   // Sources
   getSources(workspaceId: string): Promise<LoadedSource[]>
@@ -820,6 +829,7 @@ export type WhatsAppUiEvent =
 export type RightSidebarPanel =
   | { type: 'files'; path?: string }
   | { type: 'history' }
+  | { type: 'artifact'; artifactId?: string }
   | { type: 'none' }
 
 /**
