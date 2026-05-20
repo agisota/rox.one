@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- Inherit entitlements for child processes spawned by the main app:
+         GPU helper, renderer helper, plugin helper, and any user-space child
+         processes such as the login shell (shell-env.ts), bundled bun runtime,
+         codex CLI, ripgrep, and the claude-agent-sdk native binary.
+
+         Apple requires com.apple.security.inherit on helper binaries when the
+         hardened runtime is in effect; otherwise child spawn is denied under
+         ad-hoc signing and the main process hangs inside execSync. -->
+    <key>com.apple.security.inherit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+  </dict>
+</plist>

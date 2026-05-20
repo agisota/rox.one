@@ -194,6 +194,7 @@ export class WindowManager {
     const isWindows = process.platform === 'win32'
     const windowsBackgroundMaterial = getWindowsBackgroundMaterial()
 
+    process.stderr.write('ROX_STARTUP: before new BrowserWindow\n')
     const window = new BrowserWindow({
       width: windowWidth,
       height: windowHeight,
@@ -334,9 +335,14 @@ export class WindowManager {
 
       if (VITE_DEV_SERVER_URL) {
         const params = new URLSearchParams(query).toString()
+        process.stderr.write(`ROX_STARTUP: before loadURL ${VITE_DEV_SERVER_URL}\n`)
         window.loadURL(`${VITE_DEV_SERVER_URL}?${params}`)
+        process.stderr.write('ROX_STARTUP: after loadURL\n')
       } else {
-        window.loadFile(join(__dirname, 'renderer/index.html'), { query })
+        const indexPath = join(__dirname, 'renderer/index.html')
+        process.stderr.write(`ROX_STARTUP: before loadFile ${indexPath}\n`)
+        window.loadFile(indexPath, { query })
+        process.stderr.write('ROX_STARTUP: after loadFile\n')
       }
     }
 

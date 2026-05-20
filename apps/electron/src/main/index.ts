@@ -1,7 +1,15 @@
+// Hard-coded stderr instrumentation (M.18 white-window diag). Writes
+// straight to fd 2 so it survives even if the logger fails to initialize
+// or the app exits before app.whenReady fires. Captured by Playwright via
+// electronApp.process().stderr in mac-diag-smoke workflow.
+process.stderr.write('ROX_STARTUP: main-entry (pre-imports)\n')
+
 // Load user's shell environment first (before other imports that may use env)
 // This ensures tools like Homebrew, nvm, etc. are available to the agent
 import { loadShellEnv } from './shell-env'
+process.stderr.write('ROX_STARTUP: before loadShellEnv\n')
 loadShellEnv()
+process.stderr.write('ROX_STARTUP: after loadShellEnv\n')
 
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, safeStorage, shell } from 'electron'
 import { createHash, randomUUID } from 'crypto'
@@ -335,6 +343,7 @@ if (!gotTheLock) {
 
 // Helper to create initial windows on startup
 async function createInitialWindows(): Promise<void> {
+  process.stderr.write('ROX_STARTUP: createInitialWindows entered\n')
   if (!windowManager) return
 
   // Load saved window state
@@ -382,14 +391,19 @@ async function createInitialWindows(): Promise<void> {
   }
 
   // Default: open window for first workspace
+  process.stderr.write('ROX_STARTUP: before windowManager.createWindow (default workspace)\n')
   windowManager.createWindow({ workspaceId: workspaces[0].id })
+  process.stderr.write('ROX_STARTUP: after windowManager.createWindow (default workspace)\n')
   mainLog.info(`Created window for first workspace: ${workspaces[0].name}`)
 }
 
+process.stderr.write('ROX_STARTUP: before app.whenReady().then registration\n')
 app.whenReady().then(async () => {
+  process.stderr.write('ROX_STARTUP: app.whenReady fired\n')
   // Diagnostic mode — no-op unless ROX_DIAG=1
   const { initDiagLogger } = await import('./diag/diag-logger')
   initDiagLogger()
+  process.stderr.write('ROX_STARTUP: diag-logger initialized\n')
 
   const smokeExitOnReady = process.env.ROX_SMOKE_EXIT_ON_READY === '1'
   const scheduleSmokeShutdown = (exitCode: number, message: string) => {
@@ -489,8 +503,10 @@ app.whenReady().then(async () => {
   }
 
   try {
+    process.stderr.write('ROX_STARTUP: before WindowManager construction\n')
     // Initialize window manager
     windowManager = new WindowManager()
+    process.stderr.write('ROX_STARTUP: after WindowManager construction\n')
 
     // Create the application menu (needs windowManager for New Window action)
     createApplicationMenu(windowManager)

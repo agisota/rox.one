@@ -4,19 +4,32 @@
   <dict>
     <!-- Hardened runtime entitlements for ROX.ONE private/RC macOS builds.
          Boundary contract: M.18 T250 (see docs/release/mac-trust-boundary-audit.md).
-         These entitlements are intentionally minimal:
-           - Allow JIT (V8 needs it).
-           - Allow unsigned-executable-memory (Electron renderer JIT pages).
-           - Allow outbound network (LLM provider HTTPS calls).
-         Explicitly NOT granted:
-           - com.apple.security.cs.disable-library-validation: dropped in T250
-             so the OS enforces signed-only dylib loads inside the app bundle.
-           - com.apple.security.network.server: never required for a desktop client.
-           - com.apple.security.cs.allow-dyld-environment-variables: never needed.
+         Updated in M.18 white-window fix: when ad-hoc signed + hardened runtime,
+         the main process spawns the user login shell (shell-env.ts) and loads
+         third-party native modules (better-sqlite3, ripgrep, claude-agent-sdk).
+         Without the entitlements below the launchd security policy denies either
+         the child spawn or the dylib load, the main process hangs inside execSync
+         (5 s timeout) before app.whenReady() fires, no BrowserWindow is ever
+         created, no diag.log is written, and Playwright sees a 30 s timeout.
+
+         Notarized AppStore-track builds must re-evaluate disable-library-validation
+         (which IS notarization-eligible but requires explicit justification in the
+         App Review Information). See trust-boundary audit for rollout plan.
     -->
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- Required so the hardened-runtime app can load third-party dylibs that are
+         not signed by the same team (ripgrep, better-sqlite3, native modules in
+         @anthropic-ai/claude-agent-sdk-binary). Without this, dyld refuses to map
+         them and the main process exits before app.whenReady fires. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <!-- Required because shell-env.ts spawns the user's login shell which sources
+         .zshrc / .bashrc and consumes DYLD_*/SHELL_SESSION_* environment variables
+         from the parent process. -->
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
     <true/>
     <key>com.apple.security.network.client</key>
     <true/>

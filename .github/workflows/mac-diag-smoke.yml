@@ -105,6 +105,30 @@ jobs:
           npm install --no-fund --no-audit --silent @playwright/test@^1.48
           npx --yes playwright install chromium
 
+      - name: Inspect codesign + Gatekeeper assessment of built app
+        if: always()
+        shell: bash
+        env:
+          OS_LABEL: ${{ matrix.os }}
+        run: |
+          set +e
+          APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+          {
+            echo "=== APP_PATH: $APP_PATH ==="
+            echo
+            echo "=== codesign -dvvv ==="
+            codesign -dvvv "$APP_PATH" 2>&1
+            echo
+            echo "=== codesign --display --entitlements :- ==="
+            codesign --display --entitlements :- "$APP_PATH" 2>&1
+            echo
+            echo "=== spctl -a -vvv -t exec ==="
+            spctl -a -vvv -t exec "$APP_PATH" 2>&1
+            echo
+            echo "=== exe permissions ==="
+            ls -la "$APP_PATH/Contents/MacOS/" 2>&1
+          } | tee /tmp/diag-${OS_LABEL}-codesign.log
+
       - name: Launch app and capture screenshot + diag log
         shell: bash
         env:
@@ -128,11 +152,19 @@ jobs:
           cat > /tmp/pw/diag-launch.mjs << 'PLAYWRIGHT_SCRIPT'
           import { _electron as electron } from '@playwright/test'
           import { join } from 'path'
+          import { createWriteStream } from 'fs'
 
           const appPath = process.env.ROX_APP_PATH
           const screenshotPath = process.env.ROX_SCREENSHOT_PATH
+          const stderrLogPath = process.env.ROX_STDERR_LOG
+          const stdoutLogPath = process.env.ROX_STDOUT_LOG
           console.log('Launching app:', appPath)
+          console.log('stderr capture →', stderrLogPath)
+          console.log('stdout capture →', stdoutLogPath)
 
+          // M.18 white-window diag: 90 s launch timeout (was 30 s) — child
+          // processes spawned during init can stretch wall-clock past 30 s
+          // when shell-env.ts shells out to login zsh on a fresh runner.
           const electronApp = await electron.launch({
             executablePath: join(appPath, 'Contents/MacOS/ROX.ONE'),
             env: {
@@ -140,17 +172,31 @@ jobs:
               ROX_DIAG: '1',
               ROX_SMOKE_EXIT_ON_READY: '0',
             },
-            timeout: 30000,
+            timeout: 90000,
           })
+
+          // Pipe the spawned Electron process stdio to dedicated log files so
+          // ROX_STARTUP: stderr markers survive even if firstWindow() times out.
+          const childProc = electronApp.process()
+          if (childProc?.stderr) {
+            const s = createWriteStream(stderrLogPath, { flags: 'a' })
+            childProc.stderr.pipe(s)
+            childProc.stderr.on('data', d => process.stderr.write(`[app-stderr] ${d}`))
+          }
+          if (childProc?.stdout) {
+            const s = createWriteStream(stdoutLogPath, { flags: 'a' })
+            childProc.stdout.pipe(s)
+            childProc.stdout.on('data', d => process.stdout.write(`[app-stdout] ${d}`))
+          }
 
           // Wait for first window
           let page
           try {
-            page = await electronApp.firstWindow()
+            page = await electronApp.firstWindow({ timeout: 60000 })
             console.log('First window URL:', page.url())
           } catch (err) {
             console.error('firstWindow() failed:', err.message)
-            await electronApp.close()
+            try { await electronApp.close() } catch {}
             process.exit(1)
           }
 
@@ -164,9 +210,24 @@ jobs:
           await electronApp.close()
           PLAYWRIGHT_SCRIPT
 
+          set +e
           ROX_APP_PATH="$APP_PATH" \
           ROX_SCREENSHOT_PATH="/tmp/diag-${OS_LABEL}.png" \
+          ROX_STDERR_LOG="/tmp/diag-${OS_LABEL}-stderr.log" \
+          ROX_STDOUT_LOG="/tmp/diag-${OS_LABEL}-stdout.log" \
             node /tmp/pw/diag-launch.mjs
+          NODE_RC=$?
+          set -e
+
+          echo "=== stderr log (first 200 lines) ==="
+          head -n 200 "/tmp/diag-${OS_LABEL}-stderr.log" 2>/dev/null || echo "(no stderr log)"
+          echo "=== stdout log (first 80 lines) ==="
+          head -n 80 "/tmp/diag-${OS_LABEL}-stdout.log" 2>/dev/null || echo "(no stdout log)"
+
+          if [ "$NODE_RC" -ne 0 ]; then
+            echo "ERROR: Playwright launch script exited with code $NODE_RC"
+            exit "$NODE_RC"
+          fi
 
           # Hard assertion: the screenshot MUST exist and be non-trivially sized.
           # Without this, a silently broken Playwright run would still mark the
@@ -177,7 +238,10 @@ jobs:
           fi
           SIZE=$(stat -f%z "/tmp/diag-${OS_LABEL}.png" 2>/dev/null || stat -c%s "/tmp/diag-${OS_LABEL}.png")
           echo "Screenshot size: $SIZE bytes"
-          if [ "$SIZE" -lt 2000 ]; then
+          # Bumped floor from 2000 to 5000 bytes per M.18 fix scope: an all-white
+          # window encodes to ~2-3 KB PNG. A real-rendered UI on retina runners is
+          # ≥ ~50 KB. Keeps the assertion meaningful as evidence of UI render.
+          if [ "$SIZE" -lt 5000 ]; then
             echo "ERROR: screenshot suspiciously small ($SIZE bytes) — likely all-white"
             exit 1
           fi
@@ -205,6 +269,9 @@ jobs:
           path: |
             /tmp/diag-${{ matrix.os }}.png
             /tmp/diag-${{ matrix.os }}.log
+            /tmp/diag-${{ matrix.os }}-stderr.log
+            /tmp/diag-${{ matrix.os }}-stdout.log
+            /tmp/diag-${{ matrix.os }}-codesign.log
             /tmp/electron-builder-${{ matrix.os }}.log
           if-no-files-found: warn
           retention-days: 14

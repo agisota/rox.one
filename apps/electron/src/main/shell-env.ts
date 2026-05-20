@@ -39,6 +39,7 @@ export function loadShellEnv(): void {
 
   const shell = process.env.SHELL || '/bin/zsh'
   mainLog.info(`[shell-env] Loading environment from ${shell}`)
+  process.stderr.write(`ROX_STARTUP: shell-env spawning ${shell}\n`)
 
   try {
     // Run login shell to get full environment
@@ -62,6 +63,7 @@ export function loadShellEnv(): void {
       stdio: ['pipe', 'pipe', 'pipe'],
     })
 
+    process.stderr.write('ROX_STARTUP: shell-env execSync returned\n')
     // Parse environment after marker and set variables (excluding blocked ones)
     const envSection = output.split('__ENV_START__')[1] || ''
     let count = 0
@@ -85,6 +87,7 @@ export function loadShellEnv(): void {
     }
   } catch (error) {
     // Don't fail app startup if shell env loading fails
+    process.stderr.write(`ROX_STARTUP: shell-env execSync FAILED: ${String(error).slice(0, 200)}\n`)
     mainLog.warn(`[shell-env] Failed to load shell environment: ${error}`)
     mainLog.warn('[shell-env] Adding common paths as fallback')
 
