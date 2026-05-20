@@ -154,6 +154,7 @@ interface TopBarProps {
   onOpenSettingsSubpage: (subpage: SettingsMenuItem['id']) => void
   onOpenKeyboardShortcuts: () => void
   onOpenStoredUserPreferences: () => void
+  onOpenRoxDesign: () => void
   onBack: () => void
   onForward: () => void
   canGoBack: boolean
@@ -180,6 +181,7 @@ export function TopBar({
   onOpenSettingsSubpage,
   onOpenKeyboardShortcuts,
   onOpenStoredUserPreferences,
+  onOpenRoxDesign,
   onBack,
   onForward,
   canGoBack,
@@ -301,6 +303,10 @@ export function TopBar({
                 {newWindowHotkey && <DropdownMenuShortcut className="pl-6">{newWindowHotkey}</DropdownMenuShortcut>}
               </StyledDropdownMenuItem>
             )}
+            <StyledDropdownMenuItem onClick={onOpenRoxDesign}>
+              <Icons.Palette className="h-3.5 w-3.5" />
+              Rox Design
+            </StyledDropdownMenuItem>
 
             <StyledDropdownMenuSeparator />
 
@@ -472,6 +478,11 @@ export function TopBar({
             <StyledDropdownMenuItem onClick={onAddBrowserPanel}>
               <Icons.Globe className="h-3.5 w-3.5" />
               {browserTabLabel}
+            </StyledDropdownMenuItem>
+            <StyledDropdownMenuSeparator />
+            <StyledDropdownMenuItem onClick={onOpenRoxDesign}>
+              <Icons.Palette className="h-3.5 w-3.5" />
+              Rox Design
             </StyledDropdownMenuItem>
           </StyledDropdownMenuContent>
         </DropdownMenu>

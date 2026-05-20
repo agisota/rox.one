@@ -2,16 +2,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
+import { getElectronRendererManualChunk } from './vite.manual-chunks'
 
 // NOTE: Source map upload to Sentry is intentionally disabled.
 // To re-enable, uncomment the sentryVitePlugin below and add SENTRY_AUTH_TOKEN,
 // SENTRY_ORG, SENTRY_PROJECT to CI secrets. See CLAUDE.md "Sentry Error Tracking" section.
 // import { sentryVitePlugin } from '@sentry/vite-plugin'
-
-function isNodeModulePackage(id: string, packageName: string): boolean {
-  const normalized = id.replace(/\\/g, '/')
-  return normalized.includes(`/node_modules/${packageName}/`)
-}
 
 export default defineConfig(({ command }) => {
   // Playground is a dev-only component browser. Exclude it from production builds
@@ -84,36 +80,12 @@ export default defineConfig(({ command }) => {
         //   - index-ui-*         (@rox-one/ui — internal design-system package)
         // Without these explicit buckets, the auto-chunker keeps these modules in
         // whichever entry first imports them, inflating main-*.js past budget.
-        // Important: match React's exact package directory. A broad `/react/`
-        // substring also catches packages such as `@tiptap/react`, pulling
-        // feature code into the React runtime bucket and creating circular
-        // chunks with i18n/shared code. That broke packaged startup before
-        // React could replace the initial loader.
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (isNodeModulePackage(id, 'sonner')) return 'sonner'
-            if (id.includes('/node_modules/@sentry/')) return 'sentry'
-            if (
-              isNodeModulePackage(id, 'i18next') ||
-              isNodeModulePackage(id, 'react-i18next') ||
-              isNodeModulePackage(id, 'i18next-browser-languagedetector')
-            ) {
-              return 'i18n'
-            }
-            if (
-              isNodeModulePackage(id, 'react') ||
-              isNodeModulePackage(id, 'react-dom') ||
-              isNodeModulePackage(id, 'scheduler')
-            ) {
-              return 'index-react'
-            }
-            if (id.includes('/@radix-ui/')) return 'index-radix'
-            if (id.includes('/jotai/')) return 'index-jotai'
-          }
-          if (id.includes('/packages/ui/')) return 'index-ui'
-          if (id.includes('/packages/shared/')) return 'index-shared'
-          return undefined
-        },
+        // Rollup may emit "circular chunk" warnings for the index-* buckets —
+        // the chunks still execute correctly because the cycles resolve at
+        // runtime through ESM live bindings (same semantics as Webpack
+        // splitChunks). The pre-T132e build collapsed all of this into a single
+        // index-*.js chunk and shipped fine.
+        manualChunks: getElectronRendererManualChunk,
       },
     }
   },

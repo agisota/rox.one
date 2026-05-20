@@ -62,6 +62,10 @@ mkdirSync(GENERATED_CONFIG_DIR, { recursive: true });
 mkdirSync(ELECTRON_BUILDER_CACHE, { recursive: true });
 writeFileSync(GENERATED_CONFIG_PATH, yaml.dump(generatedConfig, { lineWidth: 120 }), 'utf8');
 
+// Fail fast on missing Rox Design runtime payload before spending build/CPU time.
+// Set ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY=1 only for dev smoke where packaged Rox Design is not exercised.
+await run(['bun', 'run', 'rox-design:payload:verify'], ROOT_DIR);
+
 await downloadBun({
   platform: 'darwin',
   arch: 'arm64',

@@ -19,6 +19,8 @@ directories:
 
 files:
   - dist/**/*
+  # Rox Design is copied to dist/resources for dev runtime, but packaged once from resources/rox-design below.
+  - "!dist/resources/rox-design/**/*"
   - "!dist/renderer/src/**"
   - "!**/*.map"
   - package.json
@@ -27,6 +29,8 @@ files:
   - resources/session-mcp-server/**/*
   # Include Pi agent server subprocess for Pi SDK sessions
   - resources/pi-agent-server/**/*
+  # Future Rox Design packaged Open Design runtime/resources.
+  - resources/rox-design/**/*
   # Note: Bundled assets (docs, themes, permissions, tool-icons) are in resources/
   # and copied to dist/resources/ by build:copy. They're included via dist/**/* above.
   # Include network interceptor for API error capture and MCP schema injection
