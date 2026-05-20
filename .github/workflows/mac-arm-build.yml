@@ -46,6 +46,8 @@ jobs:
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
       ROX_DEV_RUNTIME: "1"
+      # Skip Rox Design payload gate in CI smoke; payload is not staged on hosted runners.
+      ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY: "1"
 
     steps:
       - name: Checkout
