@@ -51,7 +51,8 @@ describe('rox-design-xvfb-smoke.yml workflow (PZD-59)', () => {
 
   test('workflow greps for RoxDesignRuntimeManager init markers', () => {
     const content = readFileSync(workflowPath, 'utf8')
-    expect(content).toContain('RoxDesignRuntimeManager')
+    expect(content).toContain('RoxDesignRuntimeManager smoke probe: available')
+    expect(content).toContain('ROX_DESIGN_SMOKE_MARKER: "1"')
   })
 
   test('workflow uploads diag artifact', () => {

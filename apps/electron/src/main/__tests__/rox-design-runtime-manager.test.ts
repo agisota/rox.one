@@ -158,6 +158,24 @@ describe('RoxDesignRuntimeManager', () => {
     await expect(manager.stop()).resolves.toMatchObject({ status: 'idle' })
   })
 
+  test('reports bundled runtime probe without spawning sidecars', () => {
+    const resourcesRoot = tempRoot()
+    const runtimeRoot = createMockOpenDesignRuntime(resourcesRoot)
+    const manager = new RoxDesignRuntimeManager({ resourcesRoot, dataRoot: join(resourcesRoot, 'data') })
+
+    const probe = manager.getBundledRuntimeProbe()
+
+    expect(probe).toMatchObject({
+      status: 'available',
+      resourcesRoot,
+      runtimeRoot,
+      version: '0.7-test',
+    })
+    expect(probe.nodePath).toContain('open-design/bin/node')
+    expect(probe.daemonEntryPath).toContain('daemon-sidecar.mjs')
+    expect(probe.webEntryPath).toContain('web-sidecar.mjs')
+  })
+
   test('can start from an explicit Open Design runtime root', async () => {
     const resourcesRoot = tempRoot()
     const runtimeRoot = createMockOpenDesignRuntime(resourcesRoot)

@@ -655,6 +655,13 @@ app.whenReady().then(async () => {
 
     // Rox Design runtime/view control is app-local and stays on direct IPC.
     roxDesignRuntimeManager = getRoxDesignRuntimeManager()
+    if (process.env.ROX_DESIGN_SMOKE_MARKER === '1') {
+      const probe = roxDesignRuntimeManager.getBundledRuntimeProbe()
+      const details = probe.status === 'available'
+        ? `available version=${probe.version ?? 'unknown'} root=${probe.runtimeRoot ?? 'unknown'}`
+        : `${probe.status} root=${probe.runtimeRoot ?? 'unknown'}${probe.error ? ` error=${probe.error}` : ''}`
+      roxStartup(`RoxDesignRuntimeManager smoke probe: ${details}`)
+    }
     roxDesignViewManager = getRoxDesignViewManager()
     ipcMain.handle('rox-design:start', async () => getRoxDesignRuntimeManager().start())
     ipcMain.handle('rox-design:get-status', async () => getRoxDesignRuntimeManager().getStatus())

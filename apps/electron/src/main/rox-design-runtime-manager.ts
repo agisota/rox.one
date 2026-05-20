@@ -41,6 +41,17 @@ interface OpenDesignRuntimeLayout {
   standaloneRoot: string
 }
 
+export interface RoxDesignRuntimeProbe {
+  status: 'available' | 'missing' | 'incomplete'
+  resourcesRoot: string
+  runtimeRoot?: string
+  version?: string
+  nodePath?: string
+  daemonEntryPath?: string
+  webEntryPath?: string
+  error?: string
+}
+
 type SidecarChild = ChildProcessByStdio<null, Readable, Readable>
 
 interface ManagedProcess {
@@ -305,6 +316,36 @@ export class RoxDesignRuntimeManager {
       daemonUrl: this.status.daemonUrl,
       desktopAuthSecret: this.desktopAuthSecret ?? undefined,
       registerDesktopAuthWithDaemon: () => this.registerDesktopAuthWithDaemon(),
+    }
+  }
+
+  getBundledRuntimeProbe(): RoxDesignRuntimeProbe {
+    try {
+      const layout = this.findBundledRuntimeLayout()
+      if (!layout) {
+        return {
+          status: 'missing',
+          resourcesRoot: this.resourcesRoot,
+          runtimeRoot: join(this.resourcesRoot, 'resources', 'rox-design'),
+        }
+      }
+
+      return {
+        status: 'available',
+        resourcesRoot: this.resourcesRoot,
+        runtimeRoot: layout.root,
+        version: layout.version,
+        nodePath: layout.nodePath,
+        daemonEntryPath: layout.daemonEntryPath,
+        webEntryPath: layout.webEntryPath,
+      }
+    } catch (error) {
+      return {
+        status: 'incomplete',
+        resourcesRoot: this.resourcesRoot,
+        runtimeRoot: join(this.resourcesRoot, 'resources', 'rox-design'),
+        error: error instanceof Error ? error.message : String(error),
+      }
     }
   }
 

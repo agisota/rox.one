@@ -1,6 +1,6 @@
 name: Rox Design xvfb Packaged Smoke (PZD-59)
 
-# Verifies that the RoxDesignRuntimeManager startup markers appear in the diag
+# Verifies that the RoxDesignRuntimeManager packaged-runtime probe appears in the diag
 # log when the Linux AppImage is launched under a virtual framebuffer (xvfb).
 #
 # Triggers:
@@ -33,6 +33,7 @@ jobs:
     env:
       ROX_HEADLESS: "1"
       ROX_DIAG: "1"
+      ROX_DESIGN_SMOKE_MARKER: "1"
       GITHUB_TOKEN: ${{ github.token }}
 
     steps:
@@ -123,13 +124,13 @@ jobs:
           set -euo pipefail
           SMOKE_LOG=/tmp/rox-design-smoke.log
 
-          if ! grep -q "RoxDesignRuntimeManager" "$SMOKE_LOG"; then
-            echo "FAIL: RoxDesignRuntimeManager markers not found in $SMOKE_LOG"
+          if ! grep -q "RoxDesignRuntimeManager smoke probe: available" "$SMOKE_LOG"; then
+            echo "FAIL: RoxDesignRuntimeManager available marker not found in $SMOKE_LOG"
             echo "=== Full smoke log ==="
             cat "$SMOKE_LOG" || echo "(empty)"
             exit 1
           fi
-          echo "PASS: RoxDesignRuntimeManager markers found in diag log"
+          echo "PASS: RoxDesignRuntimeManager available marker found in diag log"
 
       - name: Capture xvfb screenshot
         if: always()
