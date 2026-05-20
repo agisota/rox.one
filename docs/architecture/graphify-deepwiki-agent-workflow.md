@@ -201,7 +201,9 @@ DeepWiki and Graphify are navigation tools. Current source and validation are th
 6. Split one responsibility at a time.
 7. Run targeted tests after each extraction.
 8. Run typecheck and broader validation when shared APIs moved.
-9. Run `graphify update .` or a narrower path after structural changes.
+9. Run a scoped Graphify refresh on the narrowest changed source path after structural changes, for example `graphify update packages/server-core/src` or `graphify update packages/shared/src/workbench --no-cluster`.
+
+Do not run full-root `graphify update .` as the default ROX.ONE refresh path. Use it only when a task explicitly needs a repo-wide graph and generated/runtime folders have been excluded. If a refresh starts traversing hundreds of thousands of AST files, stop it, remove partial cache-only output, and record the blocker rather than committing incomplete `graphify-out` artifacts.
 
 For high-degree files such as `SessionManager.ts`, do not do broad rewrites. Extract collaborators behind stable exports.
 

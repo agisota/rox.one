@@ -91,7 +91,7 @@ Use Graphify for local source relationships:
 2. Use `graphify explain` for known graph labels such as `SessionManager.ts`, `SessionList.tsx`, `SkillsListPanel.tsx`, or `sources.ts`.
 3. Use `graphify path "A" "B"` when the task asks how two subsystems connect.
 4. Use `GRAPH_REPORT.md` for broad architecture review only; prefer targeted query/explain/path commands first.
-5. After code changes, refresh the graph with `graphify update .` or a narrower path such as `graphify update packages/server-core/src`.
+5. After code changes, refresh the graph with the narrowest changed source path, such as `graphify update packages/server-core/src` or `graphify update packages/shared/src/workbench --no-cluster`. Do not run full-root `graphify update .` unless the task explicitly requires a repo-wide refresh and generated/runtime folders have been excluded. If a refresh starts scanning hundreds of thousands of files, stop it, remove partial cache-only output, and record the scoped-refresh blocker instead of committing incomplete `graphify-out` artifacts.
 
 Decision rule:
 

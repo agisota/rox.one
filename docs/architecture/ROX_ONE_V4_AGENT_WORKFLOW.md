@@ -126,7 +126,7 @@ Then read the owning files:
 - Do not introduce always-on capture before explicit consent, redaction, retention, and audit.
 - Avoid broad rewrites of high-degree files such as `SessionManager.ts` and `AppShell.tsx`.
 - Prefer compatibility facades and small modules.
-- After structural code changes, refresh Graphify with a narrow update when possible.
+- After structural code changes, refresh Graphify with the narrowest changed source path. Do not use full-root `graphify update .` as the default refresh path; reserve it for explicit repo-wide graph tasks with generated/runtime folders excluded.
 
 ## Validation ladder
 

@@ -64,11 +64,13 @@ error: Cannot find module '../answer-package'
 - Added `createAgentAnswerPackage(input)` as a pure parser/normalizer.
 - Added `summarizeAgentAnswerPackage(input)` as a content-safe metadata/count summary.
 - Exported the module from `packages/shared/src/workbench/index.ts`.
+- PR branch cleanup changed the schema import from `zod/v4` to `zod` so the shared package works with the repository's root `zod` dependency and package peer range instead of requiring the v4 subpath.
 
 ## 7. Validation commands run
 
 - `bun test packages/shared/src/workbench/__tests__/answer-package.test.ts`
 - `bun run typecheck:shared`
+- `bun run validate:docs`
 - `git diff --check`
 
 ## 8. Passing test output summary
@@ -76,6 +78,7 @@ error: Cannot find module '../answer-package'
 - Initial red test failed because `../answer-package` did not exist.
 - Targeted test after implementation: 4 pass, 0 fail, 15 expect calls.
 - `bun run typecheck:shared` passed.
+- `bun run validate:docs` passed in the clean PR worktree.
 - `git diff --check` passed.
 
 ## 9. Build output summary
@@ -97,3 +100,4 @@ Not applicable unless shared typecheck requires broader build validation.
 | Helper preserves refs without mutation | Passed | `answer-package.test.ts` |
 | Summary avoids full content leakage | Passed | `answer-package.test.ts` |
 | Shared typecheck passes | Passed | `bun run typecheck:shared` |
+| Clean PR worktree can resolve schema dependency | Passed | `zod` import plus targeted Bun test |

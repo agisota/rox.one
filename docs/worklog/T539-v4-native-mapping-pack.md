@@ -57,12 +57,14 @@ Not applicable for runtime tests. If documentation violates repository docs cont
 - Added `docs/tickets/T540-answer-package-schema.md` so the runtime schema slice can be tracked independently.
 - Added `docs/worklog/T540-answer-package-schema.md`.
 - Fixed `docs/tickets/T538-deepwiki-indexed-knowledge-workflow.md` to use the repository-required `Status: DONE` line so `validate:agent-contract` can pass.
+- PR branch cleanup updated the v4 workflow guidance so Graphify refreshes use the narrowest changed path by default rather than full-root indexing.
 
 ## 7. Validation commands run
 
 - `bun run validate:architecture-docs`
 - `bun run validate:agent-contract`
 - `bun run validate:docs`
+- `graphify update packages/shared/src/workbench --no-cluster`
 - `git diff --check`
 
 ## 8. Passing test output summary
@@ -70,6 +72,7 @@ Not applicable for runtime tests. If documentation violates repository docs cont
 - `bun run validate:architecture-docs` -> `[architecture-docs] ok: 4 docs, 10 subsystem headings`
 - `bun run validate:agent-contract` -> `[agent-contract] ok: 11 skills, 501 tickets, 7 required docs`
 - `bun run validate:docs` -> agent contract, architecture docs, and sync-v2 design validation passed.
+- Scoped Graphify refresh -> rebuilt 812 nodes and 1461 edges for `packages/shared/src/workbench` before generated artifacts were removed from the PR diff.
 - `git diff --check` -> pass.
 
 ## 9. Build output summary
@@ -92,3 +95,4 @@ Not applicable unless documentation validation requires a build. No runtime code
 | DeepWiki/Graphify proof boundary documented | Passed | Mapping/workflow docs |
 | Always-on memory kill-list documented | Passed | Mapping/execution docs |
 | Validation passes | Passed | Command output above |
+| Graphify refresh is scoped for PR work | Passed | `ROX_ONE_V4_AGENT_WORKFLOW.md` guidance and scoped refresh proof |

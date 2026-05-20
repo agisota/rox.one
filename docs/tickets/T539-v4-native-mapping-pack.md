@@ -18,7 +18,7 @@ Create the ROX.ONE v4 native integration mapping pack that translates the broad 
 - Runtime code changes.
 - UI implementation.
 - New dependencies.
-- Upstream diff closure against `craft-ai-agents/craft-agents-oss`; upstream comparison is secondary context for this task.
+- Upstream diff closure against the historical source repository; upstream comparison is secondary context for this task.
 
 ## Required validation
 
