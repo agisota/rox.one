@@ -819,17 +819,21 @@ export function buildRoxDesignEmbedBootstrapScript(zoomFactor: number): string {
     telemetry: { metrics: false, content: false, artifactManifest: false },
   });
 
+  let __lastConfigJson = null;
   const writeConfig = () => {
     try {
       const current = JSON.parse(localStorage.getItem('open-design:config') || '{}');
-      localStorage.setItem('open-design:config', JSON.stringify({
+      const next = JSON.stringify({
         ...current,
         ...embeddedPrivacyConfig(),
         accentColor: '#22d3ee',
         embed: 'rox',
         language: 'ru',
         theme: 'dark',
-      }));
+      });
+      if (next === __lastConfigJson) return;
+      __lastConfigJson = next;
+      localStorage.setItem('open-design:config', next);
     } catch {}
   };
 
