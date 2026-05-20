@@ -1,5 +1,15 @@
 {
   "schema": "rox-design-runtime-payload-versions.v1",
   "comment": "Populated by `bun run scripts/build-rox-design-payload-archive.ts --versions-manifest=runtime-payload-versions.json`. The `current` field points at the version every release lane should pull via `rox-design:prepare --from-archive=<archiveUrl> --expected-sha256=<archiveSha256>`. See `docs/release/rox-design-payload-supply-chain.md`.",
-  "versions": {}
+  "versions": {
+    "0.7.0-1ffd69f13": {
+      "openDesignVersion": "0.7.0",
+      "preparedAt": "2026-05-20T16:14:06.114Z",
+      "integrationCommit": "1ffd69f13",
+      "archiveUrl": "https://github.com/agisota/rox.one/releases/download/v1.0.1/rox-design-payload-0.7.0-1ffd69f13.tar.gz",
+      "archiveSha256": "f8dd63d6e9453c0476df45b5e089c3b83c437e96b9461963ea97f1402fa66c4e",
+      "archiveSizeBytes": 94704704
+    }
+  },
+  "current": "0.7.0-1ffd69f13"
 }
