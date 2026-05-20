@@ -76,8 +76,8 @@ jobs:
             uv --version
       - install_dependencies
       - run:
-          name: Install Playwright Chromium
-          command: ./node_modules/.bin/playwright install --with-deps chromium
+          name: Install Playwright Chromium headless shell
+          command: node node_modules/playwright/cli.js install --with-deps --only-shell chromium
       - run:
           name: Prepare validation logs
           command: mkdir -p .ci-logs

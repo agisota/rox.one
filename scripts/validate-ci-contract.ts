@@ -59,25 +59,28 @@ for (const requiredText of [
   }
 }
 
-const circleci = read(".circleci/config.yml");
+const circleCiConfig = read(".circleci/config.yml");
 for (const requiredText of [
+  "node node_modules/playwright/cli.js install --with-deps --only-shell chromium",
   "bun run validate:agent-contract",
   "bun run validate:architecture-docs",
   "bun run validate:ci",
   "bun run validate:workflow-pins",
   "bun test --timeout=30000 scripts/__tests__/validate-packaged-artifacts.test.ts",
+  ".ci-logs",
 ]) {
-  if (!circleci.includes(requiredText)) {
+  if (!circleCiConfig.includes(requiredText)) {
     fail(`CircleCI validate job missing: ${requiredText}`);
   }
 }
 
-for (const staleCommand of [
+for (const staleText of [
+  "./node_modules/.bin/playwright install --with-deps chromium",
   "bun test --timeout=30000 2>&1",
   "find . -name '*.isolated.ts'",
 ]) {
-  if (circleci.includes(staleCommand)) {
-    fail(`CircleCI validate job still includes stale broad test discovery: ${staleCommand}`);
+  if (circleCiConfig.includes(staleText)) {
+    fail(`CircleCI validate job still uses stale command: ${staleText}`);
   }
 }
 
