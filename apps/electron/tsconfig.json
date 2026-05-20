@@ -54,7 +54,9 @@
       "@rox-one/ui/annotations/follow-up-state": ["../../packages/ui/src/components/annotations/follow-up-state.ts"],
       "@rox-one/ui/context": ["../../packages/ui/src/context/index.ts"],
       "@rox-one/ui/*": ["../../packages/ui/src/*"],
-      "@rox-one/shared/*": ["../../packages/shared/src/*"]
+      "@rox-one/shared/*": ["../../packages/shared/src/*"],
+      "@rox-one/design-theme-bridge": ["../../packages/design-theme-bridge/src/index.ts"],
+      "@rox-one/design-theme-bridge/*": ["../../packages/design-theme-bridge/src/*"]
     }
   },
   "include": ["src/**/*", "../../packages/shared/src/**/*.d.ts"],

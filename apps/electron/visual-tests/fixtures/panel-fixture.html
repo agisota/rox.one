@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROX Panel Visual Fixture</title>
+  <style>
+    /* ── ROX Design tokens (dark theme — matches rox-design-embed-skin.ts) ── */
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --rox-bg:            #05070d;
+      --rox-bg-panel:      #090d15;
+      --rox-bg-subtle:     #0f1622;
+      --rox-bg-muted:      #151e2b;
+      --rox-bg-elevated:   #0d131d;
+      --rox-border:        rgba(148, 163, 184, 0.14);
+      --rox-border-strong: rgba(148, 163, 184, 0.26);
+      --rox-text:          #d8dee9;
+      --rox-text-strong:   #f4f7fb;
+      --rox-text-muted:    #8a94a6;
+      --rox-accent:        #22d3ee;
+      --rox-accent-soft:   rgba(34, 211, 238, 0.18);
+      --rox-radius:        14px;
+      --rox-sans:          -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    }
+
+    /* ── ROX Design tokens (light theme) ── */
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --rox-bg:            #f8fafc;
+      --rox-bg-panel:      #ffffff;
+      --rox-bg-subtle:     #f1f5f9;
+      --rox-bg-muted:      #e2e8f0;
+      --rox-bg-elevated:   #ffffff;
+      --rox-border:        rgba(15, 23, 42, 0.12);
+      --rox-border-strong: rgba(15, 23, 42, 0.22);
+      --rox-text:          #1e293b;
+      --rox-text-strong:   #0f172a;
+      --rox-text-muted:    #64748b;
+      --rox-accent:        #0891b2;
+      --rox-accent-soft:   rgba(8, 145, 178, 0.14);
+      --rox-radius:        14px;
+      --rox-sans:          -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--rox-bg);
+      color: var(--rox-text);
+      font-family: var(--rox-sans);
+      font-size: 13px;
+      line-height: 1.5;
+      display: flex;
+      gap: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Shared panel chrome ── */
+    .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--rox-bg-panel);
+      border-right: 1px solid var(--rox-border);
+    }
+    .panel:last-child { border-right: none; }
+
+    .panel-header {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      background: var(--rox-bg);
+      border-bottom: 1px solid var(--rox-border);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--rox-text-strong);
+      flex-shrink: 0;
+    }
+
+    .panel-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      background: var(--rox-accent-soft);
+      border: 1px solid var(--rox-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .panel-body {
+      flex: 1;
+      overflow: hidden;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── Message bubble (ChatPanel) ── */
+    .message {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .message-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--rox-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .message-bubble {
+      background: var(--rox-bg-subtle);
+      border: 1px solid var(--rox-border);
+      border-radius: var(--rox-radius);
+      padding: 10px 14px;
+      color: var(--rox-text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .message-bubble.assistant {
+      background: var(--rox-accent-soft);
+      border-color: rgba(34, 211, 238, 0.2);
+    }
+
+    .composer-bar {
+      margin-top: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      background: var(--rox-bg-subtle);
+      border: 1px solid var(--rox-border);
+      border-radius: var(--rox-radius);
+      padding: 8px 12px;
+      color: var(--rox-text-muted);
+      font-size: 13px;
+    }
+
+    /* ── Card grid (DesignPanel) ── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .card {
+      background: var(--rox-bg-subtle);
+      border: 1px solid var(--rox-border);
+      border-radius: var(--rox-radius);
+      padding: 14px;
+    }
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--rox-text-strong);
+      margin-bottom: 6px;
+    }
+    .card-sub {
+      font-size: 11px;
+      color: var(--rox-text-muted);
+    }
+    .card-badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--rox-accent-soft);
+      color: var(--rox-accent);
+      font-size: 10px;
+      font-weight: 600;
+      border: 1px solid rgba(34, 211, 238, 0.24);
+    }
+
+    /* ── Top-bar hide (Open Design native chrome) ── */
+    /* Applied by rox-design-overrides.css in the real embed */
+    :where(.od-topbar, .app-chrome-header) {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ChatPanel -->
+  <section class="panel" id="chat-panel" data-panel="chat">
+    <header class="panel-header">
+      <span class="panel-icon"></span>
+      Chat
+    </header>
+    <div class="panel-body">
+      <div class="message">
+        <span class="message-label">You</span>
+        <div class="message-bubble">Can you help me design a new onboarding flow?</div>
+      </div>
+      <div class="message">
+        <span class="message-label">Rox</span>
+        <div class="message-bubble assistant">
+          Sure! Let's start with the key screens. I'll scaffold the structure in the Design panel.
+        </div>
+      </div>
+      <div class="message">
+        <span class="message-label">You</span>
+        <div class="message-bubble">Great, make it minimal with a dark background.</div>
+      </div>
+      <div class="composer-bar">Type a message…</div>
+    </div>
+  </section>
+
+  <!-- DesignPanel (simulates embedded Open Design surface with ROX skin) -->
+  <section class="panel" id="design-panel" data-panel="design" data-rox-embedded="true">
+    <header class="panel-header">
+      <span class="panel-icon"></span>
+      Design
+    </header>
+    <div class="panel-body">
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">Onboarding — Step 1</div>
+          <div class="card-sub">Welcome screen with brand mark</div>
+          <span class="card-badge">New</span>
+        </div>
+        <div class="card">
+          <div class="card-title">Onboarding — Step 2</div>
+          <div class="card-sub">Feature highlights carousel</div>
+          <span class="card-badge">Draft</span>
+        </div>
+        <div class="card">
+          <div class="card-title">Onboarding — Step 3</div>
+          <div class="card-sub">Permission prompts</div>
+          <span class="card-badge">Draft</span>
+        </div>
+        <div class="card">
+          <div class="card-title">Design System</div>
+          <div class="card-sub">Rox token library v2</div>
+          <span class="card-badge">Linked</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>
