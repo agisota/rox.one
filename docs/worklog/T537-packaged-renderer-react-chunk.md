@@ -422,6 +422,24 @@ This follow-up updates the validator, validator unit tests, and T537 ticket
 metadata so the CI contract matches the current Sonoma-and-newer product
 contract.
 
+## 9g. Validate workflow scoped to maintained gates
+The GitHub-hosted Validate job passed the maintained `validate:ci` gate, then
+failed in an additional bare `bun test` discovery pass. That pass is not the
+repo's maintained aggregate gate today: it discovers Playwright visual specs,
+historical rebrand fixtures, and stateful filesystem tests together, producing
+unrelated failures after `validate:ci` has already completed successfully.
+
+This follow-up keeps the full maintained gate (`validate:ci`) and workflow pin
+validation intact, then runs the package-level test that this PR actually
+changes:
+
+```text
+bun test --timeout=30000 scripts/__tests__/validate-packaged-artifacts.test.ts
+```
+
+The broader all-test cleanup should be handled as a separate test-harness
+stabilization task, not inside the current PR #299 CI unblock branch.
+
 ## 10. Remaining risks
 - Local machine can directly prove only the local macOS ARM64 artifact; PR CI now proves macOS Sequoia ARM64 packaged launch and diagnostic smoke proves Sonoma/Sequoia on GitHub-hosted runners. Monterey/Ventura are no longer supported release targets after the Sonoma 14.0 floor change.
 - GitHub-hosted Windows runners are Windows Server images, not literal Windows 10/11 consumer desktops. They now prove Windows x64 Electron packaging/startup class on `windows-latest` and `windows-2022`, not the exact consumer SKU UX.
