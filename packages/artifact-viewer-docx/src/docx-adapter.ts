@@ -87,7 +87,9 @@ export class DocxAdapter implements ArtifactAdapter {
    * the dangerouslySetInnerHTML here is safe within that iframe boundary.
    */
   async renderAsync(uri: string, opts: ViewOpts): Promise<ReactNode> {
-    const buffer = decodeDataUri(uri);
+    // mammoth.convertToHtml expects a Node `Buffer`; decodeDataUri returns a
+    // raw Uint8Array. Wrap explicitly to satisfy NodeJsInput.BufferInput type.
+    const buffer = Buffer.from(decodeDataUri(uri));
     const result = await mammoth.convertToHtml({ buffer });
     return createElement('div', {
       'data-artifact-viewer': 'docx',
@@ -98,7 +100,7 @@ export class DocxAdapter implements ArtifactAdapter {
 
   async export(uri: string, target: ExportTarget): Promise<Blob> {
     if (target === 'html') {
-      const buffer = decodeDataUri(uri);
+      const buffer = Buffer.from(decodeDataUri(uri));
       const result = await mammoth.convertToHtml({ buffer });
       const full = [
         '<!DOCTYPE html>',
