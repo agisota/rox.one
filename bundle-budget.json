@@ -1,0 +1,15 @@
+{
+  "lastBaselined": "2026-05-20",
+  "comment": "Baseline raw-byte totals per dist directory. Gate allows baseline + designAllowanceMb overhead.",
+  "designAllowanceMb": 80,
+  "baselines": {
+    "renderer": {
+      "comment": "apps/electron/dist/renderer — Vite production build output",
+      "totalRawBytes": 0
+    },
+    "main": {
+      "comment": "apps/electron/dist/main — Electron main process bundle",
+      "totalRawBytes": 0
+    }
+  }
+}
