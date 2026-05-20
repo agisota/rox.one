@@ -140,6 +140,7 @@ import {
 import { SessionIPC } from './session-ipc'
 import { SessionPersistence } from './session-persistence'
 import { SessionAuth } from './session-auth'
+import { AgentAnswerEmitter } from './agent-answer-emitter'
 // Re-exports for callers that imported these symbols from SessionManager before the extraction.
 export { AGENT_FLAGS, createManagedSession }
 export type { ManagedSession, AgentInstance }
@@ -231,6 +232,8 @@ export class SessionManager implements ISessionManager {
   // OAuth/auth lifecycle, attempt-retry). Top of helper graph — depends on
   // both IPC (1/3) and Persistence (2/3) plus SM coordinator callbacks.
   private auth!: SessionAuth
+  // AAP emitter — builds, validates, and dispatches AgentAnswerPackage on every turn completion.
+  private answerEmitter!: AgentAnswerEmitter
   // Config watchers for live updates (sources, etc.) - one per workspace
   private configWatchers: Map<string, ConfigWatcher> = new Map()
   // Automation systems for workspace event automations - one per workspace (includes scheduler, diffing, and handlers)
@@ -290,6 +293,14 @@ export class SessionManager implements ISessionManager {
       onProcessingStopped: (sid, reason) => this.onProcessingStopped(sid, reason),
       monotonic: () => this.monotonic(),
       captureException: (error, context) => sessionRuntimeHooks.captureException(error, context),
+    })
+    this.answerEmitter = new AgentAnswerEmitter({
+      bus: {
+        emit: () => {
+          // Step 3 will wire the real event-bus subscription; for now the dispatch
+          // is a no-op that satisfies the interface without breaking existing paths.
+        },
+      },
     })
   }
 
@@ -5124,6 +5135,18 @@ export class SessionManager implements ISessionManager {
         }
 
         this.ipc.sendEvent({ type: 'text_complete', sessionId, text: event.text, isIntermediate: event.isIntermediate, turnId: event.turnId, parentToolUseId: event.parentToolUseId, timestamp: assistantMessage.timestamp, messageId: assistantMessage.id }, workspaceId)
+
+        // PZD-18 step 2: emit AgentAnswerPackage for every turn completion.
+        // Awaited so callers (tests + future subscribers) get synchronous ordering;
+        // errors are caught and logged so the chat-display path is never disrupted.
+        try {
+          await this.answerEmitter.emit(
+            { agentId: sessionId, sessionId, turnId: event.turnId ?? assistantMessage.id },
+            { text: event.text },
+          )
+        } catch (err: unknown) {
+          sessionLog.warn('[AgentAnswerEmitter] emit failed (non-fatal):', err)
+        }
 
         // Persist session after complete message to prevent data loss on quit
         this.persistence.persistSession(managed)

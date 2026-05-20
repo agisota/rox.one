@@ -402,6 +402,7 @@
       "version": "0.9.1",
       "dependencies": {
         "@mariozechner/pi-ai": "0.72.1",
+        "@rox-one/agent-contract": "workspace:*",
         "@rox-one/core": "workspace:*",
         "@rox-one/shared": "workspace:*",
         "jose": "^6.0.0",
