@@ -112,6 +112,10 @@ git diff --check origin/main..HEAD
 bun install --frozen-lockfile
 gh pr checks 303 --repo agisota/rox.one
 bun run validate:mac-diag-smoke-workflow
+bun run typecheck:electron
+~/.bun/bin/bunx vitest run --config vitest.config.ts src/renderer/components/onboarding/__tests__/OnboardingPromptModal.rtl.test.tsx src/renderer/pages/settings/__tests__/BehaviorSettingsPage.design-autolaunch.rtl.test.tsx
+bun test apps/electron/src/main/__tests__/rox-design-view-manager.partition.test.ts apps/electron/src/transport/__tests__/channel-map-parity.test.ts
+bun test apps/electron/src/renderer/pages/settings/__tests__/BehaviorSettingsPage.design-autolaunch.rtl.test.tsx packages/shared/src/protocol/__tests__/routing.test.ts apps/electron/src/transport/__tests__/channel-map-parity.test.ts
 ```
 
 ## 8. Passing test output summary
@@ -129,6 +133,14 @@ bun run validate:mac-diag-smoke-workflow
 - `git diff --check origin/main..HEAD`: passed, no whitespace errors.
 - `bun install --frozen-lockfile`: initially failed in PR CI because `bun.lock` was stale after main upgraded `@rox-one/server` `ws` from `8.20.0` to `8.20.1`; rerunning `bun install --lockfile-only` updated only `bun.lock`, and the frozen install now passes locally.
 - `bun run validate:mac-diag-smoke-workflow`: initially failed because the validator still expected `node /tmp/diag-launch.mjs` while the workflow now stages the helper at `/tmp/pw/diag-launch.mjs`; the validator was aligned and now passes locally.
+- `bun run typecheck:electron`: now passes on the PR branch after fixing current-main TypeScript drift outside the T305 renderer files:
+  - narrowed Rox Design view-manager test stubs through the real `WindowManager` type boundary;
+  - updated Vitest mock generic syntax in `OnboardingPromptModal.rtl.test.tsx`;
+  - added the missing `behavior` settings icon;
+  - moved auto-launch preference channels into shared `RPC_CHANNELS`, `CHANNEL_MAP`, and `LOCAL_ONLY_CHANNELS`.
+- `~/.bun/bin/bunx vitest run --config vitest.config.ts src/renderer/components/onboarding/__tests__/OnboardingPromptModal.rtl.test.tsx src/renderer/pages/settings/__tests__/BehaviorSettingsPage.design-autolaunch.rtl.test.tsx`: `2 passed`, `18 passed`.
+- `bun test apps/electron/src/main/__tests__/rox-design-view-manager.partition.test.ts apps/electron/src/transport/__tests__/channel-map-parity.test.ts`: `4 pass`, `0 fail`, `1176 expect()` calls.
+- `bun test apps/electron/src/renderer/pages/settings/__tests__/BehaviorSettingsPage.design-autolaunch.rtl.test.tsx packages/shared/src/protocol/__tests__/routing.test.ts apps/electron/src/transport/__tests__/channel-map-parity.test.ts`: RTL path is intentionally excluded from `bun:test` by `bunfig.toml`; protocol/channel tests still ran and passed (`10 pass`, `0 fail`, `1505 expect()` calls).
 
 ## 9. Build output summary
 
@@ -147,6 +159,14 @@ Current PR #303 CI state after `72d38b64` and `0be954ea`:
 - `validate` was rerun on the validator sync head and was still in progress at the last poll.
 - macOS Sequoia ARM64 packaged launch still fails outside T305 at `rox-design:payload:verify` because `apps/electron/resources/rox-design/MANIFEST.json` is absent in CI.
 - CircleCI validate still fails and needs CircleCI log follow-up.
+
+Current branch also contains a small baseline-checks repair so the performance PR can be reviewed against current `main` without unrelated TypeScript gate failures:
+
+- `scripts/validate-mac-diag-smoke-workflow.ts`: validator now expects `node /tmp/pw/diag-launch.mjs`, matching `.github/workflows/mac-diag-smoke.yml`.
+- `apps/electron/src/main/__tests__/rox-design-view-manager.partition.test.ts`: test doubles are explicitly cast at the `WindowManager` boundary.
+- `apps/electron/src/renderer/components/onboarding/__tests__/OnboardingPromptModal.rtl.test.tsx`: Vitest mock generic syntax now matches the installed Vitest type surface.
+- `apps/electron/src/shared/menu-schema.ts`: `behavior` settings subpage has an icon entry.
+- `packages/shared/src/protocol/channels.ts`, `packages/shared/src/protocol/routing.ts`, `apps/electron/src/transport/channel-map.ts`, and `apps/electron/src/main/handlers/preferences-ipc.ts`: auto-launch preference channels use the shared channel registry and are classified local-only.
 
 Synthetic backend post-fix benchmark:
 
@@ -191,3 +211,6 @@ Baseline from before this task was backend `secondProject` ~931ms and first proj
 | Renderer whitespace diff check passes | PASS | `git diff --check -- ...` and `git diff --check origin/main..HEAD` exit 0. |
 | PR branch frozen install passes | PASS | Local `bun install --frozen-lockfile` passes after committing the one-line lockfile sync. |
 | PR branch mac diag workflow validator passes | PASS | Local `bun run validate:mac-diag-smoke-workflow` passes after aligning the expected helper path with the workflow. |
+| Current PR branch Electron typecheck passes | PASS | `bun run typecheck:electron` exit 0 after the small baseline-checks repair. |
+| Baseline RTL tests touched by typecheck repair pass | PASS | Vitest onboarding/settings command: `2 passed`, `18 passed`. |
+| Protocol/channel parity tests pass | PASS | `routing.test.ts` + `channel-map-parity.test.ts`: `10 pass`, `0 fail`. |
