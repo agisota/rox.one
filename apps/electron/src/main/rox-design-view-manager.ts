@@ -352,7 +352,23 @@ export class RoxDesignViewManager {
   private async applyEmbedSkin(entry: ManagedRoxDesignView): Promise<void> {
     if (entry.webContents.isDestroyed()) return
     try {
-      if (!entry.skinCssKey) {
+      // C-H4: cycle inserted CSS sheets — drop the previous key before inserting
+      // the next one, otherwise stylesheets accumulate across navigations and
+      // theme changes. removeInsertedCSS can throw if the key was already
+      // invalidated by an intervening navigation, so we swallow that case and
+      // still apply the new sheet.
+      if (entry.skinCssKey) {
+        const prevKey = entry.skinCssKey
+        entry.skinCssKey = null
+        try {
+          await entry.webContents.removeInsertedCSS(prevKey)
+        } catch (removeError) {
+          this.logger?.warn?.('[rox-design-view] removeInsertedCSS failed (likely stale key)', {
+            error: removeError instanceof Error ? removeError.message : String(removeError),
+          })
+        }
+      }
+      if (!entry.webContents.isDestroyed()) {
         entry.skinCssKey = await entry.webContents.insertCSS(ROX_DESIGN_EMBED_CSS)
       }
       await entry.webContents.executeJavaScript(buildRoxDesignEmbedBootstrapScript(entry.contentZoomFactor), true)
@@ -395,6 +411,32 @@ export class RoxDesignViewManager {
     this.stopInpPolling(entry.webContents.id)
     entry.disposeThemeBridge?.()
     entry.disposeThemeBridge = null
+    // C-H4: drop the previously inserted skin sheet (best-effort) so it cannot
+    // outlive the WebContents in the partition's stylesheet cache.
+    if (entry.skinCssKey && !entry.webContents.isDestroyed()) {
+      const prevKey = entry.skinCssKey
+      entry.skinCssKey = null
+      try {
+        void entry.webContents.removeInsertedCSS(prevKey)
+      } catch (error) {
+        this.logger?.warn?.('[rox-design-view] removeInsertedCSS during destroy failed', {
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
+    }
+    // C-H4: close the listener-leak — every entry.webContents.on(...) site in
+    // configureWebContents must be paired here. removeAllListeners drops:
+    // will-navigate, did-start-navigation, dom-ready, did-finish-load,
+    // did-fail-load (plus any future handlers without us forgetting).
+    if (!entry.webContents.isDestroyed()) {
+      try {
+        entry.webContents.removeAllListeners()
+      } catch (error) {
+        this.logger?.warn?.('[rox-design-view] removeAllListeners failed', {
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
+    }
     if (!entry.webContents.isDestroyed()) entry.webContents.close()
   }
 
