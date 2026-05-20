@@ -1,6 +1,12 @@
 name: Windows Authenticode Sign + Smoke
 
-# Authenticode signing smoke test on Win10 (windows-2019) and Win11 (windows-2022).
+# Authenticode signing smoke on GH-hosted Windows runners.
+#
+# Runner availability note: GitHub deprecated windows-2019 in June 2024 — jobs
+# targeting it queue indefinitely. Matrix uses windows-2022 (Server 2022, current
+# baseline) and windows-2025 (Server 2025, newer ABI). Genuine Win10/Win11
+# *client* verification requires self-hosted or VM-based runners and is tracked
+# separately as a follow-up.
 #
 # Two modes:
 #   Real signing  - WIN_CSC_LINK + WIN_CSC_KEY_PASSWORD secrets present -> Authenticode
@@ -35,8 +41,8 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - windows-2019
           - windows-2022
+          - windows-2025
 
     steps:
       - name: Checkout
