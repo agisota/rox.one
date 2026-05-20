@@ -6,6 +6,7 @@ import { mkdir, mkdtemp, rm } from 'fs/promises'
 import { tmpdir } from 'os'
 import { dirname, isAbsolute, join, resolve } from 'path'
 import type { Readable } from 'stream'
+import { BrowserWindow } from 'electron'
 import type { RoxDesignStatus } from '../shared/types'
 
 export interface RoxDesignRuntimeManagerOptions {
@@ -270,6 +271,13 @@ async function stopChild(child: SidecarChild): Promise<void> {
   })
 }
 
+// Single-slot queue so renderer doesn't miss a crash event that fires before
+// it subscribes. Holds at most one payload; cleared on first delivery.
+interface SidecarExitedPayload {
+  reason: string
+  code: number | null
+}
+
 export class RoxDesignRuntimeManager {
   private status: RoxDesignStatus = { status: 'idle' }
   private readonly resourcesRoot: string
@@ -280,6 +288,7 @@ export class RoxDesignRuntimeManager {
   private daemonIpcPath: string | null = null
   private desktopAuthSecret: Buffer | null = null
   private startPromise: Promise<RoxDesignStatus> | null = null
+  private pendingSidecarExitEvent: SidecarExitedPayload | null = null
 
   constructor(options: RoxDesignRuntimeManagerOptions) {
     this.resourcesRoot = options.resourcesRoot
@@ -509,6 +518,17 @@ export class RoxDesignRuntimeManager {
         this.status = {
           status: 'failed',
           error: `Rox Design ${app} sidecar exited unexpectedly (code=${code ?? 'null'}, signal=${signal ?? 'null'}).`,
+        }
+        const payload: SidecarExitedPayload = {
+          reason: `${app} sidecar exited unexpectedly (code=${code ?? 'null'}, signal=${signal ?? 'null'})`,
+          code: typeof code === 'number' ? code : null,
+        }
+        const win = BrowserWindow.getAllWindows()[0]
+        if (win && !(win.isDestroyed?.() ?? false)) {
+          win.webContents.send('rox-design:sidecar-exited', payload)
+          this.pendingSidecarExitEvent = null
+        } else {
+          this.pendingSidecarExitEvent = payload
         }
       }
     })

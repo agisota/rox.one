@@ -1,9 +1,16 @@
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, mock, test } from 'bun:test'
 
-import { RoxDesignRuntimeManager } from '../rox-design-runtime-manager'
+const mockSend = mock((_channel: string, _payload: unknown) => undefined)
+mock.module('electron', () => ({
+  BrowserWindow: {
+    getAllWindows: () => [{ webContents: { send: mockSend } }],
+  },
+}))
+
+const { RoxDesignRuntimeManager } = await import('../rox-design-runtime-manager') as typeof import('../rox-design-runtime-manager')
 
 const tempRoots: string[] = []
 
@@ -47,10 +54,45 @@ process.on('SIGTERM', () => process.exit(0))
   return runtimeRoot
 }
 
+function createMockOpenDesignRuntimeWithExit(resourcesRoot: string, exitAfterMs: number): string {
+  const runtimeRoot = join(resourcesRoot, 'resources', 'rox-design')
+  const daemonDir = join(runtimeRoot, 'app', 'prebundled', 'daemon')
+  mkdirSync(daemonDir, { recursive: true })
+  mkdirSync(join(runtimeRoot, 'open-design'), { recursive: true })
+  mkdirSync(join(runtimeRoot, 'open-design-web-standalone'), { recursive: true })
+
+  const sidecarScript = `
+const appFlagIndex = process.argv.indexOf('--od-stamp-app')
+const app = appFlagIndex === -1 ? 'unknown' : process.argv[appFlagIndex + 1]
+const port = app === 'daemon' ? 49113 : 49114
+process.stdout.write(JSON.stringify({ pid: process.pid, state: 'running', url: 'http://127.0.0.1:' + port }) + '\\n')
+setTimeout(() => process.exit(42), ${exitAfterMs})
+process.on('SIGTERM', () => process.exit(0))
+`
+  writeFileSync(join(daemonDir, 'daemon-sidecar.mjs'), sidecarScript)
+  writeFileSync(join(daemonDir, 'daemon-cli.mjs'), 'process.exit(0)\n')
+  writeFileSync(join(runtimeRoot, 'app', 'prebundled', 'web-sidecar.mjs'), sidecarScript)
+  writeFileSync(join(runtimeRoot, 'open-design-config.json'), JSON.stringify({
+    appVersion: '0.7-crash-test',
+    daemonCliEntryRelative: 'app/prebundled/daemon/daemon-cli.mjs',
+    daemonSidecarEntryRelative: 'app/prebundled/daemon/daemon-sidecar.mjs',
+    nodeCommandRelative: 'open-design/bin/node',
+    webOutputMode: 'standalone',
+    webSidecarEntryRelative: 'app/prebundled/web-sidecar.mjs',
+  }))
+
+  const nodeShim = join(runtimeRoot, 'open-design', 'bin', 'node')
+  mkdirSync(join(runtimeRoot, 'open-design', 'bin'), { recursive: true })
+  writeFileSync(nodeShim, `#!/usr/bin/env sh\nexec "${process.execPath}" "$@"\n`)
+  chmodSync(nodeShim, 0o755)
+  return runtimeRoot
+}
+
 afterEach(() => {
   for (const dir of tempRoots.splice(0)) rmSync(dir, { recursive: true, force: true })
   delete process.env.ROX_DESIGN_WEB_URL
   delete process.env.ROX_DESIGN_RUNTIME_ROOT
+  mockSend.mockClear()
 })
 
 describe('RoxDesignRuntimeManager', () => {
@@ -140,5 +182,22 @@ describe('RoxDesignRuntimeManager', () => {
     expect(results[0].status).toBe('running')
 
     await manager.stop()
+  })
+
+  test('notifies renderer via IPC when sidecar exits post-startup', async () => {
+    const resourcesRoot = tempRoot()
+    createMockOpenDesignRuntimeWithExit(resourcesRoot, 200)
+    const manager = new RoxDesignRuntimeManager({ resourcesRoot, dataRoot: join(resourcesRoot, 'data') })
+
+    const status = await manager.start()
+    expect(status.status).toBe('running')
+
+    // Wait for the sidecar to exit naturally
+    await new Promise((resolve) => setTimeout(resolve, 800))
+
+    expect(mockSend).toHaveBeenCalledWith(
+      'rox-design:sidecar-exited',
+      expect.objectContaining({ reason: expect.any(String) }),
+    )
   })
 })
