@@ -478,6 +478,11 @@ export interface ElectronAPI {
   readPreferences(): Promise<{ content: string; exists: boolean; path: string }>
   writePreferences(content: string): Promise<{ success: boolean; error?: string }>
 
+  // Auto-launch Design preference (Phase D / T537 PR #4)
+  // TODO(phase-c-integration): tighten to AutoLaunchDesignChoice when @rox-one/design-classifier is published
+  getAutoLaunchDesign?(): Promise<'always' | 'ask' | 'never'>
+  setAutoLaunchDesign?(choice: 'always' | 'ask' | 'never'): Promise<{ success: boolean }>
+
   // Session Drafts (persisted composer state — text + attachment refs)
   getDraft(sessionId: string): Promise<import('@rox-one/shared/config').SessionDraft | null>
   setDraft(sessionId: string, draft: import('@rox-one/shared/config').SessionDraft): Promise<void>

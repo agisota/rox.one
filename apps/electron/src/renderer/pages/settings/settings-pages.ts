@@ -19,6 +19,7 @@ import type { SettingsSubpage } from '../../../shared/settings-registry'
 
 // T132: all settings pages are lazy-loaded — navigating to Settings is always user-initiated
 const AppSettingsPage = lazy(() => import('./AppSettingsPage'))
+const BehaviorSettingsPage = lazy(() => import('./BehaviorSettingsPage'))
 const AiSettingsPage = lazy(() => import('./AiSettingsPage'))
 const AppearanceSettingsPage = lazy(() => import('./AppearanceSettingsPage'))
 const InputSettingsPage = lazy(() => import('./InputSettingsPage'))
@@ -42,6 +43,7 @@ const AccountSettingsPage = lazy(() => import('./AccountSettingsPage'))
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const SETTINGS_PAGE_COMPONENTS: Record<SettingsSubpage, LazyExoticComponent<any>> = {
   app: AppSettingsPage,
+  behavior: BehaviorSettingsPage,
   ai: AiSettingsPage,
   appearance: AppearanceSettingsPage,
   input: InputSettingsPage,

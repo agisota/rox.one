@@ -232,6 +232,7 @@ export const PreferencesIcon = ({ className }: IconProps) => (
  */
 export const SETTINGS_ICONS: Record<SettingsSubpage, React.ComponentType<IconProps>> = {
   app: AppSettingsIcon,
+  behavior: AppSettingsIcon,
   ai: AiSettingsIcon,
   appearance: AppearanceIcon,
   input: InputIcon,
