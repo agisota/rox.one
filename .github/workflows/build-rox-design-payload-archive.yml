@@ -1,0 +1,132 @@
+name: Build Rox Design payload archive (manual dispatch)
+
+# B-REPRO-2 (Linear PZD-51) — builds a canonical content-addressed
+# Rox Design (Open Design 0.7.0) runtime payload archive on a mac runner
+# with Open Design.app installed, then optionally uploads to S3 and
+# updates `runtime-payload-versions.json`.
+#
+# Triggered manually because:
+#   1. Building requires a mac runner (Open Design only ships as macOS .app).
+#   2. The output is signed-by-content (SHA-256) and should not regenerate
+#      on every commit; it regenerates only when Open Design upgrades or
+#      the integration logic changes meaningfully.
+#
+# After this workflow runs successfully, downstream release lanes consume
+# the archive via `bun run rox-design:prepare --from-archive=<url>
+# --expected-sha256=<hex>`.
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload_to:
+        description: 's3:// destination URL (leave empty to skip upload)'
+        required: false
+        default: ''
+      update_versions_manifest:
+        description: 'Update runtime-payload-versions.json and open PR'
+        required: false
+        type: boolean
+        default: true
+      make_current:
+        description: 'Mark this archive as current= in versions manifest'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build-archive:
+    name: Build canonical Rox Design payload archive
+    # Self-hosted mac runner with Open Design 0.7.0 installed at
+    # /Applications/Open Design.app.
+    runs-on: [self-hosted, macOS, arm64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate Open Design source
+        run: |
+          set -euo pipefail
+          if [ ! -d "/Applications/Open Design.app/Contents/Resources" ]; then
+            echo "::error::Open Design.app not installed on this runner"
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        if: github.event.inputs.upload_to != '''''''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.ROX_DESIGN_PAYLOAD_AWS_ROLE }}
+
+      - name: Build archive (without versions-manifest update)
+        if: github.event.inputs.update_versions_manifest != '''true'''
+        env:
+          UPLOAD_TO: ${{ github.event.inputs.upload_to }}
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-logs/build-rox-design-payload-archive
+          bun run scripts/build-rox-design-payload-archive.ts \
+            --output-dir=/tmp \
+            ${UPLOAD_TO:+--upload-to="$UPLOAD_TO"} \
+            2>&1 | tee .ci-logs/build-rox-design-payload-archive/build.log
+
+      - name: Build archive + update versions manifest
+        if: github.event.inputs.update_versions_manifest == '''true'''
+        env:
+          UPLOAD_TO: ${{ github.event.inputs.upload_to }}
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-logs/build-rox-design-payload-archive
+          bun run scripts/build-rox-design-payload-archive.ts \
+            --output-dir=/tmp \
+            --versions-manifest=runtime-payload-versions.json \
+            ${UPLOAD_TO:+--upload-to="$UPLOAD_TO"} \
+            2>&1 | tee .ci-logs/build-rox-design-payload-archive/build.log
+
+      - name: Upload archive as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rox-design-payload-archive
+          path: /tmp/rox-design-payload-*.tar.gz
+          if-no-files-found: error
+
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: .ci-logs/build-rox-design-payload-archive/build.log
+          if-no-files-found: warn
+
+      - name: Open PR with versions-manifest update
+        if: github.event.inputs.update_versions_manifest == '''true'''
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/rox-design-payload-archive-update
+          delete-branch: true
+          commit-message: |
+            chore(release): refresh runtime-payload-versions.json
+
+            Updated by `.github/workflows/build-rox-design-payload-archive.yml`
+            on a canonical mac runner. New entry includes openDesignVersion,
+            archiveSha256, archiveSizeBytes, archiveUrl.
+
+            Tracked in Linear as PZD-51 (B-REPRO-2).
+          title: 'chore(release): refresh runtime-payload-versions.json'
+          body: |
+            Automated update of `runtime-payload-versions.json` from the canonical
+            mac runner workflow. The new entry is set as `current=` so downstream
+            release lanes consume it on next run.
+
+            Tracked in Linear as **[PZD-51](https://linear.app/pzd/issue/PZD-51)**.
