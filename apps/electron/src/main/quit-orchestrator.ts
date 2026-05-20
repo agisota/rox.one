@@ -117,3 +117,125 @@ class _TimeoutSentinel extends Error {
     this.name = '_TimeoutSentinel'
   }
 }
+
+// ─── buildQuitOrchestrator ───────────────────────────────────────────────────
+//
+// Factory that wires up all before-quit cleanup handlers extracted from
+// apps/electron/src/main/index.ts.  Uses structural interfaces so the factory
+// is independently testable without importing Electron modules.
+
+interface _SessionManagerLike {
+  flushAllSessions(): Promise<void>
+  cleanup(): void
+}
+
+interface _BrowserPaneManagerLike {
+  destroyAll(): void
+}
+
+interface _RoxDesignViewManagerLike {
+  destroyAll(): void
+}
+
+interface _RoxDesignRuntimeManagerLike {
+  stop(): Promise<void>
+}
+
+interface _OAuthFlowStoreLike {
+  dispose(): void
+}
+
+interface _ModelRefreshServiceLike {
+  stopAll(): void
+}
+
+interface _MessagingHandleLike {
+  dispose(): Promise<void>
+}
+
+interface _PowerManagerCleanupLike {
+  cleanup(): void
+}
+
+export interface QuitDeps {
+  sessionManager: _SessionManagerLike
+  browserPaneManager?: _BrowserPaneManagerLike | null
+  roxDesignViewManager?: _RoxDesignViewManagerLike | null
+  roxDesignRuntimeManager?: _RoxDesignRuntimeManagerLike | null
+  oauthFlowStore?: _OAuthFlowStoreLike | null
+  modelRefreshService?: _ModelRefreshServiceLike | null
+  messagingHandle?: _MessagingHandleLike | null
+  powerManagerCleanup?: (() => void) | null
+  releaseServerLock?: (() => void) | null
+}
+
+/**
+ * Build a QuitOrchestrator pre-wired with all standard before-quit handlers.
+ *
+ * Each cleanup that previously lived inside the `if (sessionManager)` block in
+ * `index.ts` before-quit is registered here as an isolated, timeout-bounded
+ * handler.  Behaviour is identical to the original inline code.
+ */
+export function buildQuitOrchestrator(deps: QuitDeps): QuitOrchestrator {
+  const orc = new QuitOrchestrator()
+
+  // 1. Flush + cleanup session manager (critical path — data loss risk)
+  orc.register(
+    'sessionManager',
+    async () => {
+      await deps.sessionManager.flushAllSessions()
+      deps.sessionManager.cleanup()
+    },
+    { critical: true, timeoutMs: 10_000 },
+  )
+
+  // 2. Browser pane instances
+  if (deps.browserPaneManager) {
+    const bpm = deps.browserPaneManager
+    orc.register('browserPaneManager', () => bpm.destroyAll())
+  }
+
+  // 3. Rox Design view manager
+  if (deps.roxDesignViewManager) {
+    const rvm = deps.roxDesignViewManager
+    orc.register('roxDesignViewManager', () => rvm.destroyAll())
+  }
+
+  // 4. Rox Design runtime manager
+  if (deps.roxDesignRuntimeManager) {
+    const rrm = deps.roxDesignRuntimeManager
+    orc.register('roxDesignRuntimeManager', () => rrm.stop())
+  }
+
+  // 5. OAuth flow store
+  if (deps.oauthFlowStore) {
+    const ofs = deps.oauthFlowStore
+    orc.register('oauthFlowStore', () => ofs.dispose())
+  }
+
+  // 6. Model refresh service
+  if (deps.modelRefreshService) {
+    const mrs = deps.modelRefreshService
+    orc.register('modelRefreshService', () => mrs.stopAll())
+  }
+
+  // 7. Messaging gateway
+  if (deps.messagingHandle) {
+    const mh = deps.messagingHandle
+    orc.register('messagingHandle', () => mh.dispose())
+  }
+
+  // 8. Power manager
+  if (deps.powerManagerCleanup) {
+    const pmc = deps.powerManagerCleanup
+    orc.register('powerManager', () => pmc())
+  }
+
+  // 9. Server lock — always last, sync
+  if (deps.releaseServerLock) {
+    const rsl = deps.releaseServerLock
+    orc.register('serverLock', () => rsl())
+  }
+
+  return orc
+}

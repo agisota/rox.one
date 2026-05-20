@@ -6,10 +6,11 @@
  *  C2  handler that throws does not block other handlers (isolation)
  *  C3  per-handler timeout fires after N ms, marked timedOut, shutdown still returns
  *  C4  critical: true handler that fails causes shutdown result to reflect criticality
+ *  C5  buildQuitOrchestrator registers sessionManager + browserPaneManager handlers
  */
 
 import { describe, it, expect, beforeEach, mock } from 'bun:test'
-import { QuitOrchestrator } from '../quit-orchestrator'
+import { QuitOrchestrator, buildQuitOrchestrator } from '../quit-orchestrator'
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -175,6 +176,65 @@ describe('QuitOrchestrator', () => {
       expect(result.timedOut).toContain('crit-hang')
       // The timedOut entry should also carry critical metadata
       expect(result.criticalTimedOut).toContain('crit-hang')
+    })
+  })
+
+  // ─── C5: buildQuitOrchestrator factory wires required handlers ────────────
+
+  describe('C5: buildQuitOrchestrator factory', () => {
+    it('registers sessionManager handler that calls flushAllSessions + cleanup', async () => {
+      const flushAllSessions = mock(async () => {})
+      const cleanup = mock(() => {})
+      const sessionManager = { flushAllSessions, cleanup }
+
+      const orc = buildQuitOrchestrator({ sessionManager })
+      await orc.shutdown()
+
+      expect(flushAllSessions).toHaveBeenCalledTimes(1)
+      expect(cleanup).toHaveBeenCalledTimes(1)
+    })
+
+    it('registers browserPaneManager handler that calls destroyAll', async () => {
+      const destroyAll = mock(() => {})
+      const browserPaneManager = { destroyAll }
+      const sessionManager = { flushAllSessions: async () => {}, cleanup: () => {} }
+
+      const orc = buildQuitOrchestrator({ sessionManager, browserPaneManager })
+      await orc.shutdown()
+
+      expect(destroyAll).toHaveBeenCalledTimes(1)
+    })
+
+    it('works without optional managers (no crash when undefined)', async () => {
+      const sessionManager = { flushAllSessions: async () => {}, cleanup: () => {} }
+
+      const orc = buildQuitOrchestrator({ sessionManager })
+      const result = await orc.shutdown()
+
+      expect(result.failed).toEqual([])
+      expect(result.timedOut).toEqual([])
+    })
+
+    it('registers oauthFlowStore handler that calls dispose', async () => {
+      const dispose = mock(() => {})
+      const sessionManager = { flushAllSessions: async () => {}, cleanup: () => {} }
+      const oauthFlowStore = { dispose }
+
+      const orc = buildQuitOrchestrator({ sessionManager, oauthFlowStore })
+      await orc.shutdown()
+
+      expect(dispose).toHaveBeenCalledTimes(1)
+    })
+
+    it('registers messagingHandle handler that calls dispose', async () => {
+      const dispose = mock(async () => {})
+      const sessionManager = { flushAllSessions: async () => {}, cleanup: () => {} }
+      const messagingHandle = { dispose }
+
+      const orc = buildQuitOrchestrator({ sessionManager, messagingHandle })
+      await orc.shutdown()
+
+      expect(dispose).toHaveBeenCalledTimes(1)
     })
   })
 })
