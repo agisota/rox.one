@@ -1,4 +1,5 @@
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { cpSync, createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { createHash } from 'crypto'
 import { dirname, join, resolve } from 'path'
 
 const ROOT_DIR = join(import.meta.dir, '..')
@@ -31,6 +32,25 @@ const COPY_PATHS = [
   'open-design',
   'open-design-web-standalone',
 ]
+
+/** Relative paths of the entry-point files that must be digest-verified at runtime launch. */
+const DIGEST_PATHS = [
+  'app/prebundled/daemon/daemon-sidecar.mjs',
+  'app/prebundled/daemon/daemon-cli.mjs',
+  'app/prebundled/web-sidecar.mjs',
+  'open-design/bin/node',
+  'open-design-web-standalone/apps/web/server.js',
+]
+
+async function sha256File(filePath: string): Promise<string> {
+  return new Promise((resolveHash, rejectHash) => {
+    const hash = createHash('sha256')
+    const stream = createReadStream(filePath)
+    stream.on('data', (chunk) => hash.update(chunk))
+    stream.on('end', () => resolveHash(hash.digest('hex')))
+    stream.on('error', rejectHash)
+  })
+}
 
 function fail(message: string): never {
   console.error(`[rox-design:prepare] ${message}`)
@@ -78,12 +98,26 @@ for (const relativePath of COPY_PATHS) {
   console.log(`[rox-design:prepare] copied ${relativePath}`)
 }
 
+// Compute per-file SHA-256 digests for security perimeter entry points (B-H2).
+// These are verified at runtime launch in RoxDesignRuntimeManager.start().
+const fileDigests: Record<string, string> = {}
+for (const relativePath of DIGEST_PATHS) {
+  const absPath = join(TARGET_DIR, relativePath)
+  if (existsSync(absPath)) {
+    fileDigests[relativePath] = await sha256File(absPath)
+    console.log(`[rox-design:prepare] digested ${relativePath} (${fileDigests[relativePath].slice(0, 12)}…)`)
+  } else {
+    console.warn(`[rox-design:prepare] warn: digest path not found, skipping: ${relativePath}`)
+  }
+}
+
 writeFileSync(join(TARGET_DIR, 'MANIFEST.json'), `${JSON.stringify({
   schema: 'rox-design-runtime-manifest.v1',
   sourceRoot,
   version,
   copiedAt: new Date().toISOString(),
   copiedPaths: COPY_PATHS,
+  fileDigests,
 }, null, 2)}\n`)
 
 console.log(`[rox-design:prepare] prepared Open Design ${version} runtime at ${TARGET_DIR}`)

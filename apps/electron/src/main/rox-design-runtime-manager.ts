@@ -1,7 +1,7 @@
 import { spawn, type ChildProcessByStdio } from 'child_process'
-import { randomBytes } from 'crypto'
+import { createHash, randomBytes, type Hash } from 'crypto'
 import { createConnection } from 'net'
-import { existsSync, readFileSync } from 'fs'
+import { createReadStream, existsSync, readFileSync } from 'fs'
 import { mkdir, mkdtemp, rm } from 'fs/promises'
 import { tmpdir } from 'os'
 import { dirname, isAbsolute, join, resolve } from 'path'
@@ -60,6 +60,55 @@ const EMBED_PARAMS: Record<string, string> = {
   embed: 'rox',
   theme: 'system',
   lang: 'ru',
+}
+
+interface RuntimeManifest {
+  schema?: string
+  fileDigests?: Record<string, string>
+}
+
+function sha256FileSync(filePath: string): Promise<string> {
+  return new Promise((resolveHash, rejectHash) => {
+    const hash: Hash = createHash('sha256')
+    const stream = createReadStream(filePath)
+    stream.on('data', (chunk: Buffer) => hash.update(chunk))
+    stream.on('end', () => resolveHash(hash.digest('hex')))
+    stream.on('error', rejectHash)
+  })
+}
+
+/**
+ * Verifies per-file SHA-256 digests recorded in MANIFEST.json (B-H2).
+ * Fails closed on any mismatch; silently skips if fileDigests is absent (backward compat).
+ */
+async function verifyPayloadDigests(payloadDir: string, logger?: RoxDesignRuntimeManagerOptions['logger']): Promise<void> {
+  const manifestPath = join(payloadDir, 'MANIFEST.json')
+  if (!existsSync(manifestPath)) return
+
+  let manifest: RuntimeManifest
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as RuntimeManifest
+  } catch {
+    return
+  }
+
+  if (!manifest.fileDigests || Object.keys(manifest.fileDigests).length === 0) {
+    logger?.warn?.('[rox-design] MANIFEST.json has no fileDigests block — tamper detection skipped (pre-B-H2 payload)')
+    return
+  }
+
+  for (const [relativePath, expectedDigest] of Object.entries(manifest.fileDigests)) {
+    const absPath = join(payloadDir, relativePath)
+    if (!existsSync(absPath)) {
+      throw new Error(`[rox-design] tamper detected: ${relativePath} is missing from payload`)
+    }
+    const actualDigest = await sha256FileSync(absPath)
+    if (actualDigest !== expectedDigest) {
+      throw new Error(
+        `[rox-design] tamper detected: ${relativePath} digest mismatch (expected=${expectedDigest} actual=${actualDigest})`,
+      )
+    }
+  }
 }
 
 const SIDECAR_START_TIMEOUT_MS = 45_000
@@ -361,6 +410,18 @@ export class RoxDesignRuntimeManager {
         error: `Rox Design runtime is not bundled yet. Expected Open Design resources under ${join(this.resourcesRoot, 'resources', 'rox-design')}.`,
       }
       this.logger?.warn?.('[rox-design] bundled runtime missing', { resourcesRoot: this.resourcesRoot })
+      this.broadcastStatus()
+      return this.getStatus()
+    }
+
+    try {
+      await verifyPayloadDigests(bundledLayout.root, this.logger)
+    } catch (error) {
+      this.status = {
+        status: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+      }
+      this.logger?.error?.('[rox-design] payload integrity check failed', { error: this.status.error })
       this.broadcastStatus()
       return this.getStatus()
     }

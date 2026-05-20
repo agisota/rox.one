@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 
 const ROOT_DIR = join(import.meta.dir, '..');
@@ -32,6 +33,7 @@ interface Manifest {
   archiveSha256?: string;
   copiedAt?: string;
   copiedPaths?: string[];
+  fileDigests?: Record<string, string>;
 }
 
 interface VersionsManifestEntry {
@@ -163,6 +165,46 @@ function crossCheckVersionsManifest(): void {
 }
 
 crossCheckVersionsManifest();
+
+// B-H2: passive digest check — warn on missing, fail on mismatch.
+async function checkFileDigests(): Promise<void> {
+  const digests = manifest.fileDigests;
+  if (!digests || Object.keys(digests).length === 0) {
+    console.warn('[rox-design:payload:verify] (no fileDigests block in MANIFEST — tamper detection skipped; pre-B-H2 payload?)');
+    return;
+  }
+
+  let mismatches = 0;
+  for (const [relativePath, expectedDigest] of Object.entries(digests)) {
+    const absPath = join(TARGET_DIR, relativePath);
+    if (!existsSync(absPath)) {
+      fail(`fileDigests: ${relativePath} listed in MANIFEST but missing from payload`);
+    }
+    const actual = await new Promise<string>((resolveHash, rejectHash) => {
+      const hash = createHash('sha256');
+      const stream = createReadStream(absPath);
+      stream.on('data', (chunk: Buffer) => hash.update(chunk));
+      stream.on('end', () => resolveHash(hash.digest('hex')));
+      stream.on('error', rejectHash);
+    });
+    if (actual !== expectedDigest) {
+      console.error(
+        `[rox-design:payload:verify] digest MISMATCH: ${relativePath}\n` +
+          `  expected: ${expectedDigest}\n` +
+          `  actual:   ${actual}`,
+      );
+      mismatches += 1;
+    }
+  }
+
+  if (mismatches > 0) {
+    fail(`fileDigests: ${mismatches} file(s) failed digest verification — payload may have been tampered with`);
+  }
+
+  console.log(`[rox-design:payload:verify] fileDigests OK (${Object.keys(digests).length} files verified)`);
+}
+
+await checkFileDigests();
 
 const topLevel = readdirSync(TARGET_DIR).filter((entry) => entry !== '.DS_Store');
 console.log(`[rox-design:payload:verify] OK — Open Design ${manifest.version} payload at ${TARGET_DIR}`);
