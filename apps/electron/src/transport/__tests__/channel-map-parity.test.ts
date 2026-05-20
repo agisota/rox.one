@@ -30,6 +30,7 @@ type ApiToChannelMapKeys = Exclude<
   | 'changeLanguage' // direct IPC to main process — syncs i18n language
   | 'getFilePath' // renderer-local — webUtils.getPathForFile, no IPC round-trip
   | 'onRoxDesignStatusChanged' // direct IPC listener — rox-design:status-changed push from main
+  | 'onRoxDesignSidecarExited' // direct IPC listener — rox-design:sidecar-exited push from main (PZD-81)
   | 'onDesignToggle' // direct IPC listener — design:toggle hotkey push from main
   | 'openWithContext' // direct IPC to main process — design:openWithContext handler (T537 Phase B)
   | 'onAgentAnswerReceived' // direct IPC listener — agent-answer:received push from main (PZD-18 step 4)
