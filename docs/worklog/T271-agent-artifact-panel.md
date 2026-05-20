@@ -105,3 +105,70 @@ Implement a Claude/Codex Artifacts-style right-side panel for chat, with session
 | Copy/Download/Fullscreen/Close controls exist | PASS | `ArtifactPanel` SSR test checks toolbar actions |
 | Panel fits current design and compact mode | PASS | Panel uses existing button/tokens/shadows and compact absolute overlay behavior; renderer build passed |
 | Targeted tests and validation pass | PASS | 24 targeted tests, three typechecks, and renderer build passed |
+
+## 12. Hosted CI follow-up - 2026-05-20
+
+### Task summary
+
+Unblock PR #301 hosted gates after merging `main` into the artifact-panel branch. The remaining failures were workflow/runtime-smoke infrastructure issues, not artifact panel behavior:
+
+- `macOS Sequoia ARM64 packaged launch` failed during `bun install --frozen-lockfile` because `@vscode/ripgrep` postinstall downloaded a GitHub Release without an authenticated `GITHUB_TOKEN`, ending in HTTP 403.
+- `Rox Design xvfb smoke - AppImage` prepared the runtime payload and launched, but the assertion grepped for a broad `RoxDesignRuntimeManager` marker that the app never emitted before the headless startup branch.
+
+### Repo context discovered
+
+- `.github/workflows/cross-platform-launch.yml` had three `Install dependencies` steps without per-step `GITHUB_TOKEN` env.
+- `.github/workflows/mac-diag-smoke.yml` already documents the same ripgrep/GitHub-release issue and passes `GITHUB_TOKEN: ${{ github.token }}`.
+- `apps/electron/src/main/index.ts` constructs `RoxDesignRuntimeManager` before the `isHeadless` branch, so a diagnostic startup marker there proves the packaged app wired the manager even when `ROX_HEADLESS=1` skips window creation.
+- `.github/workflows/rox-design-xvfb-smoke.yml` already passes `GITHUB_TOKEN` at the `xvfb-smoke` job level, but the AAP harness install step did not have install-scoped auth.
+
+### Files inspected
+
+- `.github/workflows/cross-platform-launch.yml`
+- `.github/workflows/rox-design-xvfb-smoke.yml`
+- `.github/workflows/mac-diag-smoke.yml`
+- `scripts/validate-cross-platform-launch-workflow.ts`
+- `scripts/__tests__/validate-rox-design-xvfb-workflow.test.ts`
+- `apps/electron/src/main/index.ts`
+- `apps/electron/src/main/rox-design-runtime-manager.ts`
+
+### Tests added first
+
+- Extended `scripts/validate-cross-platform-launch-workflow.ts` to fail unless every `Install dependencies` step passes `GITHUB_TOKEN: ${{ github.token }}`.
+- Extended `scripts/__tests__/validate-rox-design-xvfb-workflow.test.ts` to require the concrete `RoxDesignRuntimeManager initialized` marker in both the workflow assertion and Electron main startup code.
+
+### Expected failing test output
+
+- `bun run validate:cross-platform-launch-workflow` failed with: `Install dependencies step 1 does not pass GITHUB_TOKEN for GitHub Release postinstall downloads`.
+- `bun test scripts/__tests__/validate-rox-design-xvfb-workflow.test.ts` failed because `.github/workflows/rox-design-xvfb-smoke.yml` did not contain `RoxDesignRuntimeManager initialized`.
+
+### Implementation changes
+
+- Added per-step `GITHUB_TOKEN: ${{ github.token }}` env to all cross-platform launch `Install dependencies` steps so `@vscode/ripgrep` postinstall can authenticate GitHub Release/API requests.
+- Added install-scoped `GITHUB_TOKEN` to the AAP harness job in `rox-design-xvfb-smoke.yml`.
+- Tightened the xvfb assertion to grep for `RoxDesignRuntimeManager initialized`.
+- Added startup diagnostics around Rox Design runtime manager construction in `apps/electron/src/main/index.ts`; no runtime behavior changed.
+
+### Validation commands run
+
+- `bun run validate:cross-platform-launch-workflow`
+- `bun test scripts/__tests__/validate-rox-design-xvfb-workflow.test.ts`
+- `bun run validate:ci-contract`
+- `bun run typecheck:all`
+- `bun run validate:ci`
+- `git diff --check`
+- `graphify update apps/electron/src/main --no-cluster`
+
+### Passing test output summary
+
+- Cross-platform workflow validator: pass.
+- Rox Design xvfb workflow tests: 14 pass, 0 fail, 21 assertions.
+- CI contract validator: pass.
+- Full typecheck: pass.
+- Full `validate:ci`: pass.
+- Scoped Graphify refresh: rebuilt 1158 nodes and 2719 edges.
+
+### Remaining risks
+
+- Hosted GitHub Actions must re-run on the pushed branch to prove the macOS dependency install no longer hits unauthenticated 403 and the xvfb smoke log now contains the concrete runtime-manager marker.
+- Graphify refresh artifacts are intentionally local-only and excluded from git staging.

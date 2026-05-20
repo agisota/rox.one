@@ -16,6 +16,7 @@ import { describe, expect, test } from 'bun:test'
 
 const repoRoot = join(import.meta.dir, '../..')
 const workflowPath = join(repoRoot, '.github/workflows/rox-design-xvfb-smoke.yml')
+const mainIndexPath = join(repoRoot, 'apps/electron/src/main/index.ts')
 
 const SHA40 = /^[0-9a-f]{40}$/
 const USES_PATTERN = /^\s*uses:\s+([^\s#@]+)@([^\s#]+)(\s+#.*)?$/
@@ -52,6 +53,13 @@ describe('rox-design-xvfb-smoke.yml workflow (PZD-59)', () => {
   test('workflow greps for RoxDesignRuntimeManager init markers', () => {
     const content = readFileSync(workflowPath, 'utf8')
     expect(content).toContain('RoxDesignRuntimeManager')
+  })
+
+  test('workflow asserts the concrete runtime-manager initialization marker', () => {
+    const workflow = readFileSync(workflowPath, 'utf8')
+    const mainIndex = readFileSync(mainIndexPath, 'utf8')
+    expect(workflow).toContain('RoxDesignRuntimeManager initialized')
+    expect(mainIndex).toContain('RoxDesignRuntimeManager initialized')
   })
 
   test('workflow uploads diag artifact', () => {
