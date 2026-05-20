@@ -261,6 +261,13 @@
         "@modelcontextprotocol/sdk": ">=1.0.0",
       },
     },
+    "packages/design-classifier": {
+      "name": "@rox-one/design-classifier",
+      "version": "0.1.0",
+      "devDependencies": {
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/design-contract": {
       "name": "@rox-one/design-contract",
       "version": "0.1.0",
@@ -268,6 +275,18 @@
         "zod": "4.4.3",
       },
       "devDependencies": {
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/design-storage": {
+      "name": "@rox-one/design-storage",
+      "version": "0.1.0",
+      "dependencies": {
+        "@rox-one/design-contract": "workspace:*",
+        "zod": "4.4.3",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
         "typescript": "^5.9.3",
       },
     },
@@ -1249,7 +1268,11 @@
 
     "@rox-one/core": ["@rox-one/core@workspace:packages/core"],
 
+    "@rox-one/design-classifier": ["@rox-one/design-classifier@workspace:packages/design-classifier"],
+
     "@rox-one/design-contract": ["@rox-one/design-contract@workspace:packages/design-contract"],
+
+    "@rox-one/design-storage": ["@rox-one/design-storage@workspace:packages/design-storage"],
 
     "@rox-one/design-theme-bridge": ["@rox-one/design-theme-bridge@workspace:packages/design-theme-bridge"],
 
@@ -3877,6 +3900,8 @@
 
     "@rox-one/cli/@types/node": ["@types/node@22.19.17", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q=="],
 
+    "@rox-one/design-storage/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
+
     "@rox-one/messaging-gateway/@types/node": ["@types/node@22.19.17", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q=="],
 
     "@rox-one/messaging-whatsapp-worker/@types/node": ["@types/node@22.19.17", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q=="],
@@ -4200,6 +4225,8 @@
     "@rox-one/cli/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
     "@rox-one/cli/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+
+    "@rox-one/design-storage/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
     "@rox-one/messaging-gateway/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
