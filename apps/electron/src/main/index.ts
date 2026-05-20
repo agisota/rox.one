@@ -861,6 +861,8 @@ app.whenReady().then(async () => {
         roxStartup(`messaging: caught error ${err instanceof Error ? err.message : String(err)}`)
       }
 
+      roxStartup('about to register ipcMain handlers (post-messaging)')
+
       // IPC handlers — preload uses sendSync to get WS connection details
 
       // Remove workspace from config (cleanup stale entries)
@@ -1103,11 +1105,17 @@ app.whenReady().then(async () => {
 
       // Wire EventSink to Electron-specific services
       // Must happen BEFORE createInitialWindows() so event handlers use WS from the start
+      roxStartup('eventsink: before setRpcEventSink')
       windowManager.setRpcEventSink(moduleSink!, resolveClientId)
+      roxStartup('eventsink: before import menu')
       const { setMenuEventSink } = await import('./menu')
+      roxStartup('eventsink: before setMenuEventSink')
       setMenuEventSink(moduleSink!, resolveClientId)
+      roxStartup('eventsink: before import notifications')
       const { setNotificationEventSink } = await import('./notifications')
+      roxStartup('eventsink: before setNotificationEventSink')
       setNotificationEventSink(moduleSink!, resolveClientId)
+      roxStartup('eventsink: all sinks wired')
 
       // Headless: print connection details
       if (isHeadless) {
