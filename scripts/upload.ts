@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 import { createHash } from 'crypto';
 import { createReadStream } from 'fs';
 import { readdir, readFile, stat } from 'fs/promises';
@@ -251,18 +252,49 @@ async function uploadFile(
 ): Promise<void> {
   const resolvedKey = buildKey(target.basePrefix, key);
   const fileStats = await stat(sourcePath);
+  const contentType = getContentType(basename(sourcePath));
+  const fileSizeMB = (fileStats.size / (1024 * 1024)).toFixed(1);
 
-  await client.send(
-    new PutObjectCommand({
-      Bucket: target.bucket,
-      Key: resolvedKey,
-      Body: createReadStream(sourcePath),
-      ContentLength: fileStats.size,
-      ContentType: getContentType(basename(sourcePath)),
-    })
-  );
+  const maxAttempts = 3;
+  const backoffMs = [5_000, 10_000, 20_000];
 
-  console.log(`Uploaded ${resolvedKey}`);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const t0 = Date.now();
+    try {
+      const upload = new Upload({
+        client,
+        params: {
+          Bucket: target.bucket,
+          Key: resolvedKey,
+          Body: createReadStream(sourcePath),
+          ContentType: contentType,
+        },
+        queueSize: 4,
+        partSize: 8 * 1024 * 1024, // 8 MB parts
+        leavePartsOnError: false,
+      });
+
+      await upload.done();
+
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+      console.log(`Uploaded ${resolvedKey} (${fileSizeMB} MB in ${elapsed}s)`);
+      return;
+    } catch (err) {
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+      if (attempt < maxAttempts) {
+        const delay = backoffMs[attempt - 1];
+        console.error(
+          `Upload attempt ${attempt}/${maxAttempts} failed for ${resolvedKey} after ${elapsed}s: ${err instanceof Error ? err.message : String(err)}. Retrying in ${delay / 1000}s...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        console.error(
+          `Upload failed after ${maxAttempts} attempts for ${resolvedKey} (${elapsed}s elapsed).`
+        );
+        throw err;
+      }
+    }
+  }
 }
 
 async function uploadReleaseFiles(
