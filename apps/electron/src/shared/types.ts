@@ -420,6 +420,9 @@ export interface ElectronAPI {
   onMenuToggleFocusMode(callback: () => void): () => void
   onMenuToggleSidebar(callback: () => void): () => void
 
+  // Design hotkey (⌘⇧D / Ctrl+Shift+D) toggle listener
+  onDesignToggle(callback: () => void): () => void
+
   // Deep link navigation listener (for external rox:// URLs)
   onDeepLinkNavigate(callback: (nav: DeepLinkNavigation) => void): () => void
 
