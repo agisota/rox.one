@@ -8,6 +8,7 @@ import { dirname, isAbsolute, join, resolve } from 'path'
 import type { Readable } from 'stream'
 import { BrowserWindow } from 'electron'
 import type { RoxDesignStatus } from '../shared/types'
+import { readGatedEnv } from './integrations/env-policy'
 
 export interface RoxDesignRuntimeManagerOptions {
   resourcesRoot: string
@@ -321,13 +322,13 @@ export class RoxDesignRuntimeManager {
   }
 
   private async _doStart(): Promise<RoxDesignStatus> {
-    const explicitWebUrl = process.env.ROX_DESIGN_WEB_URL?.trim()
+    const explicitWebUrl = readGatedEnv('ROX_DESIGN_WEB_URL', this.logger)?.trim()
     if (explicitWebUrl) {
       try {
         this.status = {
           status: 'running',
           webUrl: withRoxEmbedParams(explicitWebUrl),
-          version: process.env.ROX_DESIGN_VERSION?.trim() || 'dev',
+          version: readGatedEnv('ROX_DESIGN_VERSION', this.logger)?.trim() || 'dev',
         }
         this.logger?.info?.('[rox-design] using explicit web URL', { webUrl: this.status.webUrl })
         this.broadcastStatus()
@@ -400,7 +401,7 @@ export class RoxDesignRuntimeManager {
   }
 
   private findBundledRuntimeLayout(): OpenDesignRuntimeLayout | null {
-    const explicitRoot = process.env.ROX_DESIGN_RUNTIME_ROOT?.trim()
+    const explicitRoot = readGatedEnv('ROX_DESIGN_RUNTIME_ROOT', this.logger)?.trim()
     const candidates = [
       ...(explicitRoot ? [explicitRoot] : []),
       this.resourcesRoot,
@@ -416,7 +417,7 @@ export class RoxDesignRuntimeManager {
       const layout: OpenDesignRuntimeLayout = {
         root: candidate,
         config,
-        version: config.appVersion?.trim() || process.env.ROX_DESIGN_VERSION?.trim() || 'bundled',
+        version: config.appVersion?.trim() || readGatedEnv('ROX_DESIGN_VERSION', this.logger)?.trim() || 'bundled',
         nodePath: resolveInside(candidate, config.nodeCommandRelative || 'open-design/bin/node'),
         daemonEntryPath: resolveInside(candidate, config.daemonSidecarEntryRelative || 'app/prebundled/daemon/daemon-sidecar.mjs'),
         daemonCliPath: resolveInside(candidate, config.daemonCliEntryRelative || 'app/prebundled/daemon/daemon-cli.mjs'),

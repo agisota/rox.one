@@ -1,24 +1,22 @@
+/**
+ * Rox Design view policy helpers.
+ *
+ * PZD-79 G.2.2.1.C migrated the URL/navigation primitives to
+ * `./integrations/url-policy.ts` so any future integration can reuse them.
+ * This module now re-exports the URL helpers for backward compatibility and
+ * keeps the Rox-Design-specific bounds geometry helpers in place.
+ */
 import type { RoxDesignBounds } from '../shared/types'
+import { decideNavigationSameOriginOnly } from './integrations/url-policy'
+
+export { isHttpUrl } from './integrations/url-policy'
+export type { NavigationDecision as RoxDesignNavigationDecision } from './integrations/url-policy'
 
 export interface RoxDesignRectangle {
   x: number
   y: number
   width: number
   height: number
-}
-
-export type RoxDesignNavigationDecision =
-  | { action: 'allow' }
-  | { action: 'external'; url: string }
-  | { action: 'deny' }
-
-export function isHttpUrl(value: string): boolean {
-  try {
-    const parsed = new URL(value)
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-  } catch {
-    return false
-  }
 }
 
 export function sanitizeRoxDesignBounds(bounds: RoxDesignBounds): RoxDesignRectangle | null {
@@ -44,16 +42,17 @@ export function scaleRoxDesignBounds(bounds: RoxDesignRectangle, zoomFactor: num
   }
 }
 
-export function getRoxDesignNavigationDecision(currentUrl: string | null, nextUrl: string): RoxDesignNavigationDecision {
-  if (!isHttpUrl(nextUrl)) return { action: 'deny' }
-  if (!currentUrl) return { action: 'allow' }
-
-  try {
-    const current = new URL(currentUrl)
-    const next = new URL(nextUrl)
-    if (current.origin === next.origin) return { action: 'allow' }
-    return { action: 'external', url: next.toString() }
-  } catch {
-    return { action: 'deny' }
-  }
+/**
+ * Pre-PZD-79 navigation semantic preserved verbatim for Rox Design: same-origin
+ * → allow; cross-origin http(s) → external; non-http → deny.
+ *
+ * New integrations MUST use `decideNavigation(currentUrl, nextUrl, allowlist)`
+ * from `./integrations/url-policy` (it enforces an explicit allowlist for
+ * defense in depth).
+ */
+export function getRoxDesignNavigationDecision(
+  currentUrl: string | null,
+  nextUrl: string,
+): import('./integrations/url-policy').NavigationDecision {
+  return decideNavigationSameOriginOnly(currentUrl, nextUrl)
 }
