@@ -2,8 +2,8 @@ function normalizeModuleId(id: string): string {
   return id.replace(/\\/g, '/')
 }
 
-function hasNodePackage(id: string, packageName: string): boolean {
-  return normalizeModuleId(id).includes(`/node_modules/${packageName}/`)
+function hasNodePackage(normalizedId: string, packageName: string): boolean {
+  return normalizedId.includes(`/node_modules/${packageName}/`)
 }
 
 export function getElectronRendererManualChunk(id: string): string | undefined {
