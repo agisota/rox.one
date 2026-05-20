@@ -1,7 +1,24 @@
+// Hard-coded stage instrumentation (M.18 white-window diag). Writes a
+// single-line entry to /tmp/rox-startup.log (sync, no logger dependency)
+// in addition to fd 2. Disk path is required because Playwright on macOS
+// runners does not always capture child-process stderr cleanly, but a flat
+// file survives any startup-phase hang and is copied to artefacts later.
+import { appendFileSync as __rox_appendFileSync } from 'fs'
+const __rox_startupLogPath =
+  process.env.ROX_STARTUP_LOG_PATH || '/tmp/rox-startup.log'
+function roxStartup(stage: string): void {
+  const line = `[${new Date().toISOString()}] ROX_STARTUP: ${stage}\n`
+  try { process.stderr.write(line) } catch { /* swallow */ }
+  try { __rox_appendFileSync(__rox_startupLogPath, line) } catch { /* swallow */ }
+}
+roxStartup('main-entry (pre-imports)')
+
 // Load user's shell environment first (before other imports that may use env)
 // This ensures tools like Homebrew, nvm, etc. are available to the agent
 import { loadShellEnv } from './shell-env'
+roxStartup('before loadShellEnv')
 loadShellEnv()
+roxStartup('after loadShellEnv')
 
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, nativeTheme, safeStorage, shell, type IpcMainInvokeEvent } from 'electron'
 import { createHash, randomUUID } from 'crypto'
@@ -391,6 +408,7 @@ if (!gotTheLock) {
 
 // Helper to create initial windows on startup
 async function createInitialWindows(): Promise<void> {
+  roxStartup('createInitialWindows entered')
   if (!windowManager) return
 
   // Load saved window state
@@ -438,14 +456,19 @@ async function createInitialWindows(): Promise<void> {
   }
 
   // Default: open window for first workspace
+  roxStartup('before windowManager.createWindow (default workspace)')
   windowManager.createWindow({ workspaceId: workspaces[0].id })
+  roxStartup('after windowManager.createWindow (default workspace)')
   mainLog.info(`Created window for first workspace: ${workspaces[0].name}`)
 }
 
+roxStartup('before app.whenReady().then registration')
 app.whenReady().then(async () => {
+  roxStartup('app.whenReady fired')
   // Diagnostic mode — no-op unless ROX_DIAG=1
   const { initDiagLogger } = await import('./diag/diag-logger')
   initDiagLogger()
+  roxStartup('diag-logger initialized')
 
   const smokeExitOnReady = process.env.ROX_SMOKE_EXIT_ON_READY === '1'
   const scheduleSmokeShutdown = (exitCode: number, message: string) => {
@@ -545,8 +568,10 @@ app.whenReady().then(async () => {
   }
 
   try {
+    roxStartup('before WindowManager construction')
     // Initialize window manager
     windowManager = new WindowManager()
+    roxStartup('after WindowManager construction')
 
     // Create the application menu (needs windowManager for New Window action)
     createApplicationMenu(windowManager)
@@ -763,6 +788,7 @@ app.whenReady().then(async () => {
       }
 
       // Bootstrap the WS RPC server via shared bootstrap function.
+      roxStartup('before bootstrapServer')
       const instance = await bootstrapServer<SessionManager, HandlerDeps>({
         serverToken,
         rpcHost,
@@ -865,6 +891,7 @@ app.whenReady().then(async () => {
         },
       })
 
+      roxStartup('after bootstrapServer returned')
       // Capture module-level references for before-quit cleanup and deep-link handlers
       sessionManager = instance.sessionManager
       oauthFlowStore = instance.oauthFlowStore
@@ -882,12 +909,44 @@ app.whenReady().then(async () => {
         }
 
         messagingHandle.setPublisher(instance.wsServer.push.bind(instance.wsServer))
+        roxStartup('messaging: setPublisher done')
 
         // Skip remote-owned workspaces — messaging runs on the remote server.
         const localWorkspaceIds = getWorkspaces(DEFAULT_LOCAL_SCOPE)
           .filter((ws) => !ws.remoteServer)
           .map((ws) => ws.id)
-        await messagingHandle.initializeWorkspaces(localWorkspaceIds)
+        roxStartup(`messaging: ${localWorkspaceIds.length} local workspace(s) to init`)
+
+        // CI diag-smoke (ROX_DIAG=1) skips messaging gateway init — it touches
+        // network sockets (Baileys/MTProto/Lark) that never succeed in a sealed
+        // GitHub Actions runner and previously hung the boot for 60+ seconds,
+        // preventing createInitialWindows from being reached. We still want to
+        // verify the renderer renders, which doesn't require messaging.
+        //
+        // For non-diag launches, hard-cap the init at 30s so a single bad
+        // workspace config (or a flaky native module under hardened runtime)
+        // can never block the rest of startup forever. Workspaces that need
+        // longer to connect run their handshake in background tasks already
+        // (see registry.ts tryConnectTelegram/Lark/WhatsApp).
+        if (process.env.ROX_DIAG === '1') {
+          roxStartup('messaging: SKIPPED — ROX_DIAG=1 diagnostic smoke mode')
+        } else {
+          const MESSAGING_INIT_TIMEOUT_MS = 30_000
+          const initPromise = messagingHandle.initializeWorkspaces(localWorkspaceIds)
+          const timeoutPromise = new Promise<'timeout'>((resolve) =>
+            setTimeout(() => resolve('timeout'), MESSAGING_INIT_TIMEOUT_MS),
+          )
+          const outcome = await Promise.race([initPromise.then(() => 'ok' as const), timeoutPromise])
+          if (outcome === 'timeout') {
+            mainLog.warn(
+              `[messaging] initializeWorkspaces did not complete within ${MESSAGING_INIT_TIMEOUT_MS}ms — ` +
+                `continuing boot; background reconnect tasks remain active`,
+            )
+            roxStartup('messaging: initializeWorkspaces TIMEOUT (continuing boot)')
+          } else {
+            roxStartup('messaging: initializeWorkspaces resolved')
+          }
+        }
 
         // Compose fan-out event sink: RPC push + messaging gateway dispatch.
         // Always install — this lets workspaces enable messaging at runtime
@@ -897,9 +956,13 @@ app.whenReady().then(async () => {
         if (messagingHandle.registry.size > 0) {
           mainLog.info(`[messaging] Fan-out sink active for ${messagingHandle.registry.size} workspace(s)`)
         }
+        roxStartup('messaging: fan-out sink installed')
       } catch (err) {
         mainLog.error('[messaging] Gateway initialization failed:', err)
+        roxStartup(`messaging: caught error ${err instanceof Error ? err.message : String(err)}`)
       }
+
+      roxStartup('about to register ipcMain handlers (post-messaging)')
 
       // IPC handlers — preload uses sendSync to get WS connection details
 
@@ -1143,23 +1206,34 @@ app.whenReady().then(async () => {
 
       // Wire EventSink to Electron-specific services
       // Must happen BEFORE createInitialWindows() so event handlers use WS from the start
+      roxStartup('eventsink: before setRpcEventSink')
       windowManager.setRpcEventSink(moduleSink!, resolveClientId)
+      roxStartup('eventsink: before import menu')
       const { setMenuEventSink } = await import('./menu')
+      roxStartup('eventsink: before setMenuEventSink')
       setMenuEventSink(moduleSink!, resolveClientId)
+      roxStartup('eventsink: before import notifications')
       const { setNotificationEventSink } = await import('./notifications')
+      roxStartup('eventsink: before setNotificationEventSink')
       setNotificationEventSink(moduleSink!, resolveClientId)
+      roxStartup('eventsink: all sinks wired')
+      roxStartup('after eventsink block, before isHeadless check')
 
       // Headless: print connection details
       if (isHeadless) {
         console.log(`ROX_SERVER_URL=${instance.protocol}://${instance.host}:${instance.port}`)
         console.log(`ROX_SERVER_TOKEN=${instance.token}`)
       }
+      roxStartup('after isHeadless console-log block (still inside !isClientOnly)')
     }
+    roxStartup('after !isClientOnly block closed')
 
     // Create initial windows (restores from saved state or opens first workspace)
     // In headless mode the server runs without any UI — skip window creation.
     if (!isHeadless) {
+      roxStartup('about to call createInitialWindows')
       await createInitialWindows()
+      roxStartup('createInitialWindows resolved')
     }
 
     // Run credential health check at startup to detect issues early

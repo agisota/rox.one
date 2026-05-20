@@ -194,6 +194,12 @@ export class WindowManager {
     const isWindows = process.platform === 'win32'
     const windowsBackgroundMaterial = getWindowsBackgroundMaterial()
 
+    try {
+      const line = `[${new Date().toISOString()}] ROX_STARTUP: before new BrowserWindow\n`
+      process.stderr.write(line)
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('fs').appendFileSync(process.env.ROX_STARTUP_LOG_PATH || '/tmp/rox-startup.log', line)
+    } catch { /* swallow */ }
     const window = new BrowserWindow({
       width: windowWidth,
       height: windowHeight,
@@ -332,11 +338,24 @@ export class WindowManager {
         query.focused = 'true' // Open in focused mode (no sidebars)
       }
 
+      const _roxLog = (msg: string) => {
+        try {
+          const line = `[${new Date().toISOString()}] ROX_STARTUP: ${msg}\n`
+          process.stderr.write(line)
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          require('fs').appendFileSync(process.env.ROX_STARTUP_LOG_PATH || '/tmp/rox-startup.log', line)
+        } catch { /* swallow */ }
+      }
       if (VITE_DEV_SERVER_URL) {
         const params = new URLSearchParams(query).toString()
+        _roxLog(`before loadURL ${VITE_DEV_SERVER_URL}`)
         window.loadURL(`${VITE_DEV_SERVER_URL}?${params}`)
+        _roxLog('after loadURL')
       } else {
-        window.loadFile(join(__dirname, 'renderer/index.html'), { query })
+        const indexPath = join(__dirname, 'renderer/index.html')
+        _roxLog(`before loadFile ${indexPath}`)
+        window.loadFile(indexPath, { query })
+        _roxLog('after loadFile')
       }
     }
 
