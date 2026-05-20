@@ -112,6 +112,7 @@ if (macArmConfig.includes('- x64')) {
 requireText(builderConfig, 'beforeBuild: scripts/beforeBuild.cjs', 'external node_modules beforeBuild hook');
 requireText(builderConfig, 'afterSign: scripts/afterSign.cjs', 'private mac hardened-runtime afterSign hook');
 requireText(builderConfig, 'identity: "-"', 'ad-hoc mac signing identity');
+requireText(builderConfig, 'minimumSystemVersion: "14.0"', 'Sonoma+ minimum system version contract');
 requireText(beforeBuildHook, 'return false', 'beforeBuild external node_modules signal');
 requireText(afterSignHook, 'ROX_DEV_RUNTIME', 'private mac afterSign dev-runtime guard');
 requireText(afterSignHook, 'codesign', 'private mac afterSign codesign invocation');
