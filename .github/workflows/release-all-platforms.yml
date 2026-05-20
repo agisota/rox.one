@@ -311,12 +311,6 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
           ROX_DEV_RUNTIME: "1"
           ELECTRON_BUILDER_CHANNEL: ${{ env.ELECTRON_UPDATE_CHANNEL }}
-          # v1.0.1: skip Rox Design payload verify until canonical archive
-          # workflow (PR #310 build-rox-design-payload-archive.yml) populates
-          # runtime-payload-versions.json. Linux + Windows lanes already bypass
-          # this gate. Tradeoff: Rox Design tab in packaged DMG will not load —
-          # same behaviour as v1.0.0 — until canonical archive infra activates.
-          ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY: "1"
         shell: bash
         run: |
           set -o pipefail
