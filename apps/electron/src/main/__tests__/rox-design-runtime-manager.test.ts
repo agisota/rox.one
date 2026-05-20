@@ -5,6 +5,7 @@ import { afterEach, describe, expect, mock, test } from 'bun:test'
 
 const mockSend = mock((_channel: string, _payload: unknown) => undefined)
 mock.module('electron', () => ({
+  app: { isPackaged: false },
   BrowserWindow: {
     getAllWindows: () => [{ webContents: { send: mockSend } }],
   },
