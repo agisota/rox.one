@@ -138,7 +138,7 @@ interface _RoxDesignViewManagerLike {
 }
 
 interface _RoxDesignRuntimeManagerLike {
-  stop(): Promise<void>
+  stop(): Promise<unknown>
 }
 
 interface _OAuthFlowStoreLike {
@@ -204,7 +204,9 @@ export function buildQuitOrchestrator(deps: QuitDeps): QuitOrchestrator {
   // 4. Rox Design runtime manager
   if (deps.roxDesignRuntimeManager) {
     const rrm = deps.roxDesignRuntimeManager
-    orc.register('roxDesignRuntimeManager', () => rrm.stop())
+    orc.register('roxDesignRuntimeManager', async () => {
+      await rrm.stop()
+    })
   }
 
   // 5. OAuth flow store
