@@ -101,10 +101,13 @@ asar: false
 
 mac:
   category: public.app-category.productivity
-  # Explicit support floor for the Electron 39 runtime: Monterey (12.0) and newer,
-  # including Ventura, Sonoma, Sequoia, and Tahoe. Keep this pinned so CI catches
-  # accidental SDK/runtime drift that would strand pre-Tahoe users.
-  minimumSystemVersion: "12.0"
+  # Support floor: macOS Sonoma 14.0 and newer (Sonoma, Sequoia, Tahoe).
+  # Ventura (13) and earlier are formally unsupported: GitHub Actions
+  # deprecated the macos-13 hosted runner so we have no CI coverage for it,
+  # and ad-hoc signed builds under hardened runtime exposed pre-Sonoma
+  # bugs we do not have hardware to reproduce. Users on Ventura/Monterey
+  # should pin to a build older than v1.0.2 or upgrade macOS.
+  minimumSystemVersion: "14.0"
   icon: resources/icon.icns
   # Private/local RC builds intentionally use ad-hoc signing. electron-builder
   # only preserves hardened runtime for ad-hoc output when identity is "-";
