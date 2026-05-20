@@ -1,0 +1,129 @@
+/**
+ * rox-design-overrides.css — T537 PR #2
+ *
+ * Injected into the embedded Design webContents via insertCSS / preload.
+ * Uses :where() for specificity-0 overrides so component rules still win.
+ *
+ * Goals:
+ *   1. Hide Open Design's native topbar / app-chrome so it feels like a ROX
+ *      panel rather than a nested app.
+ *   2. Re-skin using --rox-* CSS variables pushed from the host bridge so the
+ *      Design surface matches ChatPanel in light + dark.
+ *   3. Low-specificity so vendored upstream styles are never broken.
+ *
+ * Do NOT modify files under apps/electron/resources/rox-design/ — vendored.
+ */
+
+/* ── 1. Hide Open Design native chrome (specificity 0 via :where()) ── */
+:where(.od-topbar, .app-chrome-header, .od-app-header) {
+  display: none !important;
+}
+
+/* ── 2. Re-root the surface to use ROX tokens ── */
+:where(html[data-rox-embedded='true']) {
+  /* Background and text */
+  background-color: var(--rox-bg, #05070d);
+  color: var(--rox-text, #d8dee9);
+  color-scheme: var(--rox-color-scheme, dark);
+}
+
+:where(html[data-rox-embedded='true'] body) {
+  background: var(--rox-bg, #05070d);
+  color: var(--rox-text, #d8dee9);
+  font-family: var(--rox-sans, -apple-system, BlinkMacSystemFont, "Inter", sans-serif);
+}
+
+/* ── 3. Panel-level token mappings ── */
+
+/* Map Open Design's internal --od-* tokens to --rox-* equivalents when
+   the host pushes a snapshot. The :where() wrapper keeps specificity at 0. */
+:where(html[data-rox-embedded='true'] :root),
+:where(html[data-rox-embedded='true']) {
+  /* Background scale */
+  --od-bg:            var(--rox-bg, #05070d);
+  --od-bg-panel:      var(--rox-bg-panel, #090d15);
+  --od-bg-subtle:     var(--rox-bg-subtle, #0f1622);
+  --od-bg-elevated:   var(--rox-bg-elevated, #0d131d);
+
+  /* Border scale */
+  --od-border:        var(--rox-border, rgba(148, 163, 184, 0.14));
+  --od-border-strong: var(--rox-border-strong, rgba(148, 163, 184, 0.26));
+
+  /* Text scale */
+  --od-text:          var(--rox-text, #d8dee9);
+  --od-text-strong:   var(--rox-text-strong, #f4f7fb);
+  --od-text-muted:    var(--rox-text-muted, #8a94a6);
+
+  /* Accent scale */
+  --od-accent:        var(--rox-accent, #22d3ee);
+  --od-accent-soft:   var(--rox-accent-soft, rgba(34, 211, 238, 0.18));
+
+  /* Radius */
+  --od-radius:        var(--rox-radius, 14px);
+  --od-radius-sm:     var(--rox-radius-sm, 10px);
+  --od-radius-lg:     var(--rox-radius-lg, 18px);
+}
+
+/* ── 4. Sidebar / entry surface alignment ── */
+:where(html[data-rox-embedded='true'] .entry-side) {
+  background: var(--rox-bg-panel, #090d15);
+  border-right-color: var(--rox-border, rgba(148, 163, 184, 0.14));
+}
+
+:where(html[data-rox-embedded='true'] .entry-main) {
+  background: var(--rox-bg, #05070d);
+}
+
+/* ── 5. Card / modal surfaces ── */
+:where(
+  html[data-rox-embedded='true'] .newproj-card,
+  html[data-rox-embedded='true'] .library-card,
+  html[data-rox-embedded='true'] .settings-section,
+  html[data-rox-embedded='true'] .modal,
+  html[data-rox-embedded='true'] .composer-shell
+) {
+  background: var(--rox-bg-elevated, #0d131d);
+  border-color: var(--rox-border, rgba(148, 163, 184, 0.14));
+}
+
+/* ── 6. Input / form elements ── */
+:where(
+  html[data-rox-embedded='true'] input,
+  html[data-rox-embedded='true'] textarea,
+  html[data-rox-embedded='true'] select
+) {
+  background: var(--rox-bg-subtle, #0f1622);
+  border-color: var(--rox-border, rgba(148, 163, 184, 0.14));
+  color: var(--rox-text, #d8dee9);
+}
+
+:where(
+  html[data-rox-embedded='true'] input:focus,
+  html[data-rox-embedded='true'] textarea:focus,
+  html[data-rox-embedded='true'] select:focus
+) {
+  border-color: var(--rox-accent, #22d3ee);
+  outline: none;
+}
+
+/* ── 7. Badge / chip elements ── */
+:where(
+  html[data-rox-embedded='true'] .design-card-tag,
+  html[data-rox-embedded='true'] .library-card-badge,
+  html[data-rox-embedded='true'] .routines-tag
+) {
+  background: var(--rox-accent-soft, rgba(34, 211, 238, 0.1));
+  color: var(--rox-accent, #22d3ee);
+  border-color: var(--rox-accent-soft, rgba(34, 211, 238, 0.24));
+}
+
+/* ── 8. Links ── */
+:where(html[data-rox-embedded='true'] a) {
+  color: var(--rox-accent, #22d3ee);
+}
+
+/* ── 9. Scrollbars ── */
+:where(html[data-rox-embedded='true'] *) {
+  scrollbar-color: var(--rox-border-strong, rgba(148, 163, 184, 0.35)) transparent;
+  scrollbar-width: thin;
+}
