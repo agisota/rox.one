@@ -166,6 +166,16 @@ jobs:
       # workflow uploads the .dmg as a workflow artifact instead. Secrets
       # are wired via env so electron-builder + @electron/notarize pick them
       # up without appearing in logs.
+      # B-CI-1 defence-in-depth (PZD-48): explicit gate as a labelled step.
+      # The beforeBuild hook in apps/electron/scripts/beforeBuild.cjs also
+      # enforces the gate, but the workflow-level step gives clearer
+      # diagnostics when the payload is missing.
+      - name: Verify Rox Design runtime payload (B-CI-1 gate)
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run rox-design:payload:verify 2>&1 | tee .ci-logs/mac-signed-release/rox-design-payload-verify.log
+
       - name: Package + sign macOS DMG
         shell: bash
         env:

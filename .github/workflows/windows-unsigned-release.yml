@@ -163,6 +163,14 @@ jobs:
       # workflow artifact upload below handles distribution.
       # No signing env vars are set -- this is intentionally unsigned for
       # the v1.0.0-rc.2 beta distribution (SmartScreen will warn on install).
+      # B-CI-1 defence-in-depth (PZD-48): explicit gate as a labelled step.
+      - name: Verify Rox Design runtime payload (B-CI-1 gate)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun run rox-design:payload:verify *>&1 | Tee-Object -FilePath ..\..\.ci-logs\windows-unsigned-release\rox-design-payload-verify.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Package Windows NSIS installer (unsigned)
         shell: pwsh
         working-directory: apps/electron

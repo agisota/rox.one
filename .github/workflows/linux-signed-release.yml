@@ -173,6 +173,13 @@ jobs:
       # Run electron-builder for Linux. We pass --publish=never so the
       # action never uploads to a release page; the workflow uploads
       # the .AppImage as a workflow artifact instead.
+      # B-CI-1 defence-in-depth (PZD-48): explicit gate as a labelled step.
+      - name: Verify Rox Design runtime payload (B-CI-1 gate)
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun run rox-design:payload:verify 2>&1 | tee .ci-logs/linux-signed-release/rox-design-payload-verify.log
+
       - name: Package Linux AppImage
         shell: bash
         run: |

@@ -293,6 +293,17 @@ jobs:
       # linux-signed-release.yml). GPG signing is intentionally absent here —
       # to add it, lift the "GPG sign AppImage" block from
       # linux-signed-release.yml and wire the ROX_LINUX_GPG_KEY secrets.
+      # B-CI-1 defence-in-depth (PZD-48): explicit gate as a labelled step
+      # for the Linux lane. mac lane uses electron:dist:dev:mac:arm64 which
+      # already gates via package.json; Linux/Windows lanes call
+      # electron-builder directly so they need this explicit step.
+      - name: Verify Rox Design runtime payload Linux lane (B-CI-1)
+        if: matrix.platform == 'linux-x64'
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run rox-design:payload:verify 2>&1 | tee .ci-logs/release-all-platforms/linux-x64/rox-design-payload-verify.log
+
       - name: Package Linux x64 AppImage + deb + rpm (unsigned)
         if: matrix.platform == 'linux-x64'
         shell: bash
@@ -326,6 +337,15 @@ jobs:
 
       # Windows x64: run electron-builder from apps/electron working-directory.
       # No signing env vars are set — intentionally unsigned for rc.2 baseline.
+      # B-CI-1 defence-in-depth (PZD-48): explicit gate for Windows lane.
+      - name: Verify Rox Design runtime payload Windows lane (B-CI-1)
+        if: matrix.platform == 'windows-x64'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          bun run rox-design:payload:verify *>&1 | Tee-Object -FilePath ..\..\.ci-logs\release-all-platforms\windows-x64\rox-design-payload-verify.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Package Windows x64 NSIS installer (unsigned)
         if: matrix.platform == 'windows-x64'
         shell: pwsh
