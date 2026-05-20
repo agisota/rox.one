@@ -4,7 +4,7 @@ copyright: Copyright © 2026 roxone
 # CFBundleVersion is forced to a pure numeric Apple build number (T250).
 # Bump on every notarization-eligible release; the marketing string lives in
 # package.json `version` and maps to CFBundleShortVersionString automatically.
-buildVersion: "101"
+buildVersion: "102"
 
 electronVersion: "39.8.9"
 
@@ -103,6 +103,16 @@ publish:
 # decompression overhead is negligible vs filesystem thrashing of unpacked dist on
 # slow disks. Significant startup-speed win (v1.0.1).
 asar: true
+
+# v1.0.3: Rox Design payload MUST stay outside app.asar — the runtime spawns
+# Node subprocesses (daemon-sidecar.mjs, web-sidecar.mjs) and dynamically
+# requires native modules (better-sqlite3, blake3-wasm) from these paths.
+# fs APIs can read inside asar, but child_process.spawn cannot exec a script
+# living inside a virtual archive. Without asarUnpack the Rox Design tab
+# silently fails to boot.
+# Reference: https://www.electronjs.org/docs/latest/tutorial/asar-archives#executing-binaries-inside-asar-archive
+asarUnpack:
+  - "resources/rox-design/**/*"
 
 mac:
   category: public.app-category.productivity

@@ -697,11 +697,18 @@ jobs:
           prerelease: ${{ env.RELEASE_CHANNEL == 'beta' }}
           generate_release_notes: true
           fail_on_unmatched_files: false
+          # Linux lane uploads the cross-platform install scripts in addition
+          # to its Linux artifacts. The Cloudflare worker at
+          # app.rox.one/install-app.{sh,ps1} fetches these from the latest
+          # stable release. Linux is the source of truth because it always
+          # runs on every release and the scripts are platform-independent.
           files: |
             apps/electron/release/*.AppImage
             apps/electron/release/*.deb
             apps/electron/release/*.rpm
             apps/electron/release/*.yml
+            scripts/install-app.sh
+            scripts/install-app.ps1
 
       - name: Publish Windows x64 artifacts to GitHub Release
         if: matrix.platform == 'windows-x64' && success()

@@ -191,6 +191,13 @@ if ($actualHash -ne $checksum) {
 
 Write-Success "Checksum verified!"
 
+# Strip the Mark-of-the-Web (Zone.Identifier) ADS that PowerShell attaches to
+# downloads from the internet. Without this, the unsigned installer triggers
+# SmartScreen even though we just verified the checksum ourselves.
+# v1.0.3: explicit step — silently ignored prior, broke first-launch UX.
+Write-Info "Removing Mark-of-the-Web flag..."
+Unblock-File -Path $installerPath -ErrorAction SilentlyContinue
+
 # Close the app if it's running
 $process = Get-Process -Name "ROX.ONE" -ErrorAction SilentlyContinue
 if ($process) {
