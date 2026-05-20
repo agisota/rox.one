@@ -167,7 +167,8 @@ describe('useAgentAnswerStream · design package', () => {
     simulateHandlePackage(pkg, store)
     const stored = store.get(designAttachmentAtomFamily(pkg.turnId))
     const designPayload = pkg.payload as Extract<AgentAnswerPackage['payload'], { kind: 'design' }>
-    expect(stored?.openRequest.task.id).toBe(designPayload.request.task.id)
+    const designStored = stored?.kind === 'design-artifact' ? stored : null
+    expect(designStored?.openRequest.task.id).toBe(designPayload.request.task.id)
   })
 
   it('handles mixed package with a design part', () => {
