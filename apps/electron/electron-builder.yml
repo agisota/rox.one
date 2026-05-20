@@ -130,6 +130,18 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.inherit.plist
+  # B-SIGN-3 (Linear PZD-49): Re-sign nested Mach-O binaries inside the Rox
+  # Design (Open Design 0.7.0) payload with our Developer ID identity so Apple
+  # notarization accepts the bundle. Without this, the nested `node` binary
+  # used by Open Design sidecars would be unsigned (or signed by upstream)
+  # and notarization would reject the .app on first staple attempt.
+  #
+  # If Open Design ever ships these binaries pre-signed by a trusted upstream
+  # authority and we decide to preserve the original signature, swap this
+  # block for `signIgnore:` with the same paths and document the upstream
+  # signature provenance in `docs/release/mac-signing.md`.
+  binaries:
+    - resources/rox-design/open-design/bin/node
   extraResources:
     # Thin core SDK (sdk.mjs + types). ~4 MB — present on every platform.
     - from: node_modules/@anthropic-ai/claude-agent-sdk
