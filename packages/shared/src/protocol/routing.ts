@@ -85,6 +85,10 @@ export const LOCAL_ONLY_CHANNELS = new Set<string>([
   RPC_CHANNELS.theme.BROADCAST_WORKSPACE_THEME,
   RPC_CHANNELS.theme.WORKSPACE_THEME_CHANGED,
 
+  // preferences — local app-level behavior preferences
+  RPC_CHANNELS.preferences.GET_AUTO_LAUNCH_DESIGN,
+  RPC_CHANNELS.preferences.SET_AUTO_LAUNCH_DESIGN,
+
   // update — local auto-update
   RPC_CHANNELS.update.CHECK,
   RPC_CHANNELS.update.DOWNLOAD,

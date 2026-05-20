@@ -32,6 +32,7 @@ type ApiToChannelMapKeys = Exclude<
   | 'onRoxDesignStatusChanged' // direct IPC listener — rox-design:status-changed push from main
   | 'onDesignToggle' // direct IPC listener — design:toggle hotkey push from main
   | 'openWithContext' // direct IPC to main process — design:openWithContext handler (T537 Phase B)
+  | 'onAgentAnswerReceived' // direct IPC listener — agent-answer:received push from main (PZD-18 step 4)
 > | BrowserPaneKeys
 type ChannelMapKeys = keyof typeof CHANNEL_MAP & string
 
