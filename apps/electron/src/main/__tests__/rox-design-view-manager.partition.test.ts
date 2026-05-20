@@ -80,7 +80,7 @@ describe('RoxDesignViewManager partition isolation', () => {
     const manager = new RoxDesignViewManager({
       windowManager: {
         getWindowByWebContentsId: (_id: number) => mockWindow as unknown as import('electron').BrowserWindow,
-      },
+      } as unknown as import('../window-manager').WindowManager,
       preloadPath: '/fake/preload.cjs',
     })
 
@@ -109,7 +109,7 @@ describe('RoxDesignViewManager partition isolation', () => {
     const manager = new RoxDesignViewManager({
       windowManager: {
         getWindowByWebContentsId: (_id: number) => mockWindow as unknown as import('electron').BrowserWindow,
-      },
+      } as unknown as import('../window-manager').WindowManager,
       preloadPath: '/fake/preload.cjs',
     })
 

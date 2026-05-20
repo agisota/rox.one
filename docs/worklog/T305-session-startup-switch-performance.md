@@ -111,6 +111,7 @@ git fetch https://github.com/agisota/rox.one.git main
 git diff --check origin/main..HEAD
 bun install --frozen-lockfile
 gh pr checks 303 --repo agisota/rox.one
+bun run validate:mac-diag-smoke-workflow
 ```
 
 ## 8. Passing test output summary
@@ -127,17 +128,25 @@ gh pr checks 303 --repo agisota/rox.one
 - `git diff --check` for renderer files: passed, no whitespace errors.
 - `git diff --check origin/main..HEAD`: passed, no whitespace errors.
 - `bun install --frozen-lockfile`: initially failed in PR CI because `bun.lock` was stale after main upgraded `@rox-one/server` `ws` from `8.20.0` to `8.20.1`; rerunning `bun install --lockfile-only` updated only `bun.lock`, and the frozen install now passes locally.
+- `bun run validate:mac-diag-smoke-workflow`: initially failed because the validator still expected `node /tmp/diag-launch.mjs` while the workflow now stages the helper at `/tmp/pw/diag-launch.mjs`; the validator was aligned and now passes locally.
 
 ## 9. Build output summary
 
 Full Electron build was not run. Source/runtime behavior changed in renderer helpers, so targeted renderer unit tests were run. Backend package surface was covered by targeted shared tests and `bun run typecheck:shared` in the original task branch; the backend cache commit is already present on current `origin/main` as `1c9749e3`, so PR #303 carries only the renderer hot-path delta plus the lockfile sync needed for frozen CI installs.
 
-Current PR #303 CI state before the lockfile sync commit:
+Current PR #303 CI state before the lockfile/validator sync commits:
 
 - `validate`, `bundle-budget`, `ROX ONE core scenario suite`, and macOS/Windows/Linux packaged launch jobs all failed before test execution at `bun install --frozen-lockfile`.
 - Failure text: `lockfile had changes, but lockfile is frozen`.
 - `Gitleaks secret scan` passed.
 - Linux installer launcher guard jobs passed.
+
+Current PR #303 CI state after `72d38b64` and `0be954ea`:
+
+- `bundle-budget`, `ROX ONE core scenario suite`, Gitleaks, Linux Ubuntu packaged launch, Windows packaged launch, and Linux installer launcher guards pass.
+- `validate` was rerun on the validator sync head and was still in progress at the last poll.
+- macOS Sequoia ARM64 packaged launch still fails outside T305 at `rox-design:payload:verify` because `apps/electron/resources/rox-design/MANIFEST.json` is absent in CI.
+- CircleCI validate still fails and needs CircleCI log follow-up.
 
 Synthetic backend post-fix benchmark:
 
@@ -181,3 +190,4 @@ Baseline from before this task was backend `secondProject` ~931ms and first proj
 | Electron renderer typecheck passes | BLOCKED-BY-BASELINE | Passed on the original task branch; current PR branch fails on unrelated current-main diagnostics outside T305 listed above. |
 | Renderer whitespace diff check passes | PASS | `git diff --check -- ...` and `git diff --check origin/main..HEAD` exit 0. |
 | PR branch frozen install passes | PASS | Local `bun install --frozen-lockfile` passes after committing the one-line lockfile sync. |
+| PR branch mac diag workflow validator passes | PASS | Local `bun run validate:mac-diag-smoke-workflow` passes after aligning the expected helper path with the workflow. |

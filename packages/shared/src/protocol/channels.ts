@@ -225,6 +225,8 @@ export const RPC_CHANNELS = {
   preferences: {
     READ: 'preferences:read',
     WRITE: 'preferences:write',
+    GET_AUTO_LAUNCH_DESIGN: 'preferences:get-auto-launch-design',
+    SET_AUTO_LAUNCH_DESIGN: 'preferences:set-auto-launch-design',
   },
   drafts: {
     GET: 'drafts:get',

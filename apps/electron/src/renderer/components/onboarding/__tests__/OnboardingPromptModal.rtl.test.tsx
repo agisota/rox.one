@@ -35,8 +35,8 @@ const DEFAULT_PROPS = {
     never: 'Never',
     close: 'Close',
   },
-  onChoice: vi.fn<[AutoLaunchDesignChoice], void>(),
-  onClose: vi.fn(),
+  onChoice: vi.fn<(choice: AutoLaunchDesignChoice) => void>(),
+  onClose: vi.fn<() => void>(),
 }
 
 afterEach(() => {
@@ -73,7 +73,7 @@ describe('OnboardingPromptModal', () => {
   })
 
   it('calls onChoice("always") when Always button is clicked', () => {
-    const onChoice = vi.fn<[AutoLaunchDesignChoice], void>()
+    const onChoice = vi.fn<(choice: AutoLaunchDesignChoice) => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onChoice={onChoice} />)
     fireEvent.click(screen.getByText('Always'))
     expect(onChoice).toHaveBeenCalledTimes(1)
@@ -81,7 +81,7 @@ describe('OnboardingPromptModal', () => {
   })
 
   it('calls onChoice("ask") when Ask me button is clicked', () => {
-    const onChoice = vi.fn<[AutoLaunchDesignChoice], void>()
+    const onChoice = vi.fn<(choice: AutoLaunchDesignChoice) => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onChoice={onChoice} />)
     fireEvent.click(screen.getByText('Ask me'))
     expect(onChoice).toHaveBeenCalledTimes(1)
@@ -89,7 +89,7 @@ describe('OnboardingPromptModal', () => {
   })
 
   it('calls onChoice("never") when Never button is clicked', () => {
-    const onChoice = vi.fn<[AutoLaunchDesignChoice], void>()
+    const onChoice = vi.fn<(choice: AutoLaunchDesignChoice) => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onChoice={onChoice} />)
     fireEvent.click(screen.getByText('Never'))
     expect(onChoice).toHaveBeenCalledTimes(1)

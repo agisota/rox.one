@@ -163,6 +163,10 @@ export const LOCAL_ONLY_CHANNELS = new Set<string>([
   RPC_CHANNELS.tools.GET_BROWSER_TOOL_ENABLED,
   RPC_CHANNELS.tools.SET_BROWSER_TOOL_ENABLED,
 
+  // auto-launch Design preference — local app/userData preference
+  RPC_CHANNELS.preferences.GET_AUTO_LAUNCH_DESIGN,
+  RPC_CHANNELS.preferences.SET_AUTO_LAUNCH_DESIGN,
+
   // browserPane — Electron BrowserView
   RPC_CHANNELS.browserPane.CREATE,
   RPC_CHANNELS.browserPane.DESTROY,
