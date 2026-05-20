@@ -4,7 +4,9 @@ import { join } from 'path'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 
 const mockSend = mock((_channel: string, _payload: unknown) => undefined)
+const electronApp = { isPackaged: false }
 mock.module('electron', () => ({
+  app: electronApp,
   BrowserWindow: {
     getAllWindows: () => [{ webContents: { send: mockSend } }],
   },
@@ -99,6 +101,7 @@ afterEach(() => {
   for (const dir of tempRoots.splice(0)) rmSync(dir, { recursive: true, force: true })
   delete process.env.ROX_DESIGN_WEB_URL
   delete process.env.ROX_DESIGN_RUNTIME_ROOT
+  electronApp.isPackaged = false
   mockSend.mockClear()
 })
 
@@ -170,6 +173,40 @@ describe('RoxDesignRuntimeManager', () => {
     expect(status.version).toBe('0.7-test')
 
     await manager.stop()
+  })
+
+  test('ignores ROX_DESIGN_WEB_URL in packaged builds (A-M1 trust boundary)', async () => {
+    electronApp.isPackaged = true
+    process.env.ROX_DESIGN_WEB_URL = 'https://attacker.example/?embed=rox'
+    const warnings: Array<{ msg: string; meta?: Record<string, unknown> }> = []
+    const logger = { warn: (msg: string, meta?: Record<string, unknown>) => warnings.push({ msg, meta }) }
+    const manager = new RoxDesignRuntimeManager({ resourcesRoot: tempRoot(), logger })
+
+    const status = await manager.start()
+
+    // Should fall through to bundled-runtime path and fail because no bundle exists.
+    expect(status.status).toBe('failed')
+    expect(status.webUrl).toBeUndefined()
+    expect(status.error).toContain('Rox Design runtime is not bundled')
+    expect(warnings.some((w) => w.msg.includes('ignoring ROX_DESIGN_WEB_URL'))).toBe(true)
+  })
+
+  test('ignores ROX_DESIGN_RUNTIME_ROOT in packaged builds (A-M2 RCE class)', async () => {
+    electronApp.isPackaged = true
+    const resourcesRoot = tempRoot()
+    const attackerRoot = createMockOpenDesignRuntime(tempRoot())
+    process.env.ROX_DESIGN_RUNTIME_ROOT = attackerRoot
+    const warnings: Array<{ msg: string }> = []
+    const logger = { warn: (msg: string) => warnings.push({ msg }) }
+    const manager = new RoxDesignRuntimeManager({ resourcesRoot, logger })
+
+    const status = await manager.start()
+
+    // Should refuse to use the attacker-controlled root and fail because the
+    // legitimate resourcesRoot has no bundle.
+    expect(status.status).toBe('failed')
+    expect(status.error).toContain('Rox Design runtime is not bundled')
+    expect(warnings.some((w) => w.msg.includes('ignoring ROX_DESIGN_RUNTIME_ROOT'))).toBe(true)
   })
 
   test('concurrent start() calls share a single in-flight promise', async () => {

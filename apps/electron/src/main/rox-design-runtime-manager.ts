@@ -6,7 +6,7 @@ import { mkdir, mkdtemp, rm } from 'fs/promises'
 import { tmpdir } from 'os'
 import { dirname, isAbsolute, join, resolve } from 'path'
 import type { Readable } from 'stream'
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, app } from 'electron'
 import type { RoxDesignStatus } from '../shared/types'
 
 export interface RoxDesignRuntimeManagerOptions {
@@ -320,7 +320,18 @@ export class RoxDesignRuntimeManager {
   }
 
   private async _doStart(): Promise<RoxDesignStatus> {
-    const explicitWebUrl = process.env.ROX_DESIGN_WEB_URL?.trim()
+    // Trust boundary: env-var overrides are accepted in dev only. In packaged
+    // builds a poisoned shell profile / launcher could redirect the runtime
+    // to attacker URLs (A-M1) or spawn arbitrary node binaries via
+    // ROX_DESIGN_RUNTIME_ROOT (A-M2, RCE-class). Ignore and log instead.
+    const allowEnvOverrides = !app.isPackaged
+    const rawExplicitWebUrl = process.env.ROX_DESIGN_WEB_URL?.trim()
+    if (rawExplicitWebUrl && !allowEnvOverrides) {
+      this.logger?.warn?.('[rox-design] ignoring ROX_DESIGN_WEB_URL in packaged build', {
+        reason: 'env-overrides-disabled-in-production',
+      })
+    }
+    const explicitWebUrl = allowEnvOverrides ? rawExplicitWebUrl : undefined
     if (explicitWebUrl) {
       try {
         this.status = {
@@ -382,7 +393,19 @@ export class RoxDesignRuntimeManager {
   }
 
   private findBundledRuntimeLayout(): OpenDesignRuntimeLayout | null {
-    const explicitRoot = process.env.ROX_DESIGN_RUNTIME_ROOT?.trim()
+    // Same trust boundary as ROX_DESIGN_WEB_URL: an attacker-set
+    // ROX_DESIGN_RUNTIME_ROOT pointing at a writable directory with an
+    // open-design-config.json would cause us to spawn its nodeCommandRelative
+    // binary as a sidecar — arbitrary code execution in main-process context.
+    // Allow the override in dev only.
+    const allowEnvOverrides = !app.isPackaged
+    const rawExplicitRoot = process.env.ROX_DESIGN_RUNTIME_ROOT?.trim()
+    if (rawExplicitRoot && !allowEnvOverrides) {
+      this.logger?.warn?.('[rox-design] ignoring ROX_DESIGN_RUNTIME_ROOT in packaged build', {
+        reason: 'env-overrides-disabled-in-production',
+      })
+    }
+    const explicitRoot = allowEnvOverrides ? rawExplicitRoot : undefined
     const candidates = [
       ...(explicitRoot ? [explicitRoot] : []),
       this.resourcesRoot,

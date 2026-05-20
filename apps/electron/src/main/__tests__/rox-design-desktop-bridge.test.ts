@@ -2,6 +2,10 @@ import { describe, expect, it, mock } from 'bun:test'
 import { createHmac } from 'crypto'
 
 mock.module('electron', () => ({
+  // Provide `app` so cross-file test runs (which share module state in bun
+  // test) can find it. Runtime-manager imports `app` directly; if this test's
+  // mock wins the cache it must still satisfy that import.
+  app: { isPackaged: false },
   BrowserWindow: class MockBrowserWindow {
     isDestroyed() { return false }
     webContents = {
