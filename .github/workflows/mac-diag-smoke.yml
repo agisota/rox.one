@@ -112,7 +112,19 @@ jobs:
           OS_LABEL: ${{ matrix.os }}
         run: |
           set +e
-          APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+          # Prefer arm64 build on Apple-silicon runners. The original alphabetic
+          # `find | head -1` selected release/mac/ (x86_64), which executes under
+          # Rosetta on macos-14/15-xlarge (both arm64) and hangs silently under
+          # ad-hoc hardened runtime — see iterations 1-5 of this workflow.
+          HOST_ARCH=$(uname -m)
+          if [ "$HOST_ARCH" = "arm64" ] && [ -d "apps/electron/release/mac-arm64/ROX.ONE.app" ]; then
+            APP_PATH="apps/electron/release/mac-arm64/ROX.ONE.app"
+          elif [ -d "apps/electron/release/mac/ROX.ONE.app" ]; then
+            APP_PATH="apps/electron/release/mac/ROX.ONE.app"
+          else
+            APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+          fi
+          echo "Host arch=$HOST_ARCH, selected APP_PATH=$APP_PATH"
           {
             echo "=== APP_PATH: $APP_PATH ==="
             echo
@@ -139,7 +151,19 @@ jobs:
           set -euo pipefail
 
           # Locate the built .app (prefer arm64, fall back to x64)
-          APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+          # Prefer arm64 build on Apple-silicon runners. The original alphabetic
+          # `find | head -1` selected release/mac/ (x86_64), which executes under
+          # Rosetta on macos-14/15-xlarge (both arm64) and hangs silently under
+          # ad-hoc hardened runtime — see iterations 1-5 of this workflow.
+          HOST_ARCH=$(uname -m)
+          if [ "$HOST_ARCH" = "arm64" ] && [ -d "apps/electron/release/mac-arm64/ROX.ONE.app" ]; then
+            APP_PATH="apps/electron/release/mac-arm64/ROX.ONE.app"
+          elif [ -d "apps/electron/release/mac/ROX.ONE.app" ]; then
+            APP_PATH="apps/electron/release/mac/ROX.ONE.app"
+          else
+            APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+          fi
+          echo "Host arch=$HOST_ARCH, selected APP_PATH=$APP_PATH"
           if [ -z "$APP_PATH" ]; then
             echo "ERROR: Could not find ROX.ONE.app in apps/electron/release"
             find apps/electron/release -type d | head -20
