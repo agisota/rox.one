@@ -1,0 +1,5 @@
+{
+  "schema": "rox-design-runtime-payload-versions.v1",
+  "comment": "Populated by `bun run scripts/build-rox-design-payload-archive.ts --versions-manifest=runtime-payload-versions.json`. The `current` field points at the version every release lane should pull via `rox-design:prepare --from-archive=<archiveUrl> --expected-sha256=<archiveSha256>`. See `docs/release/rox-design-payload-supply-chain.md`.",
+  "versions": {}
+}
