@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterEach, describe, expect, mock, test } from 'bun:test'
@@ -38,6 +38,12 @@ function createMockOpenDesignRuntime(resourcesRoot: string): string {
 const appFlagIndex = process.argv.indexOf('--od-stamp-app')
 const app = appFlagIndex === -1 ? 'unknown' : process.argv[appFlagIndex + 1]
 const port = app === 'daemon' ? 49111 : 49112
+if (process.env.OD_DATA_DIR) {
+  await import('fs/promises').then(async ({ mkdir, writeFile }) => {
+    await mkdir(process.env.OD_DATA_DIR, { recursive: true })
+    await writeFile(process.env.OD_DATA_DIR + '/' + app + '.marker', app)
+  })
+}
 process.stdout.write(JSON.stringify({ pid: process.pid, state: 'running', url: 'http://127.0.0.1:' + port }) + '\\n')
 setInterval(() => {}, 1000)
 process.on('SIGTERM', () => process.exit(0))
@@ -176,6 +182,21 @@ describe('RoxDesignRuntimeManager', () => {
       webUrl: 'http://127.0.0.1:49112?embed=rox&theme=system&lang=ru',
       version: '0.7-test',
     })
+
+    await expect(manager.stop()).resolves.toMatchObject({ status: 'idle' })
+  })
+
+  test('does not default writable Rox Design data under the bundled runtime root', async () => {
+    const packagedResourcesRoot = tempRoot()
+    const appResourcesRoot = join(packagedResourcesRoot, 'app')
+    const unpackedResourcesRoot = join(packagedResourcesRoot, 'app.asar.unpacked')
+    const runtimeRoot = createMockOpenDesignRuntime(unpackedResourcesRoot)
+    const manager = new RoxDesignRuntimeManager({ resourcesRoot: appResourcesRoot })
+
+    const status = await manager.start()
+
+    expect(status.status).toBe('running')
+    expect(existsSync(join(runtimeRoot, '.rox-design-data'))).toBe(false)
 
     await expect(manager.stop()).resolves.toMatchObject({ status: 'idle' })
   })

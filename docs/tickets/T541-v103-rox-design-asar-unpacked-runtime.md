@@ -25,6 +25,7 @@ No UI change.
 
 - Preserve existing dev runtime and explicit `ROX_DESIGN_RUNTIME_ROOT` behavior.
 - Preserve the packaged ASAR startup posture.
+- Keep mutable Rox Design data outside the sealed packaged app bundle.
 
 ## Required Automations
 
@@ -37,7 +38,10 @@ No UI change.
    `app.asar.unpacked/resources/rox-design`.
 2. Add a failing packaged-artifact validator test for missing external Rox
    Design payload.
-3. Implement the smallest runtime and validator changes needed to pass.
+3. Add a failing runtime-manager test that sidecar writable data does not
+   default under the bundled runtime root.
+4. Implement the smallest runtime, main-process wiring, and validator changes
+   needed to pass.
 
 ## Validation Commands
 
@@ -51,6 +55,7 @@ No UI change.
 - [x] Runtime manager finds ASAR-unpacked Rox Design payload in packaged layout.
 - [x] Packaged artifact validator fails when the external Rox Design payload is
       absent.
+- [x] Mutable Rox Design data is routed outside the bundled runtime root.
 - [x] Targeted tests pass.
 - [ ] Installed app Rox Design start probe passes on the rebuilt/fixed app.
 

@@ -53,6 +53,11 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
   `mac-${macArch}/ROX.ONE.app/Contents/Resources/app.asar.unpacked/resources/rox-design`.
 - The Mac validator checks for the config, bundled node binary, daemon sidecar,
   daemon CLI, and web sidecar entrypoint.
+- Electron main now passes a persistent Rox Design data directory under
+  `app.getPath('userData')/rox-design`.
+- `RoxDesignRuntimeManager` now falls back to a temp data directory instead of
+  writing `.rox-design-data` under the bundled runtime root when no caller
+  supplies `dataRoot`.
 
 ## 7. Validation Commands Run
 
@@ -66,7 +71,7 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
 
 ## 8. Passing Test Output Summary
 
-- Runtime manager targeted suite: `8 pass, 0 fail, 18 expect() calls`.
+- Runtime manager targeted suite: `9 pass, 0 fail, 21 expect() calls`.
 - Packaged artifact validator targeted suite: `23 pass, 0 fail, 67 expect() calls`.
 - Electron typecheck passed after hydrating dependencies with
   `bun install --frozen-lockfile`.
@@ -77,6 +82,10 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
   passed after a local symlink mapped
   `Contents/Resources/app/resources/rox-design` to
   `Contents/Resources/app.asar.unpacked/resources/rox-design`.
+- That installed-app probe also showed v1.0.3 sidecars writing
+  `.rox-design-data/app.sqlite*` inside `app.asar.unpacked`, invalidating the
+  sealed bundle. The hotfix keeps mutable Rox Design data outside the app
+  bundle.
 - `release-notes.json` was regenerated from
   `apps/electron/resources/release-notes/1.0.3.ru.md`, validated with
   `scripts/validate-release-notes-feed.ts`, uploaded to GitHub Release v1.0.3,
@@ -94,8 +103,9 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
   signed/notarized release path is used.
 - v1.0.3 GitHub release is already public; a fixed artifact likely needs a new
   tag/release rather than mutating installed users in place.
-- The live v1.0.3 release notes/feed still describe Rox Design as embedded even
-  though the public artifact needs the ASAR-unpacked path fix for direct startup.
+- The live v1.0.3 release notes/feed has been corrected, but the public binary
+  still needs the ASAR-unpacked path and writable-data fixes in a new patch
+  artifact.
 
 ## 11. Acceptance Criteria Matrix
 

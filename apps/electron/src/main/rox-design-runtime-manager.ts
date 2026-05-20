@@ -464,7 +464,7 @@ export class RoxDesignRuntimeManager {
       OD_SIDECAR_SOURCE: 'packaged',
       OD_DAEMON_CLI_PATH: layout.daemonCliPath,
       OD_RESOURCE_ROOT: layout.resourceRoot,
-      OD_DATA_DIR: this.dataRoot ?? join(layout.root, '.rox-design-data'),
+      OD_DATA_DIR: this.dataRoot ?? join(tmpdir(), 'rox-design-data'),
     }
 
     const daemon = this.spawnSidecar('daemon', layout.nodePath, layout.daemonEntryPath, sidecarStampArgs('daemon', namespace, daemonIpcPath), {

@@ -249,6 +249,7 @@ function getRoxDesignRuntimeManager(): RoxDesignRuntimeManager {
   if (!roxDesignRuntimeManager) {
     roxDesignRuntimeManager = new RoxDesignRuntimeManager({
       resourcesRoot: getRoxDesignResourcesBase(),
+      dataRoot: join(app.getPath('userData'), 'rox-design'),
       logger: mainLog,
     })
   }
