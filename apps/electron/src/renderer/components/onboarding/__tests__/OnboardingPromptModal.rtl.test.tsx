@@ -14,7 +14,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { cleanup, screen, fireEvent } from '@testing-library/react'
 import { render } from '../../../../test-utils/render'
 import { expectNoA11yViolations } from '../../../../test-utils/a11y'
-import { OnboardingPromptModal } from '../OnboardingPromptModal'
+import { OnboardingPromptModal, type OnboardingPromptModalProps } from '../OnboardingPromptModal'
 import type { AutoLaunchDesignChoice } from '../../../hooks/useAutoLaunchDecision'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ vi.mock('@/lib/navigate', () => ({
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const DEFAULT_PROPS = {
+const DEFAULT_PROPS: OnboardingPromptModalProps = {
   open: true,
   title: 'Auto-launch Rox Design?',
   description: 'When ROX detects a design task, should it open Rox Design automatically?',
@@ -35,8 +35,8 @@ const DEFAULT_PROPS = {
     never: 'Never',
     close: 'Close',
   },
-  onChoice: vi.fn<[AutoLaunchDesignChoice], void>(),
-  onClose: vi.fn(),
+  onChoice: vi.fn<(choice: AutoLaunchDesignChoice) => void>(),
+  onClose: vi.fn<() => void>(),
 }
 
 afterEach(() => {
@@ -73,7 +73,7 @@ describe('OnboardingPromptModal', () => {
   })
 
   it('calls onChoice("always") when Always button is clicked', () => {
-    const onChoice = vi.fn<[AutoLaunchDesignChoice], void>()
+    const onChoice = vi.fn<(choice: AutoLaunchDesignChoice) => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onChoice={onChoice} />)
     fireEvent.click(screen.getByText('Always'))
     expect(onChoice).toHaveBeenCalledTimes(1)
@@ -81,7 +81,7 @@ describe('OnboardingPromptModal', () => {
   })
 
   it('calls onChoice("ask") when Ask me button is clicked', () => {
-    const onChoice = vi.fn<[AutoLaunchDesignChoice], void>()
+    const onChoice = vi.fn<(choice: AutoLaunchDesignChoice) => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onChoice={onChoice} />)
     fireEvent.click(screen.getByText('Ask me'))
     expect(onChoice).toHaveBeenCalledTimes(1)
@@ -89,7 +89,7 @@ describe('OnboardingPromptModal', () => {
   })
 
   it('calls onChoice("never") when Never button is clicked', () => {
-    const onChoice = vi.fn<[AutoLaunchDesignChoice], void>()
+    const onChoice = vi.fn<(choice: AutoLaunchDesignChoice) => void>()
     render(<OnboardingPromptModal {...DEFAULT_PROPS} onChoice={onChoice} />)
     fireEvent.click(screen.getByText('Never'))
     expect(onChoice).toHaveBeenCalledTimes(1)

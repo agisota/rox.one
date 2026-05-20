@@ -49,6 +49,10 @@ export const LOCAL_ONLY_CHANNELS = new Set<string>([
   // dialog — native folder dialog
   RPC_CHANNELS.dialog.OPEN_FOLDER,
 
+  // preferences — local app userData preferences
+  RPC_CHANNELS.preferences.GET_AUTO_LAUNCH_DESIGN,
+  RPC_CHANNELS.preferences.SET_AUTO_LAUNCH_DESIGN,
+
   // auth — local auth state + native dialogs
   RPC_CHANNELS.auth.LOGOUT,
   RPC_CHANNELS.auth.SHOW_LOGOUT_CONFIRMATION,
