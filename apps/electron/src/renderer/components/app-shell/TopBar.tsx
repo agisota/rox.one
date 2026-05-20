@@ -44,6 +44,7 @@ import { WorkspaceSwitcher } from "./WorkspaceSwitcher"
 import { getDocUrl } from "@rox-one/shared/docs/doc-links"
 import { AGENT_WORKBENCH_BRAND_CONFIG, getBrandDocsUrl } from "@rox-one/shared/branding"
 import { useUpdateChecker } from "@/hooks/useUpdateChecker"
+import { useRoxDesignStatus } from "@/hooks/useRoxDesignStatus"
 
 // --- Menu rendering (moved from AppMenu) ---
 
@@ -208,6 +209,7 @@ export function TopBar({
     ? 'New Browser Tab'
     : t("browser.newWindow")
   const updateChecker = useUpdateChecker()
+  const roxDesignStatus = useRoxDesignStatus()
   const showUpdateAction = updateChecker.isDownloading || updateChecker.isReadyToInstall || (updateChecker.updateAvailable && updateChecker.updateInfo?.downloadState === 'idle')
   const updateActionLabel = updateChecker.isDownloading
     ? t('updates.topBar.downloading', { percent: updateChecker.downloadProgress })
@@ -486,6 +488,49 @@ export function TopBar({
             </StyledDropdownMenuItem>
           </StyledDropdownMenuContent>
         </DropdownMenu>
+
+        {/* ROX DESIGN standalone button */}
+        {(() => {
+          const ds = roxDesignStatus.status
+          const designLabel = t(
+            ds === 'starting' ? 'topBar.design.starting'
+            : ds === 'running' ? 'topBar.design.running'
+            : ds === 'failed' ? 'topBar.design.failed'
+            : 'topBar.design.idle'
+          )
+          const isRunning = ds === 'running'
+          const isFailed = ds === 'failed'
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={designLabel}
+                  onClick={onOpenRoxDesign}
+                  className={cn(
+                    "titlebar-no-drag relative inline-flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[var(--rox-radius-md,6px)] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isRunning
+                      ? "border-[color:var(--rox-accent)] bg-[color:var(--rox-accent-soft)]"
+                      : "border-border/50 bg-transparent hover:bg-accent/10",
+                  )}
+                  style={isRunning ? { borderColor: 'var(--rox-accent)', backgroundColor: 'var(--rox-accent-soft)' } : undefined}
+                >
+                  {ds === 'starting'
+                    ? <Icons.Loader2 className="h-3.5 w-3.5 animate-spin text-foreground/60" strokeWidth={1.6} />
+                    : <Icons.Palette className="h-3.5 w-3.5 text-foreground/60" strokeWidth={1.6} />
+                  }
+                  {isFailed && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-destructive animate-pulse"
+                    />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{designLabel}</TooltipContent>
+            </Tooltip>
+          )
+        })()}
 
         {/* Account button */}
         <Tooltip>

@@ -253,6 +253,8 @@ export interface RoxDesignApi {
 export interface ElectronAPI {
   // Rox Design embedded runtime control
   roxDesign?: RoxDesignApi
+  /** Subscribe to runtime status changes broadcast by the main process. */
+  onRoxDesignStatusChanged(callback: (status: RoxDesignStatus) => void): () => void
 
   // Session management
   getSessions(): Promise<Session[]>

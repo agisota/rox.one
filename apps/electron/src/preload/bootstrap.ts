@@ -427,6 +427,13 @@ client.onConnectionStateChanged((state) => {
   return () => { ipcRenderer.removeListener('transfer:progress', handler) }
 }
 
+// Rox Design status-change listener (main → renderer push, not WS RPC)
+;(api as ElectronAPI).onRoxDesignStatusChanged = (cb) => {
+  const handler = (_e: any, status: import('../shared/types').RoxDesignStatus) => cb(status)
+  ipcRenderer.on('rox-design:status-changed', handler)
+  return () => { ipcRenderer.removeListener('rox-design:status-changed', handler) }
+}
+
 // System warnings — expose env-based flags set during main process startup
 // (preload-only: reads env var directly, no IPC round-trip needed)
 ;(api as ElectronAPI).getSystemWarnings = async () => ({
