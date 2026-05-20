@@ -59,7 +59,22 @@
       "@rox-one/design-theme-bridge/*": ["../../packages/design-theme-bridge/src/*"],
       "@rox-one/design-contract": ["../../packages/design-contract/src/index.ts"],
       "@rox-one/design-storage": ["../../packages/design-storage/src/index.ts"],
-      "@rox-one/design-classifier": ["../../packages/design-classifier/src/index.ts"]
+      "@rox-one/design-classifier": ["../../packages/design-classifier/src/index.ts"],
+      "@rox-one/artifact-viewer-core": ["../../packages/artifact-viewer-core/src/index.ts"],
+      "@rox-one/artifact-viewer-core/registry": ["../../packages/artifact-viewer-core/src/registry.ts"],
+      "@rox-one/artifact-viewer-core/types": ["../../packages/artifact-viewer-core/src/types.ts"],
+      "@rox-one/artifact-viewer-md": ["../../packages/artifact-viewer-md/src/index.ts"],
+      "@rox-one/artifact-viewer-md/register": ["../../packages/artifact-viewer-md/src/register.ts"],
+      "@rox-one/artifact-viewer-browser": ["../../packages/artifact-viewer-browser/src/index.ts"],
+      "@rox-one/artifact-viewer-browser/register": ["../../packages/artifact-viewer-browser/src/register.ts"],
+      "@rox-one/artifact-viewer-docx": ["../../packages/artifact-viewer-docx/src/index.ts"],
+      "@rox-one/artifact-viewer-docx/register": ["../../packages/artifact-viewer-docx/src/register.ts"],
+      "@rox-one/artifact-viewer-xlsx": ["../../packages/artifact-viewer-xlsx/src/index.ts"],
+      "@rox-one/artifact-viewer-xlsx/register": ["../../packages/artifact-viewer-xlsx/src/register.ts"],
+      "@rox-one/artifact-viewer-pptx": ["../../packages/artifact-viewer-pptx/src/index.ts"],
+      "@rox-one/artifact-viewer-pptx/register": ["../../packages/artifact-viewer-pptx/src/register.ts"],
+      "@rox-one/artifact-viewer-figma": ["../../packages/artifact-viewer-figma/src/index.ts"],
+      "@rox-one/artifact-viewer-figma/register": ["../../packages/artifact-viewer-figma/src/register.ts"]
     }
   },
   "include": ["src/**/*", "../../packages/shared/src/**/*.d.ts"],
