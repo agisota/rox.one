@@ -1,0 +1,29 @@
+{
+  "name": "@rox-one/artifact-viewer-pptx",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "PowerPoint artifact viewer adapter for ROX.ONE",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./adapter": "./src/pptx-adapter.ts",
+    "./register": "./src/register.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bun run tsc --noEmit"
+  },
+  "dependencies": {
+    "@rox-one/artifact-viewer-core": "workspace:*",
+    "jszip": "^3.10.1",
+    "pptxgenjs": "^3.12.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.28"
+  }
+}
