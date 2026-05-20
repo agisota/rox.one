@@ -92,6 +92,9 @@ Implement a Claude/Codex Artifacts-style right-side panel for chat, with session
 - Full Office/Figma/browser embedding is intentionally outside the MVP and should follow after artifact panel foundations pass security gates.
 - The existing dependency audit findings around document converters remain relevant before broad Office artifact ingestion.
 - Pre-existing dirty Rox Design files must stay out of the #271 commit.
+- Post-rebase note: the focused branch was rebased onto `origin/main` after
+  PR #311 and PR #314 landed. T312 fixed unrelated Electron typecheck baseline
+  blockers that were exposed while verifying this task.
 
 ## 11. Acceptance criteria matrix
 
@@ -105,3 +108,19 @@ Implement a Claude/Codex Artifacts-style right-side panel for chat, with session
 | Copy/Download/Fullscreen/Close controls exist | PASS | `ArtifactPanel` SSR test checks toolbar actions |
 | Panel fits current design and compact mode | PASS | Panel uses existing button/tokens/shadows and compact absolute overlay behavior; renderer build passed |
 | Targeted tests and validation pass | PASS | 24 targeted tests, three typechecks, and renderer build passed |
+
+## 12. Post-rebase verification update
+
+After rebasing the focused branch onto `origin/main` and applying T312 baseline
+fixes:
+
+- `bun test packages/shared/src/sessions/__tests__/artifacts.test.ts apps/electron/src/shared/__tests__/route-parser-artifact-sidebar.test.ts apps/electron/src/renderer/components/artifacts/__tests__/artifact-sandbox.test.tsx apps/electron/src/renderer/components/artifacts/__tests__/artifact-panel.test.tsx packages/server-core/src/handlers/rpc/__tests__/artifacts-rpc.test.ts apps/electron/src/shared/__tests__/ipc-channels.test.ts packages/shared/src/protocol/__tests__/routing.test.ts`
+  - Result: 24 pass, 0 fail, 390 expectations.
+- `bun run typecheck:shared`
+  - Result: pass.
+- `cd packages/server-core && bun run tsc --noEmit`
+  - Result: pass.
+- `bun run typecheck:electron`
+  - Result: pass after T312 baseline fixes.
+- `bun run electron:build:renderer`
+  - Result: pass; existing Shiki dynamic-import and chunk-size warnings remain.
