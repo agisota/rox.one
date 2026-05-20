@@ -261,7 +261,19 @@ export class RoxDesignViewManager {
   private async applyEmbedSkin(entry: ManagedRoxDesignView): Promise<void> {
     if (entry.webContents.isDestroyed()) return
     try {
-      if (!entry.skinCssKey) {
+      if (entry.skinCssKey) {
+        const previousSkinCssKey = entry.skinCssKey
+        entry.skinCssKey = null
+        try {
+          await entry.webContents.removeInsertedCSS(previousSkinCssKey)
+        } catch (error) {
+          this.logger?.warn?.('[rox-design-view] failed to remove stale embedded ROX skin', {
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
+      }
+
+      if (!entry.webContents.isDestroyed()) {
         entry.skinCssKey = await entry.webContents.insertCSS(ROX_DESIGN_EMBED_CSS)
       }
       await entry.webContents.executeJavaScript(buildRoxDesignEmbedBootstrapScript(entry.contentZoomFactor), true)
@@ -302,6 +314,18 @@ export class RoxDesignViewManager {
     this.hideEntry(entry)
     entry.disposeThemeBridge?.()
     entry.disposeThemeBridge = null
+    if (entry.skinCssKey && !entry.webContents.isDestroyed()) {
+      const previousSkinCssKey = entry.skinCssKey
+      entry.skinCssKey = null
+      void entry.webContents.removeInsertedCSS(previousSkinCssKey).catch((error) => {
+        this.logger?.warn?.('[rox-design-view] failed to remove embedded ROX skin during destroy', {
+          error: error instanceof Error ? error.message : String(error),
+        })
+      })
+    }
+    if (!entry.webContents.isDestroyed()) {
+      entry.webContents.removeAllListeners()
+    }
     if (!entry.webContents.isDestroyed()) entry.webContents.close()
   }
 }
