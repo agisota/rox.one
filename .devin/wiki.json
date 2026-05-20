@@ -1,0 +1,52 @@
+{
+  "repo_name": "agisota/rox.one",
+  "description": "ROX.ONE Agent Workbench Suite: Electron desktop app, server-core, shared agent runtime, MCP sources, skills/workspaces, release validation, security, and testing infrastructure.",
+  "repo_notes": [
+    "This repository uses task tickets in docs/tickets and worklogs in docs/worklog as the development control plane.",
+    "DeepWiki is used for broad orientation and generated documentation, but source files and validation commands remain authoritative.",
+    "Graphify artifacts are stored locally under /home/dev/craft/rox-one-graphify-deepwiki-2026-05-20/source and should be used for structural code navigation before broad grep.",
+    "When answering implementation questions, cite current source files and tests rather than only generated wiki pages."
+  ],
+  "pages": [
+    {
+      "title": "ROX.ONE Overview",
+      "prompt": "Explain the product, monorepo layout, app/package boundaries, agent runtime, and main user workflows."
+    },
+    {
+      "title": "Core Architecture",
+      "prompt": "Explain how Electron UI, server-core, shared agent runtime, sessions, MCP sources, skills, storage, and RPC/IPC connect."
+    },
+    {
+      "title": "Electron Desktop Application",
+      "prompt": "Document main process startup, window management, renderer shell, chat UI, workbench screens, settings/account UI, and auto-update."
+    },
+    {
+      "title": "Server and Backend Services",
+      "prompt": "Document server-core, account/auth, RBAC/security, audit, provider gateway, automations, messaging, and workspace sync."
+    },
+    {
+      "title": "Skills, Workspaces, and Bundles",
+      "prompt": "Document workspace bundles, skill marketplace, built-in skills, session tools core, transform data, and source integrations."
+    },
+    {
+      "title": "CI/CD and Release Pipeline",
+      "prompt": "Document GitHub Actions, artifact validation, SBOM, release feed, distribution, E2E smoke, and RC validation."
+    },
+    {
+      "title": "Security and Credentials",
+      "prompt": "Document credential storage, tenant key derivation, RBAC, audit, supply-chain validation, workflow pins, and security tests."
+    },
+    {
+      "title": "Testing Infrastructure",
+      "prompt": "Document unit/component tests, audit/static probes, validation scripts, agent contract, and how agents choose the right checks."
+    },
+    {
+      "title": "Agent Development Workflow",
+      "prompt": "Explain how coding agents should use tickets, worklogs, Graphify, DeepWiki, source inspection, and validation commands."
+    },
+    {
+      "title": "Glossary",
+      "prompt": "Define codebase-specific concepts such as agent backend, workbench, mission, skill, source, MCP, RBAC, audit, and release gates."
+    }
+  ]
+}
