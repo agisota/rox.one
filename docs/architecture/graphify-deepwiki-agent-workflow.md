@@ -135,6 +135,33 @@ graphify path "sources.ts" "base-agent.ts" --graph graphify-out/graph.json
 graphify path "SkillsListPanel.tsx" "packages/shared/src/skills" --graph graphify-out/graph.json
 ```
 
+## Scoped Graphify Refresh Protocol
+
+Graphify refresh is incremental by scope. Do not run `graphify update .` from the full repository as a routine post-change step.
+
+Choose the narrowest path that covers changed source files:
+
+| Changed surface | Refresh command |
+| --- | --- |
+| Electron main process | `graphify update apps/electron/src/main --no-cluster` |
+| Electron renderer | `graphify update apps/electron/src/renderer --no-cluster` |
+| Shared workbench schemas | `graphify update packages/shared/src/workbench --no-cluster` |
+| Shared session/protocol models | `graphify update packages/shared/src --no-cluster` |
+| Server-core sessions/RPC | `graphify update packages/server-core/src --no-cluster` |
+| Validation scripts | `graphify update scripts --no-cluster` |
+| Documentation only | No graph refresh required unless the task explicitly changes Graphify/DeepWiki docs |
+
+For mixed source changes, run multiple scoped refreshes rather than a full-root refresh. Record the command and node/edge count in the worklog or PR comment.
+
+Use a full refresh only in the dedicated graph artifact workspace:
+
+```bash
+cd /home/dev/craft/rox-one-graphify-deepwiki-2026-05-20/source
+graphify update . --no-cluster
+```
+
+Before a full refresh, exclude generated/runtime folders and confirm there is enough disk space. If the run starts traversing hundreds of thousands of files, stop it, remove partial cache-only output, and document the blocker. Do not commit `graphify-out` artifacts from feature branches.
+
 ## DeepWiki MCP Commands
 
 Use MCP when the local dump is stale or when you need a fresh generated answer:
@@ -264,5 +291,5 @@ When implementing, put the same evidence in the worklog.
 - DeepWiki indexed dump was saved on 2026-05-20.
 - Graphify graph is tied to commit `80caa0f97db1db1fb6719a0a65e544927cc9b3a6`.
 - If `origin/main` moves materially, refresh the clean graph workspace and rerun DeepWiki MCP captures.
-- If local code changes, refresh Graphify on the changed path.
+- If local source code changes, refresh Graphify on the narrowest changed source path.
 - If DeepWiki answers contradict current source, current source wins.
