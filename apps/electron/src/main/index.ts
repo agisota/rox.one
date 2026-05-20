@@ -129,6 +129,7 @@ import { RoxDesignViewManager } from './rox-design-view-manager'
 import { RoxDesignDesktopBridge } from './rox-design-desktop-bridge'
 import { registerDesignHotkeyOnWebContents } from './rox-design-hotkey'
 import { buildQuitOrchestrator } from './quit-orchestrator'
+import { AgentAnswerRouter, registerAgentAnswerRouter } from './agent-answer-router'
 
 // Initialize electron-log for renderer process support
 log.initialize()
@@ -713,6 +714,9 @@ app.whenReady().then(async () => {
       const result = await dialog.showOpenDialog(win, spec)
       return { canceled: result.canceled, filePaths: result.filePaths }
     })
+
+    // PZD-18 step 3: agent answer router — routes AAP by kind to appropriate handler
+    registerAgentAnswerRouter(ipcMain, new AgentAnswerRouter())
 
     if (!isClientOnly) {
       // Restore persisted Git Bash path on Windows (must happen before any SDK subprocess spawn)
