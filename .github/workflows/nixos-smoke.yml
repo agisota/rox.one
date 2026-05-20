@@ -43,6 +43,12 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
             accept-flake-config = true
+            # sandbox = false is set at daemon-config level (not per-command) because
+            # `nix store add-path` in the "Build Nix wrapper" step must import an
+            # AppImage from /tmp into the Nix store, which the daemon sandbox blocks on
+            # GitHub-hosted runners (user namespaces disabled).  There is no per-invocation
+            # flag equivalent to this daemon option; the config must be written before the
+            # daemon starts.  Scope: CI only — this workflow never runs on self-hosted runners.
             sandbox = false
 
       # Phase 1: validate flake schema without building (avoids fakeSha256 fetch)
