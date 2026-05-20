@@ -1,0 +1,229 @@
+name: NixOS AppImage smoke
+
+# Validates that the Nix flake in packaging/nixos/ is well-formed and that
+# the AppImage wrapper builds and runs on NixOS-equivalent infrastructure.
+#
+# Two-phase strategy (avoids chicken-and-egg sha256 problem):
+#   Phase 1 - schema check: nix flake check validates the flake structure
+#             without fetching the upstream AppImage.  Uses --no-build so the
+#             fakeSha256 placeholder does not cause a network fetch.
+#   Phase 2 - local build: Downloads the latest release AppImage directly
+#             from GitHub Releases, writes a patched flake that substitutes
+#             the real sha256, builds the wrapper, and runs --help.
+#
+# Security: all github context values that reach shell scripts are passed
+# through env: vars, never via ${{ }} expression interpolation in run: blocks.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "feat/multiplatform-nixos-*"
+
+concurrency:
+  group: nixos-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  nixos-smoke:
+    name: NixOS flake schema + AppImage smoke
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@ba0dd844c9180cbf77aa72a116d6fbc515d0e87b # v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+            # sandbox = false is set at daemon-config level (not per-command) because
+            # `nix store add-path` in the "Build Nix wrapper" step must import an
+            # AppImage from /tmp into the Nix store, which the daemon sandbox blocks on
+            # GitHub-hosted runners (user namespaces disabled).  There is no per-invocation
+            # flag equivalent to this daemon option; the config must be written before the
+            # daemon starts.  Scope: CI only — this workflow never runs on self-hosted runners.
+            sandbox = false
+
+      # Phase 1: validate flake schema without building (avoids fakeSha256 fetch)
+      - name: nix flake check (schema only, no-build)
+        shell: bash
+        env:
+          NIXPKGS_ALLOW_UNFREE: "1"
+        run: |
+          set -euo pipefail
+          nix flake check ./packaging/nixos --no-build 2>&1 | tee /tmp/nix-flake-check.log
+          echo "nix flake check passed"
+
+      # Resolve the latest published release tag via GitHub API, falling back
+      # to the highest v* git tag if no published release exists yet.
+      - name: Resolve latest release tag
+        id: resolve-tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          latest=$(gh api "repos/${REPO}/releases/latest" --jq '.tag_name' 2>/dev/null || echo "")
+          if [ -z "$latest" ]; then
+            latest=$(git tag -l 'v*' | sort -V | tail -n 1)
+          fi
+          if [ -z "$latest" ]; then
+            echo "::warning::No release tag found - skipping AppImage download"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "version=" >> "$GITHUB_OUTPUT"
+          else
+            echo "Latest release tag: ${latest}"
+            echo "tag=${latest}" >> "$GITHUB_OUTPUT"
+            echo "version=${latest#v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download AppImage from GitHub Releases
+        id: download-appimage
+        if: steps.resolve-tag.outputs.tag != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.resolve-tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          APPIMAGE_NAME="ROX-ONE-x86_64.AppImage"
+          APPIMAGE_URL="https://github.com/${REPO}/releases/download/${RELEASE_TAG}/${APPIMAGE_NAME}"
+          echo "Attempting download: ${APPIMAGE_URL}"
+
+          # Write status code to a separate file so it is not mixed with body
+          curl -sSL -o /tmp/rox-agent.AppImage \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -w "%{http_code}" \
+            "${APPIMAGE_URL}" 2>/dev/null > /tmp/rox-agent-http-code.txt || true
+          http_code=$(cat /tmp/rox-agent-http-code.txt 2>/dev/null || echo "000")
+          echo "HTTP status: ${http_code}"
+
+          # AppImages are typically >50MB; a 404 HTML page is <10KB.
+          # Require http_code=200 AND file size >1MB to rule out error pages.
+          file_size=$(wc -c < /tmp/rox-agent.AppImage 2>/dev/null || echo 0)
+          echo "File size: ${file_size} bytes"
+
+          if [ "${http_code}" = "200" ] && [ "${file_size}" -gt 1048576 ]; then
+            echo "Downloaded AppImage ($(wc -c < /tmp/rox-agent.AppImage) bytes)"
+            chmod +x /tmp/rox-agent.AppImage
+            echo "appimage_available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::AppImage not found at ${APPIMAGE_URL} (HTTP ${http_code}). Skipping local-build phase."
+            echo "appimage_available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Phase 2: build the wrapper using the local AppImage.
+      # We write the patched flake.nix via Python (not a shell heredoc) to
+      # avoid YAML multi-line quoting issues with Nix curly-brace syntax.
+      - name: Build Nix wrapper with local AppImage
+        id: nix-build
+        if: steps.download-appimage.outputs.appimage_available == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.resolve-tag.outputs.version }}
+          NIXPKGS_ALLOW_UNFREE: "1"
+        run: |
+          set -euo pipefail
+
+          REAL_SHA256=$(nix hash file --sri /tmp/rox-agent.AppImage)
+          echo "Real sha256 (SRI): ${REAL_SHA256}"
+
+          # Add the AppImage into the Nix store so the daemon can access it
+          # without needing to fetch from the network.  nix store add-path
+          # copies the file into /nix/store and prints the resulting store path.
+          STORE_PATH=$(nix store add-path /tmp/rox-agent.AppImage --name "rox-agent.AppImage")
+          echo "AppImage store path: ${STORE_PATH}"
+
+          FLAKE_DIR=$(mktemp -d)
+          cp packaging/nixos/rox-agent.nix "${FLAKE_DIR}/"
+
+          # Write the CI flake via Python to avoid heredoc YAML conflicts.
+          # We use builtins.path to reference the store-added file directly;
+          # this works without --impure because the path is already in the store.
+          python3 - "${FLAKE_DIR}" "${VERSION}" "${REAL_SHA256}" "${STORE_PATH}" <<'PYEOF'
+          import sys, textwrap, pathlib
+          flake_dir, version, sha256, store_path = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+          content = textwrap.dedent(f'''
+            {{
+              description = "ROX.ONE rox-agent - NixOS AppImage flake (CI smoke)";
+              inputs = {{
+                nixpkgs.url     = "github:NixOS/nixpkgs/nixos-24.05";
+                flake-utils.url = "github:numtide/flake-utils";
+              }};
+              outputs = {{ self, nixpkgs, flake-utils }}:
+                flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
+                  let
+                    pkgs     = import nixpkgs {{ inherit system; config.allowUnfree = true; }};
+                    lib      = pkgs.lib;
+                    version  = "{version}";
+                    sha256   = "{sha256}";
+                    localSrc = "{store_path}";
+                    roxAgent = pkgs.callPackage ./rox-agent.nix {{
+                      inherit pkgs lib version sha256 system;
+                      src = localSrc;
+                    }};
+                  in {{
+                    packages = {{ rox-agent = roxAgent; default = roxAgent; }};
+                    apps = {{
+                      rox-agent = flake-utils.lib.mkApp {{ drv = roxAgent; }};
+                      default   = flake-utils.lib.mkApp {{ drv = roxAgent; }};
+                    }};
+                  }}
+                );
+            }}
+          ''').lstrip()
+          pathlib.Path(flake_dir, "flake.nix").write_text(content)
+          print(f"Wrote CI flake to {flake_dir}/flake.nix")
+          PYEOF
+
+          echo "Building rox-agent wrapper..."
+          nix build "${FLAKE_DIR}#rox-agent" --no-link --print-out-paths \
+            --impure 2>&1 | tee /tmp/nix-build.log
+          echo "flake_dir=${FLAKE_DIR}" >> "$GITHUB_OUTPUT"
+
+      # Run the wrapped binary with --no-sandbox (GitHub runners disable user
+      # namespaces which Electron sandbox needs; documented NixOS limitation).
+      # Accept any exit code - the goal is no FHS/dynamic-linker crash.
+      - name: Smoke test - rox-agent --help
+        if: steps.download-appimage.outputs.appimage_available == 'true'
+        shell: bash
+        env:
+          FLAKE_DIR: ${{ steps.nix-build.outputs.flake_dir }}
+          DISPLAY: ""
+          ELECTRON_DISABLE_SANDBOX: "1"
+          NIXPKGS_ALLOW_UNFREE: "1"
+        run: |
+          set -euo pipefail
+          echo "Running smoke test..."
+          timeout 20 nix run "${FLAKE_DIR}#rox-agent" --impure -- --no-sandbox --help \
+            2>&1 | tee /tmp/nix-run-smoke.log || true
+
+          if grep -qiE \
+            "(No such file or directory: .*/lib|cannot open shared object|no version information available: /lib64/ld)" \
+            /tmp/nix-run-smoke.log; then
+            echo "::error::FHS / dynamic-linker error detected in smoke output"
+            cat /tmp/nix-run-smoke.log
+            exit 1
+          fi
+          echo "Smoke test passed (no FHS errors detected)"
+
+      - name: Upload Nix build logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nixos-smoke-logs-${{ github.run_id }}
+          path: |
+            /tmp/nix-flake-check.log
+            /tmp/nix-build.log
+            /tmp/nix-run-smoke.log
+          retention-days: 14
+          if-no-files-found: warn

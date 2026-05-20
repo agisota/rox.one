@@ -124,4 +124,20 @@ requireText(smokeWorkflow, 'fedora:40', 'linux-distros-smoke includes fedora-40 
 requireText(smokeWorkflow, '--appimage-extract-and-run', 'linux-distros-smoke includes AppImage regression check')
 console.log('[release-all-platforms-workflow] ok: linux-distros-smoke workflow contract passed')
 
+// ── NixOS smoke workflow ─────────────────────────────────────────────────────
+// Verify that the nixos-smoke workflow file exists and contains the expected
+// structural markers so a future rename or accidental deletion is caught.
+let nixosSmokeWorkflow: string
+try {
+  nixosSmokeWorkflow = read('.github/workflows/nixos-smoke.yml')
+} catch {
+  fail('missing .github/workflows/nixos-smoke.yml — add the NixOS AppImage smoke workflow')
+}
+
+requireText(nixosSmokeWorkflow!, 'cachix/install-nix-action', 'nixos-smoke: Nix install action')
+requireText(nixosSmokeWorkflow!, 'nix flake check ./packaging/nixos', 'nixos-smoke: flake schema check step')
+requireText(nixosSmokeWorkflow!, 'nixos-smoke-logs', 'nixos-smoke: log artifact upload')
+requireText(nixosSmokeWorkflow!, 'experimental-features = nix-command flakes', 'nixos-smoke: flakes enabled')
+
 console.log('[release-all-platforms-workflow] ok: update-feed workflow contract passed')
+console.log('[release-all-platforms-workflow] ok: nixos-smoke workflow recognized')
