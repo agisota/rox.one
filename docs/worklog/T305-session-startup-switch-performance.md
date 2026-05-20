@@ -116,6 +116,21 @@ bun run typecheck:electron
 ~/.bun/bin/bunx vitest run --config vitest.config.ts src/renderer/components/onboarding/__tests__/OnboardingPromptModal.rtl.test.tsx src/renderer/pages/settings/__tests__/BehaviorSettingsPage.design-autolaunch.rtl.test.tsx
 bun test apps/electron/src/main/__tests__/rox-design-view-manager.partition.test.ts apps/electron/src/transport/__tests__/channel-map-parity.test.ts
 bun test apps/electron/src/renderer/pages/settings/__tests__/BehaviorSettingsPage.design-autolaunch.rtl.test.tsx packages/shared/src/protocol/__tests__/routing.test.ts apps/electron/src/transport/__tests__/channel-map-parity.test.ts
+git merge --no-ff --no-edit origin/main
+bun run validate:mac-diag-smoke-workflow
+bun run validate:mac-arm-build-workflow
+bun run typecheck:electron
+bun run typecheck:shared
+bun run lint:i18n:sorted
+bun test apps/electron/src/shared/__tests__/ipc-channels.test.ts apps/electron/src/main/handlers/__tests__/registration.test.ts apps/electron/src/main/__tests__/quit-orchestrator.test.ts
+bun test apps/electron/src/renderer/components/ui/__tests__/rich-text-input.test.ts apps/electron/src/renderer/components/ui/__tests__/mention-menu.test.ts
+bun test packages/shared/src/protocol/__tests__/routing.test.ts apps/electron/src/transport/__tests__/channel-map-parity.test.ts apps/electron/src/main/__tests__/rox-design-view-manager.partition.test.ts
+cd apps/electron && ~/.bun/bin/bunx vitest run --config vitest.config.ts src/renderer/components/onboarding/__tests__/OnboardingPromptModal.rtl.test.tsx src/renderer/pages/settings/__tests__/BehaviorSettingsPage.design-autolaunch.rtl.test.tsx
+bun test scripts/__tests__/validate-rox-design-xvfb-workflow.test.ts packages/server-core/src/sessions/__tests__/skill-catalog-defer.test.ts scripts/__tests__/build-nightly-release-notes.test.ts packages/agent-contract/src/__tests__/agent-answer-package.test.ts infra/__tests__/rox-one-release-feed-worker.test.ts
+bun run rox-design:prepare:check
+bun run rox-design:payload:verify
+git diff --check
+git diff --cached --check
 ```
 
 ## 8. Passing test output summary
@@ -141,6 +156,19 @@ bun test apps/electron/src/renderer/pages/settings/__tests__/BehaviorSettingsPag
 - `~/.bun/bin/bunx vitest run --config vitest.config.ts src/renderer/components/onboarding/__tests__/OnboardingPromptModal.rtl.test.tsx src/renderer/pages/settings/__tests__/BehaviorSettingsPage.design-autolaunch.rtl.test.tsx`: `2 passed`, `18 passed`.
 - `bun test apps/electron/src/main/__tests__/rox-design-view-manager.partition.test.ts apps/electron/src/transport/__tests__/channel-map-parity.test.ts`: `4 pass`, `0 fail`, `1176 expect()` calls.
 - `bun test apps/electron/src/renderer/pages/settings/__tests__/BehaviorSettingsPage.design-autolaunch.rtl.test.tsx packages/shared/src/protocol/__tests__/routing.test.ts apps/electron/src/transport/__tests__/channel-map-parity.test.ts`: RTL path is intentionally excluded from `bun:test` by `bunfig.toml`; protocol/channel tests still ran and passed (`10 pass`, `0 fail`, `1505 expect()` calls).
+- After merging current `origin/main` (`02544e15`) into the PR branch, the merge conflict in `scripts/validate-mac-diag-smoke-workflow.ts` was resolved by keeping both the upstream arm64/x64 matrix/Rosetta checks and the existing `/tmp/pw/diag-launch.mjs` validator expectation.
+- `bun run typecheck:electron`: passed after adapting `QuitOrchestrator` to ignore the `RoxDesignRuntimeManager.stop()` status return and keeping the handler callback typed as `Promise<void>`.
+- `bun run typecheck:shared`: passed.
+- `bun run lint:i18n:sorted`: passed.
+- `bun test apps/electron/src/shared/__tests__/ipc-channels.test.ts apps/electron/src/main/handlers/__tests__/registration.test.ts apps/electron/src/main/__tests__/quit-orchestrator.test.ts`: `24 pass`, `0 fail`, `46 expect()` calls after adding the two auto-launch preference channels to the IPC snapshot and registration coverage.
+- `bun test apps/electron/src/renderer/components/ui/__tests__/rich-text-input.test.ts apps/electron/src/renderer/components/ui/__tests__/mention-menu.test.ts`: `28 pass`, `0 fail`, `57 expect()` calls.
+- `bun test packages/shared/src/protocol/__tests__/routing.test.ts apps/electron/src/transport/__tests__/channel-map-parity.test.ts apps/electron/src/main/__tests__/rox-design-view-manager.partition.test.ts`: `12 pass`, `0 fail`, `1511 expect()` calls.
+- `cd apps/electron && ~/.bun/bin/bunx vitest run --config vitest.config.ts src/renderer/components/onboarding/__tests__/OnboardingPromptModal.rtl.test.tsx src/renderer/pages/settings/__tests__/BehaviorSettingsPage.design-autolaunch.rtl.test.tsx`: `2 passed`, `18 passed`.
+- `bun test scripts/__tests__/validate-rox-design-xvfb-workflow.test.ts packages/server-core/src/sessions/__tests__/skill-catalog-defer.test.ts scripts/__tests__/build-nightly-release-notes.test.ts packages/agent-contract/src/__tests__/agent-answer-package.test.ts infra/__tests__/rox-one-release-feed-worker.test.ts`: `75 pass`, `0 fail`, `180 expect()` calls.
+- `bun run validate:mac-arm-build-workflow` and `bun run validate:mac-diag-smoke-workflow`: both pass.
+- `bun run rox-design:prepare:check` and `bun run rox-design:payload:verify`: both pass locally against `/Applications/Open Design.app/Contents/Resources`; payload verification reports Open Design `0.7.0`.
+- `bun install --frozen-lockfile`: passed after the current-main merge.
+- `git diff --check` and `git diff --cached --check`: pass after removing trailing whitespace introduced by upstream `docs/release/os-lab-coverage.md`.
 
 ## 9. Build output summary
 
@@ -193,6 +221,8 @@ Baseline from before this task was backend `secondProject` ~931ms and first proj
 - `AppShell` still stores and publishes the full `skills` array into renderer state/atoms. Downstream consumers are now bounded in the composer hot path, but a future ticket could move to paged skill search if global catalogs keep growing.
 - Filtering skills in the mention menu still scans the full catalog when the user types a query. The visible result is capped and the measured 10k-skill query was ~15ms, but fuzzy indexing could improve this later.
 - `listSessions()` still eagerly checks plan directories; measured lower priority (~125ms for 1000 sessions) but can be lazied later because `planCount` has no current renderer reads.
+- macOS packaged-launch CI has a repo-wide Rox Design payload supply-chain dependency. The PR now preserves `NOTICES.md`, validates the mac ARM workflow contract, and bootstraps the local payload before verification when `MANIFEST.json` is missing; CI still depends on a valid payload source/archive being available to the runner.
+- PR #303 now contains an `origin/main` merge commit because GitHub reported the branch as conflicting after current main advanced. The merge brings unrelated upstream release/CI files into the branch; review should treat those as upstream merge content, not the T305 performance delta.
 
 ## 11. Acceptance criteria matrix
 
@@ -214,3 +244,7 @@ Baseline from before this task was backend `secondProject` ~931ms and first proj
 | Current PR branch Electron typecheck passes | PASS | `bun run typecheck:electron` exit 0 after the small baseline-checks repair. |
 | Baseline RTL tests touched by typecheck repair pass | PASS | Vitest onboarding/settings command: `2 passed`, `18 passed`. |
 | Protocol/channel parity tests pass | PASS | `routing.test.ts` + `channel-map-parity.test.ts`: `10 pass`, `0 fail`. |
+| PR branch merges current `origin/main` without unresolved conflicts | PASS | Merge conflict in `scripts/validate-mac-diag-smoke-workflow.ts` resolved; `git status` reports all conflicts fixed and staged for merge commit. |
+| Current-main IPC registration and channel snapshot gates pass | PASS | `ipc-channels.test.ts` + handler registration + quit orchestrator: `24 pass`, `0 fail`. |
+| Mac workflow validators pass after current-main merge | PASS | `validate:mac-arm-build-workflow` and `validate:mac-diag-smoke-workflow` pass. |
+| Local Rox Design payload verification passes | PASS | `rox-design:prepare:check` + `rox-design:payload:verify` pass locally for Open Design `0.7.0`. |

@@ -13,6 +13,11 @@ import { RPC_CHANNELS } from '@rox-one/shared/protocol'
 import type { HandlerDeps } from './handler-deps'
 import { createAutoLaunchDesignPrefs, type AutoLaunchDesignChoice } from '../preferences/auto-launch-design'
 
+export const HANDLED_CHANNELS = [
+  RPC_CHANNELS.preferences.GET_AUTO_LAUNCH_DESIGN,
+  RPC_CHANNELS.preferences.SET_AUTO_LAUNCH_DESIGN,
+] as const
+
 export function registerPreferencesIpcHandlers(server: RpcServer, _deps: HandlerDeps): void {
   const prefs = createAutoLaunchDesignPrefs(app.getPath('userData'))
 

@@ -126,6 +126,8 @@ requireText(macArmScript, 'downloadBun', 'Darwin arm64 Bun runtime download');
 requireText(macArmScript, "platform: 'darwin'", 'Darwin runtime platform');
 requireText(macArmScript, "arch: 'arm64'", 'arm64 runtime architecture');
 requireText(macArmScript, 'ELECTRON_BUILDER_CACHE', 'workspace-local electron-builder cache');
+requireText(macArmScript, 'rox-design:prepare', 'clean-worktree Rox Design payload bootstrap');
+requireText(macArmScript, 'ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY', 'Rox Design payload bootstrap bypass guard');
 requireText(macArmScript, 'electron-builder', 'electron-builder invocation');
 
 console.log('[mac-arm-build-workflow] ok: Mac ARM workflow contract passed');

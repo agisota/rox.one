@@ -48,7 +48,7 @@ function validateSource(): { version: string } {
 
 function targetHasPayload(): boolean {
   if (!existsSync(TARGET_DIR)) return false
-  return readdirSync(TARGET_DIR).some((entry) => !['README.md', '.DS_Store'].includes(entry))
+  return readdirSync(TARGET_DIR).some((entry) => !['README.md', 'NOTICES.md', '.DS_Store'].includes(entry))
 }
 
 const { version } = validateSource()
@@ -66,7 +66,7 @@ if (targetHasPayload() && !force) {
 
 mkdirSync(TARGET_DIR, { recursive: true })
 for (const entry of readdirSync(TARGET_DIR)) {
-  if (entry === 'README.md') continue
+  if (entry === 'README.md' || entry === 'NOTICES.md') continue
   rmSync(join(TARGET_DIR, entry), { recursive: true, force: true })
 }
 

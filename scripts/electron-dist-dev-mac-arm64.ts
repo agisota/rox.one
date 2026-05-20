@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'bun';
 import yaml from 'js-yaml';
@@ -10,6 +10,7 @@ const ELECTRON_DIR = join(ROOT_DIR, 'apps/electron');
 const GENERATED_CONFIG_DIR = join(ROOT_DIR, '.build/electron');
 const GENERATED_CONFIG_PATH = join(GENERATED_CONFIG_DIR, 'electron-builder.mac-arm64.generated.yml');
 const ELECTRON_BUILDER_CACHE = join(ROOT_DIR, '.cache/electron-builder');
+const ROX_DESIGN_MANIFEST_PATH = join(ELECTRON_DIR, 'resources', 'rox-design', 'MANIFEST.json');
 const ELECTRON_BUILDER_BIN = join(
   ROOT_DIR,
   'node_modules',
@@ -62,8 +63,12 @@ mkdirSync(GENERATED_CONFIG_DIR, { recursive: true });
 mkdirSync(ELECTRON_BUILDER_CACHE, { recursive: true });
 writeFileSync(GENERATED_CONFIG_PATH, yaml.dump(generatedConfig, { lineWidth: 120 }), 'utf8');
 
-// Fail fast on missing Rox Design runtime payload before spending build/CPU time.
+// Bootstrap the gitignored Rox Design runtime payload in clean CI/worktrees,
+// then fail fast if verification still cannot prove packaged Rox Design works.
 // Set ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY=1 only for dev smoke where packaged Rox Design is not exercised.
+if (process.env.ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY !== '1' && !existsSync(ROX_DESIGN_MANIFEST_PATH)) {
+  await run(['bun', 'run', 'rox-design:prepare', '--', '--force'], ROOT_DIR);
+}
 await run(['bun', 'run', 'rox-design:payload:verify'], ROOT_DIR);
 
 await downloadBun({

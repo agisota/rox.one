@@ -194,15 +194,19 @@ win:
         - x64
   # Use predictable naming: ROX-ONE-x64.exe
   artifactName: "ROX-ONE-${arch}.${ext}"
-  # T252: trust-boundary signing placeholder. Real Authenticode signing
-  # is wired by `.github/workflows/win-signed-release.yml` (T254
-  # follow-up). The values below are intentionally inert so local builds
-  # remain unsigned; CI swaps `signtoolOptions.signingHashAlgorithms`
-  # and `signtoolOptions.publisherName` in via repo secrets.
-  signtoolOptions:
-    sign: null
-    signingHashAlgorithms: []
-    publisherName: ""
+  # Authenticode signing behavior:
+  #   - Local dev builds: CSC_LINK env var unset; electron-builder skips signing
+  #     and produces an unsigned exe (Gatekeeper-equivalent SmartScreen warns).
+  #   - CI builds: multi-platform-on-merge.yml's "Prepare Windows self-signed
+  #     cert" step (gated on WIN_SELF_SIGNED_CERT_PFX secret) writes the PFX to
+  #     a temp file and exports CSC_LINK + CSC_KEY_PASSWORD to GITHUB_ENV.
+  #     electron-builder then picks up those env vars and signs with SHA-256
+  #     using the default signtool flow.
+  # The previous explicit `signtoolOptions: { sign: null, signingHashAlgorithms: [] }`
+  # actively BLOCKED signing — it forced electron-builder to ignore CSC_LINK and
+  # emit an unsigned exe even when the cert was present. Removed so the default
+  # env-driven flow takes effect (see PR #311 for the regression check that
+  # caught this: Get-AuthenticodeSignature now runs on every Win build).
   files:
     # Exclude binaries for other platforms
     - "!**/vendor/codex/darwin-*/**"
