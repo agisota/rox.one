@@ -4,7 +4,7 @@ copyright: Copyright © 2026 roxone
 # CFBundleVersion is forced to a pure numeric Apple build number (T250).
 # Bump on every notarization-eligible release; the marketing string lives in
 # package.json `version` and maps to CFBundleShortVersionString automatically.
-buildVersion: "92"
+buildVersion: "100"
 
 electronVersion: "39.8.9"
 
@@ -99,8 +99,10 @@ publish:
   url: https://app.rox.one/electron/stable/
   channel: latest
 
-# Disable ASAR to avoid decompression overhead and click delays
-asar: false
+# Enable ASAR — single packed blob instead of thousands of fs reads. On Electron 39
+# decompression overhead is negligible vs filesystem thrashing of unpacked dist on
+# slow disks. Significant startup-speed win (v1.0.1).
+asar: true
 
 mac:
   category: public.app-category.productivity
