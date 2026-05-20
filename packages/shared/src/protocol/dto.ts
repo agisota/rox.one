@@ -23,6 +23,13 @@ import type {
   CredentialAuthRequest as SharedCredentialAuthRequest,
 } from '../agent/index'
 
+export type {
+  AgentArtifact,
+  AgentArtifactType,
+  AgentArtifactVersion,
+  UpsertSessionArtifactInput,
+} from '../sessions/types'
+
 // Re-export generateMessageId for handler convenience
 export { generateMessageId } from '@rox-one/core/types'
 

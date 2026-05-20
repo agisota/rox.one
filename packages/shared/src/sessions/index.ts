@@ -18,10 +18,14 @@ export type {
   SessionMetadata,
   SessionHeader,
   SessionPersistentField,
+  AgentArtifactType,
+  AgentArtifactVersion,
+  AgentArtifact,
+  UpsertSessionArtifactInput,
 } from './types.ts';
 
 // Field constants
-export { SESSION_PERSISTENT_FIELDS } from './types.ts';
+export { SESSION_PERSISTENT_FIELDS, AGENT_ARTIFACT_TYPES } from './types.ts';
 
 // Storage functions
 export {
@@ -32,6 +36,8 @@ export {
   getSessionFilePath,
   getSessionAttachmentsPath,
   getSessionPlansPath,
+  getSessionArtifactsPath,
+  getSessionArtifactsPathFromSessionPath,
   ensureAttachmentsDir,
   // ID generation
   generateSessionId,
@@ -80,6 +86,15 @@ export {
   sessionPersistenceQueue,
   // Header metadata signature (for self-triggered event suppression)
   getHeaderMetadataSignature,
+  // Artifact storage
+  listSessionArtifacts,
+  listSessionArtifactsFromPath,
+  getSessionArtifact,
+  getSessionArtifactFromPath,
+  upsertSessionArtifact,
+  upsertSessionArtifactInPath,
+  deleteSessionArtifact,
+  deleteSessionArtifactFromPath,
 } from './storage.ts';
 
 // JSONL helpers (for direct access if needed)
@@ -130,4 +145,3 @@ export {
   validateBundle,
   MAX_BUNDLE_SIZE_BYTES,
 } from './bundle.ts';
-

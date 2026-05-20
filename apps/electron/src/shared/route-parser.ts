@@ -816,6 +816,8 @@ export function buildRouteFromNavigationState(state: NavigationState): string {
  *   'history' -> { type: 'history' }
  *   'files' -> { type: 'files' }
  *   'files/src/main.ts' -> { type: 'files', path: 'src/main.ts' }
+ *   'artifact' -> { type: 'artifact' }
+ *   'artifact/abc123' -> { type: 'artifact', artifactId: 'abc123' }
  *   'none' -> { type: 'none' }
  */
 export function parseRightSidebarParam(sidebarStr?: string): RightSidebarPanel | undefined {
@@ -827,6 +829,13 @@ export function parseRightSidebarParam(sidebarStr?: string): RightSidebarPanel |
   if (sidebarStr.startsWith('files')) {
     const path = sidebarStr.substring(6) // Remove 'files/' prefix
     return { type: 'files', path: path || undefined }
+  }
+  if (sidebarStr === 'artifact') {
+    return { type: 'artifact' }
+  }
+  if (sidebarStr.startsWith('artifact/')) {
+    const artifactId = sidebarStr.substring(9)
+    return { type: 'artifact', artifactId: artifactId || undefined }
   }
   if (sidebarStr === 'none') {
     return { type: 'none' }
@@ -848,6 +857,8 @@ export function buildRightSidebarParam(panel?: RightSidebarPanel): string | unde
       return 'history'
     case 'files':
       return panel.path ? `files/${panel.path}` : 'files'
+    case 'artifact':
+      return panel.artifactId ? `artifact/${panel.artifactId}` : 'artifact'
     default:
       return undefined
   }

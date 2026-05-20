@@ -207,6 +207,13 @@ export const CHANNEL_MAP = {
   unwatchSessionFiles: invoke(RPC_CHANNELS.sessions.UNWATCH_FILES),
   onSessionFilesChanged: listener(RPC_CHANNELS.sessions.FILES_CHANGED),
 
+  // Session Artifacts
+  listArtifacts: invoke(RPC_CHANNELS.artifacts.LIST),
+  getArtifact: invoke(RPC_CHANNELS.artifacts.GET),
+  upsertArtifact: invoke(RPC_CHANNELS.artifacts.UPSERT),
+  deleteArtifact: invoke(RPC_CHANNELS.artifacts.DELETE),
+  onArtifactsChanged: listener(RPC_CHANNELS.artifacts.CHANGED),
+
   // Sources
   getSources: invoke(RPC_CHANNELS.sources.GET),
   createSource: invoke(RPC_CHANNELS.sources.CREATE),
