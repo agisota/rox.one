@@ -441,6 +441,13 @@ client.onConnectionStateChanged((state) => {
   return () => { ipcRenderer.removeListener('design:toggle', handler) }
 }
 
+// AAP push listener — PZD-18 step 4 (emitted by step-3 main-process router)
+;(api as ElectronAPI).onAgentAnswerReceived = (cb) => {
+  const handler = (_e: any, pkg: import('@rox-one/agent-contract').AgentAnswerPackage) => cb(pkg)
+  ipcRenderer.on('agent-answer:received', handler)
+  return () => { ipcRenderer.removeListener('agent-answer:received', handler) }
+}
+
 // System warnings — expose env-based flags set during main process startup
 // (preload-only: reads env var directly, no IPC round-trip needed)
 ;(api as ElectronAPI).getSystemWarnings = async () => ({

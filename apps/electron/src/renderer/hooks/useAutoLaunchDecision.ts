@@ -11,10 +11,11 @@
  *   any choice      + not confident   → 'never-launch'
  *
  * Phase D / T537 PR #4
- *
- * TODO(phase-c-integration): replace ClassifierResult stub with
- * @rox-one/design-classifier import when the Phase C package is published.
  */
+
+import { classifyDesignTask, type ClassifierResult } from '@rox-one/design-classifier'
+
+export type { ClassifierResult }
 
 /** Stored user preference for auto-launching Rox Design. */
 export type AutoLaunchDesignChoice = 'always' | 'ask' | 'never'
@@ -22,25 +23,25 @@ export type AutoLaunchDesignChoice = 'always' | 'ask' | 'never'
 /** Decision returned by this hook. */
 export type AutoLaunchDecision = 'always-launch' | 'ask-user' | 'never-launch'
 
-// TODO(phase-c-integration): replace with @rox-one/design-classifier import when published
-export type ClassifierResult = {
-  confidence: number
-  topClass: 'design' | 'other'
-}
-
 /** Confidence threshold above which the classifier is considered actionable. */
 const CONFIDENCE_THRESHOLD = 0.7
+
+/** Minimal shape required by the decision function — a structural subset of ClassifierResult. */
+type ClassifierSignal = Pick<ClassifierResult, 'confidence' | 'topClass'>
 
 /**
  * Pure decision function — no React hooks needed for the logic itself.
  * Exported so tests can call it directly without a DOM.
+ *
+ * Accepts the full ClassifierResult or any structural subset with
+ * `confidence` and `topClass` (e.g. test stubs).
  *
  * @param choice   Stored user preference
  * @param result   Classifier output (null/undefined = not run yet)
  */
 export function getAutoLaunchDecision(
   choice: AutoLaunchDesignChoice,
-  result: ClassifierResult | null | undefined,
+  result: ClassifierSignal | null | undefined,
 ): AutoLaunchDecision {
   // If the classifier hasn't run, or isn't confident, or didn't flag 'design' → no-op
   if (
@@ -66,12 +67,18 @@ export function getAutoLaunchDecision(
 /**
  * useAutoLaunchDecision (React hook wrapper)
  *
- * Returns the decision synchronously from the pure function.
- * Import pure getAutoLaunchDecision directly if you don't need the React hook.
+ * Runs the real design classifier on the given prompt and returns the
+ * auto-launch decision synchronously.
+ * Import pure getAutoLaunchDecision directly if you need to pass a
+ * pre-computed ClassifierResult.
+ *
+ * @param choice  Stored user preference
+ * @param prompt  The user's raw prompt text to classify
  */
 export function useAutoLaunchDecision(
   choice: AutoLaunchDesignChoice,
-  result: ClassifierResult | null | undefined,
+  prompt: string,
 ): AutoLaunchDecision {
+  const result = classifyDesignTask(prompt)
   return getAutoLaunchDecision(choice, result)
 }

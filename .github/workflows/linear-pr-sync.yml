@@ -1,0 +1,375 @@
+name: Linear PR Sync
+
+# Automatically creates/updates a Linear issue for every PR opened against
+# main so that manual intake (like the one-off batch for PRs #265..#290..#314)
+# is never needed again.
+#
+# Trigger matrix:
+#   opened  → create issue in PZD (ROX.ONE GitHub Roadmap Sync), state=Todo
+#   edited  → find existing issue by stable GH PR URL, update title+description
+#   closed  → find existing issue, mark Done if merged else Canceled
+#
+# Security:
+#   - LINEAR_API_KEY is read exclusively from secrets; job skips if absent.
+#   - ALL PR fields (title, body, head ref) flow through env vars — no
+#     ${{ pr.* }} expansion inside `run:` blocks.
+#   - GraphQL payloads built with JSON.stringify inside a pinned node script,
+#     so no shell-injection vector from user-supplied strings.
+#
+# Linear target:
+#   Team UUID  : e111fcdf-2928-4b54-9151-01546a6da899  (PZD)
+#   Project ID : 065997f9-3b9f-4dec-893e-81a36e754c48  (ROX.ONE GitHub Roadmap Sync)
+#   State Todo     : e00a8e1d-e83c-4abd-822a-547d099a8374
+#   State Done     : 69657ab8-8983-4aeb-83b5-0fb5c3914d0a
+#   State Canceled : b719bb20-d9f1-4407-b2b2-377dce55e00e
+
+on:
+  pull_request:
+    types: [opened, edited, closed]
+    branches:
+      - main
+
+concurrency:
+  group: linear-pr-sync-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync-to-linear:
+    name: Sync PR to Linear
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    # Gate: skip entirely when the secret is not provisioned so forks/fresh
+    # clones don't fail with 401s.
+    if: ${{ secrets.LINEAR_API_KEY != '' }}
+
+    env:
+      # -----------------------------------------------------------------------
+      # ALL untrusted PR fields are captured here — never expanded inline in
+      # run: blocks. This prevents script injection via crafted PR titles/bodies.
+      # -----------------------------------------------------------------------
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_BODY: ${{ github.event.pull_request.body }}
+      PR_URL: ${{ github.event.pull_request.html_url }}
+      PR_MERGED: ${{ github.event.pull_request.merged }}
+      PR_ACTION: ${{ github.event.action }}
+      # Linear constants
+      LINEAR_TEAM_ID: "e111fcdf-2928-4b54-9151-01546a6da899"
+      LINEAR_PROJECT_ID: "065997f9-3b9f-4dec-893e-81a36e754c48"
+      LINEAR_STATE_TODO: "e00a8e1d-e83c-4abd-822a-547d099a8374"
+      LINEAR_STATE_DONE: "69657ab8-8983-4aeb-83b5-0fb5c3914d0a"
+      LINEAR_STATE_CANCELED: "b719bb20-d9f1-4407-b2b2-377dce55e00e"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      # -----------------------------------------------------------------------
+      # opened: create a new Linear issue
+      # -----------------------------------------------------------------------
+      - name: Create Linear issue (opened)
+        if: ${{ env.PR_ACTION == 'opened' }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        with:
+          script: |
+            const { LINEAR_API_KEY, LINEAR_TEAM_ID, LINEAR_PROJECT_ID,
+                    LINEAR_STATE_TODO, PR_NUMBER, PR_TITLE, PR_BODY, PR_URL } = process.env;
+
+            // Truncate body to avoid hitting Linear's description limit.
+            const bodyExcerpt = (PR_BODY || '').slice(0, 2000);
+            const description = [
+              `**GitHub PR:** ${PR_URL}`,
+              '',
+              bodyExcerpt || '_No description provided._',
+            ].join('\n');
+
+            const issueTitle = `[PR #${PR_NUMBER}] ${PR_TITLE}`;
+
+            const mutation = `
+              mutation CreateIssue($input: IssueCreateInput!) {
+                issueCreate(input: $input) {
+                  success
+                  issue { id identifier url }
+                }
+              }
+            `;
+
+            const variables = {
+              input: {
+                teamId: LINEAR_TEAM_ID,
+                projectId: LINEAR_PROJECT_ID,
+                stateId: LINEAR_STATE_TODO,
+                title: issueTitle,
+                description,
+              },
+            };
+
+            const resp = await fetch('https://api.linear.app/graphql', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: LINEAR_API_KEY,
+              },
+              body: JSON.stringify({ query: mutation, variables }),
+            });
+
+            if (!resp.ok) {
+              throw new Error(`Linear API error ${resp.status}: ${await resp.text()}`);
+            }
+
+            const data = await resp.json();
+            if (data.errors) {
+              throw new Error(`Linear GraphQL errors: ${JSON.stringify(data.errors)}`);
+            }
+
+            const issue = data.data?.issueCreate?.issue;
+            if (!issue) {
+              throw new Error(`issueCreate returned no issue. Response: ${JSON.stringify(data)}`);
+            }
+
+            core.info(`Linear issue created: ${issue.identifier} — ${issue.url}`);
+            core.setOutput('linear_issue_id', issue.id);
+
+            // Attach the GH PR URL so the issue card shows the PR link.
+            const attachMutation = `
+              mutation AttachLink($issueId: String!, $url: String!, $title: String!) {
+                attachmentLinkURL(issueId: $issueId, url: $url, title: $title) {
+                  success
+                  attachment { id }
+                }
+              }
+            `;
+
+            const attachResp = await fetch('https://api.linear.app/graphql', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: LINEAR_API_KEY,
+              },
+              body: JSON.stringify({
+                query: attachMutation,
+                variables: {
+                  issueId: issue.id,
+                  url: PR_URL,
+                  title: `GitHub PR #${PR_NUMBER}`,
+                },
+              }),
+            });
+
+            if (!attachResp.ok) {
+              core.warning(`attachmentLinkURL failed (${attachResp.status}): ${await attachResp.text()}`);
+            } else {
+              const attachData = await attachResp.json();
+              if (attachData.errors) {
+                core.warning(`attachmentLinkURL GraphQL errors: ${JSON.stringify(attachData.errors)}`);
+              } else {
+                core.info(`PR attachment created: ${JSON.stringify(attachData.data?.attachmentLinkURL?.attachment)}`);
+              }
+            }
+
+      # -----------------------------------------------------------------------
+      # edited: find existing issue by stable GH PR URL, update title + desc
+      # -----------------------------------------------------------------------
+      - name: Update Linear issue (edited)
+        if: ${{ env.PR_ACTION == 'edited' }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        with:
+          script: |
+            const { LINEAR_API_KEY, LINEAR_TEAM_ID,
+                    PR_NUMBER, PR_TITLE, PR_BODY, PR_URL } = process.env;
+
+            // Stable identifier: GH PR URL embedded in the description on creation.
+            const searchQuery = `
+              query FindIssue($filter: IssueFilter!) {
+                issues(filter: $filter) {
+                  nodes { id identifier }
+                }
+              }
+            `;
+
+            // Linear issue search: match description containing the PR URL.
+            const searchResp = await fetch('https://api.linear.app/graphql', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: LINEAR_API_KEY,
+              },
+              body: JSON.stringify({
+                query: searchQuery,
+                variables: {
+                  filter: {
+                    team: { id: { eq: LINEAR_TEAM_ID } },
+                    description: { contains: PR_URL },
+                  },
+                },
+              }),
+            });
+
+            if (!searchResp.ok) {
+              throw new Error(`Linear search error ${searchResp.status}: ${await searchResp.text()}`);
+            }
+
+            const searchData = await searchResp.json();
+            if (searchData.errors) {
+              throw new Error(`Linear search GraphQL errors: ${JSON.stringify(searchData.errors)}`);
+            }
+
+            const issues = searchData.data?.issues?.nodes ?? [];
+            if (issues.length === 0) {
+              core.warning(`No Linear issue found referencing ${PR_URL}. Nothing to update.`);
+              return;
+            }
+
+            const issue = issues[0];
+            core.info(`Found Linear issue to update: ${issue.identifier}`);
+
+            const bodyExcerpt = (PR_BODY || '').slice(0, 2000);
+            const description = [
+              `**GitHub PR:** ${PR_URL}`,
+              '',
+              bodyExcerpt || '_No description provided._',
+            ].join('\n');
+
+            const updateMutation = `
+              mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
+                issueUpdate(id: $id, input: $input) {
+                  success
+                  issue { id identifier url }
+                }
+              }
+            `;
+
+            const updateResp = await fetch('https://api.linear.app/graphql', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: LINEAR_API_KEY,
+              },
+              body: JSON.stringify({
+                query: updateMutation,
+                variables: {
+                  id: issue.id,
+                  input: {
+                    title: `[PR #${PR_NUMBER}] ${PR_TITLE}`,
+                    description,
+                  },
+                },
+              }),
+            });
+
+            if (!updateResp.ok) {
+              throw new Error(`Linear update error ${updateResp.status}: ${await updateResp.text()}`);
+            }
+
+            const updateData = await updateResp.json();
+            if (updateData.errors) {
+              throw new Error(`Linear update GraphQL errors: ${JSON.stringify(updateData.errors)}`);
+            }
+
+            core.info(`Linear issue updated: ${updateData.data?.issueUpdate?.issue?.url}`);
+
+      # -----------------------------------------------------------------------
+      # closed: mark Done (if merged) or Canceled
+      # -----------------------------------------------------------------------
+      - name: Close Linear issue (closed)
+        if: ${{ env.PR_ACTION == 'closed' }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        with:
+          script: |
+            const { LINEAR_API_KEY, LINEAR_TEAM_ID,
+                    LINEAR_STATE_DONE, LINEAR_STATE_CANCELED,
+                    PR_URL, PR_MERGED } = process.env;
+
+            // Find issue by PR URL in description (same stable anchor as edit path).
+            const searchQuery = `
+              query FindIssue($filter: IssueFilter!) {
+                issues(filter: $filter) {
+                  nodes { id identifier }
+                }
+              }
+            `;
+
+            const searchResp = await fetch('https://api.linear.app/graphql', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: LINEAR_API_KEY,
+              },
+              body: JSON.stringify({
+                query: searchQuery,
+                variables: {
+                  filter: {
+                    team: { id: { eq: LINEAR_TEAM_ID } },
+                    description: { contains: PR_URL },
+                  },
+                },
+              }),
+            });
+
+            if (!searchResp.ok) {
+              throw new Error(`Linear search error ${searchResp.status}: ${await searchResp.text()}`);
+            }
+
+            const searchData = await searchResp.json();
+            if (searchData.errors) {
+              throw new Error(`Linear search errors: ${JSON.stringify(searchData.errors)}`);
+            }
+
+            const issues = searchData.data?.issues?.nodes ?? [];
+            if (issues.length === 0) {
+              core.warning(`No Linear issue found referencing ${PR_URL}. Nothing to close.`);
+              return;
+            }
+
+            const issue = issues[0];
+            const targetState = PR_MERGED === 'true' ? LINEAR_STATE_DONE : LINEAR_STATE_CANCELED;
+            const stateLabel = PR_MERGED === 'true' ? 'Done' : 'Canceled';
+
+            core.info(`Marking Linear issue ${issue.identifier} as ${stateLabel}`);
+
+            const updateMutation = `
+              mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
+                issueUpdate(id: $id, input: $input) {
+                  success
+                  issue { id identifier state { name } }
+                }
+              }
+            `;
+
+            const updateResp = await fetch('https://api.linear.app/graphql', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: LINEAR_API_KEY,
+              },
+              body: JSON.stringify({
+                query: updateMutation,
+                variables: {
+                  id: issue.id,
+                  input: { stateId: targetState },
+                },
+              }),
+            });
+
+            if (!updateResp.ok) {
+              throw new Error(`Linear update error ${updateResp.status}: ${await updateResp.text()}`);
+            }
+
+            const updateData = await updateResp.json();
+            if (updateData.errors) {
+              throw new Error(`Linear update errors: ${JSON.stringify(updateData.errors)}`);
+            }
+
+            const updatedIssue = updateData.data?.issueUpdate?.issue;
+            core.info(`Linear issue ${updatedIssue?.identifier} state → ${updatedIssue?.state?.name}`);

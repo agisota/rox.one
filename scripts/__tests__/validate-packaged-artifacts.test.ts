@@ -61,7 +61,7 @@ function latestYml(exeSize: number, blockmapSize: number = ONE_MB): string {
 }
 
 /** Minimal macOS Info.plist with the launch compatibility contract. */
-function macInfoPlist(minVersion = '12.0'): string {
+function macInfoPlist(minVersion = '14.0'): string {
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',
@@ -204,25 +204,25 @@ describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
     expect(combined).toContain('platform=mac');
   });
 
-  test('passes Mac validation only when the packaged app keeps the Monterey-compatible floor', () => {
+  test('passes Mac validation only when the packaged app keeps the Sonoma-compatible floor', () => {
     const cwd = fixture({ mac: true });
     const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'mac' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).toBe(0);
-    expect(combined).toContain('LSMinimumSystemVersion=12.0');
+    expect(combined).toContain('LSMinimumSystemVersion=14.0');
     expect(combined).toContain('CFBundleIdentifier=com.rox.one');
   });
 
-  test('fails Mac validation when LSMinimumSystemVersion drifts above Monterey', () => {
+  test('fails Mac validation when LSMinimumSystemVersion drifts below Sonoma', () => {
     const cwd = fixture({ mac: true });
     writeFileSync(
       join(cwd, 'apps', 'electron', 'release', 'mac-arm64', 'ROX.ONE.app', 'Contents', 'Info.plist'),
-      macInfoPlist('15.0'),
+      macInfoPlist('12.0'),
     );
     const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'mac' });
     const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     expect(result.status).not.toBe(0);
-    expect(combined).toContain('LSMinimumSystemVersion must be 12.0');
+    expect(combined).toContain('LSMinimumSystemVersion must be 14.0');
   });
 
   test('fails Mac validation when Mac dmg is missing', () => {

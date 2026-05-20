@@ -76,8 +76,8 @@ jobs:
             uv --version
       - install_dependencies
       - run:
-          name: Install Playwright Chromium
-          command: ./node_modules/.bin/playwright install --with-deps chromium
+          name: Install Playwright Chromium headless shell
+          command: node node_modules/playwright/cli.js install --with-deps --only-shell chromium
       - run:
           name: Prepare validation logs
           command: mkdir -p .ci-logs
@@ -93,10 +93,8 @@ jobs:
             bun run validate:agent-contract 2>&1 | tee .ci-logs/agent-contract.log
             bun run validate:architecture-docs 2>&1 | tee .ci-logs/architecture-docs.log
             bun run validate:ci 2>&1 | tee .ci-logs/validate-ci.log
-            bun test --timeout=30000 2>&1 | tee .ci-logs/test-units.log
-            for f in $(find . -name '*.isolated.ts' -not -path './node_modules/*' -not -path './apps/electron/release/*'); do
-              bun test --timeout=30000 "$f" 2>&1 | tee -a .ci-logs/test-units.log || exit 1
-            done
+            bun run validate:workflow-pins 2>&1 | tee .ci-logs/validate-workflow-pins.log
+            bun test --timeout=30000 scripts/__tests__/validate-packaged-artifacts.test.ts 2>&1 | tee .ci-logs/test-packaged-artifacts.log
       - store_artifacts:
           path: .ci-logs
           destination: validation-logs

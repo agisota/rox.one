@@ -11,7 +11,7 @@
 #
 # To update sha256 after each release:
 #   nix-prefetch-url \
-#     https://github.com/agisota/rox-one-terminal/releases/download/v<VER>/ROX-ONE-x86_64.AppImage
+#     https://github.com/agisota/rox.one/releases/download/v<VER>/ROX-ONE-x86_64.AppImage
 # Paste the printed hash into the sha256 field in flake.nix.
 
 { pkgs
@@ -29,7 +29,7 @@ let
   pname = "rox-agent";
 
   resolvedSrc = if src != null then src else pkgs.fetchurl {
-    url = "https://github.com/agisota/rox-one-terminal/releases/download/v${version}/ROX-ONE-x86_64.AppImage";
+    url = "https://github.com/agisota/rox.one/releases/download/v${version}/ROX-ONE-x86_64.AppImage";
     inherit sha256;
   };
 

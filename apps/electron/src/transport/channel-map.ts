@@ -190,7 +190,9 @@ export const CHANNEL_MAP = {
   debugLog: invoke(RPC_CHANNELS.debug.LOG),
 
   // User Preferences
+  getAutoLaunchDesign: invoke(RPC_CHANNELS.preferences.GET_AUTO_LAUNCH_DESIGN),
   readPreferences: invoke(RPC_CHANNELS.preferences.READ),
+  setAutoLaunchDesign: invoke(RPC_CHANNELS.preferences.SET_AUTO_LAUNCH_DESIGN),
   writePreferences: invoke(RPC_CHANNELS.preferences.WRITE),
 
   // Session Drafts

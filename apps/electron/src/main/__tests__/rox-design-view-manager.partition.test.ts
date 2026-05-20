@@ -5,6 +5,7 @@
  * partition: 'persist:rox-design' to isolate storage and cookies from the host.
  */
 import { describe, expect, it, mock, beforeEach } from 'bun:test'
+import type { WindowManager } from '../window-manager'
 
 // Capture webPreferences passed to BrowserView / WebContentsView constructors.
 const capturedWebPreferences: unknown[] = []
@@ -62,6 +63,12 @@ mock.module('electron', () => {
 
 const { RoxDesignViewManager } = await import('../rox-design-view-manager') as typeof import('../rox-design-view-manager')
 
+function windowManagerFor(mockWindow: unknown): WindowManager {
+  return {
+    getWindowByWebContentsId: (_id: number) => mockWindow as import('electron').BrowserWindow,
+  } as unknown as WindowManager
+}
+
 describe('RoxDesignViewManager partition isolation', () => {
   beforeEach(() => {
     capturedWebPreferences.length = 0
@@ -78,9 +85,7 @@ describe('RoxDesignViewManager partition isolation', () => {
     }
 
     const manager = new RoxDesignViewManager({
-      windowManager: {
-        getWindowByWebContentsId: (_id: number) => mockWindow as unknown as import('electron').BrowserWindow,
-      },
+      windowManager: windowManagerFor(mockWindow),
       preloadPath: '/fake/preload.cjs',
     })
 
@@ -107,9 +112,7 @@ describe('RoxDesignViewManager partition isolation', () => {
     }
 
     const manager = new RoxDesignViewManager({
-      windowManager: {
-        getWindowByWebContentsId: (_id: number) => mockWindow as unknown as import('electron').BrowserWindow,
-      },
+      windowManager: windowManagerFor(mockWindow),
       preloadPath: '/fake/preload.cjs',
     })
 
