@@ -808,12 +808,44 @@ app.whenReady().then(async () => {
         }
 
         messagingHandle.setPublisher(instance.wsServer.push.bind(instance.wsServer))
+        roxStartup('messaging: setPublisher done')
 
         // Skip remote-owned workspaces — messaging runs on the remote server.
         const localWorkspaceIds = getWorkspaces(DEFAULT_LOCAL_SCOPE)
           .filter((ws) => !ws.remoteServer)
           .map((ws) => ws.id)
-        await messagingHandle.initializeWorkspaces(localWorkspaceIds)
+        roxStartup(`messaging: ${localWorkspaceIds.length} local workspace(s) to init`)
+
+        // CI diag-smoke (ROX_DIAG=1) skips messaging gateway init — it touches
+        // network sockets (Baileys/MTProto/Lark) that never succeed in a sealed
+        // GitHub Actions runner and previously hung the boot for 60+ seconds,
+        // preventing createInitialWindows from being reached. We still want to
+        // verify the renderer renders, which doesn't require messaging.
+        //
+        // For non-diag launches, hard-cap the init at 30s so a single bad
+        // workspace config (or a flaky native module under hardened runtime)
+        // can never block the rest of startup forever. Workspaces that need
+        // longer to connect run their handshake in background tasks already
+        // (see registry.ts tryConnectTelegram/Lark/WhatsApp).
+        if (process.env.ROX_DIAG === '1') {
+          roxStartup('messaging: SKIPPED — ROX_DIAG=1 diagnostic smoke mode')
+        } else {
+          const MESSAGING_INIT_TIMEOUT_MS = 30_000
+          const initPromise = messagingHandle.initializeWorkspaces(localWorkspaceIds)
+          const timeoutPromise = new Promise<'timeout'>((resolve) =>
+            setTimeout(() => resolve('timeout'), MESSAGING_INIT_TIMEOUT_MS),
+          )
+          const outcome = await Promise.race([initPromise.then(() => 'ok' as const), timeoutPromise])
+          if (outcome === 'timeout') {
+            mainLog.warn(
+              `[messaging] initializeWorkspaces did not complete within ${MESSAGING_INIT_TIMEOUT_MS}ms — ` +
+                `continuing boot; background reconnect tasks remain active`,
+            )
+            roxStartup('messaging: initializeWorkspaces TIMEOUT (continuing boot)')
+          } else {
+            roxStartup('messaging: initializeWorkspaces resolved')
+          }
+        }
 
         // Compose fan-out event sink: RPC push + messaging gateway dispatch.
         // Always install — this lets workspaces enable messaging at runtime
@@ -823,8 +855,10 @@ app.whenReady().then(async () => {
         if (messagingHandle.registry.size > 0) {
           mainLog.info(`[messaging] Fan-out sink active for ${messagingHandle.registry.size} workspace(s)`)
         }
+        roxStartup('messaging: fan-out sink installed')
       } catch (err) {
         mainLog.error('[messaging] Gateway initialization failed:', err)
+        roxStartup(`messaging: caught error ${err instanceof Error ? err.message : String(err)}`)
       }
 
       // IPC handlers — preload uses sendSync to get WS connection details
