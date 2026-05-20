@@ -285,3 +285,22 @@ Known gaps / risks:
 - The JSON manifest fallback does not migrate old SQLite rows when Electron runs without `bun:sqlite`; it intentionally writes to a sidecar JSON file to avoid corrupting an existing SQLite DB. If existing design artifacts must be migrated between runtimes, add an explicit migration tool rather than silent fallback conversion.
 - Full packaged cross-platform builds were not run locally in this rescue pass.
 - The batched Bun test command can still be order-sensitive when tests install different Electron module mocks; registration tests have passing evidence when run as their own group, matching prior repo practice.
+
+## 13. 2026-05-20 packaged smoke follow-up
+
+After pushing `9a532e9c`, the first GitHub checks snapshot showed `Rox Design xvfb smoke — AppImage` failed while core e2e and bundle-budget passed. GitHub API log retrieval was temporarily blocked by exhausted API rate limit, but local review found an adjacent issue introduced by the smoke cleanup change: packaged smoke scripts also run with `ROX_SMOKE_EXIT_ON_READY=1`, so they must treat clean quit markers as proof even when Electron terminates by signal after cleanup.
+
+Follow-up change:
+
+- Updated `scripts/electron-smoke-packaged.ts` and `scripts/electron-smoke-packaged-mac.ts` to accept the same clean shutdown markers used by `scripts/electron-smoke.ts` before failing on non-zero/signal process termination.
+- Updated packaged smoke contract tests to assert clean smoke cleanup marker handling.
+
+Fresh verification evidence:
+
+- `bun test scripts/__tests__/electron-smoke.test.ts scripts/__tests__/electron-packaged-smoke-contract.test.ts scripts/__tests__/validate-rox-design-xvfb-workflow.test.ts scripts/__tests__/validate-mac-boundary-fixtures.test.ts scripts/__tests__/validate-windows-boundary-fixtures.test.ts --timeout=30000`: `38 pass`, `0 fail`, `141 expect()` calls.
+- `bun run validate:cross-platform-launch-workflow && bun run validate:mac-arm-build-workflow`: pass.
+- `git diff --check`: pass.
+
+Known gap:
+
+- Exact AppImage CI failure log still needs a fresh GitHub API read after rate-limit reset; the local fix addresses the packaged-smoke signal-handling failure class that would otherwise break pending cross-platform packaged smoke jobs after the app-side smoke termination change.

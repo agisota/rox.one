@@ -9,14 +9,18 @@ function readScript(relativePath: string): string {
 }
 
 describe('packaged Electron smoke contract', () => {
-  it('uses clean process exit as packaged readiness proof without stale required markers', () => {
+  it('uses clean smoke cleanup as packaged readiness proof without stale required markers', () => {
     const packagedSmoke = readScript('scripts/electron-smoke-packaged-mac.ts');
     const crossPlatformPackagedSmoke = readScript('scripts/electron-smoke-packaged.ts');
     const normalSmoke = readScript('scripts/electron-smoke.ts');
 
     for (const script of [packagedSmoke, crossPlatformPackagedSmoke]) {
       expect(script).toContain('const REQUIRED_MARKERS: readonly string[] = [];');
-      expect(script).toContain('clean smoke-mode exit is therefore the observable readiness proof');
+      expect(script).toContain('Clean smoke-mode cleanup is therefore the observable readiness');
+      expect(script).toContain('CLEAN_SHUTDOWN_MARKERS');
+      expect(script).toContain('[quit] cleanup complete');
+      expect(script).toContain('[smoke] Exiting process after successful quit cleanup');
+      expect(script).toContain('exitCode !== 0 && !cleanShutdownComplete');
       expect(script).not.toContain("'ROX_SERVER_URL=': false");
       expect(script).toContain("replace(/ROX_SERVER_TOKEN=\\S+/g, 'ROX_SERVER_TOKEN=[REDACTED]')");
       expect(script).toContain("replace(/ROX_SERVER_URL=\\S+/g, 'ROX_SERVER_URL=[REDACTED]')");

@@ -9,9 +9,10 @@ const ROOT_DIR = join(import.meta.dir, '..');
 const STARTUP_TIMEOUT_MS = Number(process.env.ROX_PACKAGED_SMOKE_TIMEOUT_MS ?? 45_000);
 const FORCE_KILL_GRACE_MS = 5_000;
 // Production packaged builds can route readiness details to electron-log instead of
-// stdout/stderr. A clean smoke-mode exit is therefore the observable readiness proof;
-// stdout markers are best-effort diagnostics only.
+// stdout/stderr. Clean smoke-mode cleanup is therefore the observable readiness
+// proof; stdout markers are best-effort diagnostics only.
 const REQUIRED_MARKERS: readonly string[] = [];
+const CLEAN_SHUTDOWN_MARKERS = ['[quit] cleanup complete', '[smoke] Exiting process after successful quit cleanup'] as const;
 
 function defaultExecutablePath(): string {
   if (process.platform === 'darwin') {
@@ -92,6 +93,12 @@ function markSeen(text: string, seen: Record<string, boolean>): void {
   }
 }
 
+function markCleanShutdown(text: string, seen: Record<(typeof CLEAN_SHUTDOWN_MARKERS)[number], boolean>): void {
+  for (const marker of CLEAN_SHUTDOWN_MARKERS) {
+    if (text.includes(marker)) seen[marker] = true;
+  }
+}
+
 function sanitizeOutput(text: string): string {
   return text
     .replace(/ROX_SERVER_TOKEN=\S+/g, 'ROX_SERVER_TOKEN=[REDACTED]')
@@ -117,6 +124,10 @@ console.log(`[packaged-smoke] Launching ${process.platform} packaged executable:
 
 const seen: Record<string, boolean> = {};
 for (const marker of REQUIRED_MARKERS) seen[marker] = false;
+const cleanShutdownSeen: Record<(typeof CLEAN_SHUTDOWN_MARKERS)[number], boolean> = {
+  '[quit] cleanup complete': false,
+  '[smoke] Exiting process after successful quit cleanup': false,
+};
 
 const appProc = spawn({
   cmd: command,
@@ -146,11 +157,13 @@ const timeout = setTimeout(() => {
 
 const stdoutTask = pipeOutput(appProc.stdout, (text) => {
   markSeen(text, seen);
+  markCleanShutdown(text, cleanShutdownSeen);
   process.stdout.write(sanitizeOutput(text));
 });
 
 const stderrTask = pipeOutput(appProc.stderr, (text) => {
   markSeen(text, seen);
+  markCleanShutdown(text, cleanShutdownSeen);
   process.stderr.write(sanitizeOutput(text));
 });
 
@@ -172,7 +185,9 @@ if (timedOut) {
   process.exit(1);
 }
 
-if (exitCode !== 0) {
+const cleanShutdownComplete = CLEAN_SHUTDOWN_MARKERS.every((marker) => cleanShutdownSeen[marker]);
+
+if (exitCode !== 0 && !cleanShutdownComplete) {
   console.error(`[packaged-smoke] ROX.ONE packaged app exited with code ${exitCode}`);
   process.exit(exitCode);
 }
