@@ -1,0 +1,28 @@
+{
+  "name": "@rox-one/artifact-viewer-docx",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "DOCX artifact viewer adapter for ROX.ONE (mammoth.js)",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./adapter": "./src/docx-adapter.ts",
+    "./register": "./src/register.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bun run tsc --noEmit"
+  },
+  "dependencies": {
+    "@rox-one/artifact-viewer-core": "workspace:*",
+    "mammoth": "^1.12.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.28"
+  }
+}
