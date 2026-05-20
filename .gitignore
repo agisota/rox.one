@@ -73,6 +73,7 @@ pnpm-lock.yaml
 # Keep README.md committed so the bootstrap workflow stays discoverable.
 apps/electron/resources/rox-design/*
 !apps/electron/resources/rox-design/README.md
+!apps/electron/resources/rox-design/NOTICES.md
 
 # SSH keys and secrets
 *.pem

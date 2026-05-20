@@ -4,6 +4,8 @@ This file accumulates release notes for the next unreleased version. PRs that ad
 
 ## Features
 
+- **ROX Design (embedded)** — Open Design is now built into ROX. Click the new **ROX DESIGN** button in the top bar (or ⌘⇧D / Ctrl+Shift+D) to open the embedded design surface. Generate landing pages, dashboards, slide decks, mobile screens, prototypes — exported as HTML, PDF, PPTX, or MP4. The embedded surface inherits your ROX theme, language, and density automatically — no separate look-and-feel. Powered by [nexu-io/open-design](https://github.com/nexu-io/open-design) (Apache-2.0).
+
 - **Auto-update channels and live release notes** — ROX.ONE now supports stable/beta update channels, background update downloads by default, an in-app top-bar update button, update settings for manual checks/downloads, and a remote `app.rox.one` release-notes feed with bundled notes as the offline fallback. macOS builds remain unsigned until Apple Developer ID signing is configured.
 - **Experience session sync and MCP defaults** — ROX.ONE now imports sanitized external Rox Agent session index entries into workspace sessions on startup and seeds new/migrated workspaces with Exa, ByteRover, Firecrawl, GitHub, Playwright, and Z.AI MCP source presets. The importer keeps raw transcripts, local source paths, and secret-like prompt fragments out of generated session stubs.
 
