@@ -1116,13 +1116,16 @@ app.whenReady().then(async () => {
       roxStartup('eventsink: before setNotificationEventSink')
       setNotificationEventSink(moduleSink!, resolveClientId)
       roxStartup('eventsink: all sinks wired')
+      roxStartup('after eventsink block, before isHeadless check')
 
       // Headless: print connection details
       if (isHeadless) {
         console.log(`ROX_SERVER_URL=${instance.protocol}://${instance.host}:${instance.port}`)
         console.log(`ROX_SERVER_TOKEN=${instance.token}`)
       }
+      roxStartup('after isHeadless console-log block (still inside !isClientOnly)')
     }
+    roxStartup('after !isClientOnly block closed')
 
     // Create initial windows (restores from saved state or opens first workspace)
     // In headless mode the server runs without any UI — skip window creation.
