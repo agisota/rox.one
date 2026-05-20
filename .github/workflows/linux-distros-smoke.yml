@@ -1,0 +1,220 @@
+name: Linux Distro Smoke Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Optional tag reference (e.g. v1.0.0-rc.7) — informational only"
+        required: false
+        type: string
+  push:
+    branches:
+      - "feat/multiplatform-linux-*"
+
+concurrency:
+  group: linux-distros-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Linux packages (AppImage + DEB + RPM)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    env:
+      ROX_HEADLESS: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Prepare build logs directory
+        run: mkdir -p .ci-logs/linux-distros-smoke
+
+      - name: Build Electron app
+        shell: bash
+        run: |
+          set -euo pipefail
+          bun run electron:build 2>&1 | tee .ci-logs/linux-distros-smoke/electron-build.log
+
+      - name: Package Linux (AppImage + DEB + RPM)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd apps/electron
+          bunx electron-builder \
+            --linux AppImage deb rpm \
+            --config electron-builder.linux.yml \
+            --publish=never \
+            2>&1 | tee ../../.ci-logs/linux-distros-smoke/electron-builder.log
+
+      - name: List produced artefacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "=== Artefacts in apps/electron/release ==="
+          find apps/electron/release -maxdepth 2 \( -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -print
+          echo "=== Done ==="
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: rox-one-linux-packages
+          path: |
+            apps/electron/release/*.AppImage
+            apps/electron/release/*.deb
+            apps/electron/release/*.rpm
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload build evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: smoke-build-logs
+          path: .ci-logs/linux-distros-smoke/**/*.log
+          retention-days: 7
+          if-no-files-found: warn
+
+  smoke:
+    name: "Smoke: ${{ matrix.distro }} (${{ matrix.pkg }})"
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu-22.04
+            image: ubuntu:22.04
+            pkg: deb
+
+          - distro: ubuntu-24.04
+            image: ubuntu:24.04
+            pkg: deb
+
+          - distro: debian-12
+            image: debian:12
+            pkg: deb
+
+          - distro: fedora-40
+            image: fedora:40
+            pkg: rpm
+
+          - distro: appimage-ubuntu-22.04
+            image: ubuntu:22.04
+            pkg: AppImage
+
+    container:
+      image: ${{ matrix.image }}
+      options: --privileged
+
+    steps:
+      - name: Download Linux packages
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: rox-one-linux-packages
+          path: /tmp/pkgs
+
+      - name: Install + launch on ubuntu-22.04 (deb)
+        if: matrix.distro == 'ubuntu-22.04' && matrix.pkg == 'deb'
+        shell: bash
+        working-directory: /tmp/pkgs
+        run: |
+          set -euo pipefail
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            libgtk-3-0 libnotify4 libnss3 libsecret-1-0 \
+            libxtst6 libxss1 libgbm1 libasound2 \
+            gconf2 gconf-service libappindicator3-1 \
+            xvfb ca-certificates
+          dpkg -i ./ROX-ONE-amd64.deb || apt-get install -f -y
+          xvfb-run --auto-servernum rox-one --version 2>&1 || true
+          echo "Smoke passed: ubuntu-22.04 deb"
+
+      - name: Install + launch on ubuntu-24.04 (deb)
+        if: matrix.distro == 'ubuntu-24.04' && matrix.pkg == 'deb'
+        shell: bash
+        working-directory: /tmp/pkgs
+        run: |
+          set -euo pipefail
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            libgtk-3-0t64 libnotify4 libnss3 libsecret-1-0 \
+            libxtst6 libxss1 libgbm1 libasound2t64 \
+            libappindicator3-1 \
+            xvfb ca-certificates
+          dpkg -i ./ROX-ONE-amd64.deb || apt-get install -f -y
+          xvfb-run --auto-servernum rox-one --version 2>&1 || true
+          echo "Smoke passed: ubuntu-24.04 deb"
+
+      - name: Install + launch on debian-12 (deb)
+        if: matrix.distro == 'debian-12' && matrix.pkg == 'deb'
+        shell: bash
+        working-directory: /tmp/pkgs
+        run: |
+          set -euo pipefail
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            libgtk-3-0 libnotify4 libnss3 libsecret-1-0 \
+            libxtst6 libxss1 libgbm1 libasound2 \
+            libappindicator3-1 \
+            xvfb ca-certificates
+          dpkg -i ./ROX-ONE-amd64.deb || apt-get install -f -y
+          xvfb-run --auto-servernum rox-one --version 2>&1 || true
+          echo "Smoke passed: debian-12 deb"
+
+      - name: Install + launch on fedora-40 (rpm)
+        if: matrix.distro == 'fedora-40' && matrix.pkg == 'rpm'
+        shell: bash
+        working-directory: /tmp/pkgs
+        run: |
+          set -euo pipefail
+          dnf install -y --setopt=install_weak_deps=False \
+            gtk3 libnotify nss libsecret \
+            libXtst libXScrnSaver mesa-libgbm alsa-lib \
+            GConf2 libappindicator-gtk3 \
+            xorg-x11-server-Xvfb
+          # Use --nodeps because the RPM encodes a lowercase soname dep
+          # (libxtst) that Fedora 40's libXtst package satisfies at runtime
+          # but not by exact capability name; all runtime libs are pre-installed above.
+          rpm -i --nodeps ./ROX-ONE-x86_64.rpm
+          xvfb-run --auto-servernum rox-one --version 2>&1 || true
+          echo "Smoke passed: fedora-40 rpm"
+
+      - name: Install + launch AppImage on ubuntu-22.04
+        if: matrix.distro == 'appimage-ubuntu-22.04' && matrix.pkg == 'AppImage'
+        shell: bash
+        working-directory: /tmp/pkgs
+        run: |
+          set -euo pipefail
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            libfuse2 xvfb ca-certificates
+          chmod +x ./ROX-ONE-x86_64.AppImage
+          xvfb-run --auto-servernum ./ROX-ONE-x86_64.AppImage \
+            --appimage-extract-and-run --version 2>&1 || true
+          echo "Smoke passed: AppImage regression ubuntu-22.04"
+
+      - name: Upload smoke log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: smoke-logs-${{ matrix.distro }}
+          path: /tmp/pkgs
+          retention-days: 7
+          if-no-files-found: warn

@@ -75,6 +75,7 @@ import { collectFileChangesFromActivities, getFirstFileChangeIdForActivity } fro
 import { resolveBranchNewPanelOption } from "./branching"
 import { handleErrorMessageAction } from "./error-message-actions"
 import { createErrorMessagePresentation } from "./error-message-presentation"
+import { getResizeAutoScrollBehavior } from "./chat-scroll-behavior"
 
 // ============================================================================
 // CSS Custom Highlight API helper
@@ -1146,16 +1147,21 @@ export const ChatDisplay = React.forwardRef<ChatDisplayHandle, ChatDisplayProps>
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
     const resizeObserver = new ResizeObserver(() => {
-      // Unfocused panels: always scroll to bottom instantly (user isn't reading them)
-      if (!isFocusedPanelRef.current) {
+      const autoScrollBehavior = getResizeAutoScrollBehavior({
+        isFocusedPanel: isFocusedPanelRef.current,
+        isStickToBottom: isStickToBottomRef.current,
+      })
+
+      if (autoScrollBehavior === 'none') return
+
+      // Background panels still follow active output while already at the bottom,
+      // but they must not override a user's manual scroll into history.
+      if (autoScrollBehavior === 'instant') {
         messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
         return
       }
 
-      // Focused panel: respect sticky-bottom preference
-      if (!isStickToBottomRef.current) return
-
-      // Clear pending scroll and wait for layout to settle
+      // Focused panel: smooth auto-follow, gated by sticky-bottom preference above.
       if (debounceTimer) clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => {
         // Skip smooth scroll if we just did an instant scroll (session switch/lazy load)

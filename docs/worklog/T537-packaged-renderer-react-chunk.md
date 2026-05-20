@@ -39,6 +39,7 @@ Fix and guard ROX.ONE packaged startup across supported desktop release surfaces
 - `scripts/validate-linux-installer-launcher.ts` asserts AppImage install path, stale mount cleanup, `APPIMAGE` env, `--no-sandbox`, Debian/Ubuntu and Fedora FUSE hints, and NixOS `appimage-run` wiring.
 - `scripts/__tests__/electron-packaged-smoke-contract.test.ts` now asserts a cross-platform packaged smoke harness exists for macOS, Linux, and Windows.
 - `scripts/validate-cross-platform-launch-workflow.ts` asserts the workflow, package scripts, packaged smoke harness, and distro guard tokens are wired.
+- `scripts/validate-mac-diag-smoke-workflow.ts` asserts the diagnostic workflow stays on runnable Sonoma/Sequoia GitHub-hosted runners, keeps authenticated installs, uploads screenshots/logs, and documents Ventura as VM/self-hosted proof.
 - `apps/electron/src/main/__tests__/auto-update.signature.test.ts` asserts `ROX_E2E=1` disables live update checks during packaged UI smoke.
 
 ## 5. Expected failing test output
@@ -88,6 +89,16 @@ macOS compatibility fixture RED:
   - Uses isolated `ROX_SMOKE_USER_DATA_DIR` and `ROX_CONFIG_DIR`.
 - `.github/workflows/cross-platform-launch.yml`
   - Adds manual/PR/main workflow with macOS Sequoia packaged smoke, Ubuntu 22.04/24.04 packaged launch under Xvfb, Windows hosted-runner packaged launch, and Debian/Fedora/NixOS launcher guards.
+- `.github/workflows/mac-diag-smoke.yml`
+  - Adds per-OS macOS white-window diagnostic smoke for Sonoma/Sequoia, uploads screenshot + `diag.log` + electron-builder logs, authenticates GitHub Release downloads during `bun install`, and excludes `macos-13` from the push matrix because it stayed queued without allocating a runner.
+- `apps/electron/src/main/diag/diag-logger.ts`
+  - Adds opt-in `ROX_DIAG=1` startup breadcrumbs for packaged Electron launches without changing normal app behavior.
+- `apps/electron/src/main/index.ts`
+  - Wires the diagnostic logger into the main-process startup path.
+- `scripts/validate-mac-diag-smoke-workflow.ts`
+  - Guards the diagnostic workflow contract and the non-blocking Ventura boundary.
+- `package.json`
+  - Adds `validate:mac-diag-smoke-workflow` and includes it in `validate:ci`.
 - `apps/electron/src/main/auto-update.ts`
   - Treats `ROX_E2E=1` as an update-disable guard so UI smoke cannot race a live update check/install.
 - `scripts/electron-ui-smoke-packaged-mac.ts`
@@ -102,6 +113,7 @@ bun test scripts/__tests__/electron-packaged-smoke-contract.test.ts
 bun run validate:cross-platform-launch-workflow
 bun test apps/electron/src/main/__tests__/auto-update.signature.test.ts scripts/__tests__/electron-packaged-smoke-contract.test.ts
 bun run validate:linux-installer-launcher
+bun run validate:mac-diag-smoke-workflow
 bun test ./scripts/validate-renderer-chunks.isolated.ts
 bun run validate:renderer-chunks
 ROX_RC_MODE=unsigned ROX_ARTIFACT_PLATFORM=mac ROX_ARTIFACT_ARCH=arm64 bun run validate:packaged-artifacts
@@ -276,10 +288,39 @@ Cross Platform Launch Smoke: success (run 26108546079)
 Other PR checks: Secret Scan success, E2E Core Scenarios success, Mac ARM Build success, Validate success.
 ```
 
+Remote PR #264 diagnostic follow-up after adding the macOS white-window diag workflow:
+
+```text
+Mac White-Window Diag Smoke run 26123030003: macos-14 success, macos-15 success, macos-13 stayed QUEUED with no steps after other checks finished.
+The next commit intentionally removes macos-13 from the automatic push matrix and records Ventura exact GUI proof as VM/self-hosted/manual until a reliable runner is attached.
+
+Local validation for the workflow change:
+bun run validate:mac-diag-smoke-workflow -> ok
+```
+
 CI warning observed but non-fatal: pinned Node 20 actions emit GitHub's Node.js 20 deprecation warning ahead of the June 2, 2026 default Node 24 runner change. This affects existing pinned workflow actions and should be handled as a separate workflow-pinning maintenance task.
 
+## 9b. Follow-up installed-app loading check after user report
+After a follow-up report that the installed app still did not load, I closed any stale ROX.ONE processes, opened `/Applications/ROX ONE.app` normally, activated the app window, captured a fresh desktop screenshot, and reran the packaged checks against the installed bundle.
+
+```text
+pkill -f "/Applications/ROX ONE.app/Contents/MacOS/ROX.ONE" || true
+open -a "/Applications/ROX ONE.app"
+
+ROX_MAC_APP_PATH="/Applications/ROX ONE.app" bun run electron:ui-smoke:packaged:mac
+[ui-smoke] account tabs/forms OK
+[ui-smoke] experience six-tab navigation OK
+[ui-smoke] composer primary and overflow quick actions OK
+[ui-smoke] packaged ROX.ONE UI smoke passed; evidence: /Users/marklindgreen/.ai-agent-hub/evidence/playwright-smoke/rox-one-ui-smoke-2026-05-19T16-28-47-418Z
+
+ROX_MAC_APP_PATH="/Applications/ROX ONE.app" bun run electron:smoke:packaged:mac
+[packaged-smoke] ROX.ONE packaged headless startup passed
+```
+
+Fresh visible-launch evidence was captured at `/Users/marklindgreen/.ai-agent-hub/evidence/playwright-smoke/rox-one-not-loading-20260519T162544Z/screen.png`. The screenshot shows the ROX.ONE window loaded and frontmost with the real user profile.
+
 ## 10. Remaining risks
-- Local machine can directly prove only the local macOS ARM64 artifact; PR CI now proves macOS Sequoia ARM64 packaged launch, while Monterey/Ventura/Sonoma still need VM/lab proof if exact OS-version evidence is required.
+- Local machine can directly prove only the local macOS ARM64 artifact; PR CI now proves macOS Sequoia ARM64 packaged launch and diagnostic smoke proves Sonoma/Sequoia on GitHub-hosted runners, while Monterey/Ventura exact GUI proof still needs VM/lab/self-hosted evidence.
 - GitHub-hosted Windows runners are Windows Server images, not literal Windows 10/11 consumer desktops. They now prove Windows x64 Electron packaging/startup class on `windows-latest` and `windows-2022`, not the exact consumer SKU UX.
 - Ubuntu 22.04 and 24.04 packaged launch are proven in PR CI under Xvfb. Debian/Fedora/NixOS entries in this change are launcher/static guard coverage unless a real distro VM/self-hosted runner is attached.
 - Public production distribution remains unsigned/notarization dependent per existing release readiness docs; this task does not procure Apple Developer ID, Authenticode, or Linux GPG production signing credentials.
@@ -289,6 +330,7 @@ CI warning observed but non-fatal: pinned Node 20 actions emit GitHub's Node.js 
 | --- | --- | --- |
 | Renderer chunk crash fixed | Passing locally | Exact package matching in `vite.config.ts`; `validate:renderer-chunks` reports 341 chunks checked. |
 | Circular chunk regression guarded | Passing locally | `scripts/validate-renderer-chunks.isolated.ts` rejects React/i18n cycle; renderer build fails on `Circular chunk:`. |
+| macOS white-window diagnostic workflow | Passing macos-14/15; Ventura external | `mac-diag-smoke.yml` captures screenshot/log/crash artefacts on Sonoma and Sequoia; `scripts/validate-mac-diag-smoke-workflow.ts` guards the runner matrix and documents Ventura as VM/self-hosted proof. |
 | macOS pre-Tahoe floor pinned | Passing local + remote CI | `electron-builder.yml` sets `minimumSystemVersion: "12.0"`; local and Sequoia PR CI packaged validators print `LSMinimumSystemVersion=12.0`. |
 | Packaged macOS launch smoke | Passing locally | `electron:smoke:packaged:mac` and generic `electron:smoke:packaged` both report packaged headless startup passed. |
 | Packaged macOS UI leaves loader | Passing locally | `electron:ui-smoke:packaged:mac` passed; evidence dir `/Users/marklindgreen/.ai-agent-hub/evidence/playwright-smoke/rox-one-ui-smoke-rebuilt-20260519T153804Z`. |

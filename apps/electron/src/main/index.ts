@@ -435,6 +435,10 @@ async function createInitialWindows(): Promise<void> {
 }
 
 app.whenReady().then(async () => {
+  // Diagnostic mode — no-op unless ROX_DIAG=1
+  const { initDiagLogger } = await import('./diag/diag-logger')
+  initDiagLogger()
+
   const smokeExitOnReady = process.env.ROX_SMOKE_EXIT_ON_READY === '1'
   const scheduleSmokeShutdown = (exitCode: number, message: string) => {
     if (!smokeExitOnReady) return

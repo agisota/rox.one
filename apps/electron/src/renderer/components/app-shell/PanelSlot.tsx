@@ -97,7 +97,7 @@ export function PanelSlot({
     isFocusedPanel,
   }), [parentContext, closeButton, backButton, isFocusedPanel])
 
-  const handlePointerDown = useCallback(() => {
+  const handlePanelIntent = useCallback(() => {
     if (!isFocusedPanel) {
       setFocusedPanel(entry.id)
     }
@@ -107,7 +107,9 @@ export function PanelSlot({
     <>
       {sash}
       <div
-        onPointerDown={handlePointerDown}
+        onPointerDown={handlePanelIntent}
+        onWheelCapture={handlePanelIntent}
+        onFocusCapture={handlePanelIntent}
         data-panel-role="content"
         data-compact={isCompact || undefined}
         className={cn(

@@ -212,16 +212,60 @@ export function loadWorkspaceSkills(workspaceRoot: string): LoadedSkill[] {
 }
 
 // ── Skills cache ────────────────────────────────────────────────────────
-// loadAllSkills reads from up to 3 directories on every call (~100ms).
-// The result rarely changes during a session, so we cache it per
-// (workspaceRoot, projectRoot) pair with a 5-minute safety TTL.
+// loadAllSkills reads from up to 3 directories. On machines with large global
+// skill catalogs, reparsing global/workspace tiers for every projectRoot change
+// makes session switching block for seconds. Cache each source tier separately
+// and keep the merged (workspaceRoot, projectRoot) cache as a fast final layer.
 
-const skillsCache = new Map<string, { skills: LoadedSkill[]; ts: number }>();
+type SkillsCacheEntry = { skills: LoadedSkill[]; ts: number };
+
+const mergedSkillsCache = new Map<string, SkillsCacheEntry>();
+const globalSkillsCache = new Map<string, SkillsCacheEntry>();
+const workspaceSkillsCache = new Map<string, SkillsCacheEntry>();
+const projectSkillsCache = new Map<string, SkillsCacheEntry>();
 const SKILLS_CACHE_TTL = 5 * 60_000; // 5 minutes
 
-/** Invalidate the skills cache (call on working dir change or skill file events). */
+function getCachedSkills(
+  cache: Map<string, SkillsCacheEntry>,
+  cacheKey: string,
+  load: () => LoadedSkill[]
+): LoadedSkill[] {
+  const now = Date.now();
+  const cached = cache.get(cacheKey);
+  if (cached && now - cached.ts < SKILLS_CACHE_TTL) {
+    return cached.skills;
+  }
+
+  const skills = load();
+  cache.set(cacheKey, { skills, ts: now });
+  return skills;
+}
+
+function loadGlobalSkillsCached(): LoadedSkill[] {
+  return getCachedSkills(globalSkillsCache, GLOBAL_AGENT_SKILLS_DIR, () =>
+    loadSkillsFromDir(GLOBAL_AGENT_SKILLS_DIR, 'global')
+  );
+}
+
+function loadWorkspaceSkillsCached(workspaceRoot: string): LoadedSkill[] {
+  return getCachedSkills(workspaceSkillsCache, workspaceRoot, () =>
+    loadWorkspaceSkills(workspaceRoot)
+  );
+}
+
+function loadProjectSkillsCached(projectRoot: string): LoadedSkill[] {
+  const projectSkillsDir = join(projectRoot, PROJECT_AGENT_SKILLS_DIR);
+  return getCachedSkills(projectSkillsCache, projectSkillsDir, () =>
+    loadSkillsFromDir(projectSkillsDir, 'project')
+  );
+}
+
+/** Invalidate the skills cache (call on skill install/remove/update events or explicit refresh). */
 export function invalidateSkillsCache(): void {
-  skillsCache.clear();
+  mergedSkillsCache.clear();
+  globalSkillsCache.clear();
+  workspaceSkillsCache.clear();
+  projectSkillsCache.clear();
 }
 
 /**
@@ -229,16 +273,16 @@ export function invalidateSkillsCache(): void {
  * Skills with the same slug are overridden by higher-priority sources.
  * Priority: global (lowest) < workspace < project (highest)
  *
- * Results are cached per (workspaceRoot, projectRoot) pair. Call
- * invalidateSkillsCache() on working directory changes or skill file events.
+ * Source tiers and merged results are cached. Call invalidateSkillsCache() on
+ * skill file events so subsequent calls refresh every tier.
  *
  * @param workspaceRoot - Absolute path to workspace root
  * @param projectRoot - Optional project root (working directory) for project-level skills
  */
 export function loadAllSkills(workspaceRoot: string, projectRoot?: string): LoadedSkill[] {
   const cacheKey = `${workspaceRoot}::${projectRoot ?? ''}`;
+  const cached = mergedSkillsCache.get(cacheKey);
   const now = Date.now();
-  const cached = skillsCache.get(cacheKey);
   if (cached && now - cached.ts < SKILLS_CACHE_TTL) {
     return cached.skills;
   }
@@ -246,25 +290,24 @@ export function loadAllSkills(workspaceRoot: string, projectRoot?: string): Load
   const skillsBySlug = new Map<string, LoadedSkill>();
 
   // 1. Global skills (lowest priority): ~/.agents/skills/
-  for (const skill of loadSkillsFromDir(GLOBAL_AGENT_SKILLS_DIR, 'global')) {
+  for (const skill of loadGlobalSkillsCached()) {
     skillsBySlug.set(skill.slug, skill);
   }
 
   // 2. Workspace skills (medium priority)
-  for (const skill of loadWorkspaceSkills(workspaceRoot)) {
+  for (const skill of loadWorkspaceSkillsCached(workspaceRoot)) {
     skillsBySlug.set(skill.slug, skill);
   }
 
   // 3. Project skills (highest priority): {projectRoot}/.agents/skills/
   if (projectRoot) {
-    const projectSkillsDir = join(projectRoot, PROJECT_AGENT_SKILLS_DIR);
-    for (const skill of loadSkillsFromDir(projectSkillsDir, 'project')) {
+    for (const skill of loadProjectSkillsCached(projectRoot)) {
       skillsBySlug.set(skill.slug, skill);
     }
   }
 
   const result = Array.from(skillsBySlug.values());
-  skillsCache.set(cacheKey, { skills: result, ts: now });
+  mergedSkillsCache.set(cacheKey, { skills: result, ts: now });
   return result;
 }
 
