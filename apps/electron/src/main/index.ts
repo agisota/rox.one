@@ -624,11 +624,19 @@ app.whenReady().then(async () => {
     ipcMain.handle('rox-design:start', async () => getRoxDesignRuntimeManager().start())
     ipcMain.handle('rox-design:get-status', async () => getRoxDesignRuntimeManager().getStatus())
     ipcMain.handle('rox-design:stop', async () => getRoxDesignRuntimeManager().stop())
-    ipcMain.handle('rox-design:view-show', async (event, input) => getRoxDesignViewManager().show({
-      senderWebContentsId: event.sender.id,
-      url: input?.url,
-      bounds: input?.bounds,
-    }))
+    ipcMain.handle('rox-design:view-show', async (event, input) => {
+      // Pin the URL origin to the trusted runtime endpoint so a compromised
+      // main renderer cannot redirect the privileged WebContentsView (which
+      // inherits the `rox-design-bridge:*` IPC surface) to an attacker host.
+      const runtimeStatus = getRoxDesignRuntimeManager().getStatus()
+      const expectedWebUrl = runtimeStatus.status === 'running' ? runtimeStatus.webUrl : null
+      return getRoxDesignViewManager().show({
+        senderWebContentsId: event.sender.id,
+        url: input?.url,
+        bounds: input?.bounds,
+        expectedWebUrl,
+      })
+    })
     ipcMain.handle('rox-design:view-set-bounds', async (event, bounds) => {
       getRoxDesignViewManager().setBounds({ senderWebContentsId: event.sender.id, bounds })
     })

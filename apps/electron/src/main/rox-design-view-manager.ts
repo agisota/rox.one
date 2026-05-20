@@ -4,6 +4,7 @@ import type { RoxDesignBounds, RoxDesignViewStatus } from '../shared/types'
 import {
   getRoxDesignNavigationDecision,
   isHttpUrl,
+  isRoxDesignUrlOriginAuthorized,
   sanitizeRoxDesignBounds,
   scaleRoxDesignBounds,
   type RoxDesignRectangle,
@@ -53,7 +54,12 @@ export class RoxDesignViewManager {
     this.logger = options.logger
   }
 
-  async show(input: { senderWebContentsId: number; url: string; bounds: RoxDesignBounds }): Promise<RoxDesignViewStatus> {
+  async show(input: {
+    senderWebContentsId: number
+    url: string
+    bounds: RoxDesignBounds
+    expectedWebUrl?: string | null
+  }): Promise<RoxDesignViewStatus> {
     const hostWindow = this.resolveHostWindow(input.senderWebContentsId)
     if (!hostWindow || hostWindow.isDestroyed()) {
       throw new Error('Rox Design host window is not available.')
@@ -62,6 +68,9 @@ export class RoxDesignViewManager {
     const sanitized = sanitizeRoxDesignBounds(input.bounds)
     if (!sanitized) throw new Error('Rox Design host bounds are invalid.')
     if (!isHttpUrl(input.url)) throw new Error('Rox Design view URL must be http(s).')
+    if (input.expectedWebUrl !== undefined && !isRoxDesignUrlOriginAuthorized(input.expectedWebUrl, input.url)) {
+      throw new Error('Rox Design view URL origin does not match the runtime endpoint.')
+    }
 
     const hostWebContentsId = hostWindow.webContents.id
     const entry = this.entries.get(hostWebContentsId) ?? this.createEntry(hostWindow, hostWebContentsId)

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   getRoxDesignNavigationDecision,
+  isRoxDesignUrlOriginAuthorized,
   sanitizeRoxDesignBounds,
   scaleRoxDesignBounds,
 } from "../rox-design-view-policy";
@@ -93,5 +94,36 @@ describe("RoxDesignViewManager helpers", () => {
         "file:///tmp/nope",
       ),
     ).toEqual({ action: "deny" });
+  });
+
+  it("pins view-show URL to the trusted runtime origin", () => {
+    expect(
+      isRoxDesignUrlOriginAuthorized(
+        "http://127.0.0.1:5173/?embed=1",
+        "http://127.0.0.1:5173/projects/x",
+      ),
+    ).toBe(true);
+    expect(
+      isRoxDesignUrlOriginAuthorized(
+        "http://127.0.0.1:5173/",
+        "http://127.0.0.1:6000/",
+      ),
+    ).toBe(false);
+    expect(
+      isRoxDesignUrlOriginAuthorized(
+        "http://127.0.0.1:5173/",
+        "https://attacker.example/?embed=1",
+      ),
+    ).toBe(false);
+    expect(isRoxDesignUrlOriginAuthorized(null, "http://127.0.0.1:5173/")).toBe(false);
+    expect(
+      isRoxDesignUrlOriginAuthorized("http://127.0.0.1:5173/", "file:///tmp/x"),
+    ).toBe(false);
+    expect(
+      isRoxDesignUrlOriginAuthorized("http://127.0.0.1:5173/", "javascript:alert(1)"),
+    ).toBe(false);
+    expect(
+      isRoxDesignUrlOriginAuthorized("not-a-url", "http://127.0.0.1:5173/"),
+    ).toBe(false);
   });
 });

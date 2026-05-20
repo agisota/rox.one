@@ -57,3 +57,17 @@ export function getRoxDesignNavigationDecision(currentUrl: string | null, nextUr
     return { action: 'deny' }
   }
 }
+
+// Confused-deputy guard: the renderer supplies the URL to load into the
+// privileged Rox Design WebContentsView. Without an origin pin a compromised
+// or XSS-affected main renderer could redirect that view to an attacker host
+// which then inherits the `rox-design-bridge:*` IPC surface.
+export function isRoxDesignUrlOriginAuthorized(expectedWebUrl: string | null, candidateUrl: string): boolean {
+  if (!isHttpUrl(candidateUrl)) return false
+  if (!expectedWebUrl) return false
+  try {
+    return new URL(expectedWebUrl).origin === new URL(candidateUrl).origin
+  } catch {
+    return false
+  }
+}
