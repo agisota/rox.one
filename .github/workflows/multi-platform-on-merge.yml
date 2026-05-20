@@ -74,7 +74,13 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     env:
-      ROX_HEADLESS: "1"
+      # ROX_HEADLESS intentionally unset at the job level. The mac smoke
+      # step spawns a packaged Electron that inherits this env, and the
+      # runtime does isHeadless = !!process.env.ROX_HEADLESS. Setting
+      # ROX_HEADLESS to "1" OR "0" both make isHeadless truthy (any
+      # non-empty string is truthy in JS), which skips createInitialWindows
+      # and times out at 60s. Same trap removed from mac-diag-smoke.yml in
+      # PR #285.
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
     outputs:
@@ -249,10 +255,21 @@ jobs:
       # screenshot indicates a white window or boot hang). Pattern is
       # lifted verbatim from .github/workflows/mac-diag-smoke.yml.
       # -----------------------------------------------------------------------
-      - name: Install Playwright (Mac smoke)
+      - name: Install Playwright (Mac smoke, ad-hoc isolated tree)
         if: matrix.platform == 'mac-arm64'
         shell: bash
-        run: bunx playwright install chromium --with-deps || true
+        run: |
+          set -euo pipefail
+          # @playwright/test is not a project dep; install ad-hoc into /tmp/pw
+          # so node can resolve the import from the smoke script placed in
+          # the same dir. `bunx playwright install chromium` alone only
+          # downloads the browser binary, not the npm package — same bug
+          # fixed in mac-diag-smoke.yml.
+          mkdir -p /tmp/pw
+          cd /tmp/pw
+          npm init -y >/dev/null
+          npm install --no-fund --no-audit --silent @playwright/test@^1.48
+          npx --yes playwright install chromium
 
       - name: Mac diag smoke (launch + screenshot)
         if: matrix.platform == 'mac-arm64'
@@ -262,15 +279,25 @@ jobs:
           ROX_SMOKE_EXIT_ON_READY: "0"
         run: |
           set -euo pipefail
-          APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
-          if [ -z "$APP_PATH" ]; then
+          # Prefer arm64 native build over x64 — apple-silicon runners running
+          # the x64 binary under Rosetta hangs silently under ad-hoc hardened
+          # runtime (same root cause as iter 1-5 of mac-diag-smoke.yml).
+          HOST_ARCH=$(uname -m)
+          if [ "$HOST_ARCH" = "arm64" ] && [ -d "apps/electron/release/mac-arm64/ROX.ONE.app" ]; then
+            APP_PATH="apps/electron/release/mac-arm64/ROX.ONE.app"
+          elif [ -d "apps/electron/release/mac/ROX.ONE.app" ]; then
+            APP_PATH="apps/electron/release/mac/ROX.ONE.app"
+          else
+            APP_PATH=$(find apps/electron/release -name "ROX.ONE.app" | head -1)
+          fi
+          if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
             echo "::error::Could not find ROX.ONE.app in apps/electron/release"
             find apps/electron/release -type d | head -20
             exit 1
           fi
-          echo "Found app at: $APP_PATH"
+          echo "Host arch=$HOST_ARCH, selected APP_PATH=$APP_PATH"
 
-          cat > /tmp/nightly-smoke.mjs << 'PLAYWRIGHT_SCRIPT'
+          cat > /tmp/pw/nightly-smoke.mjs << 'PLAYWRIGHT_SCRIPT'
           import { _electron as electron } from '@playwright/test'
           import { join } from 'path'
 
@@ -309,7 +336,7 @@ jobs:
 
           ROX_APP_PATH="$APP_PATH" \
           ROX_SCREENSHOT_PATH="/tmp/nightly-smoke.png" \
-            node /tmp/nightly-smoke.mjs
+            node /tmp/pw/nightly-smoke.mjs
 
           if [ ! -f /tmp/nightly-smoke.png ]; then
             echo "::error::No screenshot produced"
