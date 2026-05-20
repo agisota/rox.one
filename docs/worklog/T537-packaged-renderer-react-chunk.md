@@ -1,7 +1,7 @@
 # Worklog — T537 cross-platform packaged launch compatibility
 
 ## 1. Task summary
-Fix and guard ROX.ONE packaged startup across supported desktop release surfaces. The first live failure was the macOS packaged renderer hanging on the loading screen because the generated `i18n-*` chunk tried to use an undefined React runtime. The same task also adds platform compatibility guards for macOS pre-Tahoe releases, Windows x64 packaged launch, and Linux launch/install surfaces for Ubuntu, Debian, Fedora, and NixOS.
+Fix and guard ROX.ONE packaged startup across supported desktop release surfaces. The first live failure was the macOS packaged renderer hanging on the loading screen because the generated `i18n-*` chunk tried to use an undefined React runtime. The same task also adds platform compatibility guards for macOS Sonoma/Sequoia/Tahoe releases, Windows x64 packaged launch, and Linux launch/install surfaces for Ubuntu, Debian, Fedora, and NixOS.
 
 ## 2. Repo context discovered
 - Root task contract requires ticket-first work under `docs/tickets/*.md`, validation before implementation, and a complete worklog before commit.
@@ -39,7 +39,7 @@ Fix and guard ROX.ONE packaged startup across supported desktop release surfaces
 - `scripts/validate-linux-installer-launcher.ts` asserts AppImage install path, stale mount cleanup, `APPIMAGE` env, `--no-sandbox`, Debian/Ubuntu and Fedora FUSE hints, and NixOS `appimage-run` wiring.
 - `scripts/__tests__/electron-packaged-smoke-contract.test.ts` now asserts a cross-platform packaged smoke harness exists for macOS, Linux, and Windows.
 - `scripts/validate-cross-platform-launch-workflow.ts` asserts the workflow, package scripts, packaged smoke harness, and distro guard tokens are wired.
-- `scripts/validate-mac-diag-smoke-workflow.ts` asserts the diagnostic workflow stays on runnable Sonoma/Sequoia GitHub-hosted runners, keeps authenticated installs, uploads screenshots/logs, and documents Ventura as VM/self-hosted proof.
+- `scripts/validate-mac-diag-smoke-workflow.ts` asserts the diagnostic workflow stays on runnable Sonoma/Sequoia GitHub-hosted runners, keeps authenticated installs, uploads screenshots/logs, and excludes pre-Sonoma runners from the current supported matrix.
 - `apps/electron/src/main/__tests__/auto-update.signature.test.ts` asserts `ROX_E2E=1` disables live update checks during packaged UI smoke.
 
 ## 5. Expected failing test output
@@ -96,7 +96,7 @@ macOS compatibility fixture RED:
 - `apps/electron/src/main/index.ts`
   - Wires the diagnostic logger into the main-process startup path.
 - `scripts/validate-mac-diag-smoke-workflow.ts`
-  - Guards the diagnostic workflow contract and the non-blocking Ventura boundary.
+  - Guards the diagnostic workflow contract and the non-blocking pre-Sonoma boundary.
 - `package.json`
   - Adds `validate:mac-diag-smoke-workflow` and includes it in `validate:ci`.
 - `apps/electron/src/main/auto-update.ts`
@@ -163,7 +163,7 @@ apps/electron/src/main/__tests__/auto-update.signature.test.ts: 47 pass
 [cross-platform-launch-workflow] ok: desktop launch workflow + packaged smoke contracts are wired
 [linux-installer-launcher] ok: Debian/Ubuntu, Fedora, and NixOS launcher hints are wired
 [renderer-chunks] ok: 341 JS chunks checked
-[packaged-artifacts] LSMinimumSystemVersion=12.0
+[packaged-artifacts] LSMinimumSystemVersion=14.0
 [packaged-artifacts] CFBundleIdentifier=com.rox.one
 ```
 
@@ -196,7 +196,7 @@ ROX_RC_MODE=unsigned ROX_ARTIFACT_PLATFORM=mac ROX_ARTIFACT_ARCH=arm64 bun run e
 Packaged artifact validation:
 
 ```text
-[packaged-artifacts] LSMinimumSystemVersion=12.0
+[packaged-artifacts] LSMinimumSystemVersion=14.0
 [packaged-artifacts] CFBundleIdentifier=com.rox.one
 [packaged-artifacts] required packaged artifacts present
 - apps/electron/release/ROX-ONE-arm64.dmg :: 228431193 bytes (217.85 MB)
@@ -249,7 +249,7 @@ The rebuilt app was installed to `/Applications/ROX ONE.app` after preserving th
 
 ```text
 /Applications/ROX ONE.app after replacement: CFBundleShortVersionString=1.0.0-rc.7
-LSMinimumSystemVersion=12.0
+LSMinimumSystemVersion=14.0
 CFBundleIdentifier=com.rox.one
 codesign --verify --deep --strict /Applications/ROX ONE.app -> OK
 ```
@@ -433,8 +433,8 @@ contract.
 | --- | --- | --- |
 | Renderer chunk crash fixed | Passing locally | Exact package matching in `vite.config.ts`; `validate:renderer-chunks` reports 341 chunks checked. |
 | Circular chunk regression guarded | Passing locally | `scripts/validate-renderer-chunks.isolated.ts` rejects React/i18n cycle; renderer build fails on `Circular chunk:`. |
-| macOS white-window diagnostic workflow | Passing macos-14/15; Ventura external | `mac-diag-smoke.yml` captures screenshot/log/crash artefacts on Sonoma and Sequoia; `scripts/validate-mac-diag-smoke-workflow.ts` guards the runner matrix and documents Ventura as VM/self-hosted proof. |
-| macOS pre-Tahoe floor pinned | Passing local + remote CI | `electron-builder.yml` sets `minimumSystemVersion: "14.0"`; Sequoia PR CI packages print `LSMinimumSystemVersion=14.0`. |
+| macOS white-window diagnostic workflow | Passing macos-14/15; pre-Sonoma external | `mac-diag-smoke.yml` captures screenshot/log/crash artefacts on Sonoma and Sequoia; `scripts/validate-mac-diag-smoke-workflow.ts` guards the runner matrix and keeps pre-Sonoma proof out of the supported release floor. |
+| macOS Sonoma+ floor pinned | Passing local + remote CI | `electron-builder.yml` sets `minimumSystemVersion: "14.0"`; local and Sequoia PR CI packaged validators print `LSMinimumSystemVersion=14.0`. |
 | Packaged macOS launch smoke | Passing locally | `electron:smoke:packaged:mac` and generic `electron:smoke:packaged` both report packaged headless startup passed. |
 | Packaged macOS UI leaves loader | Passing locally | `electron:ui-smoke:packaged:mac` passed; evidence dir `/Users/marklindgreen/.ai-agent-hub/evidence/playwright-smoke/rox-one-ui-smoke-rebuilt-20260519T153804Z`. |
 | Windows packaged launch harness | Passing remote CI | PR CI passed packaged build, unpacked smoke, NSIS package, and artifact validation on `windows-latest` and `windows-2022`. |

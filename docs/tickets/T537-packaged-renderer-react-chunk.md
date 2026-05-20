@@ -16,6 +16,6 @@ ROX.ONE packaged builds must not hang on the first loading screen or refuse to s
 - macOS artifacts pin `LSMinimumSystemVersion=14.0` and `CFBundleIdentifier=com.rox.one`.
 - Cross-platform packaged smoke harness supports macOS, Linux unpacked, and Windows unpacked executables.
 - CI has an explicit cross-platform launch workflow for macOS Sequoia, Ubuntu 22.04/24.04, Windows hosted runners, and distro launcher guards for Debian/Fedora/NixOS.
-- macOS white-window diagnostic workflow captures screenshots/logs on runnable Sonoma/Sequoia GitHub-hosted runners and records Ventura exact proof as VM/self-hosted/manual when hosted `macos-13` does not allocate.
+- macOS white-window diagnostic workflow captures screenshots/logs on runnable Sonoma/Sequoia GitHub-hosted runners and treats Ventura/Monterey as outside the current Sonoma 14+ support floor.
 - Linux installer wrapper preserves Debian/Ubuntu, Fedora, and NixOS launch remediation paths, including NixOS `appimage-run`.
 - Worklog records failing proof, implementation, checks, and remaining risks/verification boundaries.
