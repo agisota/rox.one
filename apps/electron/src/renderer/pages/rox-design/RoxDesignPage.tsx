@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { AlertCircle, ExternalLink, Palette, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SidecarCrashBanner } from './SidecarCrashBanner'
 import type { RoxDesignBounds, RoxDesignStatus } from '../../../shared/types'
 
 const MISSING_BRIDGE_STATUS: RoxDesignStatus = {
@@ -117,6 +118,7 @@ export function RoxDesignPage() {
 
     return (
       <section className="flex h-full min-h-0 flex-col bg-background" aria-label="Rox Design">
+        <SidecarCrashBanner />
         <div className="flex h-10 shrink-0 items-center justify-between border-b border-border/60 bg-background/95 px-4">
           <div className="flex min-w-0 items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-md bg-foreground/5 text-foreground">
