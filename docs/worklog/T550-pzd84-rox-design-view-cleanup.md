@@ -37,11 +37,13 @@ Expected removeAllListeners call count 1, received 0
 - Stale-key removal failures are logged as warnings and do not block fresh CSS insertion.
 - `destroyEntry()` now removes the stored skin CSS key, unregisters WebContents listeners, and then closes WebContents.
 - Added focused cleanup regression coverage.
+- Follow-up CI repair: `.github/workflows/rox-design-xvfb-smoke.yml` now prepares the pinned Open Design runtime payload before calling `electron:build:linux`, matching the packaging preflight contract that failed on clean GitHub runners when this PR triggered the AppImage smoke lane.
 
 ## 7. Validation commands run
 ```text
 bun test apps/electron/src/main/__tests__/rox-design-view-manager-cleanup.test.ts
 bun test apps/electron/src/main/__tests__/rox-design-view-manager.test.ts apps/electron/src/main/__tests__/rox-design-view-manager.partition.test.ts apps/electron/src/main/__tests__/rox-design-view-manager-cleanup.test.ts
+bun test scripts/__tests__/validate-rox-design-xvfb-workflow.test.ts
 bun run typecheck:electron
 git diff --check
 ```
@@ -50,6 +52,7 @@ git diff --check
 ```text
 RoxDesignViewManager cleanup: 3 pass, 0 fail
 RoxDesignViewManager helper/partition/cleanup pack: 11 pass, 0 fail
+validate-rox-design-xvfb-workflow: 13 pass, 0 fail
 typecheck:electron: passed
 git diff --check: passed
 ```
@@ -68,4 +71,5 @@ Not required unless the focused Electron surface indicates a broader build risk.
 | Stale `removeInsertedCSS` key does not block new CSS | Passing | Cleanup regression test |
 | WebContents listeners removed during destroy | Passing | Cleanup regression test |
 | Focused tests pass | Passing | 11 RoxDesignViewManager tests pass |
+| AppImage smoke workflow prepares runtime payload on clean runners | Passing | Workflow contract test |
 | Electron typecheck passes on current baseline | Passing | `bun run typecheck:electron` |

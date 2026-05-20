@@ -86,6 +86,22 @@ describe('rox-design-xvfb-smoke.yml workflow (PZD-59)', () => {
     expect(content).toContain('apt-get')
   })
 
+  test('workflow prepares Rox Design runtime payload before AppImage build', () => {
+    const content = readFileSync(workflowPath, 'utf8')
+    expect(content).toContain('Prepare Rox Design runtime payload')
+    expect(content).toContain('OPEN_DESIGN_VERSION="0.7.0"')
+    expect(content).toContain('open-design-${OPEN_DESIGN_VERSION}-mac-arm64.zip')
+    expect(content).toContain('shasum -a 256 -c')
+    expect(content).toContain('unzip -q')
+    expect(content).toContain('ROX_DESIGN_SOURCE_RESOURCES="${OPEN_DESIGN_RESOURCES}"')
+    expect(content).toContain('bun run rox-design:prepare -- --force')
+    expect(content).toContain('bun run rox-design:payload:verify')
+
+    expect(content.indexOf('bun run rox-design:payload:verify')).toBeLessThan(
+      content.indexOf('bun run electron:build:linux'),
+    )
+  })
+
   test('workflow builds AppImage via electron:build:linux', () => {
     const content = readFileSync(workflowPath, 'utf8')
     expect(content).toContain('electron:build:linux')
