@@ -9,6 +9,111 @@ traceability.
 
 ---
 
+## [1.0.0-rc.8] — planned (cut target 2026-05-21)
+
+Eighth release candidate for the 1.0.0 line. Bundles seven feature PRs and one
+CI hardening PR merged into main since `v1.0.0-rc.7` (2026-05-17). Marketing
+string remains `1.0.0-rc.8`; CFBundleVersion bumped via `electron-builder.yml`
+`buildVersion`.
+
+### Added
+
+- **Linux DEB + RPM artifacts** alongside the existing AppImage, validated by a
+  multi-distro smoke matrix (Ubuntu 22.04/24.04, Debian 12, Fedora 40, Arch).
+  Lands `bun run validate:linux-deb-rpm`, `validate:linux-installer-launcher`,
+  and signed-release pipeline parity (PR #265).
+- **NixOS flake** with FHS wrapper that runs the unmodified AppImage on NixOS
+  without rebuild. `nix flake check` and pinned `nixpkgs` lockfile (PR #267).
+- **ROX Design embedded surface** — Electron-managed `WebContentsView` hosts the
+  vendored Open Design 0.7.0 runtime as an in-app panel, preserving T536
+  auto-update wiring. Five new main-process modules
+  (`rox-design-{runtime-manager,view-manager,desktop-bridge,embed-skin,view-policy}`),
+  sandboxed preload bridge, ROX dark embedded skin with compact zoom, and a
+  reproducible packaging chain (`rox-design:prepare` +
+  `rox-design:payload:verify` preflight). 21+ unit tests; packaged smoke shows
+  embedded daemon/web sidecars start from inside the `.app` (PR #268).
+- **Windows self-signed codesign generator** + install instructions. Documents
+  the Win10/Win11 path for users without an Authenticode EV certificate
+  (PR #276). Authenticode signing PR #266 was closed as superseded.
+- **Multi-platform on-merge CI pipeline** that re-publishes per-platform
+  release artifacts on every `main` merge, with an R2 mirror and a nightly
+  release-asset cleanup job (PR #279).
+
+### Changed
+
+- **macOS support floor raised to Sonoma 14+** (was Ventura 12). Drops Ventura
+  support entirely; `electron-builder.yml` `minimumSystemVersion` and CI
+  matrices updated (PR #274).
+- **CI cache strategy** — bumped `actions/cache@v3 → @v4` across release and
+  build workflows to eliminate deprecation warnings (PR #277).
+
+### Fixed
+
+- **ROX Design `start()` concurrency** — concurrent callers now share the
+  single in-flight startup promise instead of getting a stale
+  `{ status: 'starting' }` snapshot (PR #268 follow-up `bf31bf8a`).
+- **ROX Design sidecar-exit notification** — main process now emits
+  `rox-design:sidecar-exited` IPC when a sidecar crashes post-startup, so the
+  renderer can show the retry screen instead of a blank embedded view
+  (PR #268 follow-up `d1ea1854`).
+- **ROX Design `printPdf` size cap** — HTML payload bounded at 5 MB as
+  defence-in-depth against unbounded renderer-supplied input
+  (PR #268 follow-up `f80b888e`).
+- **ROX Design `writeConfig` deduplication** — bootstrap polling no longer
+  re-writes identical `localStorage` config; SHA256 cache short-circuits
+  redundant writes (PR #268 follow-up `327eff58`).
+- **ROX Design `manualChunks` normalization** — Vite chunk extraction no
+  longer double-normalizes module IDs (PR #268 follow-up `d061deec`).
+- **ROX Design test mock leak** — `mock.module('electron', …)` declarations in
+  `rox-design-runtime-manager.test.ts` and `rox-design-desktop-bridge.test.ts`
+  now expose a complete `electron` shape, eliminating
+  `SyntaxError: Export named 'dialog' not found` when both files run together
+  (PR #268 follow-up `1d532953`).
+
+### Packaging
+
+- **Reproducible Rox Design runtime payload preparation** —
+  `bun run rox-design:prepare`, `rox-design:prepare:check`, and
+  `rox-design:payload:verify`. The verifier runs as the first step of every
+  `electron:dist*` entry, so electron-builder cannot package a hollow runtime.
+  `apps/electron/resources/rox-design/*` is gitignored with `README.md`
+  preserved via negation. T091 worklog checkpoint 13 documents the recon
+  (PR #268 follow-up `bfd038f6`).
+
+### CI
+
+- `electron:build:linux` invocation now matches the rest of the
+  `electron:dist*` matrix: `bun run rox-design:payload:verify && …`, so a
+  missing payload fails fast on the Linux release pipeline too.
+
+---
+
+## [1.0.0-rc.1] — [1.0.0-rc.7] — 2026-05-14 → 2026-05-17
+
+Seven release-candidate tags issued during multi-platform release surface
+hardening. Highlights (full per-tag detail in
+`docs/release/r11-completion-audit-2026-05-15.md` and the corresponding
+`docs/worklog/` entries):
+
+- **rc.1** Initial 1.0.0 RC cut after 72h soak preparation. Multi-tenant
+  storage isolation, RBAC, audit log, rebrand sweep R.0 – R.10 all landed.
+- **rc.2** Linux GPG signing landed; Windows unsigned beta surface; macOS
+  packaging deferred (bun hoisting regression). 5-agent audit produced 15
+  findings.
+- **rc.3 – rc.5** Cross-platform launch proof for ROX.ONE compatibility
+  (Sonoma, Ventura, Sequoia, Tahoe + Windows 10/11 + Ubuntu/Debian/Fedora).
+  T537 packaged renderer React chunk hardening.
+- **rc.6** macOS + Windows passing; Linux failed on transient ripgrep
+  postinstall rate-limit.
+- **rc.7** Pass `GITHUB_TOKEN` to `bun install` so ripgrep postinstall
+  survives rate-limit; Linux now green alongside macOS + Windows.
+
+The parallel `v1.0.1-beta.{1,2,3}` tag series carries packaged-launch proof
+docs and macOS diag-smoke fixes that landed on `main` outside the rc.*
+linear track (`v1.0.1-beta.3` = `3f9b41cf`).
+
+---
+
 ## [1.0.0] — TBD (after 72h soak)
 
 The first stable ROX.ONE release. Built as a white-label fork of the
