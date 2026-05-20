@@ -163,6 +163,32 @@ jobs:
       # workflow artifact upload below handles distribution.
       # No signing env vars are set -- this is intentionally unsigned for
       # the v1.0.0-rc.2 beta distribution (SmartScreen will warn on install).
+      # PZD-51 (B-REPRO-2 Mode 2): prepare Rox Design payload from canonical
+      # SHA-256-pinned archive. Reads runtime-payload-versions.json[.current]
+      # to find the archive URL + SHA. Falls through to pre-staged Mode 1 if
+      # the manifest has no current= entry yet (placeholder state).
+      - name: Prepare Rox Design payload from canonical archive (Mode 2)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Test-Path runtime-payload-versions.json)) {
+            Write-Host "::warning::runtime-payload-versions.json missing — relying on pre-staged Mode 1 payload"
+            exit 0
+          }
+          $manifest = Get-Content runtime-payload-versions.json | ConvertFrom-Json
+          $current = $manifest.current
+          if (-not $current) {
+            Write-Host "::warning::runtime-payload-versions.json has no current= entry — relying on pre-staged Mode 1 payload"
+            exit 0
+          }
+          $entry = $manifest.versions.$current
+          if (-not $entry.archiveUrl) {
+            Write-Host "::error::runtime-payload-versions.json[$current] is missing archiveUrl"
+            exit 1
+          }
+          Write-Host "Preparing Rox Design payload from $($entry.archiveUrl)"
+          bun run rox-design:prepare -- --from-archive=$($entry.archiveUrl) --expected-sha256=$($entry.archiveSha256) --force
+
       - name: Package Windows NSIS installer (unsigned)
         shell: pwsh
         working-directory: apps/electron
