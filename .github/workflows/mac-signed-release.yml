@@ -166,6 +166,32 @@ jobs:
       # workflow uploads the .dmg as a workflow artifact instead. Secrets
       # are wired via env so electron-builder + @electron/notarize pick them
       # up without appearing in logs.
+      # PZD-51 (B-REPRO-2 Mode 2): prepare Rox Design payload from canonical
+      # SHA-256-pinned archive. Reads runtime-payload-versions.json[.current]
+      # to find the archive URL + SHA. Falls through to pre-staged Mode 1 if
+      # the manifest has no current= entry yet (placeholder state).
+      - name: Prepare Rox Design payload from canonical archive (Mode 2)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f runtime-payload-versions.json ]; then
+            echo "::warning::runtime-payload-versions.json missing — relying on pre-staged Mode 1 payload"
+            exit 0
+          fi
+          CURRENT=$(jq -r '.current // empty' runtime-payload-versions.json)
+          if [ -z "$CURRENT" ]; then
+            echo "::warning::runtime-payload-versions.json has no current= entry — relying on pre-staged Mode 1 payload"
+            exit 0
+          fi
+          ARCHIVE_URL=$(jq -r ".versions[\"$CURRENT\"].archiveUrl" runtime-payload-versions.json)
+          ARCHIVE_SHA=$(jq -r ".versions[\"$CURRENT\"].archiveSha256" runtime-payload-versions.json)
+          if [ -z "$ARCHIVE_URL" ] || [ "$ARCHIVE_URL" = "null" ]; then
+            echo "::error::runtime-payload-versions.json[\"$CURRENT\"] is missing archiveUrl"
+            exit 1
+          fi
+          echo "Preparing Rox Design payload from $ARCHIVE_URL"
+          bun run rox-design:prepare -- --from-archive="$ARCHIVE_URL" --expected-sha256="$ARCHIVE_SHA" --force
+
       - name: Package + sign macOS DMG
         shell: bash
         env:
