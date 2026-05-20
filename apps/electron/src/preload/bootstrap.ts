@@ -434,6 +434,15 @@ client.onConnectionStateChanged((state) => {
   return () => { ipcRenderer.removeListener('rox-design:status-changed', handler) }
 }
 
+// Rox Design sidecar-crash listener (PZD-81) — fires when daemon/web process
+// exits unexpectedly after a successful start. Renderer surfaces a one-click
+// recovery banner so the user can resume without quitting the app.
+;(api as ElectronAPI).onRoxDesignSidecarExited = (cb) => {
+  const handler = (_e: any, payload: import('../shared/types').RoxDesignSidecarExitedPayload) => cb(payload)
+  ipcRenderer.on('rox-design:sidecar-exited', handler)
+  return () => { ipcRenderer.removeListener('rox-design:sidecar-exited', handler) }
+}
+
 // Design hotkey (⌘⇧D / Ctrl+Shift+D) toggle listener
 ;(api as ElectronAPI).onDesignToggle = (cb) => {
   const handler = () => cb()

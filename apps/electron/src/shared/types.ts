@@ -251,11 +251,26 @@ export interface RoxDesignApi {
   openExternal(url: string): Promise<void>
 }
 
+/**
+ * Payload broadcast by the main process when the Rox Design sidecar exits
+ * unexpectedly after successful startup. Wired by upstream commit d1ea1854.
+ */
+export interface RoxDesignSidecarExitedPayload {
+  reason: string
+  code: number | null
+}
+
 export interface ElectronAPI {
   // Rox Design embedded runtime control
   roxDesign?: RoxDesignApi
   /** Subscribe to runtime status changes broadcast by the main process. */
   onRoxDesignStatusChanged(callback: (status: RoxDesignStatus) => void): () => void
+  /**
+   * Subscribe to post-startup sidecar crash events (PZD-81). Fires when the
+   * Rox Design daemon/web sidecar exits unexpectedly mid-session so the
+   * renderer can surface a one-click recovery banner.
+   */
+  onRoxDesignSidecarExited?(callback: (payload: RoxDesignSidecarExitedPayload) => void): () => void
 
   // Design IPC — T537 Phase B
   openWithContext(req: OpenDesignRequest): Promise<OpenDesignResult>
