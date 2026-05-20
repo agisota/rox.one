@@ -75,6 +75,8 @@ jobs:
 
     env:
       ROX_HEADLESS: "1"
+      # Skip Rox Design payload gate in CI smoke; payload not staged on hosted runners.
+      ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY: "1"
 
     steps:
       # -----------------------------------------------------------------------

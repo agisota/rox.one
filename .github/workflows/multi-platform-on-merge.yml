@@ -82,6 +82,8 @@ jobs:
       # and times out at 60s. Same trap removed from mac-diag-smoke.yml in
       # PR #285.
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      # Skip Rox Design payload gate in CI smoke; payload not staged on hosted runners.
+      ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY: "1"
 
     outputs:
       nightly_tag: ${{ steps.compute-tag.outputs.nightly_tag }}

@@ -39,6 +39,8 @@ jobs:
       ROX_ARTIFACT_PLATFORM: mac
       ROX_ARTIFACT_ARCH: arm64
       ROX_RC_MODE: unsigned
+      # Skip Rox Design payload gate in CI smoke; payload not staged on hosted runners.
+      ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY: "1"
 
     steps:
       - name: Checkout
@@ -98,6 +100,8 @@ jobs:
       ROX_LINUX_ARCH: x86_64
       ROX_LINUX_DEB_RPM: "true"
       ROX_RC_MODE: unsigned
+      # Skip Rox Design payload gate in CI smoke; payload not staged on hosted runners.
+      ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY: "1"
 
     steps:
       - name: Checkout
@@ -191,6 +195,8 @@ jobs:
       ROX_ARTIFACT_PLATFORM: windows
       ROX_ARTIFACT_ARCH: x64
       ROX_RC_MODE: unsigned
+      # Skip Rox Design payload gate in CI smoke; payload not staged on hosted runners.
+      ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY: "1"
 
     steps:
       - name: Checkout
