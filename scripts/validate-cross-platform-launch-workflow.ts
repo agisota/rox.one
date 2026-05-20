@@ -19,7 +19,8 @@ function requireText(source: string, expected: string, description: string): voi
 }
 
 function requireInstallStepToken(source: string): void {
-  const installSections = source.split(/\n\s+- name: Install dependencies\n/g).slice(1);
+  const normalized = source.replace(/\r\n?/g, '\n');
+  const installSections = normalized.split(/\n\s+- name: Install dependencies\n/g).slice(1);
   if (installSections.length < 3) {
     fail(`expected at least 3 Install dependencies steps, found ${installSections.length}`);
   }

@@ -172,3 +172,12 @@ Unblock PR #301 hosted gates after merging `main` into the artifact-panel branch
 
 - Hosted GitHub Actions must re-run on the pushed branch to prove the macOS dependency install no longer hits unauthenticated 403 and the xvfb smoke log now contains the concrete runtime-manager marker.
 - Graphify refresh artifacts are intentionally local-only and excluded from git staging.
+
+### Windows hosted validator follow-up
+
+The next hosted run proved the macOS dependency install fix, but both Windows packaged launch jobs failed before packaging while running `bun run validate:cross-platform-launch-workflow`.
+
+- Hosted symptom: `[cross-platform-launch-workflow] expected at least 3 Install dependencies steps, found 0`.
+- Root cause: the validator split the workflow with LF-only boundaries. Windows read the workflow with CRLF line endings, so the guard could not find any `Install dependencies` steps even though the workflow contained them.
+- Fix: normalize CRLF/CR line endings to LF before parsing the workflow in `scripts/validate-cross-platform-launch-workflow.ts`.
+- Local validation added for the regression: run the validator against the real workflow and run a CRLF parsing simulation before pushing.
