@@ -260,6 +260,16 @@
         "@modelcontextprotocol/sdk": ">=1.0.0",
       },
     },
+    "packages/design-contract": {
+      "name": "@rox-one/design-contract",
+      "version": "0.1.0",
+      "dependencies": {
+        "zod": "4.4.3",
+      },
+      "devDependencies": {
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/messaging-gateway": {
       "name": "@rox-one/messaging-gateway",
       "version": "0.9.1",
@@ -1231,6 +1241,8 @@
     "@rox-one/cli": ["@rox-one/cli@workspace:apps/cli"],
 
     "@rox-one/core": ["@rox-one/core@workspace:packages/core"],
+
+    "@rox-one/design-contract": ["@rox-one/design-contract@workspace:packages/design-contract"],
 
     "@rox-one/electron": ["@rox-one/electron@workspace:apps/electron"],
 
