@@ -6,8 +6,14 @@
  * `ROX_DESIGN_WEB_URL`) must be honored only in development. In packaged
  * builds they are ignored and the suppressed read is logged at warn level so
  * ops can trace why a customer-environment-injected override did not apply.
+ *
+ * Implementation note: we resolve `app.isPackaged` through a require-time
+ * lookup rather than a static `import { app } from 'electron'` so that test
+ * files which mock `electron` without exposing `app` do not error when their
+ * source-under-test imports this module transitively (bun:test caches the
+ * first electron mock encountered in the run).
  */
-import { app } from 'electron'
+import * as electron from 'electron'
 
 export interface GatedEnvLogger {
   warn?: (message: string, meta?: Record<string, unknown>) => void
@@ -15,7 +21,12 @@ export interface GatedEnvLogger {
 
 /** True in development (not packaged); false in shipped builds. */
 export function isEnvOverrideAllowed(): boolean {
-  return !app.isPackaged
+  const appShape = (electron as { app?: { isPackaged?: boolean } }).app
+  // Fail safe: if `app` is unavailable (e.g. in a test runtime without an
+  // electron mock), treat the environment as development to avoid silently
+  // masking dev-time overrides. Packaged builds always have `app` bound.
+  if (!appShape) return true
+  return !appShape.isPackaged
 }
 
 /**
