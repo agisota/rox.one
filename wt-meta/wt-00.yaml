@@ -1,0 +1,126 @@
+# WT-00 — Snapshot + branch hygiene + secrets rotation
+# Process WT (Wave 0, P0). Foundation для всех остальных 40 WT.
+
+id: WT-00
+title: "Snapshot + branch hygiene + secrets rotation"
+branch: chore/snapshot-2026-05-21
+base_sha: fac6f228069c
+worktree_path: ../wt-00-snapshot
+
+feature_flag:
+  name: null                          # process WT, без feature flag
+  default: null
+  release_cut: null
+
+priority: P0
+wave: 0
+
+files_allowed:
+  - docs/planning/current-state-snapshot-2026-05-21.md
+  - docs/security/secrets-rotation-2026-05-21.md
+  - docs/worklog/WT-00.md
+  - wt-meta/scaffold-ownership.yaml
+  - wt-meta/release-cuts.yaml
+  - wt-meta/wt-00.yaml
+  - wt-meta/schema/scaffold-ownership.json
+  - wt-meta/schema/release-cuts.json
+  - .github/CODEOWNERS
+  - package.json
+  - bun.lock
+  - tsconfig.json
+  - tsconfig.base.json
+  - AGENTS.md
+  - .gitleaks.toml
+  - .gitattributes
+  - scripts/orchestrator/snapshot-verify.ts
+  - scripts/orchestrator/__tests__/snapshot-verify.test.ts
+
+files_forbidden:
+  - apps/electron/**
+  - packages/**/src/**
+  - infra/cloudflare/**
+  - evidence/**
+  - .orchestrator/**
+
+depends_on: []
+blocks: [WT-01, WT-02, WT-03, WT-04, WT-05, WT-06, WT-07, WT-08, WT-09]
+
+scaffold_requests: []                 # WT-00 — owner всех shared, никому не подаёт
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]   # ux-guru пропущен — нет UI
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [ubuntu-22]               # process WT, не нужен mac/win
+  screenshots_required: false
+  smoke_tests:
+    - snapshot-verify-exit-zero
+    - gitleaks-no-findings
+    - yaml-schema-valid
+  electron_build: false
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: null        # process, без epic
+  parent_meta_project: "ROX.ONE GitHub Roadmap Sync"
+  child_story_titles:
+    - "🛠 Снимок состояния — Snapshot doc 2026-05-21"
+    - "🔐 Ротация секретов — Secrets rotation 2026-05-21"
+    - "📋 Карта владения скаффолдами — Scaffold ownership map"
+    - "📋 План релиз-катов — Release cuts map"
+    - "👥 Обновление CODEOWNERS — CODEOWNERS update"
+  existing_issues_to_attach: []
+
+featurebase:
+  board_id: 6a0db0b911b1b8507c8e8165   # Bugs, Fixes, Improvements
+  board_name: "Bugs, Fixes, Improvements"
+  post_alias: wt-00-snapshot-hygiene-rotation
+  status_lifecycle: [planned, in-progress, shipped]
+  changelog_draft_title: "Foundation snapshot baseline 2026-05-21"
+
+inspiration_repos:
+  - url: https://github.com/linear/linear-release
+    integration_type: direct_reuse
+    rationale: "Auto-link GH release → Linear; переиспользуется в snapshot-verify.ts"
+  - url: https://github.com/SecondSonConsulting/Baseline
+    integration_type: reference_only
+    rationale: "MDM-style baseline doc как референс структуры snapshot документа"
+  - url: https://github.com/steipete/ReleaseBar
+    integration_type: reference_only
+    rationale: "Release freshness dashboard — вдохновение для будущего snapshot-status UI"
+
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  integration_tests_pass: true        # snapshot-verify smoke
+  electron_builds_mac: false
+  electron_builds_win: false
+  electron_builds_linux: false
+  screenshots_present: false
+  smoke_passes_3_machines: false      # ubuntu-only
+  rbac_isolation_tests_pass: false    # N/A
+  audit_emit_tests_pass: false        # N/A для process WT
+  feature_flag_off_no_visible_change: false   # N/A
+  snapshot_doc_present: true
+  secrets_rotated_log_present: true
+  codeowners_covers_13_epics: true
+  gitleaks_hook_active: true
+  bun_lock_deterministic: true
+mission_control:
+  work_type: process
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: []
+  events_emitted: []
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [release]

@@ -1,0 +1,144 @@
+id: WT-34
+title: "Agent Run UI command center"
+branch: feat/agent-run-ui
+base_sha: fac6f228069c
+worktree_path: ../wt-34-agent-run-ui
+
+feature_flag:
+  name: rox.feature.agent-run-ui.v1
+  default: off
+  release_cut: ui
+
+priority: P0
+wave: 2
+
+files_allowed:
+  - apps/electron/src/renderer/components/agent-run/**
+  - apps/electron/src/renderer/hooks/useAgentRun.ts
+  - apps/electron/src/renderer/hooks/__tests__/useAgentRun.test.tsx
+  - packages/shared/src/agent-run-view/**
+  - apps/electron/src/renderer/locales/en/agent-run.json
+  - apps/electron/src/renderer/locales/ru/agent-run.json
+  - tests/unit/agent-run-view/**
+  - tests/integration/renderer/agent-run/**
+  - tests/e2e/agent-run-ui.spec.ts
+files_forbidden:
+  - infra/cloudflare/**
+  - packages/shared/src/agent-fabric/**
+  - packages/shared/src/evidence/**
+  - apps/electron/src/renderer/components/composer/**
+  - apps/electron/src/renderer/hooks/useAgentStream.ts
+  - apps/electron/src/main/locales/**
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-28, WT-29, WT-31]
+blocks: []
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add @xyflow/react for DAG layout primitives"
+    proposed_change_summary: "{ deps: { @xyflow/react: ^12.3.0 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add dagre for auto-layout algorithm"
+    proposed_change_summary: "{ deps: { dagre: ^0.8.5, @types/dagre: ^0.7.52 } }"
+  - target_file: packages/shared/src/agent-fabric/realtime/event.ts
+    target_owner: WT-31
+    reason: "Add task.awaiting_approval event variant to RunStreamEvent union"
+    proposed_change_summary: "Add discriminated union variant {type:'task.awaiting_approval', eventId, ts, runId, taskId, contextMessage, timeoutAt}"
+  - target_file: packages/shared/src/agent-fabric/dag/runner.ts
+    target_owner: WT-29
+    reason: "Add REST endpoints /api/runs/:id/dag and /api/runs/:id/tasks/:taskId/{retry,approve,reject}"
+    proposed_change_summary: "Public handlers for DAG metadata fetch + retry/approve/reject branch mutations"
+  - target_file: apps/electron/src/main/locales/en.json
+    target_owner: WT-20
+    reason: "Add agent-run.timeline.* + agent-run.actions.* + agent-run.empty.* keys"
+    proposed_change_summary: "+18 locale keys"
+  - target_file: apps/electron/src/main/locales/ru.json
+    target_owner: WT-20
+    reason: "Add RU parity for agent-run.* keys"
+    proposed_change_summary: "+18 locale keys (RU translations)"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect, ux-guru]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests:
+    - agent-run-ui-mount-with-flag-on
+    - agent-run-ui-timeline-renders-dag
+    - agent-run-ui-side-panel-on-node-click
+    - agent-run-ui-inline-approval-prompt
+    - agent-run-ui-retry-failed-branch
+    - agent-run-ui-artifact-preview
+    - agent-run-ui-a11y-axe-zero-violations
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-112
+  child_story_titles:
+    - "🔧 Задача — RunTimeline DAG visualization (xyflow + dagre)"
+    - "🔧 Задача — TaskSidePanel + InlineApprovalPrompt + RetryBranchButton"
+    - "🔧 Задача — buildDagFromEvents pure derivation + useAgentRun composite hook"
+    - "🔧 Задача — ArtifactPanel inline preview (json/text/image)"
+    - "🔧 Задача — Audit emit + tenant isolation guardrails + a11y compliance"
+
+featurebase:
+  board_id: frictionless-ux
+  post_alias: wt-34-agent-run-ui-command-center
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/xyflow/xyflow
+    integration_type: dependency
+    rationale: "DAG layout primitives (@xyflow/react): nodes, edges, zoom, pan, minimap"
+  - url: https://github.com/dagrejs/dagre
+    integration_type: dependency
+    rationale: "Auto-layout algorithm для directed acyclic graphs"
+  - url: https://github.com/n8n-io/n8n
+    integration_type: reference_only
+    rationale: "Workflow run timeline UX — per-node status badges + side-panel"
+  - url: https://github.com/windmill-labs/windmill
+    integration_type: reference_only
+    rationale: "Agent run visualization + retry-branch action patterns"
+  - url: https://github.com/temporalio/ui
+    integration_type: reference_only
+    rationale: "Workflow execution UI: timeline, inline approval, artifact panel"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - rtl_tests_pass: true
+  - e2e_playwright_pass: true
+  - i18n_parity_en_ru_complete: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - screenshots_present: true
+  - axe_core_zero_violations: true
+  - bundle_budget_within_120kb_gzip: true
+  - audit_emit_tests_pass: true
+  - cross_tenant_isolation_tests_pass: true
+  - feature_flag_off_no_visible_change: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [watch-agent-run, retry-failed-branch, approve-step]
+  ui_surfaces: [AgentRunDAG, Timeline]
+  entities_touched: []
+  events_emitted: [run.opened, branch.retried.user_initiated]
+  ai_context_packets_touched: [run-context]
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [UI, perf]

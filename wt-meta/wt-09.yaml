@@ -1,0 +1,122 @@
+id: WT-09
+title: "Linear / Featurebase sync automation"
+branch: chore/linear-fb-sync
+base_sha: fac6f228069c
+worktree_path: ../wt-09-linear-fb-sync
+
+feature_flag:
+  name: rox.process.orchestrator-sync.v1
+  default: off
+  release_cut: foundation
+
+priority: P1
+wave: 0
+
+files_allowed:
+  - scripts/sync-linear.ts
+  - scripts/sync-featurebase.ts
+  - infra/orchestrator/linear-client.ts
+  - infra/orchestrator/featurebase-client.ts
+  - infra/orchestrator/sync-state.ts
+  - infra/orchestrator/redact.ts
+  - infra/orchestrator/types.ts
+  - tests/integration/sync-linear.test.ts
+  - tests/integration/sync-featurebase.test.ts
+  - tests/unit/orchestrator/linear-client.test.ts
+  - tests/unit/orchestrator/featurebase-client.test.ts
+  - tests/unit/orchestrator/redact.test.ts
+  - .gitignore
+  - wt-meta/wt-09.yaml
+  - docs/superpowers/specs/2026-05-21-wt-09-linear-fb-sync-design.md
+
+files_forbidden:
+  - apps/electron/**
+  - packages/shared/src/core/**
+  - packages/shared/src/feature-flags/**
+  - packages/shared/src/audit/**
+  - packages/server-core/src/**
+  - package.json
+  - tsconfig*.json
+  - bun.lock
+
+depends_on: [WT-00]
+blocks: []
+
+scaffold_requests:
+  - target_file: .gitignore
+    target_owner: WT-00
+    reason: "Add .orchestrator/ for sync-state.json cache"
+    proposed_change_summary: "+ .orchestrator/\n+ evidence/*/secrets/"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer]
+
+model_overrides: {}
+
+verification:
+  machines: [ubuntu-22]
+  screenshots_required: false
+  smoke_tests: [sync-linear-dry-run, sync-featurebase-dry-run, redact-logs]
+  electron_build: false
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: null
+  child_story_titles:
+    - "🔧 Задача — linear-client (GraphQL) + retry + redact"
+    - "🔧 Задача — featurebase-client (REST) + dedup-by-alias"
+    - "🔧 Задача — sync-state.json + atomic write"
+    - "🔧 Задача — sync-linear CLI + dry-run default"
+    - "🔧 Задача — sync-featurebase CLI + bulk + changelogs"
+  existing_issues_to_attach: []
+
+featurebase:
+  board_id: 6a0db0e7d1e3f457181dd1dd
+  post_alias: wt-09-linear-fb-sync-automation
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/safishamsi/graphify
+    integration_type: plugin
+    rationale: "Dedup-by-alias паттерн"
+  - url: https://github.com/googleapis/release-please
+    integration_type: reference_only
+    rationale: "Idempotent automation pattern"
+  - url: https://github.com/Agent-Field/agentfield
+    integration_type: reference_only
+    rationale: "Agent identity logging без PII"
+  - url: https://github.com/Openpanel-dev/openpanel
+    integration_type: reference_only
+    rationale: "Redaction pipeline pattern"
+
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  integration_tests_pass: true
+  electron_builds_mac: false
+  electron_builds_win: false
+  electron_builds_linux: false
+  screenshots_present: false
+  smoke_passes_3_machines: false
+  rbac_isolation_tests_pass: false
+  audit_emit_tests_pass: false
+  feature_flag_off_no_visible_change: true
+  no_product_code_touched: true
+  redaction_fuzz_pass: true
+  dry_run_default_verified: true
+mission_control:
+  work_type: integration
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: []
+  events_emitted: []
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [data]

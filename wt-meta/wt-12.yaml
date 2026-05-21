@@ -1,0 +1,108 @@
+id: WT-12
+title: "Account linking + JIT provisioning"
+branch: feat/account-linking-jit
+base_sha: fac6f228069c
+worktree_path: ../wt-12-account-linking-jit
+
+feature_flag:
+  name: rox.feature.auth.account-linking-jit
+  default: off
+  release_cut: auth
+
+priority: P0
+wave: 1
+
+files_allowed:
+  - apps/electron/src/main/auth/account/**
+  - apps/electron/src/main/storage/migrations/20260521-user-identities.sql
+  - packages/shared/src/auth/account/**
+  - tests/unit/auth/account/**
+  - tests/integration/auth/account/**
+files_forbidden:
+  - packages/shared/src/core/user.ts
+  - apps/electron/src/main/auth/access-jwt/**
+  - apps/electron/src/main/auth/scim/**
+  - apps/electron/src/main/auth/oauth/**
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-10, WT-11]
+blocks: [WT-15, WT-17]
+
+scaffold_requests: []
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - account-jit-create
+    - account-link-two-identities
+    - account-deprovision-blocks-login
+    - account-link-conflict-rejected
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-113
+  child_story_titles:
+    - "🔧 Задача — JitProvisioner для Access JWT first-login"
+    - "🔧 Задача — JitProvisioner для SCIM event create"
+    - "🔧 Задача — AccountLinker.link/unlink + TX safety"
+    - "🔧 Задача — ConflictDetector globally-unique (provider,subject)"
+    - "🔧 Задача — Deprovisioner soft-disable + session-revoke signal"
+    - "🔧 Задача — Migration user_identities table + reverse"
+
+featurebase:
+  board_id: 6a0db1dabaed70b5d8d3f898
+  post_alias: wt-12-account-linking-and-jit-provisioning
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/lucia-auth/lucia
+    integration_type: reference_only
+    rationale: "TS auth library, account-linking patterns"
+  - url: https://github.com/nextauthjs/next-auth
+    integration_type: reference_only
+    rationale: "linkAccount callback semantics + JIT lessons"
+  - url: https://github.com/anomalyco/openauth
+    integration_type: reference_only
+    rationale: "Provider abstraction + token refresh"
+  - url: https://github.com/Agent-Field/agentfield
+    integration_type: reference_only
+    rationale: "Agent identity provisioning"
+  - url: https://github.com/steipete/better-auth
+    integration_type: reference_only
+    rationale: "Comprehensive TS auth framework fork"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - migration_up_down_passes: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - concurrency_race_test_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_no_visible_change: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [account-link-flow]
+  ui_surfaces: []
+  entities_touched: [AccountLink]
+  events_emitted: [account.linked, account.jit_provisioned]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [security, data]

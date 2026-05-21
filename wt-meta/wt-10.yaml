@@ -1,0 +1,104 @@
+id: WT-10
+title: "Cloudflare Access JWT validator"
+branch: feat/access-jwt
+base_sha: fac6f228069c
+worktree_path: ../wt-10-access-jwt
+
+feature_flag:
+  name: rox.feature.auth.cloudflare-access-jwt
+  default: off
+  release_cut: auth
+
+priority: P0
+wave: 1
+
+files_allowed:
+  - apps/electron/src/main/auth/access-jwt/**
+  - packages/shared/src/auth/access-jwt/**
+  - tests/unit/auth/access-jwt/**
+  - tests/integration/auth/access-jwt/**
+files_forbidden:
+  - apps/electron/src/main/auth/oauth/**
+  - packages/shared/src/auth/oauth/**
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-04, WT-05, WT-08]
+blocks: [WT-12]
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add jose for JWT/JWKS verification"
+    proposed_change_summary: "{ deps: { jose: ^5.9.0 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add lru-cache for JWKS + replay guard"
+    proposed_change_summary: "{ deps: { lru-cache: ^11.0.0 } }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests: [auth-access-jwt-happy, auth-access-jwt-replay-reject]
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-113
+  child_story_titles:
+    - "🔧 Задача — Cloudflare Access JWT validator (signature + claims)"
+    - "🔧 Задача — JWKS fetcher с auto-rotation и singleflight"
+    - "🔧 Задача — Replay guard через identity_nonce LRU"
+    - "🔧 Задача — ClaimExtractor → IdentityClaim mapping"
+    - "🔧 Задача — Audit events auth.access_jwt.{validated,rejected}"
+
+featurebase:
+  board_id: 6a0db1dabaed70b5d8d3f898
+  post_alias: wt-10-cloudflare-access-jwt-validator
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/panva/jose
+    integration_type: dependency
+    rationale: "Primary JWT/JWKS verification primitives (Apache-2.0)"
+  - url: https://github.com/anomalyco/openauth
+    integration_type: reference_only
+    rationale: "Standards-based TypeScript auth provider patterns"
+  - url: https://github.com/auth0/node-jwks-rsa
+    integration_type: reference_only
+    rationale: "JWKS rotation + singleflight lessons"
+  - url: https://github.com/agisota/senpi
+    integration_type: reference_only
+    rationale: "Pi IPC scope propagation patterns for identity"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - bundle_budget_within_80kb: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_no_visible_change: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [enterprise-sso-login]
+  ui_surfaces: []
+  entities_touched: [AccessJWT]
+  events_emitted: [auth.jwt.validated, auth.jwt.rejected]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [security, data]

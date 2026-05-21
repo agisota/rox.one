@@ -1,0 +1,116 @@
+id: WT-24
+title: "Quota engine"
+branch: feat/quota-engine
+base_sha: fac6f228069c
+worktree_path: ../wt-24-quota-engine
+
+feature_flag:
+  name: rox.feature.quota
+  default: off
+  release_cut: storage
+
+priority: P0
+wave: 1
+
+files_allowed:
+  - packages/shared/src/quota/**
+  - tests/unit/quota/**
+  - tests/integration/quota/**
+files_forbidden:
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - packages/shared/src/feature-flags/**
+  - packages/shared/src/audit/**
+  - packages/shared/src/storage/**
+
+depends_on: [WT-07, WT-23]
+blocks: []
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "confirm better-sqlite3 binding available for SQLite counter store adapter"
+    proposed_change_summary: "verify existing electron SQLite binding usable for quota counters"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design: [prompt-writer, architect]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - happy-path-consume
+    - hard-cap-reject
+    - soft-warn-emit
+    - audit-emit-on-overrun
+    - concurrency-1000-parallel
+    - idempotency-double-consume
+    - window-reset-midnight-utc
+  electron_build: false
+  packaging_required: false
+  concurrency_stress_required: true
+  concurrency_stress_count: 1000
+
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "🔧 Задача — QuotaEngine + check/consume/rollback API"
+    - "🔧 Задача — QuotaCounterStore interface + in-memory impl"
+    - "🔧 Задача — SQLite counter store adapter (atomic increment)"
+    - "🔧 Задача — Durable Object counter store adapter"
+    - "🔧 Задача — Default policies per tier (Free/Pro/Team/Enterprise)"
+    - "🔧 Задача — Audit emit on overrun + soft-warn"
+    - "🔧 Задача — Concurrency stress test (1000 parallel)"
+  existing_issues_to_attach: []
+
+featurebase:
+  board_id: enterprise-b2b
+  post_alias: wt-24-quota-engine
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/upstash/ratelimit
+    integration_type: reference_only
+    rationale: "Fixed-window + sliding-window quota patterns"
+  - url: https://github.com/stripe/stripe-node
+    integration_type: reference_only
+    rationale: "Idempotency + usage-record audit emit"
+  - url: https://github.com/animir/node-rate-limiter-flexible
+    integration_type: concept
+    rationale: "Multi-store adapter pattern"
+  - url: https://github.com/cloudflare/workers-rs
+    integration_type: reference_only
+    rationale: "Durable Objects backed atomic counters"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - concurrency_1000_parallel_safe: true
+  - idempotency_verified: true
+  - audit_emit_on_overrun_verified: true
+  - audit_emit_on_soft_warn_verified: true
+  - window_reset_utc_verified: true
+  - sqlite_adapter_contract_passes: true
+  - durable_object_adapter_contract_passes: true
+  - no_any_types: true
+  - feature_flag_off_bypass_verified: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [QuotaAccount]
+  events_emitted: [quota.warn, quota.exceeded]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [data]

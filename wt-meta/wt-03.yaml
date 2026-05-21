@@ -1,0 +1,159 @@
+# WT-03 — ROX Design TopBar UX + hotkey
+# Wave 0, P0. Consumer крэш-IPC из WT-02; sibling в E05 epic.
+
+id: WT-03
+title: "ROX Design TopBar UX + hotkey"
+branch: feat/rox-design-topbar
+base_sha: fac6f228069c
+worktree_path: ../wt-03-rox-design-topbar
+
+feature_flag:
+  name: rox.feature.rox-design.topbar-button
+  default: off
+  release_cut: foundation
+
+priority: P0
+wave: 0
+
+files_allowed:
+  - apps/electron/src/renderer/components/TopBar.tsx
+  - apps/electron/src/renderer/components/AppShell.tsx
+  - apps/electron/src/renderer/components/RoxDesignButton.tsx
+  - apps/electron/src/renderer/components/RoxDesignCrashBanner.tsx
+  - apps/electron/src/renderer/contexts/NavigationContext.tsx
+  - apps/electron/src/renderer/contexts/RoxDesignLifecycleContext.tsx
+  - apps/electron/src/renderer/pages/RoxDesignPage.tsx
+  - apps/electron/src/renderer/hooks/useRoxDesignHotkey.ts
+  - apps/electron/src/renderer/__tests__/RoxDesignButton.test.tsx
+  - apps/electron/src/renderer/__tests__/RoxDesignCrashBanner.test.tsx
+  - apps/electron/src/renderer/__tests__/useRoxDesignHotkey.test.tsx
+  - apps/electron/src/renderer/__tests__/navigation-route-parser.test.ts
+  - apps/electron/src/renderer/utils/navigation-route-parser.ts
+  - apps/electron/src/main/rox-design-hotkey.ts
+  - apps/electron/src/main/__tests__/rox-design-hotkey.test.ts
+  - docs/ux/rox-design-topbar-2026-05-21.md
+  - docs/worklog/WT-03.md
+  - wt-meta/wt-03.yaml
+
+files_forbidden:
+  - apps/electron/src/main/rox-design-runtime-manager.ts    # WT-02
+  - apps/electron/src/main/rox-design-ipc.ts                # WT-02
+  - apps/electron/src/main/rox-design-fs.ts                 # WT-02
+  - apps/electron/src/main/rox-design-view-policy.ts        # WT-02
+  - apps/electron/src/main/rox-design-view-manager.ts       # WT-02
+  - apps/electron/src/main/rox-design-embed-skin.ts         # WT-02
+  - scripts/prepare-rox-design-runtime.ts                   # WT-02
+  - scripts/check-rox-design-runtime-payload.ts             # WT-02
+  - electron-builder.yml                                    # WT-01
+  - packages/design-classifier/**
+  - packages/design-contract/**
+  - packages/design-theme-bridge/**
+  - apps/electron/src/main/locales/*.json                   # WT-20 scaffold
+  - package.json
+  - tsconfig.json
+
+depends_on: [WT-00, WT-02]
+blocks: [WT-33, WT-37]
+
+scaffold_requests:
+  - target_file: apps/electron/src/main/locales/ru.json
+    target_owner: WT-20
+    reason: "TopBar button label + crash banner copy (RU)"
+    proposed_change_summary: "Add rox-design.topbar.label, rox-design.topbar.aria-label, rox-design.crash.title, rox-design.crash.body, rox-design.crash.recover-cta, rox-design.hotkey.tooltip"
+  - target_file: apps/electron/src/main/locales/en.json
+    target_owner: WT-20
+    reason: "TopBar button label + crash banner copy (EN)"
+    proposed_change_summary: "Mirror EN keys"
+  - target_file: packages/shared/src/feature-flags/registry.ts
+    target_owner: WT-07
+    reason: "Register rox.feature.rox-design.topbar-button"
+    proposed_change_summary: "Add { key, default: false, cut: 'foundation' }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect, ux-guru]   # ux-guru обязателен — UI WT
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true                   # 4 button states + crash banner
+  smoke_tests:
+    - rox-design-button-visible-on-3-platforms
+    - rox-design-button-4-states-screenshot
+    - rox-design-hotkey-cmd-shift-d-mac
+    - rox-design-hotkey-ctrl-shift-d-win-linux
+    - rox-design-crash-banner-renders-under-100ms
+    - rox-design-recover-cta-invokes-ipc
+    - rox-design-deep-link-rox-design-parses
+    - axe-core-zero-violations-topbar-banner
+    - bundle-budget-delta-under-5kb
+  electron_build: true
+  packaging_required: true                     # screenshots требуют packaged build
+
+linear:
+  parent_epic_identifier: PZD-116              # E05 — Design System
+  child_story_titles:
+    - "🎨 TopBar — ROX DESIGN button (4 states)"
+    - "⌨️ Hotkey Cmd/Ctrl+Shift+D"
+    - "🚨 Crash banner UI + recovery CTA"
+    - "🔗 Deep-link rox://design"
+    - "♿ A11y axe-core 0 violations"
+  existing_issues_to_attach:
+    - "Open Design embed: AAP-driven navigation в правой панели"   # partial coverage (banner+navigate)
+
+featurebase:
+  board_id: 6a0db0e7d1e3f457181dd1dd            # Frictionless UX
+  board_name: "Frictionless UX"
+  post_alias: wt-03-rox-design-topbar-button
+  status_lifecycle: [planned, in-progress, shipped]
+  changelog_draft_title: "ROX DESIGN — открой в один клик из TopBar"
+
+inspiration_repos:
+  - url: https://github.com/intentui/intentui
+    integration_type: partial_port
+    rationale: "React Aria + Tailwind a11y-first; button states + banner role=alert"
+  - url: https://github.com/elevenlabs/ui
+    integration_type: reference_only
+    rationale: "shadcn/ui multimodal component library; action-button visual treatment"
+  - url: https://github.com/icantcodefyi/dot-matrix-animations
+    integration_type: direct_reuse
+    rationale: "28 dot-matrix loader SVGs (~4KB each, no runtime); starting state spinner"
+  - url: https://github.com/xFalzz/macos-clone
+    integration_type: reference_only
+    rationale: "macOS UI в web — liquid glass affordance кнопки"
+  - url: https://github.com/shadcnblocks/kibo
+    integration_type: partial_port
+    rationale: "Composable shadcn/ui registry; RoxDesignButton library-grade pattern"
+
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  integration_tests_pass: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+  screenshots_present: true                    # 4 states + banner
+  smoke_passes_3_machines: true
+  rbac_isolation_tests_pass: false             # UI WT
+  audit_emit_tests_pass: true                  # ui.rox-design.opened + hotkey + recover
+  feature_flag_off_no_visible_change: true
+  axe_core_zero_violations: true
+  bundle_delta_under_5kb: true
+  hotkey_registers_3_platforms: true
+  visual_regression_4_states_match: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [open-rox-design-from-topbar]
+  ui_surfaces: [TopBar, RoxDesignPage]
+  entities_touched: []
+  events_emitted: [design.button.clicked]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [UI]

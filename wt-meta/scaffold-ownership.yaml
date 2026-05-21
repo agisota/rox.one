@@ -1,0 +1,107 @@
+# scaffold-ownership.yaml — единый owner для shared scaffold files.
+#
+# Когда WT-A нуждается в изменении файла, owned WT-B, WT-A не редактирует напрямую —
+# вместо этого выставляет scaffold_request в своём wt-meta yaml, а owner WT-B
+# обрабатывает batched. Этот файл — single source of truth кто чем владеет.
+#
+# Покрывает root scaffolds + cross-cutting registries. Granular per-package
+# ownership остаётся в files_allowed/files_forbidden в каждом wt-XX.yaml.
+
+owners:
+  # Root scaffolds — owned by WT-00 (release-engineering bootstrap)
+  - file: package.json
+    owner: WT-00
+    notes: "Root package.json — dependency adds via scaffold_request. WT-00 batches weekly."
+
+  - file: pnpm-workspace.yaml
+    owner: WT-00
+    notes: "Workspace topology."
+
+  - file: tsconfig.json
+    owner: WT-00
+    notes: "Root TS config. Per-package tsconfigs owned by feature WTs."
+
+  - file: tsconfig.base.json
+    owner: WT-00
+    notes: "Shared compiler settings."
+
+  - file: .eslintrc.json
+    owner: WT-00
+    notes: "Root lint config."
+
+  - file: .prettierrc
+    owner: WT-00
+    notes: "Code style."
+
+  - file: turbo.json
+    owner: WT-00
+    notes: "Build pipeline DAG."
+
+  # CI / release engineering
+  - file: .github/workflows/release-all-platforms.yml
+    owner: WT-01
+    notes: "Release pipeline."
+
+  - file: .github/workflows/verify-3m.yml
+    owner: WT-01
+    notes: "3-machine smoke verification — invoked by orchestrator three-machine-verify.ts."
+
+  - file: .github/workflows/preflight.yml
+    owner: WT-01
+    notes: "Pre-flight rc:preflight gates."
+
+  - file: scripts/release/
+    owner: WT-01
+    notes: "Release scripts (asar pack, code-sign, notarize, publish)."
+
+  # Cross-cutting registries
+  - file: apps/electron/src/renderer/modules/registry.ts
+    owner: WT-45
+    notes: "ModuleRegistry — feature modules register here via scaffold_request."
+
+  - file: packages/shared/src/core/content-object.ts
+    owner: WT-46
+    notes: "ContentObject + Block universal schema. ABI-stable across feature WTs."
+
+  - file: packages/shared/src/core/relation.ts
+    owner: WT-47
+    notes: "RelationService — bidirectional. New relation types via scaffold_request."
+
+  - file: packages/shared/src/ai/context-packet.ts
+    owner: WT-48
+    notes: "AIContextPacket — permission-filtered packet builder."
+
+  - file: packages/shared/src/events/activity-event.ts
+    owner: WT-49
+    notes: "ActivityEvent registry — emit_policy + event_name allowlist."
+
+  - file: packages/shared/src/search/search-index.ts
+    owner: WT-50
+    notes: "FTS5 SearchIndex. New entity index requests via scaffold_request."
+
+  # UI shell
+  - file: apps/electron/src/renderer/App.tsx
+    owner: WT-37
+    notes: "App shell. New routes/pages via scaffold_request."
+
+  - file: apps/electron/src/renderer/components/Sidebar.tsx
+    owner: WT-37
+    notes: "Sidebar nav. Feature WTs add nav entries via scaffold_request."
+
+  # Server core
+  - file: packages/server-core/src/migrations/
+    owner: WT-09
+    notes: "DB migrations. Naming: YYYYMMDDHHMM_<topic>.sql. Feature WTs PR migrations through WT-09 review."
+
+  - file: packages/server-core/src/router.ts
+    owner: WT-09
+    notes: "Root API router. New routes via scaffold_request."
+
+  - file: packages/server-core/src/server.ts
+    owner: WT-09
+    notes: "Server entrypoint."
+
+# Default policy if a file is not listed here:
+#   1. Look at files_allowed in the WT making the change.
+#   2. If outside allowlist AND not listed here, file scaffold_request на closest matching owner.
+#   3. If unclear, raise in PR description with #scaffold-ownership-tag.

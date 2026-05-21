@@ -1,0 +1,114 @@
+id: WT-25
+title: "Content-hash deduplication engine"
+branch: feat/dedup-engine
+base_sha: fac6f228069c
+worktree_path: ../wt-25-dedup-engine
+
+feature_flag:
+  name: rox.feature.drive.dedup
+  default: off
+  release_cut: storage
+
+priority: P1
+wave: 2
+
+files_allowed:
+  - packages/shared/src/storage/dedup.ts
+  - packages/shared/src/storage/dedup-index.ts
+  - packages/shared/src/storage/dedup-types.ts
+  - packages/shared/src/storage/index.ts
+  - packages/server-core/src/storage/dedup-service.ts
+  - packages/server-core/src/storage/migrations/0010_content_blobs.up.sql
+  - packages/server-core/src/storage/migrations/0010_content_blobs.down.sql
+  - apps/electron/src/main/storage/dedup-bridge.ts
+  - tests/unit/storage/dedup/**
+  - tests/integration/storage/dedup/**
+
+files_forbidden:
+  - packages/shared/src/storage/backend.ts
+  - packages/shared/src/storage/quota.ts
+  - apps/electron/src/main/storage/backend-bridge.ts
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-23]
+blocks: [WT-26, WT-27]
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add blake3 for fast-path hashing of large buffers (>4MB)"
+    proposed_change_summary: "{ deps: { blake3: ^3.0.0 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Reuse better-sqlite3-multi-cipher for dedup-index storage"
+    proposed_change_summary: "{ deps: { better-sqlite3-multi-cipher: ^11.0.0 } }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests: [storage-dedup-upload-hot-path, storage-dedup-gc-sweep]
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "🔧 Задача — SHA-256 hash + BlobRef contract (packages/shared/storage/dedup.ts)"
+    - "🔧 Задача — DedupIndex SQLite schema + migrations 0010"
+    - "🔧 Задача — DedupService upload/delete с advisory lock"
+    - "🔧 Задача — GC sweep cron (orphan blobs, 24h grace)"
+    - "🔧 Задача — Renderer IPC bridge (opaque BlobRef, no raw hash leak)"
+
+featurebase:
+  board_id: 6a0db1b5ff6b76b8a0f7c111
+  post_alias: wt-25-content-hash-dedup-engine
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/tursodatabase/agentfs
+    integration_type: reference_only
+    rationale: "Content-addressable agent filesystem — primary inspiration for BlobRef + ref-count GC"
+  - url: https://github.com/InsForge/InsForge
+    integration_type: reference_only
+    rationale: "Tenant-scoped namespacing + dedup index schema"
+  - url: https://github.com/linear/linear-release
+    integration_type: reference_only
+    rationale: "Idempotent processing pattern + (tenant, hash) advisory lock"
+  - url: https://github.com/BLAKE3-team/BLAKE3
+    integration_type: dependency
+    rationale: "Fast-path hashing for large buffers (>4MB)"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - migration_up_down_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - bundle_budget_within_60kb: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_no_visible_change: true
+  - cross_tenant_isolation_test_pass: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [ObjectHash]
+  events_emitted: [object.deduped]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [data, perf]

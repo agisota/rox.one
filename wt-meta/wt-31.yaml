@@ -1,0 +1,114 @@
+id: WT-31
+title: "WebSocket realtime stream"
+branch: feat/realtime-ws
+base_sha: fac6f228069c
+worktree_path: ../wt-31-realtime-ws
+
+feature_flag:
+  name: rox.feature.agent-fabric.realtime-ws
+  default: off
+  release_cut: agent
+
+priority: P0
+wave: 2
+
+files_allowed:
+  - infra/cloudflare/realtime-ws.worker.ts
+  - infra/cloudflare/durable-objects/run-stream.ts
+  - infra/cloudflare/wrangler.realtime.toml
+  - packages/shared/src/agent-fabric/realtime/**
+  - apps/electron/src/renderer/hooks/useAgentStream.ts
+  - apps/electron/src/renderer/hooks/__tests__/useAgentStream.test.tsx
+  - tests/unit/agent-fabric/realtime/**
+  - tests/integration/agent-fabric/realtime/**
+files_forbidden:
+  - packages/shared/src/agent-fabric/dag/**
+  - packages/shared/src/agent-fabric/queue/**
+  - infra/cloudflare/queue-fanout.worker.ts
+  - infra/cloudflare/queue-fanin.worker.ts
+  - infra/cloudflare/durable-objects/agent-coordinator.ts
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-28]
+blocks: [WT-34]
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add partysocket — robust reconnecting WS client (used by useAgentStream)"
+    proposed_change_summary: "{ deps: { partysocket: ^1.0.0 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Ensure @cloudflare/workers-types is present (shared with WT-30)"
+    proposed_change_summary: "{ devDeps: { @cloudflare/workers-types: ^4.20260501.0 } }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect, ux-guru]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - realtime-ws-subscribe-happy
+    - realtime-ws-reconnect-replay
+    - realtime-ws-hibernation-resilient
+    - realtime-ws-cross-tenant-reject
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-116
+  child_story_titles:
+    - "🔧 Задача — realtime-ws Worker + Upgrade handler"
+    - "🔧 Задача — RunStream Durable Object (hibernation-aware)"
+    - "🔧 Задача — monotonic event-id + replay buffer (SQLite DO storage)"
+    - "🔧 Задача — useAgentStream hook + exp reconnect + last_event_id"
+    - "🔧 Задача — Audit events realtime.{subscribe,publish_drop,cross_tenant_blocked}"
+
+featurebase:
+  board_id: frictionless-ux
+  post_alias: wt-31-realtime-ws-stream
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/cloudflare/workers-chat-demo
+    integration_type: reference_only
+    rationale: "DO hibernation + acceptWebSocket reference pattern"
+  - url: https://github.com/partykit/partysocket
+    integration_type: dependency
+    rationale: "Robust reconnecting WS client (auto-resume, exp backoff)"
+  - url: https://github.com/partykit/partykit
+    integration_type: reference_only
+    rationale: "DO-based real-time framework + replay buffer patterns"
+  - url: https://github.com/cloudflare/templates
+    integration_type: reference_only
+    rationale: "Hibernation-aware DO server skeleton (durable-objects-websocket-server)"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - miniflare_ws_emulator_green: true
+  - hook_bundle_within_25kb_gzip: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_falls_back_to_polling: true
+  - hibernation_test_green: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [WSStream]
+  events_emitted: [ws.connected, ws.disconnected, ws.replay]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [perf, data]

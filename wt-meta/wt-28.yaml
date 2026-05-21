@@ -1,0 +1,129 @@
+id: WT-28
+title: "Coordinator Agent (durable identity)"
+branch: feat/coordinator-agent
+base_sha: fac6f228069c
+worktree_path: ../wt-28-coordinator-agent
+
+feature_flag:
+  name: rox.feature.agent-fabric.coordinator
+  default: off
+  release_cut: agent
+
+priority: P0
+wave: 3
+
+files_allowed:
+  - apps/electron/src/main/agent/coordinator.ts
+  - apps/electron/src/main/agent/coordinator-bridge-types.ts
+  - infra/cloudflare/coordinator-agent.ts
+  - infra/cloudflare/wrangler.coordinator-agent.example.toml
+  - infra/cloudflare/wrangler.coordinator-agent.toml
+  - infra/cloudflare/__tests__/coordinator-agent.test.ts
+  - packages/shared/src/agent/coordinator-contract.ts
+  - packages/shared/src/agent/coordinator-client.ts
+  - packages/shared/src/agent/coordinator-types.ts
+  - tests/unit/agent/coordinator/**
+  - tests/integration/agent/coordinator/**
+
+files_forbidden:
+  - apps/electron/src/renderer/**
+  - packages/shared/src/auth/**
+  - packages/shared/src/audit/**
+  - packages/shared/src/storage/**
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-04, WT-05, WT-06, WT-08]
+blocks: [WT-29]
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add agents framework (Cloudflare Durable Objects-based Agent class)"
+    proposed_change_summary: "{ deps: { agents: ^0.0.30 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add ulid for fiber id generation"
+    proposed_change_summary: "{ deps: { ulid: ^2.3.0 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add miniflare for integration testing of Durable Objects"
+    proposed_change_summary: "{ devDeps: { miniflare: ^3.20240821.0 } }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - agent-coordinator-start-recover
+    - agent-coordinator-schedule-fire
+    - agent-coordinator-fiber-durable
+    - agent-coordinator-chat-recovery
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-116
+  child_story_titles:
+    - "🔧 Задача — CoordinatorAgent Durable Object (start/tick/schedule)"
+    - "🔧 Задача — runFiber durable execution с replay"
+    - "🔧 Задача — chatRecovery (cursor-based stream re-attach)"
+    - "🔧 Задача — Electron CoordinatorBridge (IPC + WSS proxy)"
+    - "🔧 Задача — Shared contract types (zod) + typed client"
+    - "🔧 Задача — Wrangler config + DO namespace binding"
+    - "🔧 Задача — Audit events agent.coord.* integration"
+
+featurebase:
+  board_id: 6a0db1d3a8e2f070b0c2a234
+  post_alias: wt-28-coordinator-agent-durable-identity
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/cloudflare/agents
+    integration_type: dependency
+    rationale: "Primary framework — Durable Object-based Agent class (MIT)"
+  - url: https://github.com/anthropics/claude-agent-sdk-typescript
+    integration_type: reference_only
+    rationale: "Recovery + tool-loop patterns from Claude Agent SDK"
+  - url: https://github.com/temporalio/sdk-typescript
+    integration_type: reference_only
+    rationale: "Durable execution model + workflow replay semantics"
+  - url: https://github.com/mastra-ai/mastra
+    integration_type: reference_only
+    rationale: "Agent framework with persistent state (Apache-2.0)"
+  - url: https://github.com/restatedev/restate
+    integration_type: reference_only
+    rationale: "Distributed durable invocation + retry semantics"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - miniflare_do_suite_pass: true
+  - wrangler_example_committed: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_regression_pass: true
+  - recovery_token_security_test_pass: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [CoordinatorAgent]
+  events_emitted: [agent.spawned, agent.hibernated]
+  ai_context_packets_touched: [coordinator-state]
+  search_index_implications: N/A
+  heptabase_parity: 'AI Tutor/Chat'
+  risk_axes: [data, perf]

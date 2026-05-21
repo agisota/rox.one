@@ -1,0 +1,169 @@
+# WT-04 — User + Identity data contract
+# Wave 0, P0. Foundation для всех Auth/RBAC/Storage/Agent/Sources WT.
+
+id: WT-04
+title: "User + Identity data contract"
+branch: feat/contract-user-identity
+base_sha: fac6f228069c
+worktree_path: ../wt-04-contract-user-identity
+
+feature_flag:
+  name: rox.feature.contracts.user-v1
+  default: off
+  release_cut: foundation
+
+priority: P0
+wave: 0
+
+files_allowed:
+  - packages/shared/src/core/index.ts
+  - packages/shared/src/core/user.ts
+  - packages/shared/src/core/identity.ts
+  - packages/shared/src/core/uuid-v7.ts
+  - packages/shared/src/core/schemas/common.ts
+  - packages/shared/src/core/__tests__/user.test.ts
+  - packages/shared/src/core/__tests__/identity.test.ts
+  - packages/shared/src/core/__tests__/uuid-v7.test.ts
+  - packages/server-core/src/persistence/migrations/2026-05-21-user-identity-up.sql
+  - packages/server-core/src/persistence/migrations/2026-05-21-user-identity-down.sql
+  - packages/server-core/src/persistence/__tests__/user-identity-migration.test.ts
+  - packages/server-core/src/services/user-repository.ts
+  - packages/server-core/src/services/identity-repository.ts
+  - packages/server-core/src/services/__tests__/user-repository.test.ts
+  - packages/server-core/src/services/__tests__/identity-repository.test.ts
+  - docs/architecture/data-contract-user-identity-2026-05-21.md
+  - docs/worklog/WT-04.md
+  - wt-meta/wt-04.yaml
+
+files_forbidden:
+  - packages/shared/src/auth/**
+  - packages/shared/src/sessions/**
+  - packages/server-core/src/handlers/**
+  - packages/server-core/src/orchestrator/**
+  - apps/electron/**
+  - packages/shared/src/feature-flags/registry.ts   # WT-07 scaffold
+  - packages/shared/src/core/tenant.ts              # WT-05
+  - packages/shared/src/core/workspace.ts           # WT-06
+  - packages/shared/src/audit/**                    # WT-08 owner
+  - package.json
+  - tsconfig.json
+  - bun.lock
+
+depends_on: [WT-00]
+blocks:
+  - WT-05
+  - WT-06
+  - WT-08
+  - WT-10
+  - WT-11
+  - WT-13
+  - WT-19
+  - WT-22
+  - WT-23
+  - WT-28
+  - WT-38
+
+scaffold_requests:
+  - target_file: packages/shared/src/feature-flags/registry.ts
+    target_owner: WT-07
+    reason: "Register rox.feature.contracts.user-v1"
+    proposed_change_summary: "Add { key: 'rox.feature.contracts.user-v1', default: false, cut: 'foundation' }"
+  - target_file: packages/shared/src/audit/index.ts
+    target_owner: WT-08
+    reason: "Pre-register 5 user/identity event types в audit shim"
+    proposed_change_summary: "Reserve event types: user.created, user.updated, user.soft-deleted, identity.linked, identity.unlinked"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add zod ^3.23 + uuid-v7 polyfill dev-dep"
+    proposed_change_summary: "deps: zod ^3.23.x (если ещё не); devDeps: testcontainers ^10.x для Postgres integration"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]    # ux-guru — skip
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [ubuntu-22]                    # server-side контракт; mac/win не нужны
+  screenshots_required: false
+  smoke_tests:
+    - typecheck-shared-server-core
+    - lint-shared-server-core
+    - unit-tests-13-pass
+    - postgres-migration-up-down-up-roundtrip
+    - zod-parse-perf-under-0_5ms
+    - uuid-v7-gen-perf-under-0_1ms
+    - audit-shim-emits-5-event-types
+    - pii-safe-logging-email-hashed
+    - mock-consumer-wt-10-compiles
+  electron_build: false
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-113          # E02 — Auth, RBAC, Multi-tenant
+  child_story_titles:
+    - "📐 UserSchema (Zod) + tests"
+    - "📐 IdentitySchema (Zod) + tests"
+    - "🔢 UUID v7 implementation"
+    - "🗄 Postgres migration up/down + round-trip"
+    - "🏪 UserRepository + IdentityRepository (Result-based)"
+    - "🔒 DEFAULT_TENANT_ID backwards-compat shim"
+    - "📡 Audit shim emit (5 event types)"
+  existing_issues_to_attach: []           # re-parent существующих user-data-migration/tenant-credential issues после старта
+
+featurebase:
+  board_id: 6a0db1dabaed70b5d8d3f898       # Enterprise, B2B
+  board_name: "Enterprise, B2B"
+  post_alias: wt-04-contract-user-identity
+  status_lifecycle: [planned, in-progress, shipped]
+  changelog_draft_title: "User + Identity data contract — foundation для enterprise auth"
+
+inspiration_repos:
+  - url: https://github.com/wasp-lang/open-saas
+    integration_type: reference_only
+    rationale: "Full-featured SaaS boilerplate с multi-provider OAuth; UserSchema поля + identity provider enum"
+  - url: https://github.com/anomalyco/openauth
+    integration_type: reference_only
+    rationale: "Universal standards-based auth; provider abstraction для IdentitySchema claims"
+  - url: https://github.com/trailbaseio/trailbase
+    integration_type: reference_only
+    rationale: "Single-executable backend с auth; repository abstraction pattern"
+  - url: https://github.com/InsForge/InsForge
+    integration_type: reference_only
+    rationale: "All-in-one agentic backend; multi-tenant isolation для DEFAULT_TENANT_ID fallback"
+  - url: https://github.com/steipete/better-auth
+    integration_type: reference_only
+    rationale: "Comprehensive TS auth framework; repository methods naming"
+
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  integration_tests_pass: true             # Postgres testcontainer
+  electron_builds_mac: false
+  electron_builds_win: false
+  electron_builds_linux: false
+  screenshots_present: false
+  smoke_passes_3_machines: false           # ubuntu-only
+  rbac_isolation_tests_pass: true          # tenant-scoping verified
+  audit_emit_tests_pass: true              # 5 event types
+  feature_flag_off_no_visible_change: true # repositories idle; schemas importable
+  migration_roundtrip_pass: true
+  zod_parse_under_0_5ms: true
+  uuid_v7_under_0_1ms: true
+  pii_safe_logging: true
+  mock_consumer_compiles: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [User, Identity]
+  events_emitted: [user.created, user.updated]
+  ai_context_packets_touched: [user-context]
+  search_index_implications: index
+  heptabase_parity: 'N/A'
+  risk_axes: [data, security]

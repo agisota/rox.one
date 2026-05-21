@@ -1,0 +1,118 @@
+id: WT-38
+title: "Source registry contract (refactor existing)"
+branch: feat/source-registry-contract
+base_sha: fac6f228069c
+worktree_path: ../wt-38-source-registry-contract
+
+feature_flag:
+  name: rox.feature.source-registry.v2
+  default: off
+  release_cut: sources
+
+priority: P0
+wave: 2
+
+files_allowed:
+  - packages/shared/src/sources/contract/**
+  - packages/shared/src/sources/registry.ts
+  - packages/shared/src/sources/legacy-adapter.ts
+  - packages/shared/src/sources/builtin-sources.ts
+  - packages/shared/src/sources/index.ts
+  - packages/shared/src/sources/__tests__/**
+  - tests/unit/sources/registry/**
+  - tests/integration/sources/registry/**
+  - docs/architecture/source-registry.md
+files_forbidden:
+  - packages/shared/src/sources/types.ts
+  - packages/shared/src/sources/credential-manager.ts
+  - packages/shared/src/sources/token-refresh-manager.ts
+  - packages/shared/src/sources/api-tools.ts
+  - packages/shared/src/sources/server-builder.ts
+  - packages/shared/src/sources/storage.ts
+  - packages/shared/src/mcp/**
+  - apps/electron/src/renderer/pages/SourceInfoPage.tsx
+  - packages/shared/src/feature-flags.ts
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-04]
+blocks: [WT-39]
+
+scaffold_requests:
+  - target_file: packages/shared/src/feature-flags.ts
+    target_owner: WT-07
+    reason: "Register rox.feature.source-registry.v2"
+    proposed_change_summary: "isSourceRegistryV2Enabled() helper, default OFF"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Confirm zod^3.23.0 present (add only if missing)"
+    proposed_change_summary: "{ deps: { zod: ^3.23.0 } } (no-op if already pinned)"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests: [sources-registry-startup, sources-registry-legacy-compat]
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-114
+  child_story_titles:
+    - "🔧 Задача — SourceDefinition contract + Zod schema"
+    - "🔧 Задача — SourceRegistry singleton + audit emit"
+    - "🔧 Задача — legacyAdapter + backwards-compat tests"
+    - "🔧 Задача — Migration of 12 builtin sources"
+    - "🔧 Задача — Documentation + flag-gated rollout"
+
+featurebase:
+  board_id: 6a0db1deea7170b5d8d3f89c
+  post_alias: wt-38-source-registry-contract
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/colinhacks/zod
+    integration_type: dependency
+    rationale: "Runtime schema validation (MIT)"
+  - url: https://github.com/modelcontextprotocol/servers
+    integration_type: reference_only
+    rationale: "MCP server-as-pack pattern (boundary for WT-39)"
+  - url: https://github.com/composio-dev/composio
+    integration_type: reference_only
+    rationale: "Connector registry with versioned definitions"
+  - url: https://github.com/cline/cline
+    integration_type: reference_only
+    rationale: "Provider registry pattern in extension"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - migration_snapshots_green: true
+  - no_legacy_regressions: true
+  - documentation_created: true
+  - feature_flag_off_no_visible_change: true
+  - zero_any_in_new_files: true
+mission_control:
+  work_type: refactor
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [SourceDefinition]
+  events_emitted: [source.registered]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [data]

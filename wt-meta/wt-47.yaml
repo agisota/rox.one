@@ -1,0 +1,108 @@
+id: WT-47
+title: "RelationService (typed bidirectional relations)"
+branch: feat/relation-service
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-47-relation-service
+
+feature_flag:
+  name: rox.feature.relation-service-v1
+  default: off
+  release_cut: foundation
+
+priority: P0
+wave: 0
+
+files_allowed:
+  - packages/shared/src/core/relation.ts
+  - packages/shared/src/relation-service/relation-service.ts
+  - packages/shared/src/relation-service/__tests__/relation-service.test.ts
+  - packages/server-core/src/schema/relation.ts
+  - packages/server-core/src/migrations/20260521-relation.sql
+  - packages/server-core/src/__tests__/relation-migration.test.ts
+
+files_forbidden:
+  - packages/shared/src/core/content-object.ts
+  - packages/shared/src/core/block.ts
+  - package.json
+  - tsconfig.json
+
+depends_on: [WT-46]
+blocks: [WT-48, WT-50, WT-51, WT-52, WT-53, WT-55, WT-57]
+
+scaffold_requests: []
+
+roles:
+  discovery: [brainstormer, scope-analyzer, critic]
+  design: [erd-writer, prompt-writer, architect]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - relation-service-unit
+    - bidirectional-getRelations
+    - migration-up-down
+    - rls-cross-tenant
+    - perf-100-relations
+  electron_build: false
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "Relation schema + Zod + idempotency"
+    - "Bidirectional getRelations + indices"
+    - "Cascade + RLS + audit emit"
+    - "Perf benchmark < 10ms"
+  existing_issues_to_attach: []
+
+featurebase:
+  board_id: "6a0db1b591b619c8111329f2"
+  post_alias: wt-47-relation-service
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/agisota/obsidian-node-flow
+    integration_type: concept
+    rationale: "Obsidian-style backlinks model"
+  - url: https://github.com/LincZero/obsidian-node-flow
+    integration_type: concept
+    rationale: "Bidirectional relation visualization"
+  - url: https://github.com/safishamsi/graphify
+    integration_type: concept
+    rationale: "Knowledge graph as first-class"
+  - url: https://github.com/nocobase/nocobase
+    integration_type: reference_only
+    rationale: "Relation field as schema element"
+  - url: https://github.com/Ovyerus/prismaliser
+    integration_type: reference_only
+    rationale: "Prisma relation viz patterns"
+
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  migration_up_down_reversible: true
+  rls_cross_tenant_blocked: true
+  perf_100_relations_lt_10ms: true
+  idempotency_verified: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [Relation]
+  events_emitted: [relation.created, relation.deleted]
+  ai_context_packets_touched: [citation-traversal]
+  search_index_implications: index
+  heptabase_parity: "Backlinks/mentions/citations/placements — universal Relation table"
+  risk_axes: [data, security, perf]

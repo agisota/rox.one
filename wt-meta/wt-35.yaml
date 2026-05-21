@@ -1,0 +1,116 @@
+id: WT-35
+title: "Notes / Knowledge MVP"
+branch: feat/notes-mvp
+base_sha: fac6f228069c
+worktree_path: ../wt-35-notes-mvp
+
+feature_flag:
+  name: rox.feature.notes-mvp
+  default: off
+  release_cut: ui
+
+priority: P1
+wave: 2
+
+files_allowed:
+  - apps/electron/src/renderer/pages/notes/**
+  - apps/electron/src/main/notes/**
+  - apps/electron/src/main/ipc/notes-handlers.ts
+  - packages/shared/src/notes/**
+  - tests/unit/notes/**
+  - tests/integration/notes/**
+  - apps/electron/src/main/locales/en.notes.json
+  - apps/electron/src/main/locales/ru.notes.json
+files_forbidden:
+  - packages/shared/src/sessions/**
+  - packages/shared/src/mentions/**
+  - apps/electron/src/main/storage/**
+  - packages/shared/src/feature-flags.ts
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-06, WT-23]
+blocks: []
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add slate + slate-react for block editor"
+    proposed_change_summary: "{ deps: { slate: ^0.105.0, slate-react: ^0.110.0 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add remark + remark-gfm for md↔block bridge"
+    proposed_change_summary: "{ deps: { remark: ^15.0.0, remark-gfm: ^4.0.0 } }"
+  - target_file: packages/shared/src/feature-flags.ts
+    target_owner: WT-07
+    reason: "Register rox.feature.notes-mvp"
+    proposed_change_summary: "isNotesMvpEnabled() helper, default OFF"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect, ux-guru]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests: [notes-create-edit, notes-daily-auto-create, notes-summarize]
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "🔧 Задача — Notes CRUD + block-tree persistence"
+    - "🔧 Задача — Daily notes автогенерация + шаблон"
+    - "🔧 Задача — Backlinks indexer + правая панель"
+    - "🔧 Задача — AI Summarize кнопка + on-save extract"
+    - "🔧 Задача — i18n RU/EN + accessibility pass"
+
+featurebase:
+  board_id: 6a0db1cbb0bb70b5d8d3f893
+  post_alias: wt-35-notes-knowledge-mvp
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/ianstormtaylor/slate
+    integration_type: dependency
+    rationale: "Minimal block-editor primitive (MIT)"
+  - url: https://github.com/streetwriters/notesnook
+    integration_type: reference_only
+    rationale: "Local-first encrypted notes UX patterns"
+  - url: https://github.com/anytypeio/anytype-ts
+    integration_type: reference_only
+    rationale: "Object-oriented block model"
+  - url: https://github.com/outline/outline
+    integration_type: reference_only
+    rationale: "Markdown block editor with embed blocks"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - screenshots_present: true
+  - bundle_budget_within_100kb: true
+  - backlinks_integrity_verified: true
+  - feature_flag_off_no_visible_change: true
+  - locales_ru_en_full: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [create-note, link-notes]
+  ui_surfaces: [NotesPage, NoteDetail]
+  entities_touched: [Note]
+  events_emitted: [note.created]
+  ai_context_packets_touched: [notes-context]
+  search_index_implications: index
+  heptabase_parity: 'Notes/Cards approximation'
+  risk_axes: [UI, data]

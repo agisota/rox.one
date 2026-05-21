@@ -1,0 +1,95 @@
+id: WT-55
+title: "Annotations (Source-range pinned)"
+branch: feat/annotations
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-55-annotations
+feature_flag:
+  name: rox.feature.annotations-v1
+  default: off
+  release_cut: ui
+priority: P1
+wave: 2
+files_allowed:
+  - packages/shared/src/annotations/annotation.ts
+  - packages/server-core/src/migrations/20260521-annotations.sql
+  - packages/shared/src/annotations/__tests__/annotation.test.ts
+  - apps/electron/src/renderer/components/annotations/AnnotationOverlay.tsx
+  - apps/electron/src/renderer/components/annotations/AnnotationToolbar.tsx
+  - apps/electron/src/renderer/components/annotations/__tests__/AnnotationOverlay.test.tsx
+files_forbidden:
+  - packages/shared/src/core/content-object.ts
+  - packages/shared/src/core/relation.ts
+  - packages/shared/src/source/adapters/pdf.ts
+  - package.json
+  - tsconfig.json
+depends_on: [WT-46, WT-47, WT-54]
+blocks: [WT-51]
+scaffold_requests: []
+roles:
+  discovery: [brainstormer, scope-analyzer, critic, cjm-writer]
+  design: [erd-writer, ui-inventory-writer, ux-guru, prompt-writer]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer]
+model_overrides: {}
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests:
+    - annotation-text-range
+    - annotation-pdf-bbox
+    - card-from-annotation
+    - perf-100-annotations-100ms
+    - a11y-aria-labels
+  electron_build: true
+  packaging_required: false
+linear:
+  parent_epic_identifier: PZD-117
+  child_story_titles:
+    - "Annotation schema (TextRange | BBox)"
+    - "Overlay component (PDFViewer + BlockViewer)"
+    - "Toolbar + color palette"
+    - "Card-from-annotation flow"
+    - "Export markdown/JSON"
+  existing_issues_to_attach: []
+featurebase:
+  board_id: "6a0db0e7d1e3f457181dd1dd"
+  post_alias: wt-55-annotations
+  status_lifecycle: [planned, in-progress, shipped]
+inspiration_repos:
+  - url: https://github.com/MusiCode1/obsidian-web
+    integration_type: concept
+    rationale: "Annotation overlay patterns"
+  - url: https://github.com/agisota/Markdansi
+    integration_type: reference_only
+    rationale: "Markdown export with refs"
+  - url: https://github.com/RSSNext/Folo
+    integration_type: reference_only
+    rationale: "Highlight UX in reader"
+  - url: https://github.com/Developer-Mike/obsidian-advanced-canvas
+    integration_type: reference_only
+    rationale: "Canvas annotation patterns"
+  - url: https://wiki.heptabase.com/
+    integration_type: concept
+    rationale: "Heptabase PDF annotations doctrine"
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  perf_100_annotations_lt_100ms: true
+  a11y_aria_labels_present: true
+  axe_core_clean: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [highlight-pdf-text, add-note-to-highlight, create-card-from-annotation, export-annotations]
+  ui_surfaces: [AnnotationOverlay, AnnotationToolbar]
+  entities_touched: [Annotation]
+  events_emitted: [annotation.created, annotation.deleted]
+  ai_context_packets_touched: [annotation-citations]
+  search_index_implications: index
+  heptabase_parity: "PDF annotations + card-from-annotation"
+  risk_axes: [UI, data]

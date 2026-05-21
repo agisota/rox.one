@@ -1,0 +1,93 @@
+id: WT-49
+title: "ActivityEvent emission policy (extends WT-08 audit)"
+branch: feat/activity-event-policy
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-49-activity-event
+feature_flag:
+  name: rox.feature.activity-event-v1
+  default: off
+  release_cut: foundation
+priority: P0
+wave: 0
+files_allowed:
+  - packages/shared/src/activity/event-policy.ts
+  - packages/shared/src/activity/emit.ts
+  - packages/shared/src/activity/subscription.ts
+  - packages/shared/src/activity/__tests__/emit.test.ts
+  - packages/shared/src/activity/__tests__/dedup.test.ts
+files_forbidden:
+  - packages/shared/src/audit/audit-event.ts
+  - packages/shared/src/audit/append-only-store.ts
+  - packages/shared/src/core/content-object.ts
+  - package.json
+  - tsconfig.json
+depends_on: [WT-08, WT-46]
+blocks: [WT-18, WT-32, WT-51, WT-52, WT-53, WT-54, WT-55, WT-56, WT-57, WT-58]
+scaffold_requests: []
+roles:
+  discovery: [brainstormer, scope-analyzer, critic]
+  design: [sequence-chart-writer, prompt-writer, architect]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer]
+model_overrides: {}
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - emit-unit
+    - dedup-1s-window
+    - per-object-ordering
+    - sanitizer-patterns
+    - load-1000-eps
+  electron_build: false
+  packaging_required: false
+linear:
+  parent_epic_identifier: PZD-118
+  child_story_titles:
+    - "Standard event types enum"
+    - "Dedup window + per-key ordering"
+    - "Subscription registry + replay"
+    - "Sanitizer extension"
+  existing_issues_to_attach: []
+featurebase:
+  board_id: "6a0db1dabaed70b5d8d3f898"
+  post_alias: wt-49-activity-event
+  status_lifecycle: [planned, in-progress, shipped]
+inspiration_repos:
+  - url: https://github.com/Siddhant-K-code/agent-trace
+    integration_type: concept
+    rationale: "Agent execution event tracing"
+  - url: https://github.com/inngest/deep-research-neon-durable-endpoints
+    integration_type: reference_only
+    rationale: "Durable event sourcing"
+  - url: https://github.com/OneUptime/oneuptime
+    integration_type: reference_only
+    rationale: "Observability event streams"
+  - url: https://github.com/Openpanel-dev/openpanel
+    integration_type: reference_only
+    rationale: "Event analytics patterns"
+  - url: https://github.com/exelban/stats
+    integration_type: reference_only
+    rationale: "Low-overhead event emission"
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  dedup_under_load: true
+  per_object_ordering_verified: true
+  sanitizer_patterns_complete: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [ActivityEvent]
+  events_emitted: [foundational-defines-all]
+  ai_context_packets_touched: [triggers-invalidation]
+  search_index_implications: index
+  heptabase_parity: "Object history/changelog (Heptabase card detail)"
+  risk_axes: [data, security, perf]

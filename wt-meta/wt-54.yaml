@@ -1,0 +1,101 @@
+id: WT-54
+title: "Source adapters (PDF, Web Clipper, Zotero, Readwise)"
+branch: feat/source-adapters
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-54-source-adapters
+feature_flag:
+  name: rox.feature.source-adapters-v1
+  default: off
+  release_cut: sources
+priority: P1
+wave: 2
+files_allowed:
+  - packages/shared/src/source/source-definition.ts
+  - packages/shared/src/source/adapter-registry.ts
+  - packages/shared/src/source/adapters/pdf.ts
+  - packages/shared/src/source/adapters/web-clipper.ts
+  - packages/shared/src/source/adapters/zotero.ts
+  - packages/shared/src/source/adapters/readwise.ts
+  - packages/shared/src/source/__tests__/source-definition.test.ts
+  - packages/shared/src/source/__tests__/pdf-adapter.test.ts
+  - packages/shared/src/source/__tests__/web-clipper.test.ts
+  - packages/shared/src/source/__tests__/zotero.test.ts
+  - packages/shared/src/source/__tests__/readwise.test.ts
+files_forbidden:
+  - packages/shared/src/core/content-object.ts
+  - packages/shared/src/core/relation.ts
+  - package.json
+  - tsconfig.json
+depends_on: [WT-46, WT-47]
+blocks: [WT-55]
+scaffold_requests: []
+roles:
+  discovery: [brainstormer, scope-analyzer, critic, cjm-writer]
+  design: [erd-writer, sequence-chart-writer, prompt-writer]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer]
+model_overrides: {}
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - pdf-adapter-100mb-30s
+    - web-clipper-spa-15s
+    - ssrf-guard-private-ips
+    - oauth-secret-storage
+    - idempotency-hash
+  electron_build: true
+  packaging_required: false
+linear:
+  parent_epic_identifier: PZD-114
+  child_story_titles:
+    - "SourceDefinition contract + adapter registry"
+    - "PDF adapter (unpdf + highlights → Annotations)"
+    - "Web Clipper adapter (readability + SSRF guard)"
+    - "Zotero adapter (OAuth + bulk fetch)"
+    - "Readwise adapter (OAuth + highlights API)"
+  existing_issues_to_attach: []
+featurebase:
+  board_id: "6a0db1b591b619c8111329f2"
+  post_alias: wt-54-source-adapters
+  status_lifecycle: [planned, in-progress, shipped]
+inspiration_repos:
+  - url: https://github.com/MusiCode1/obsidian-web
+    integration_type: concept
+    rationale: "Web → Obsidian clipper"
+  - url: https://github.com/HKUDS/CLI-Anything
+    integration_type: adapter
+    rationale: "Universal CLI/file adapter wrapper pattern"
+  - url: https://github.com/agisota/visual-explainer
+    integration_type: reference_only
+    rationale: "Content adapter pattern"
+  - url: https://github.com/kepano/defuddle
+    integration_type: reference_only
+    rationale: "Content extraction patterns"
+  - url: https://github.com/RSSNext/Folo
+    integration_type: reference_only
+    rationale: "Multi-source integration patterns"
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  pdf_100mb_lt_30s: true
+  web_clipper_spa_lt_15s: true
+  ssrf_guard_verified: true
+  oauth_secrets_secured: true
+  idempotency_verified: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [import-pdf, clip-web-url, connect-zotero, sync-readwise]
+  ui_surfaces: [Adapter-status-indicators]
+  entities_touched: [ContentObject_source, Annotation]
+  events_emitted: [source.imported, source.refreshed, oauth.connected]
+  ai_context_packets_touched: [source-citations]
+  search_index_implications: index
+  heptabase_parity: "PDF/Web/YouTube sources + annotations"
+  risk_axes: [security, data, license]

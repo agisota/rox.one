@@ -1,0 +1,118 @@
+id: WT-06
+title: "Workspace + Team data contract"
+branch: feat/contract-workspace-team
+base_sha: fac6f228069c
+worktree_path: ../wt-06-workspace-team
+
+feature_flag:
+  name: rox.feature.contracts.workspace-team.v1
+  default: off
+  release_cut: foundation
+
+priority: P0
+wave: 0
+
+files_allowed:
+  - packages/shared/src/core/workspace.ts
+  - packages/shared/src/core/team.ts
+  - packages/shared/src/core/membership.ts
+  - packages/server-core/src/schema/workspace.ts
+  - packages/server-core/migrations/0002_workspace_team.up.sql
+  - packages/server-core/migrations/0002_workspace_team.down.sql
+  - tests/unit/core/workspace.test.ts
+  - tests/unit/core/team.test.ts
+  - tests/unit/core/membership.test.ts
+  - wt-meta/wt-06.yaml
+  - docs/superpowers/specs/2026-05-21-wt-06-workspace-team-design.md
+
+files_forbidden:
+  - packages/shared/src/core/tenant.ts
+  - packages/shared/src/core/organization.ts
+  - packages/shared/src/core/user.ts
+  - packages/shared/src/feature-flags/**
+  - packages/shared/src/audit/**
+  - package.json
+  - tsconfig*.json
+  - bun.lock
+
+depends_on: [WT-00, WT-05]
+blocks: [WT-14, WT-15, WT-17, WT-23, WT-24, WT-28, WT-35, WT-36]
+
+scaffold_requests:
+  - target_file: packages/shared/src/core/index.ts
+    target_owner: WT-05
+    reason: "Append re-exports для workspace/team/membership"
+    proposed_change_summary: "export * from './workspace'; export * from './team'; export * from './membership';"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests: [core-workspace-roundtrip, team-cycle-detection, migration-up-down]
+  electron_build: false
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "🔧 Задача — Workspace zod schema + isolationPath uniqueness"
+    - "🔧 Задача — Team hierarchy schema + depth cap"
+    - "🔧 Задача — Membership discriminated union + role enum"
+    - "🔧 Задача — SQL migration up/down + reversibility test"
+  existing_issues_to_attach: []
+
+featurebase:
+  board_id: 6a0db1b591b619c8111329f2
+  post_alias: wt-06-workspace-team-contract
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/openai/symphony
+    integration_type: reference_only
+    rationale: "Workspace-first agent architecture"
+  - url: https://github.com/nocobase/nocobase
+    integration_type: reference_only
+    rationale: "Workspaces + roles data model"
+  - url: https://github.com/ln-dev7/circle
+    integration_type: reference_only
+    rationale: "Project/team UI data model reference"
+  - url: https://github.com/JerryZLiu/Dayflow
+    integration_type: reference_only
+    rationale: "Workspace-scoped time/session data"
+  - url: https://github.com/tobi/try
+    integration_type: reference_only
+    rationale: "Ephemeral workspaces pattern"
+
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  integration_tests_pass: true
+  electron_builds_mac: false
+  electron_builds_win: false
+  electron_builds_linux: false
+  screenshots_present: false
+  smoke_passes_3_machines: true
+  rbac_isolation_tests_pass: false
+  audit_emit_tests_pass: false
+  feature_flag_off_no_visible_change: true
+  migration_up_down_verified: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [Workspace, Team, Membership]
+  events_emitted: [workspace.created, team.created]
+  ai_context_packets_touched: [workspace-context]
+  search_index_implications: index
+  heptabase_parity: 'Workspace isolation'
+  risk_axes: [data, security]

@@ -1,0 +1,45 @@
+# release-cuts.yaml — defines which WTs ship together by release cut.
+#
+# `feature_flag.release_cut` in each wt-XX.yaml maps to one of the `includes`
+# tags below. master.ts `release <cut>` lists eligible WTs.
+#
+# Cut ordering (planned, pending Wave 0 completion):
+#   foundation  → infra + auth + tenancy (no UI)
+#   data        → object platform (ContentObject, Relation, Activity, Search)
+#   ui          → Heptabase-like surfaces, Notes, Day Tracker, Agent Run UI
+#   sharing     → public links + collab
+#   ai          → AI Tutor / Coordinator / Card AI
+
+cuts:
+  - name: foundation
+    description: "Auth, tenancy, RBAC, audit, telemetry, mailbox provisioning, storage backbone"
+    target_date: "2026-06-15"
+    includes: [foundation, infra]
+    excludes: []
+
+  - name: data
+    description: "Object Platform: ContentObject + Relation + ActivityEvent + AIContextPacket + SearchIndex + ModuleRegistry"
+    target_date: "2026-07-01"
+    includes: [data, platform]
+    excludes: []
+
+  - name: ui
+    description: "User-facing surfaces: Card Library, Whiteboard, Tags, Source adapters, Annotations, Journals, Graph view"
+    target_date: "2026-07-31"
+    includes: [ui]
+    excludes: []
+
+  - name: sharing
+    description: "Public Card/Whiteboard sharing + redactor + viewer UI"
+    target_date: "2026-08-15"
+    includes: [sharing]
+    excludes: []
+
+  - name: ai
+    description: "AI Tutor + Card AI + Composer mode switching + Agent Run DAG UI"
+    target_date: "2026-09-01"
+    includes: [ai]
+    excludes: []
+
+# Backwards-compatibility: legacy wt-meta yamls may use `release_cut: ui` —
+# all `includes:` arrays remain string-comparison so legacy tags keep working.

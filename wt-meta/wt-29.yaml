@@ -1,0 +1,131 @@
+id: WT-29
+title: "Task DAG runner + Workflows bridge"
+branch: feat/task-dag-runner
+base_sha: fac6f228069c
+worktree_path: ../wt-29-task-dag-runner
+
+feature_flag:
+  name: rox.feature.agent-fabric.dag-runner
+  default: off
+  release_cut: agent
+
+priority: P0
+wave: 3
+
+files_allowed:
+  - packages/shared/src/agent/dag-runner.ts
+  - packages/shared/src/agent/dag-builder.ts
+  - packages/shared/src/agent/dag-types.ts
+  - packages/shared/src/agent/role-registry.ts
+  - packages/shared/src/agent/dag-events.ts
+  - packages/shared/src/agent/index.ts
+  - infra/cloudflare/workflows-bridge.ts
+  - infra/cloudflare/wrangler.workflows-bridge.example.toml
+  - infra/cloudflare/wrangler.workflows-bridge.toml
+  - infra/cloudflare/__tests__/workflows-bridge.test.ts
+  - apps/electron/src/main/agent/dag-bridge.ts
+  - tests/unit/agent/dag/**
+  - tests/integration/agent/dag/**
+
+files_forbidden:
+  - apps/electron/src/renderer/**
+  - infra/cloudflare/coordinator-agent.ts
+  - packages/shared/src/agent/coordinator-contract.ts
+  - packages/shared/src/agent/coordinator-client.ts
+  - packages/shared/src/agent/coordinator-types.ts
+  - packages/shared/src/agent/claude-agent.ts
+  - packages/shared/src/audit/**
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-28]
+blocks: [WT-30, WT-34]
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add @cloudflare/workers-types update if not present for WorkflowEntrypoint"
+    proposed_change_summary: "{ devDeps: { @cloudflare/workers-types: ^4.20240821.0 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Reuse existing miniflare for Workflows + DO integration tests"
+    proposed_change_summary: "{ devDeps: { miniflare: ^3.20240821.0 } }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - agent-dag-inline-happy-path
+    - agent-dag-retry-recovery
+    - agent-dag-cancel-propagation
+    - agent-dag-bridge-streaming
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-116
+  child_story_titles:
+    - "🔧 Задача — DAG schema (zod) + builder с validation"
+    - "🔧 Задача — Role registry (14-role swarm + model defaults)"
+    - "🔧 Задача — DAGRunner topo-schedule + per-node retry"
+    - "🔧 Задача — Cancel propagation (downstream-only)"
+    - "🔧 Задача — Workflows bridge (long DAG durable execution)"
+    - "🔧 Задача — Electron dag-bridge IPC + partial-result stream"
+    - "🔧 Задача — Audit events dag.* / node.* integration"
+
+featurebase:
+  board_id: 6a0db1d3a8e2f070b0c2a234
+  post_alias: wt-29-task-dag-runner-workflows-bridge
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/cloudflare/workflows
+    integration_type: dependency
+    rationale: "Primary bridge target — Cloudflare Workflows durable execution"
+  - url: https://github.com/temporalio/sdk-typescript
+    integration_type: reference_only
+    rationale: "Workflow primitives + cancel propagation patterns"
+  - url: https://github.com/inngest/inngest
+    integration_type: reference_only
+    rationale: "Step function semantics + retry-durable steps"
+  - url: https://github.com/mastra-ai/mastra
+    integration_type: reference_only
+    rationale: "Workflow engine for agentic systems"
+  - url: https://github.com/dagster-io/dagster
+    integration_type: reference_only
+    rationale: "DAG-based orchestration schema design"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - workflows_bridge_miniflare_pass: true
+  - role_registry_14_roles_complete: true
+  - wrangler_example_committed: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_regression_pass: true
+  - cancel_propagation_test_pass: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [run-multi-step-task]
+  ui_surfaces: []
+  entities_touched: [AgentRun, AgentTask]
+  events_emitted: [task.completed, task.failed, branch.retried]
+  ai_context_packets_touched: [dag-state]
+  search_index_implications: index
+  heptabase_parity: 'N/A'
+  risk_axes: [data, perf]

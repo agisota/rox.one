@@ -1,0 +1,113 @@
+id: WT-22
+title: "Mailbox domain provisioning (user@rox.one)"
+branch: feat/mailbox-domain
+base_sha: fac6f228069c
+worktree_path: ../wt-22-mailbox-domain
+
+feature_flag:
+  name: rox.feature.mailbox.user-at-rox
+  default: off
+  release_cut: notifications
+
+priority: P2
+wave: 1
+
+files_allowed:
+  - infra/cloudflare/mailbox-provisioning.worker.ts
+  - infra/cloudflare/mailbox-provisioning.worker.test.ts
+  - infra/cloudflare/wrangler.mailbox-provisioning.example.toml
+  - infra/cloudflare/README-mailbox-provisioning.md
+  - packages/shared/src/mailbox/**
+  - tests/unit/mailbox/**
+  - tests/integration/mailbox/**
+files_forbidden:
+  - infra/cloudflare/rox-one-router.worker.ts
+  - infra/cloudflare/rox-one-release-feed.worker.ts
+  - infra/cloudflare/wrangler.rox-one.example.toml
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - apps/electron/**
+
+depends_on: [WT-13, WT-19]
+blocks: []
+
+scaffold_requests:
+  - target_file: docs/architecture/env-reference.md
+    target_owner: WT-00
+    reason: "document CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_ZONE_ID env vars"
+    proposed_change_summary: "add section «Mailbox provisioning env vars»"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design: [prompt-writer, architect]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests: [provision-mock, revoke-mock, idempotency, wrangler-dry-run]
+  electron_build: false
+  packaging_required: false
+  manual_smoke_required: true
+  manual_smoke_owner: "DevOps / WT-22 coordinator"
+
+linear:
+  parent_epic_identifier: PZD-115
+  child_story_titles:
+    - "🔧 Задача — Cloudflare Email Routing adapter"
+    - "🔧 Задача — Provisioner interface + idempotency"
+    - "🔧 Задача — DNS health-check pre-provision"
+    - "🔧 Задача — Worker + wrangler config"
+    - "🔧 Задача — Secret redaction + audit emit"
+  existing_issues_to_attach: []
+
+featurebase:
+  board_id: compounding
+  post_alias: wt-22-mailbox-domain
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/cloudflare/workers-sdk
+    integration_type: reference_only
+    rationale: "Email Routing API + Worker patterns"
+  - url: https://github.com/forwardemail/forwardemail.net
+    integration_type: reference_only
+    rationale: "Email routing service architecture reference"
+  - url: https://github.com/migadu/sora
+    integration_type: reference_only
+    rationale: "DNS provisioning + DKIM rotation reference"
+  - url: https://github.com/sendgrid/inbound-parse-webhook-examples
+    integration_type: concept
+    rationale: "Inbound webhook patterns for future in-app inbox"
+  - url: https://github.com/postalserver/postal
+    integration_type: reference_only
+    rationale: "Self-hosted mail server fallback option"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - wrangler_dry_run_passes: true
+  - secret_redaction_verified: true
+  - idempotency_verified: true
+  - dns_health_check_verified: true
+  - feature_flag_off_no_visible_change: true
+  - audit_emit_tests_pass: true
+  - manual_smoke_evidence_attached: true
+mission_control:
+  work_type: integration
+  cjm_scenarios: [provision-domain-mailbox]
+  ui_surfaces: []
+  entities_touched: [MailboxProvisioning]
+  events_emitted: [mailbox.provisioned]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [security, data]

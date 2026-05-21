@@ -1,0 +1,115 @@
+id: WT-52
+title: "Whiteboard + Placement (canvas separate from cards)"
+branch: feat/whiteboard-placement
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-52-whiteboard-placement
+feature_flag:
+  name: rox.feature.whiteboard-placement-v1
+  default: off
+  release_cut: ui
+priority: P1
+wave: 2
+files_allowed:
+  - packages/shared/src/core/placement.ts
+  - packages/shared/src/core/whiteboard.ts
+  - packages/server-core/src/schema/placement.ts
+  - packages/server-core/src/migrations/20260521-placement-whiteboard.sql
+  - apps/electron/src/renderer/pages/whiteboard/Whiteboard.tsx
+  - apps/electron/src/renderer/pages/whiteboard/Canvas.tsx
+  - apps/electron/src/renderer/pages/whiteboard/CardOnCanvas.tsx
+  - apps/electron/src/renderer/pages/whiteboard/Toolbar.tsx
+  - apps/electron/src/renderer/pages/whiteboard/Selection.tsx
+  - apps/electron/src/renderer/pages/whiteboard/__tests__/Whiteboard.test.tsx
+  - apps/electron/src/renderer/pages/whiteboard/__tests__/Canvas.test.tsx
+  - apps/electron/src/renderer/pages/whiteboard/__tests__/Placement-invariant.test.ts
+files_forbidden:
+  - packages/shared/src/core/content-object.ts
+  - packages/shared/src/core/relation.ts
+  - apps/electron/src/renderer/pages/cards/CardLibrary.tsx
+  - package.json
+  - tsconfig.json
+depends_on: [WT-46, WT-47, WT-51]
+blocks: [WT-57, WT-58]
+scaffold_requests:
+  - target_file: apps/electron/src/renderer/modules/registered/whiteboards.ts
+    target_owner: WT-45
+    reason: "Register whiteboards module"
+    proposed_change_summary: "ModuleDefinition for type='whiteboard'"
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic, cjm-writer]
+  design: [erd-writer, sequence-chart-writer, ui-inventory-writer, ux-guru, prompt-writer]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+model_overrides: {}
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests:
+    - placement-invariant-T1-T2-T3
+    - same-card-two-boards
+    - perf-500-placements-60fps
+    - bundle-canvas-lt-100kb
+    - axe-toolbar
+    - chaos-100-placements
+  electron_build: true
+  packaging_required: false
+linear:
+  parent_epic_identifier: PZD-117
+  child_story_titles:
+    - "Placement schema + migration"
+    - "Canvas component (xyflow)"
+    - "Drag-drop from Library"
+    - "Connection arrows via Relations"
+    - "Perf 60 FPS / 500 placements"
+  existing_issues_to_attach: []
+featurebase:
+  board_id: "6a0db0e7d1e3f457181dd1dd"
+  post_alias: wt-52-whiteboard-placement
+  status_lifecycle: [planned, in-progress, shipped]
+inspiration_repos:
+  - url: https://wiki.heptabase.com/fundamental-elements
+    integration_type: concept
+    rationale: "Card ≠ Placement invariant directly from Heptabase doctrine"
+  - url: https://github.com/agisota/reaflow
+    integration_type: partial_port
+    rationale: "Node-graph canvas (xyflow alternative)"
+  - url: https://github.com/agisota/meta2d.js
+    integration_type: reference_only
+    rationale: "2D canvas library"
+  - url: https://github.com/protectwise/troika
+    integration_type: reference_only
+    rationale: "High-perf canvas rendering"
+  - url: https://github.com/vercel-labs/tersa
+    integration_type: reference_only
+    rationale: "Modern canvas UX"
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  invariant_tests_T1_T2_T3_pass: true
+  perf_60fps_500_placements: true
+  bundle_canvas_le_100kb: true
+  axe_core_clean: true
+  screenshots_present_light: true
+  screenshots_present_dark: true
+  chaos_test_100_placements: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios:
+    - create-whiteboard
+    - drag-card-to-board
+    - move-card
+    - connect-cards
+    - same-card-two-boards
+  ui_surfaces: [Whiteboards-sidebar, Canvas, Toolbar, Card-on-canvas, Selection]
+  entities_touched: [Whiteboard, Placement]
+  events_emitted: [whiteboard.created, placement.created, placement.moved, placement.deleted, arrow.created]
+  ai_context_packets_touched: [scope=whiteboard]
+  search_index_implications: index
+  heptabase_parity: "Whiteboards — Card ≠ Placement invariant, central spatial canvas"
+  risk_axes: [UI, perf, data]
