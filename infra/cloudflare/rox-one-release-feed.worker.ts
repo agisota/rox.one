@@ -593,6 +593,18 @@ export async function handleReleaseFeedRequest(request: Request, env: Env): Prom
     return serveAssetByName(tag, pathname.slice(1), env, method)
   }
 
+  // Shorthand `/install` — pick .ps1 for PowerShell User-Agent, otherwise .sh.
+  // Lets us advertise one URL in README: `https://app.rox.one/install` and
+  // users on Mac/Linux pipe to bash, Windows pipes to PowerShell, both work.
+  if (pathname === '/install') {
+    const ua = (request.headers.get('user-agent') ?? '').toLowerCase()
+    const isPowerShell = ua.includes('powershell') || ua.includes('windowspowershell') || ua.includes('pwsh')
+    const scriptName = isPowerShell ? 'install-app.ps1' : 'install-app.sh'
+    const tag = await resolveChannelTag('stable', env)
+    if (typeof tag !== 'string') return tag
+    return serveAssetByName(tag, scriptName, env, method)
+  }
+
   // Channel paths:
   // - /electron/latest is a backward-compatible alias for stable.
   // - /electron/stable resolves to the newest non-prerelease vX.Y.Z tag.
