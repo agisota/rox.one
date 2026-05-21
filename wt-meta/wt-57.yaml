@@ -1,0 +1,100 @@
+id: WT-57
+title: "Graph view (relationship visualization)"
+branch: feat/graph-view
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-57-graph-view
+feature_flag:
+  name: rox.feature.graph-view-v1
+  default: off
+  release_cut: ui
+priority: P2
+wave: 3
+files_allowed:
+  - apps/electron/src/renderer/pages/graph/GraphView.tsx
+  - apps/electron/src/renderer/pages/graph/GraphCanvas.tsx
+  - apps/electron/src/renderer/pages/graph/GraphFilters.tsx
+  - apps/electron/src/renderer/pages/graph/__tests__/GraphView.test.tsx
+  - apps/electron/src/renderer/pages/graph/__tests__/GraphCanvas.test.tsx
+  - packages/shared/src/graph/graph-builder.ts
+  - packages/shared/src/graph/__tests__/graph-builder.test.ts
+files_forbidden:
+  - packages/shared/src/core/content-object.ts
+  - packages/shared/src/core/relation.ts
+  - apps/electron/src/renderer/pages/whiteboard/Canvas.tsx
+  - package.json
+  - tsconfig.json
+depends_on: [WT-46, WT-47, WT-52]
+blocks: []
+scaffold_requests:
+  - target_file: apps/electron/src/renderer/modules/registered/graph.ts
+    target_owner: WT-45
+    reason: "Register graph view module"
+    proposed_change_summary: "ModuleDefinition for graph"
+roles:
+  discovery: [brainstormer, scope-analyzer, critic, cjm-writer]
+  design: [erd-writer, ui-inventory-writer, ux-guru]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+model_overrides: {}
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests:
+    - graph-build-1000-nodes
+    - filter-by-tag
+    - focus-node-neighborhood
+    - perf-60-fps
+    - axe-filters
+  electron_build: true
+  packaging_required: false
+linear:
+  parent_epic_identifier: PZD-117
+  child_story_titles:
+    - "GraphBuilder + BFS hop depth"
+    - "GraphCanvas с xyflow + d3-force layout"
+    - "Filters + focus mode"
+    - "Perf 60 FPS + bundle gate"
+  existing_issues_to_attach: []
+featurebase:
+  board_id: "6a0db0e7d1e3f457181dd1dd"
+  post_alias: wt-57-graph-view
+  status_lifecycle: [planned, in-progress, shipped]
+inspiration_repos:
+  - url: https://github.com/agisota/reaflow
+    integration_type: partial_port
+    rationale: "Node-graph canvas (re-use from WT-52)"
+  - url: https://github.com/Ovyerus/prismaliser
+    integration_type: reference_only
+    rationale: "Schema graph viz"
+  - url: https://github.com/safishamsi/graphify
+    integration_type: concept
+    rationale: "Graph rendering for knowledge"
+  - url: https://github.com/hijohnnylin/neuronpedia
+    integration_type: reference_only
+    rationale: "Large-graph viz UX"
+  - url: https://github.com/d3/d3
+    integration_type: adapter
+    rationale: "d3-force layout for graph positioning"
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  perf_1000_nodes_lt_200ms: true
+  perf_60fps_pan_zoom: true
+  axe_core_clean: true
+  bundle_no_regression: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [explore-graph, focus-node-neighborhood, filter-graph]
+  ui_surfaces: [GraphView, GraphCanvas, GraphFilters, MiniMap]
+  entities_touched: [ContentObject, Relation]
+  events_emitted: [graph.opened]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: "Map of Content / global graph"
+  risk_axes: [UI, perf]

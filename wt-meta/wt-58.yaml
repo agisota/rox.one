@@ -1,0 +1,104 @@
+id: WT-58
+title: "Public Card/Whiteboard sharing + redaction"
+branch: feat/public-sharing
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-58-public-sharing
+feature_flag:
+  name: rox.feature.public-sharing-v1
+  default: off
+  release_cut: ui
+priority: P1
+wave: 3
+files_allowed:
+  - packages/shared/src/sharing/public-link.ts
+  - packages/shared/src/sharing/redactor.ts
+  - packages/shared/src/sharing/__tests__/public-link.test.ts
+  - packages/shared/src/sharing/__tests__/redactor-fuzz.test.ts
+  - apps/electron/src/renderer/components/share-modal/ShareModal.tsx
+  - apps/electron/src/renderer/components/share-modal/__tests__/ShareModal.test.tsx
+  - apps/web/src/pages/share/[token].tsx
+  - apps/web/src/pages/share/__tests__/share-token.test.tsx
+  - packages/server-core/src/sharing/share-endpoint.ts
+  - packages/server-core/src/migrations/20260521-public-links.sql
+files_forbidden:
+  - apps/electron/src/renderer/pages/cards/CardLibrary.tsx
+  - apps/electron/src/renderer/pages/whiteboard/Canvas.tsx
+  - packages/shared/src/core/content-object.ts
+  - package.json
+  - tsconfig.json
+depends_on: [WT-51, WT-52, WT-14, WT-08]
+blocks: []
+scaffold_requests: []
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic, cjm-writer]
+  design: [erd-writer, sequence-chart-writer, ui-inventory-writer, ux-guru, prompt-writer]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, risk-board-tracker]
+model_overrides: {}
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests:
+    - public-link-ttl-expiry
+    - snapshot-vs-live-mode
+    - redactor-fuzz-100-docs
+    - hmac-token-tampering-rejected
+    - rate-limit-100-per-min
+    - audit-emit-share-events
+  electron_build: true
+  packaging_required: true
+linear:
+  parent_epic_identifier: PZD-123
+  child_story_titles:
+    - "PublicLink schema + TTL + revoke"
+    - "Redactor (fail-closed) + fuzz tests"
+    - "Snapshot vs Live mode"
+    - "ShareModal UI"
+    - "Public ViewerPage on share.rox.one + watermark"
+  existing_issues_to_attach: []
+featurebase:
+  board_id: "6a0db1b591b619c8111329f2"
+  post_alias: wt-58-public-sharing
+  status_lifecycle: [planned, in-progress, shipped]
+inspiration_repos:
+  - url: https://wiki.heptabase.com/
+    integration_type: concept
+    rationale: "Heptabase Public Card sharing doctrine"
+  - url: https://github.com/agisota/zrok
+    integration_type: reference_only
+    rationale: "Public tunnel security model"
+  - url: https://github.com/agisota/sweetlink
+    integration_type: reference_only
+    rationale: "Link shortener / token gen"
+  - url: https://github.com/Mail-0/Zero
+    integration_type: reference_only
+    rationale: "Public link security patterns"
+  - url: https://github.com/anomalyco/openauth
+    integration_type: reference_only
+    rationale: "HMAC token signing"
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  integration_tests_pass: true
+  redactor_fuzz_zero_leak: true
+  hmac_tamper_rejected: true
+  rate_limit_verified: true
+  audit_emit_complete: true
+  screenshots_present: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+  security_review_passed: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [share-card-public, share-whiteboard, revoke-link, viewer-anonymous-access]
+  ui_surfaces: [ShareModal, PublicViewerPage]
+  entities_touched: [PublicLink, PublicLinkSnapshot]
+  events_emitted: [public_link.created, public_link.revoked, public_link.expired, public_link.viewed]
+  ai_context_packets_touched: []
+  search_index_implications: exclude
+  heptabase_parity: "Public Card / Public Whiteboard links"
+  risk_axes: [security, data, release]

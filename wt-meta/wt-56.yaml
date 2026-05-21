@@ -1,0 +1,100 @@
+id: WT-56
+title: "Journals + Daily Notes"
+branch: feat/journals-daily
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-56-journals
+feature_flag:
+  name: rox.feature.journals-v1
+  default: off
+  release_cut: ui
+priority: P2
+wave: 2
+files_allowed:
+  - packages/shared/src/core/journal.ts
+  - packages/shared/src/journal-service/journal-service.ts
+  - packages/shared/src/journal-service/__tests__/journal-service.test.ts
+  - apps/electron/src/renderer/pages/journals/JournalsPage.tsx
+  - apps/electron/src/renderer/pages/journals/DailyNote.tsx
+  - apps/electron/src/renderer/pages/journals/Calendar.tsx
+  - apps/electron/src/renderer/pages/journals/__tests__/Calendar.test.tsx
+  - apps/electron/src/renderer/pages/journals/__tests__/DailyNote.test.tsx
+files_forbidden:
+  - packages/shared/src/core/content-object.ts
+  - packages/shared/src/core/relation.ts
+  - apps/electron/src/renderer/pages/cards/BlockEditor.tsx
+  - package.json
+  - tsconfig.json
+depends_on: [WT-46, WT-47, WT-51]
+blocks: []
+scaffold_requests:
+  - target_file: apps/electron/src/renderer/modules/registered/journals.ts
+    target_owner: WT-45
+    reason: "Register journals module"
+    proposed_change_summary: "ModuleDefinition for type='journal'"
+roles:
+  discovery: [brainstormer, scope-analyzer, critic, cjm-writer]
+  design: [erd-writer, ui-inventory-writer, ux-guru, prompt-writer]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer]
+model_overrides: {}
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests:
+    - getOrCreate-idempotent
+    - calendar-render-100ms
+    - backlinks-aggregation
+    - weekly-review-ai
+    - axe-calendar
+  electron_build: true
+  packaging_required: false
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "Journal schema + getOrCreate"
+    - "Calendar UI + month grid"
+    - "Backlinks aggregation"
+    - "Weekly/monthly review templates + AI summarize"
+  existing_issues_to_attach: []
+featurebase:
+  board_id: "6a0db0e7d1e3f457181dd1dd"
+  post_alias: wt-56-journals-daily
+  status_lifecycle: [planned, in-progress, shipped]
+inspiration_repos:
+  - url: https://wiki.heptabase.com/
+    integration_type: concept
+    rationale: "Heptabase Journals (daily/weekly/monthly)"
+  - url: https://github.com/devxoul/vibe-notion
+    integration_type: concept
+    rationale: "Daily note UX"
+  - url: https://github.com/agisota/portal
+    integration_type: reference_only
+    rationale: "Knowledge-mgmt journal pattern"
+  - url: https://github.com/Developer-Mike/obsidian-advanced-canvas
+    integration_type: reference_only
+    rationale: "Calendar + canvas overlap"
+  - url: https://github.com/JerryZLiu/Dayflow
+    integration_type: reference_only
+    rationale: "Daily review UX"
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  daily_load_lt_50ms: true
+  calendar_month_lt_100ms: true
+  axe_core_clean: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [open-todays-journal, view-weekly-review, navigate-calendar]
+  ui_surfaces: [JournalsPage, DailyNote, Calendar, BacklinksSidebar]
+  entities_touched: [ContentObject_journal]
+  events_emitted: [journal.created, journal.opened]
+  ai_context_packets_touched: [workspace-with-date-filter]
+  search_index_implications: index
+  heptabase_parity: "Journals (daily/weekly/monthly review)"
+  risk_axes: [UI]
