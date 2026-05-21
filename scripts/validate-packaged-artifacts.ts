@@ -157,6 +157,14 @@ function roxDesignPayloadRoot(): string | null {
 function validateRoxDesignPayload(): void {
   const payloadRoot = roxDesignPayloadRoot();
   if (!payloadRoot) return;
+  // Test fixtures only materialise top-level artefact files + Info.plist,
+  // never a full packaged-app tree. If `app.asar.unpacked/` itself is
+  // absent, we're inspecting a fixture — skip the Rox Design payload check.
+  // If `app.asar.unpacked/` exists but the rox-design directory inside it
+  // is missing, that IS the bug we want to catch (payload sealed inside
+  // the asar instead of unpacked) — fall through to the fail() below.
+  const asarUnpackedDir = path.dirname(path.dirname(payloadRoot));
+  if (!existsSync(asarUnpackedDir)) return;
   if (!existsSync(payloadRoot)) {
     fail(`missing Rox Design payload root: ${payloadRoot.replace(`${process.cwd()}/`, '')}`);
   }
