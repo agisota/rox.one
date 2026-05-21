@@ -6,6 +6,11 @@ ROX.ONE is a beautiful, document-centric workspace for AI agents. Multi-session 
 
 We build ROX.ONE with ROX.ONE.
 
+> **v2 cycle (2026-05-21+).** Active feature work flows through the 40-worktree
+> parallel harness. v1 install instructions below are unchanged. Contributors:
+> see `wt-meta/scaffold-ownership.yaml` and
+> `docs/superpowers/specs/2026-05-21-rox-one-parallel-worktree-harness-master.md`.
+
 ## After R.11 history rewrite
 
 **Visible coordination banner, keep until 2026-05-19 23:59 UTC.** Main history

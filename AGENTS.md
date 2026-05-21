@@ -115,3 +115,28 @@ A task is DONE only when:
 - worklog is complete
 - commit exists for the task
 - unrelated runtime files are not mixed into the task commit
+
+## Parallel Worktree Harness (v2 cycle, 2026-05-21)
+
+ROX.ONE v2 ships through a 40-worktree parallel harness. Each WT owns a strict
+file allowlist (`wt-meta/wt-XX.yaml › files_allowed`) and a forbid-list. Shared
+scaffolds (root `package.json`, `tsconfig.json`, `AGENTS.md`, CI workflows,
+cross-cutting registries) are owned by a single WT — usually WT-00 for repo
+config and WT-09 for server core. Siblings request changes via the
+`scaffold_requests:` block in their own yaml; the owner batches them in.
+
+Authoritative references:
+
+- Master spec: `docs/superpowers/specs/2026-05-21-rox-one-parallel-worktree-harness-master.md`
+- Ownership map: `wt-meta/scaffold-ownership.yaml`
+- Release cuts: `wt-meta/release-cuts.yaml`
+- Snapshot validator: `scripts/orchestrator/snapshot-verify.ts`
+- CODEOWNERS: `.github/CODEOWNERS`
+
+Before opening a PR from a WT branch:
+
+1. Confirm every changed file is in `files_allowed` (or owned by you).
+2. Run `bun run scripts/orchestrator/snapshot-verify.ts --json` and attach
+   the report to the PR description.
+3. List unresolved scaffold-extension requests in the PR body so the owner WT
+   can batch them.

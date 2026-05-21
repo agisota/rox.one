@@ -1,8 +1,48 @@
-# ROX.ONE gitleaks config
+# gitleaks.toml — secret-detection rules for ROX.ONE pre-commit + CI gate.
+#
+# Owned by WT-00 (release-engineering bootstrap). New rules require a
+# scaffold_request to WT-00 from the requesting WT.
+
+title = "ROX.ONE secret-detection rules"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "rox-anthropic-key"
+description = "Anthropic API key (sk-ant-*)"
+regex = '''sk-ant-[A-Za-z0-9-]{20,}'''
+tags = ["key", "anthropic"]
+
+[[rules]]
+id = "rox-linear-key"
+description = "Linear API key (lin_api_*)"
+regex = '''lin_api_[A-Za-z0-9]{40,}'''
+tags = ["key", "linear"]
+
+[[rules]]
+id = "rox-featurebase-key"
+description = "Featurebase API key heuristic"
+regex = '''(?i)featurebase[_-]?api[_-]?key["']?\s*[:=]\s*["']?[A-Za-z0-9-]{20,}'''
+tags = ["key", "featurebase"]
+
+[[rules]]
+id = "rox-cloudflare-token"
+description = "Cloudflare API token heuristic"
+regex = '''(?i)cf[_-]?api[_-]?token["']?\s*[:=]\s*["']?[A-Za-z0-9_-]{40,}'''
+tags = ["key", "cloudflare"]
+
 [allowlist]
-description = "ROX.ONE allowlist"
+description = "ROX.ONE allowlist — test fixtures + WT-00 documentation."
 paths = [
-  '''.*test.*fixtures/.*''',                  # test fixtures
+  '''.*test.*fixtures/.*''',
   '''.*__snapshots__/.*''',
   '''docs/release/dependency-risk-register-.*\.md''',
+  '''scripts/orchestrator/__tests__/.*''',
+  '''docs/security/secrets-rotation-2026-05-21\.md''',
+  '''\.gitleaks\.toml''',
+]
+regexes = [
+  '''EXAMPLE''',
+  '''sk-ant-(test|example|fake)''',
 ]
