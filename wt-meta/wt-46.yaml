@@ -1,0 +1,113 @@
+id: WT-46
+title: "ContentObject + Block universal schema"
+branch: feat/content-object-schema
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-46-content-object
+
+feature_flag:
+  name: rox.feature.content-object-v1
+  default: off
+  release_cut: foundation
+
+priority: P0
+wave: 0
+
+files_allowed:
+  - packages/shared/src/core/content-object.ts
+  - packages/shared/src/core/block.ts
+  - packages/shared/src/core/__tests__/content-object.test.ts
+  - packages/server-core/src/schema/content-object.ts
+  - packages/server-core/src/migrations/20260521-content-object.sql
+  - packages/server-core/src/__tests__/content-object-migration.test.ts
+
+files_forbidden:
+  - packages/shared/src/core/user.ts
+  - packages/shared/src/core/tenant.ts
+  - packages/shared/src/core/workspace.ts
+  - package.json
+  - tsconfig.json
+
+depends_on: [WT-04, WT-06]
+blocks: [WT-47, WT-48, WT-49, WT-50, WT-51, WT-52, WT-53, WT-54, WT-55, WT-56, WT-57, WT-58]
+
+scaffold_requests: []
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design: [erd-writer, prompt-writer, architect, data-refresh-rule-keeper]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - content-object-unit
+    - migration-up-down
+    - rls-cross-tenant
+    - perf-1000x10
+  electron_build: false
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "ContentObject schema + Zod + tests"
+    - "Block schema + ordering"
+    - "Migration up/down + RLS"
+    - "Per-type metadata schemas"
+  existing_issues_to_attach: []
+
+featurebase:
+  board_id: "6a0db1b591b619c8111329f2"
+  post_alias: wt-46-content-object
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/nocobase/nocobase
+    integration_type: concept
+    rationale: "Universal content collection abstraction"
+  - url: https://github.com/RSSNext/Folo
+    integration_type: concept
+    rationale: "Multi-type content unified model"
+  - url: https://github.com/wasp-lang/open-saas
+    integration_type: reference_only
+    rationale: "Entity schema patterns"
+  - url: https://github.com/agisota/multica
+    integration_type: concept
+    rationale: "Universal content registry"
+  - url: https://github.com/Mail-0/Zero
+    integration_type: reference_only
+    rationale: "Multi-type message-as-object model"
+
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  migration_up_down_reversible: true
+  rls_cross_tenant_blocked: true
+  perf_1000x10_lt_50ms: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [ContentObject, Block]
+  events_emitted:
+    - content_object.created
+    - content_object.updated
+    - content_object.deleted
+    - content_object.restored
+    - block.inserted
+    - block.reordered
+  ai_context_packets_touched: [content-object-refs]
+  search_index_implications: index
+  heptabase_parity: "Card → ContentObject{type=card}, universal model"
+  risk_axes: [data, security]
