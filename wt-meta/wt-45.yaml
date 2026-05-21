@@ -1,0 +1,113 @@
+id: WT-45
+title: "ModuleRegistry (typed ModuleDefinition + sidebar/routes/panels)"
+branch: feat/module-registry
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-45-module-registry
+
+feature_flag:
+  name: rox.feature.modules.registry-v1
+  default: off
+  release_cut: foundation
+
+priority: P0
+wave: 0
+
+files_allowed:
+  - packages/shared/src/modules/module-registry.ts
+  - packages/shared/src/modules/module-definition.ts
+  - packages/shared/src/modules/__tests__/module-registry.test.ts
+  - apps/electron/src/renderer/components/sidebar/ModuleSidebar.tsx
+  - apps/electron/src/renderer/router/module-routes.tsx
+  - apps/electron/src/renderer/__tests__/module-sidebar.test.tsx
+
+files_forbidden:
+  - apps/electron/src/renderer/components/TopBar.tsx
+  - apps/electron/src/renderer/components/AppShell.tsx
+  - apps/electron/src/renderer/router/index.tsx
+  - package.json
+  - tsconfig.json
+
+depends_on: [WT-00]
+blocks: [WT-35, WT-36, WT-37, WT-51, WT-52]
+
+scaffold_requests:
+  - target_file: apps/electron/src/renderer/router/index.tsx
+    target_owner: WT-03
+    reason: "mount <ModuleRoutes /> as child of root <Routes>"
+    proposed_change_summary: "import { ModuleRoutes } from './module-routes'; insert <ModuleRoutes /> sibling to existing routes"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic, cjm-writer]
+  design: [erd-writer, sequence-chart-writer, prompt-writer, architect, ui-inventory-writer, data-refresh-rule-keeper]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests:
+    - module-registry-unit
+    - sidebar-rtl
+    - axe-sidebar
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "Registry contract + 10 TDD tests"
+    - "Sidebar UI + a11y"
+    - "Permission gate via Roles engine"
+    - "AI context provider hook"
+  existing_issues_to_attach: []
+
+featurebase:
+  board_id: "6a0db1b591b619c8111329f2"
+  post_alias: wt-45-module-registry
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/nocobase/nocobase
+    integration_type: concept
+    rationale: "Extensible plugin/module registry pattern"
+  - url: https://github.com/wasp-lang/open-saas
+    integration_type: reference_only
+    rationale: "Modular SaaS module config"
+  - url: https://github.com/devxoul/vibe-notion
+    integration_type: reference_only
+    rationale: "Notion-style module sidebar"
+  - url: https://github.com/RSSNext/Folo
+    integration_type: reference_only
+    rationale: "Electron sidebar pattern"
+  - url: https://github.com/agisota/multica
+    integration_type: concept
+    rationale: "Universal multi-content registry"
+
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  integration_tests_pass: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+  screenshots_present: true
+  smoke_passes_3_machines: true
+  axe_core_clean: true
+  bundle_delta_le_5kb: true
+  feature_flag_off_no_visible_change: true
+
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [register-new-module, switch-active-module]
+  ui_surfaces: [Sidebar, Module-host-panel]
+  entities_touched: [ModuleDefinition]
+  events_emitted: [module.registered, module.activated]
+  ai_context_packets_touched: [per-module-context]
+  search_index_implications: index
+  heptabase_parity: N/A
+  risk_axes: [UI, perf]
