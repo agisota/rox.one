@@ -112,6 +112,12 @@ asar: true
 # silently fails to boot.
 # Reference: https://www.electronjs.org/docs/latest/tutorial/asar-archives#executing-binaries-inside-asar-archive
 asarUnpack:
+  # Two patterns needed — `**/*` requires at least 1 path segment to match,
+  # so depth-0 files like MANIFEST.json wouldn't be unpacked on Linux/Windows
+  # (works on Mac due to different bundle path normalization). Adding the
+  # bare `*` glob covers top-level files like MANIFEST.json that live
+  # directly under rox-design/. See audit #379 follow-up investigation.
+  - "resources/rox-design/*"
   - "resources/rox-design/**/*"
 
 mac:
