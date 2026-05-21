@@ -764,3 +764,292 @@ Total: ~92 spec files + 6 orchestrator scripts.
 6. After per-WT spec approve: I spawn master orchestrator code (separate explicit approval required — this is implementation).
 7. Master orchestrator dry-run shows merge plan + Linear/FB sync plan.
 8. After dry-run approve: actual WT execution begins.
+
+---
+
+# v2 Update — Mission Control Expansion (2026-05-21)
+
+Изменения после критики пользователя: одномерный pipeline (Todo/In Progress/Done) недостаточен. Нужен **mission control контур**, где каждая задача ведётся одновременно по 7 осям. 5-phase lifecycle расширяется до 12 explicit gates с required artifacts. Object platform (ModuleRegistry/ContentObject/RelationService/Placement) добавлен в фундамент. Heptabase-like layer (Card Library / Whiteboard / Tags / Sources / Annotations / Journals / Graph / Public sharing) добавлен как 8 новых WT.
+
+Все изменения **additive**: §0-§10 остаются в силе как v1 baseline; §11-§17 — v2 superset. Mission control оси и 12-gate artifacts применяются ко ВСЕМ WT (включая существующие 40).
+
+## §11. Multi-axis Mission Control Matrix
+
+Каждая задача ведётся одновременно по 7 осям контроля. На каждой оси — собственный artifact-deliverable и owner role.
+
+| Ось | Что фиксируем | Owner role | Artifact |
+|---|---|---|---|
+| **Work type** | refactor / integration / new_module / greenfield / spike / process | scope-analyzer + critic | `routing.md` |
+| **User journey (CJM)** | persona, intent, entry, primary path, alternative paths, failures, success metric | cjm-writer | `cjm/<scenario>.md` (≥1 per scenario) |
+| **Domain model** | entities, relationships, ownership, lifecycle | erd-writer | `erd/entities.mmd` (Mermaid) |
+| **UI/UX inventory** | screens, panels, buttons, hover, tooltip, empty/error/loading states, keyboard, a11y | ui-inventory-writer | `ui-inventory/<surface>.md` |
+| **Data/runtime** | DB, storage, sync, search index, workers, IPC/API, refresh rules (sync/async/no-update) | data-refresh-rule-keeper | `refresh-rules.md` |
+| **AI/context layer** | что агент видит/не видит, permission filter, citations, AI context packet membership | architect + ux-guru + security | `ai-context-policy.md` |
+| **Verification** | tests, screenshots, logs, traces, rollback, observability metrics + alerts | verifier + observability-engineer | `evidence/`, `observability/{metrics,alerts}.md` |
+
+### Anti-pattern vs правильный путь
+
+**Антипаттерн:** «Нарисовать whiteboard UI → добавить cards → потом backlinks → потом search → потом дать AI доступ → внезапно обнаружить, что нет прав/storage/sync/relation model/rollback».
+
+**Правильный путь (цепочка инвариантов):**
+```
+User outcome
+→ CJM (gate 03)
+→ Domain entities (gate 04 ERD)
+→ Relationships (WT-47 RelationService)
+→ Events (WT-49 ActivityEvent emit policy)
+→ Contracts (gate 05 Zod/TS schemas)
+→ UI states (gate 06 inventory с hover/tooltip/empty/error/loading/keyboard/a11y)
+→ Tests (gate 07 failing-first)
+→ Implementation (gate 08)
+→ Evidence (gate 09 на 3 machines)
+→ Merge (gate 11)
+→ Observability (gate 12 metrics + alerts)
+```
+
+### 9 Mission Control views (Linear / dashboard)
+
+Не одна PIPELINE view, а 9 представлений:
+
+| View | Purpose |
+|---|---|
+| Mission Map | все epics/modules/workstreams |
+| Dependency Graph | blocks / blocked_by |
+| Merge Train | порядок слияния PR |
+| Evidence Board | где не хватает тестов/скриншотов/logs |
+| UI Inventory | экраны, элементы, hover/tooltips/states |
+| Data Model Board | entities, migrations, events |
+| Risk Board | security/data/release/perf/license risks |
+| User Journey Board | CJM по ключевым сценариям |
+| Heptabase Parity Map | какие функции взяты, адаптированы, отклонены |
+
+### Group/swimlane fields
+
+```
+Group by:           Gate
+Swimlane:           Work type
+Secondary group:    Product surface (epic E01..E12)
+Risk label:         data/security/release/UI/perf/legal/license
+Dependency field:   blocks / blocked_by
+Evidence field:     missing / partial / complete
+```
+
+→ см. §12 для 12-gate определения, §15 для addendum схемы существующих WT.
+
+## §12. 12-Gate Workflow (extends 5-phase lifecycle)
+
+5-phase lifecycle Discovery/Design/Impl/Verify/Optimize **расширяется** до 12 gates с **explicit artifact contract** per gate.
+
+### 12-gate table
+
+| Gate | Phase | Required artifact | Owner roles |
+|---|---|---|---|
+| 00 Intake | Discovery | `intake.md` | brainstormer + requirements-keeper |
+| 01 Snapshot / Recon | Discovery | `recon.md` | scope-analyzer |
+| 02 Routing Decision | Discovery | `routing.md` с `work_type` | scope-analyzer + critic |
+| 03 CJM / Service Blueprint | Discovery | `cjm/<scenario>.md` | cjm-writer |
+| 04 ERD / Event Model | Design | `erd/entities.mmd` | erd-writer |
+| 05 Sequence / Contract | Design | `sequence/<scenario>.mmd` + `contracts/*.ts` | sequence-chart-writer + prompt-writer |
+| 06 UI Inventory | Design | `ui-inventory/<surface>.md` | ui-inventory-writer |
+| 07 Red Tests | Implementation | failing tests committed first | test-writer |
+| 08 Implementation | Implementation | code commits + green typecheck/lint | implementer + super-coder |
+| 09 Evidence | Verification | `evidence/{mac,win,linux}/*` | verifier |
+| 10 Review | Verification | `review.md` | reviewer + critic |
+| 11 Merge Train | Verification | merge to main + Linear/FB sync | integrator |
+| 12 Post-merge Observability | Optimization | `observability/{metrics,alerts}.md` | observability-engineer |
+
+### Gate 03 CJM template
+
+```text
+Persona:                  <role/title>
+Intent:                   <one-line goal>
+Entry point:              <where user enters>
+Initial state:            <preconditions>
+Primary path:             <1. step / 2. step ...>
+Alternative paths:        <a. alt-1 / b. alt-2 ...>
+Failure paths:            <e1. error case ...>
+User-visible result:      <what user sees on success>
+Objects created/changed:  <ContentObject types, Relations, Events>
+Background services:      <workers, queues, indexes touched>
+Privacy/security:         <permission scope, redaction, encryption>
+Success metric:           <measurement>
+```
+
+### Gate 06 UI Inventory entry template
+
+```text
+Surface:                  <e.g. Whiteboard>
+Region:                   <toolbar / sidebar / canvas / inspector>
+Element:
+  - id, label, icon, role, keyboard shortcut
+  - hover state, tooltip, disabled reason
+  - loading state, empty state, error state
+  - click action, double-click, context-menu, drag/drop
+  - data read, data write, event emitted
+  - should update / should NOT update
+  - tests, screenshot evidence
+```
+
+### Gate 05/04 Data refresh rules template
+
+```text
+Updates immediately: <list>
+Updates async:       <list>
+Does not update:     <list>
+```
+
+### Gate enforcement
+
+Master orchestrator pre-merge gate validates:
+- Each required artifact exists on disk per WT meta.
+- TDD-first: `git log` shows test-commit before any feat-commit.
+- 3-machine evidence files present + size > 0 + smoke status=pass.
+- All gates 00-11 marked `status: complete`.
+- Gate 12 deferred to post-merge (within 7 days).
+
+## §13. 22-Role Swarm (extends 14-role)
+
+14-role swarm расширяется до 22 ролей. 8 новых — **specialized artifact writers** для mission control axes per §11/§12. Все 8 — opus-4.7 MAX.
+
+### New 8 (v2 additions)
+
+15. **cjm-writer** — gate 03 — opus-max. Производит `cjm/<scenario>.md` per primary scenario.
+16. **erd-writer** — gate 04 — opus-max. Производит `erd/entities.mmd` (Mermaid).
+17. **sequence-chart-writer** — gate 05 — opus-max. Производит `sequence/<scenario>.mmd`.
+18. **ui-inventory-writer** — gate 06 — opus-max. Производит `ui-inventory/<surface>.md`.
+19. **data-refresh-rule-keeper** — gates 04/05 — opus-max. `refresh-rules.md`.
+20. **observability-engineer** — gate 12 — opus-max. `observability/metrics.md`+`alerts.md`.
+21. **risk-board-tracker** — cross-cut — opus-max. Maintains risk register.
+22. **dependency-graph-tracker** — master orchestrator level — opus-max. Maintains topological DAG.
+
+### Cost cap
+
+При превышении `max_opus_seconds_per_day` budget master orchestrator деградирует non-critical роли (10x-improver, Elon-optimizer) до sonnet-medium. Critical роли (test-writer, verifier, integrator, cjm-writer, erd-writer) остаются opus-max ВСЕГДА.
+
+## §14. 14 New Worktrees (Object Platform + Heptabase-like)
+
+Существующие 40 WT не покрывают object platform и Heptabase-like layer. 14 новых WT встают **между WT-09 и WT-10** как Wave 0+ / Wave 1+ / Wave 2 expansions.
+
+### Object Platform (6 WT, Wave 0+ / 1)
+
+| WT | Title | Wave | Depends |
+|---|---|---|---|
+| **WT-45** | ModuleRegistry (typed ModuleDefinition + sidebar/routes/panels) | 0+ | WT-00 |
+| **WT-46** | ContentObject + Block universal schema | 0+ | WT-04, WT-06 |
+| **WT-47** | RelationService (typed bidirectional relations) | 0+ | WT-46 |
+| **WT-48** | AIContextPacket builder (permission-filtered) | 1 | WT-46, WT-47, WT-14 |
+| **WT-49** | ActivityEvent emission policy (extends WT-08 audit) | 0+ | WT-08, WT-46 |
+| **WT-50** | SearchIndex (full-text + tag + relationship) | 1 | WT-46, WT-47, WT-49 |
+
+### Heptabase-like layer (8 WT, Wave 2 / 3)
+
+| WT | Title | Wave | Depends | Heptabase parity |
+|---|---|---|---|---|
+| **WT-51** | Card Library MVP (UI on ContentObject type=card) | 2 | WT-45/46/47/50 | Card Library |
+| **WT-52** | Whiteboard + Placement (canvas separate from cards) | 2 | WT-46/47/51 | Whiteboards — **Card ≠ Placement** invariant |
+| **WT-53** | Tags + TagProperty + TagAssignment | 2 | WT-46/47/50 | Tags + Tag Properties |
+| **WT-54** | Source adapters (PDF, Web Clipper, Zotero, Readwise) | 2 | WT-46/47 | PDF/Web/YouTube sources |
+| **WT-55** | Annotations (Source-range pinned) | 2 | WT-46/47/54 | PDF annotations |
+| **WT-56** | Journals + Daily Notes | 2 | WT-46/47/51 | Journals |
+| **WT-57** | Graph view (relationship visualization) | 3 | WT-46/47/52 | Map of Content / global graph |
+| **WT-58** | Public Card/Whiteboard sharing + redaction | 3 | WT-51/52/14/08 | Public Card / Whiteboard links |
+
+### Re-ordering (waves recomputed)
+
+- **Wave 0+** (foundation + object platform): WT-00..09 + WT-45/46/47/49 (14 WT total)
+- **Wave 1+** (auth+team+notif+storage + object services): WT-10..27 + WT-48/50 (20 WT total)
+- **Wave 2** (agent fabric + UI + sources + Heptabase MVP): WT-28..39 + WT-51..56 (18 WT total)
+- **Wave 3** (spikes + Heptabase advanced): WT-40..44 spikes + WT-57/58 (7 WT total)
+
+### Updated critical path
+
+```
+WT-00 → WT-04 → WT-46 → WT-47 → WT-50 → WT-51 → WT-52
+(7 steps min, ~3-4 days at 4-6h per WT)
+```
+
+**Total: 40 production WT (v1) + 14 new (v2) = 54 production + 5 spike = 59 WT.**
+
+### Heptabase reference
+
+https://wiki.heptabase.com/fundamental-elements, https://wiki.heptabase.com/getting-started-with-heptabase описывают: Cards как universal content (Card Library, не Whiteboard), Whiteboards через Placement linking, Tags + Properties (database-like views), PDF/Web/YouTube Sources + annotations, AI Tutor с citations, Public Card/Whiteboard sharing.
+
+## §15. Addendum schema for Existing 40 WT
+
+Каждый из 40 существующих specs получает новую секцию `## 23. Mission control axes (v2 update 2026-05-21)`. Каждый wt-meta yaml получает блок `mission_control:`.
+
+### Spec addendum template
+
+```markdown
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** <refactor | integration | new_module | greenfield | spike | process>
+- **CJM scenarios required:** <list | N/A>
+- **UI surfaces affected:** <list | N/A>
+- **Entities touched (WT-46):** <Card | Note | Source | ...>
+- **Relations touched (WT-47):** <Relation type X | N/A>
+- **Events emitted (WT-49):** <name.created | N/A>
+- **AI context implications (WT-48):** <reads/writes packets | N/A>
+- **Search index implications (WT-50):** <index | reindex | exclude | N/A>
+- **12-gate artifacts required:** subset
+- **Heptabase parity:** <feature | N/A>
+- **Risk axes:** <data | security | release | UI | perf | legal | license>
+```
+
+### Yaml mission_control block
+
+```yaml
+mission_control:
+  work_type: refactor | integration | new_module | greenfield | spike | process
+  cjm_scenarios: [scenario-1, scenario-2]
+  ui_surfaces: [surface-1]
+  entities_touched: [Card, Note, Source]
+  events_emitted: [name.created]
+  ai_context_packets_touched: [packet-id]
+  search_index_implications: index | reindex | exclude | N/A
+  heptabase_parity: <string | N/A>
+  risk_axes: [data, security, release, UI, perf]
+```
+
+### Work_type distribution (40 existing)
+
+| Work type | Count |
+|---|---:|
+| process | 1 (WT-00) |
+| integration | 4 (WT-01, WT-09, WT-11, WT-22) |
+| refactor | 3 (WT-02, WT-33, WT-38) |
+| new_module | 31 (most of WT-03..WT-39) |
+| spike | 1 (WT-16 — test-only WT) |
+
+## §16. Deliverables checklist (v2)
+
+- [x] `docs/superpowers/specs/2026-05-21-rox-one-parallel-worktree-harness-master.md` (v2 sections appended)
+- [x] 40 × `docs/superpowers/specs/2026-05-21-wt-{00..39}-<topic>-design.md` (v1)
+- [x] 40 × `wt-meta/wt-{00..39}.yaml` (v1)
+- [x] 5 × `docs/superpowers/specs/2026-05-21-spike-WT-{40..44}-<topic>.md`
+- [x] `scripts/orchestrator/types.ts` (v2 includes Role +8, WorkType, RiskAxis, MissionControl)
+- [x] `scripts/orchestrator/state.ts` (v2 includes validateMissionControl)
+- [ ] 14 × `docs/superpowers/specs/2026-05-21-wt-{45..58}-<topic>-design.md` (v2 new WT)
+- [ ] 14 × `wt-meta/wt-{45..58}.yaml` (v2 new WT)
+- [ ] 40 × addendum `## 23. Mission control axes` injection
+- [ ] 40 × addendum `mission_control:` block in existing yamls
+- [ ] `scripts/orchestrator/merge-gate.ts`
+- [ ] `scripts/orchestrator/three-machine-verify.ts`
+- [ ] `scripts/orchestrator/linear-sync.ts`
+- [ ] `scripts/orchestrator/featurebase-sync.ts`
+- [ ] `scripts/orchestrator/coordinator.ts`
+- [ ] `scripts/orchestrator/master.ts`
+- [ ] `wt-meta/release-cuts.yaml`
+- [ ] `wt-meta/scaffold-ownership.yaml`
+
+Total v2 target: ~120 design files + 6 orchestrator modules.
+
+## §17. Next steps (v2)
+
+1. **User reviews v2 sections (§11-§17) of this master doc.**
+2. After v2 approve: inline-write 14 new WT specs+yaml.
+3. Inline-write 40-spec/yaml addendum.
+4. Inline-write remaining orchestrator modules.
+5. Master orchestrator dry-run: load all 54 wt-meta + topological sort + merge order.
+6. After dry-run approve: actual WT execution begins per priority.
+7. Per release cut: enable feature flags in batches, run smoke на 3 machines, publish FB changelog.
