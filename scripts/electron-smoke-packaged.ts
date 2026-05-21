@@ -13,9 +13,12 @@ const FORCE_KILL_GRACE_MS = 5_000;
 // boot path (white window, broken Rox Design runtime, missing server URL)
 // still produces clean exit code 0 but fails the smoke. Each marker
 // corresponds to a load-bearing log line in apps/electron/src/main/index.ts.
+// Markers chosen to fire BEFORE the ready-to-show event causes
+// ROX_SMOKE_EXIT_ON_READY=1 to self-exit the app. 'App initialized successfully'
+// is logged AFTER ready-to-show (see apps/electron/src/main/index.ts:1307),
+// so it's not reliably captured by the smoke window — left it out.
 const REQUIRED_MARKERS: readonly string[] = [
   'ROX_SERVER_URL=',
-  'App initialized successfully',
   'RoxDesignRuntimeManager initialized',
 ];
 
