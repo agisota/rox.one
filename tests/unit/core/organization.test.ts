@@ -26,7 +26,7 @@ const validOrgInput = {
     enforceMfa: false,
     ssoOnly: false,
   },
-  createdAt: '2026-05-21T00:00:00',
+  createdAt: '2026-05-21T00:00:00Z',
 };
 
 describe('Organization schema', () => {
@@ -92,8 +92,8 @@ describe('Organization schema', () => {
   it('deletedAt defaults to null and accepts ISO datetime', () => {
     const a = Organization.parse(validOrgInput);
     expect(a.deletedAt).toBeNull();
-    const b = Organization.parse({ ...validOrgInput, deletedAt: '2026-06-01T00:00:00' });
-    expect(b.deletedAt).toBe('2026-06-01T00:00:00');
+    const b = Organization.parse({ ...validOrgInput, deletedAt: '2026-06-01T00:00:00Z' });
+    expect(b.deletedAt).toBe('2026-06-01T00:00:00Z');
   });
 
   it('AC-9: parseOrganization(serializeOrganization(x)) is stable', () => {

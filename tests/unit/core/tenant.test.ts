@@ -23,8 +23,8 @@ const validTenantInput = {
   name: 'Acme Co',
   plan: 'pro' as const,
   region: 'eu' as const,
-  createdAt: '2026-05-21T00:00:00',
-  updatedAt: '2026-05-21T00:00:00',
+  createdAt: '2026-05-21T00:00:00Z',
+  updatedAt: '2026-05-21T00:00:00Z',
 };
 
 describe('Tenant schema', () => {
@@ -84,9 +84,9 @@ describe('Tenant schema', () => {
   it('AC-4: deletedAt accepts an ISO datetime string', () => {
     const parsed = Tenant.parse({
       ...validTenantInput,
-      deletedAt: '2026-06-01T12:00:00',
+      deletedAt: '2026-06-01T12:00:00Z',
     });
-    expect(parsed.deletedAt).toBe('2026-06-01T12:00:00');
+    expect(parsed.deletedAt).toBe('2026-06-01T12:00:00Z');
   });
 
   it('rejects non-uuid id', () => {
