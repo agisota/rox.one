@@ -78,6 +78,32 @@ The Cloudflare Worker at `infra/cloudflare/rox-one-release-feed.worker.ts` proxi
 
 Regression tests in [infra/__tests__/rox-one-release-feed-worker.test.ts](infra/__tests__/rox-one-release-feed-worker.test.ts) assert both invariants by name.
 
+### Linux Chromium sandbox
+
+**Why the sandbox matters.** Chromium's renderer sandbox isolates each tab/renderer process from the host OS via Linux namespaces and seccomp-bpf. Without it, any RCE in the renderer (e.g. XSS in chat, malicious link opening a crafted page) grants the attacker full access to the host user account -- reading `~/.ssh`, exfiltrating secrets, persisting malware.
+
+**Why AppImage normally can't preserve SUID.** A standard AppImage launch mounts the payload under `/tmp/.mount_ROX-XXXX` on every run. The kernel strips the SUID bit from files inside that mount, so `chrome-sandbox` (which must be owned by root with mode `4755`) loses its elevated permissions on every launch. The historical workaround was `--no-sandbox`, which eliminates the sandbox entirely.
+
+**What we do instead.** The launcher runs `--appimage-extract` once on first launch, writing a persistent extracted directory to `~/.rox/app/squashfs-root/`. Binaries in that directory are regular files on the filesystem -- SUID sticks. The launcher then prompts for a single `sudo` to `chown root:root` and `chmod 4755` the `chrome-sandbox` binary. On all subsequent launches the SUID check is a no-op (mode already `4755`) and the app runs with the full sandbox enabled.
+
+**What the user sees on first launch.**
+
+```
+First-time launch: extracting AppImage to enable sandbox...
+Requesting one-time sudo to set SUID on chrome-sandbox (needed for security sandbox)...
+[sudo] password for <user>:
+```
+
+**How to verify.** After first launch, confirm the sandbox binary has the correct owner and SUID mode:
+
+```bash
+ls -la ~/.rox/app/squashfs-root/chrome-sandbox
+# Expected: -rwsr-xr-x 1 root root ... chrome-sandbox
+#           ^ mode 4755, owned by root
+```
+
+**Fallback.** If `--appimage-extract` fails (e.g. insufficient disk space), the launcher falls back to `--no-sandbox` with a warning on stderr. This preserves app availability while signalling that sandbox protection is degraded.
+
 ### Install script verification (recommended for security-conscious users)
 
 The `curl | bash` and `irm | iex` patterns from the README pipe a script through a single Cloudflare worker that also serves the binary it downloads. This is a **circular trust model** — anyone who compromises the worker can ship both a malicious script and a matching SHA-512 manifest simultaneously.
