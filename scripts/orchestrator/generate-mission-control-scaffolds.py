@@ -24,8 +24,12 @@ import yaml
 REPO = Path("/home/dev/craft/rox-one-v2-exclusive")
 MC_ROOT = REPO / "docs" / "mission-control"
 
-# Wave 0 = foundation (WT-00..09) + Object Platform (WT-45..50)
+# Default — Wave 0 (foundation + Object Platform). Pass --all для всех 54 WTs.
 WAVE_0_IDS = [f"WT-{i:02d}" for i in range(10)] + ["WT-45", "WT-46", "WT-47", "WT-48", "WT-49", "WT-50"]
+ALL_IDS = (
+    [f"WT-{i:02d}" for i in range(40)]
+    + [f"WT-{i}" for i in range(45, 59)]
+)
 
 def slugify(s):
     s = re.sub(r"[^a-zA-Z0-9-]+", "-", s.strip())
@@ -266,10 +270,13 @@ def process_wt(wt_id, yaml_path):
     return created, skipped
 
 def main():
-    print(f"=== Mission control scaffolds for Wave 0 ({len(WAVE_0_IDS)} WTs) ===\n")
+    use_all = "--all" in sys.argv
+    ids = ALL_IDS if use_all else WAVE_0_IDS
+    label = "ALL 54 WTs" if use_all else f"Wave 0 ({len(WAVE_0_IDS)} WTs)"
+    print(f"=== Mission control scaffolds for {label} ===\n")
     total_created = 0
     total_skipped = 0
-    for wt_id in WAVE_0_IDS:
+    for wt_id in ids:
         yaml_path = REPO / "wt-meta" / f"{wt_id.lower()}.yaml"
         if not yaml_path.exists():
             print(f"  [{wt_id}] ! yaml missing — skip")
