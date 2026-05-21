@@ -104,6 +104,26 @@ ls -la ~/.rox/app/squashfs-root/chrome-sandbox
 
 **Fallback.** If `--appimage-extract` fails (e.g. insufficient disk space), the launcher falls back to `--no-sandbox` with a warning on stderr. This preserves app availability while signalling that sandbox protection is degraded.
 
+### Auto-update signature verification (EdDSA)
+
+(safety-belt state; full CI signing wired in a later PR — audit #370 follow-up)
+
+ROX.ONE auto-update uses electron-updater 6.x with EdDSA signature verification of `latest-*.yml` manifests. The trust model:
+
+1. **Build embeds the public key** via esbuild `--define:process.env.ROX_UPDATE_PUBLIC_KEY="..."` so it survives into the packaged app.
+2. **Manifests are signed in CI** (TODO — separate PR) with the matching private key, stored as GH secret `ROX_UPDATE_PRIVATE_KEY`.
+3. **electron-updater verifies signature** on every update check. If signature fails, electron-updater throws and the update is rejected.
+
+Safety belt while CI signing is not yet wired: when `ROX_UPDATE_PUBLIC_KEY` is absent at build time, `autoInstallOnAppQuit` is forced false on Mac. Users must explicitly accept each update via UI dialog.
+
+To rotate keys:
+1. Run `bun run generate-update-key` locally
+2. Update `ROX_UPDATE_PRIVATE_KEY` GH secret with new private key
+3. Update `ROX_UPDATE_PUBLIC_KEY` build-time env with new public key
+4. Tag a new release — existing installed apps with old key will reject the new manifest signature; users must reinstall via install-app.sh to pick up the new public key.
+
+Key generation: `bun run generate-update-key` (see scripts/generate-update-signing-key.ts)
+
 ### Install script verification (recommended for security-conscious users)
 
 The `curl | bash` and `irm | iex` patterns from the README pipe a script through a single Cloudflare worker that also serves the binary it downloads. This is a **circular trust model** — anyone who compromises the worker can ship both a malicious script and a matching SHA-512 manifest simultaneously.
