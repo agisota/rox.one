@@ -1,0 +1,96 @@
+id: WT-53
+title: "Tags + TagProperty + TagAssignment"
+branch: feat/tags-properties
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-53-tags
+feature_flag:
+  name: rox.feature.tags-v1
+  default: off
+  release_cut: ui
+priority: P1
+wave: 2
+files_allowed:
+  - packages/shared/src/core/tag.ts
+  - packages/shared/src/core/tag-property.ts
+  - packages/shared/src/core/tag-assignment.ts
+  - packages/server-core/src/migrations/20260521-tags.sql
+  - packages/shared/src/tag-service/tag-service.ts
+  - packages/shared/src/tag-service/__tests__/tag-service.test.ts
+  - apps/electron/src/renderer/components/tags/TagPicker.tsx
+  - apps/electron/src/renderer/components/tags/TagInspector.tsx
+  - apps/electron/src/renderer/components/tags/__tests__/TagPicker.test.tsx
+files_forbidden:
+  - packages/shared/src/core/content-object.ts
+  - packages/shared/src/core/relation.ts
+  - package.json
+  - tsconfig.json
+depends_on: [WT-46, WT-47, WT-50]
+blocks: [WT-51, WT-57]
+scaffold_requests: []
+roles:
+  discovery: [brainstormer, scope-analyzer, critic, cjm-writer]
+  design: [erd-writer, ui-inventory-writer, ux-guru, prompt-writer]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer]
+model_overrides: {}
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests:
+    - tag-hierarchy-depth-5
+    - perf-1000-assignments-50ms
+    - typeahead-100ms
+    - axe-tag-picker
+  electron_build: true
+  packaging_required: false
+linear:
+  parent_epic_identifier: PZD-117
+  child_story_titles:
+    - "Tag schema + hierarchy"
+    - "TagProperty typed values"
+    - "TagAssignment + Relation 'tagged_with'"
+    - "TagPicker UI + typeahead"
+    - "Filter API with property predicates"
+  existing_issues_to_attach: []
+featurebase:
+  board_id: "6a0db0e7d1e3f457181dd1dd"
+  post_alias: wt-53-tags-properties
+  status_lifecycle: [planned, in-progress, shipped]
+inspiration_repos:
+  - url: https://wiki.heptabase.com/
+    integration_type: concept
+    rationale: "Heptabase Tags + Tag Properties"
+  - url: https://github.com/nocobase/nocobase
+    integration_type: reference_only
+    rationale: "Typed property fields"
+  - url: https://github.com/Developer-Mike/obsidian-advanced-canvas
+    integration_type: reference_only
+    rationale: "Tag-driven canvas views"
+  - url: https://github.com/TfTHacker/obsidian-canvas-candy
+    integration_type: reference_only
+    rationale: "Tag visualization"
+  - url: https://github.com/RSSNext/Folo
+    integration_type: reference_only
+    rationale: "Tagging UX in feed reader"
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  perf_1000_assignments_lt_50ms: true
+  typeahead_lt_100ms: true
+  axe_core_clean: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [create-tag, assign-tag-to-card, filter-by-tag-property]
+  ui_surfaces: [TagPicker, TagInspector]
+  entities_touched: [Tag, TagProperty, TagAssignment]
+  events_emitted: [tag.created, tag.assigned, tag.unassigned]
+  ai_context_packets_touched: [tag-membership-preview]
+  search_index_implications: index
+  heptabase_parity: "Tags + Tag Properties (database-like views)"
+  risk_axes: [UI, data]
