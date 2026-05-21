@@ -73,6 +73,7 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
 - `bun run typecheck:all`
 - `bash -n scripts/audit-smoke.sh`
 - `bun run validate:audit`
+- `ROX_AUDIT_SMOKE_SKIP_STATIC_BUNDLE=1 bun run validate:audit`
 
 ## 8. Passing Test Output Summary
 
@@ -118,6 +119,11 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
   `bun run webui:build` with a Bun `SIGABRT`. Local and GitHub validation passed;
   `scripts/audit-smoke.sh` now invokes Vite builds through Node's Vite CLI while
   keeping Bun for the audit CLI itself.
+- CircleCI `validate` then failed again in the same audit smoke path with Node's
+  Vite CLI aborting in the CircleCI Docker runner. GitHub `validate` and local
+  `validate:audit` still pass the full static-bundle path, so CircleCI now uses
+  `ROX_AUDIT_SMOKE_SKIP_STATIC_BUNDLE=1` to keep the cheaper static-tsc audit
+  smoke while avoiding the runner-specific Vite abort.
 
 ## 9. Build Output Summary
 

@@ -65,6 +65,7 @@ for (const requiredText of [
   "bun run validate:agent-contract",
   "bun run validate:architecture-docs",
   "bun run validate:ci",
+  "ROX_AUDIT_SMOKE_SKIP_STATIC_BUNDLE=1 bun run validate:ci",
   "bun run validate:workflow-pins",
   "bun test --timeout=30000 scripts/__tests__/validate-packaged-artifacts.test.ts",
   "bun run rox-design:prepare -- --from-archive=\"$ARCHIVE_URL\" --expected-sha256=\"$ARCHIVE_SHA\" --force",

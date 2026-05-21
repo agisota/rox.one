@@ -92,7 +92,7 @@ jobs:
             set -o pipefail
             bun run validate:agent-contract 2>&1 | tee .ci-logs/agent-contract.log
             bun run validate:architecture-docs 2>&1 | tee .ci-logs/architecture-docs.log
-            bun run validate:ci 2>&1 | tee .ci-logs/validate-ci.log
+            ROX_AUDIT_SMOKE_SKIP_STATIC_BUNDLE=1 bun run validate:ci 2>&1 | tee .ci-logs/validate-ci.log
             bun run validate:workflow-pins 2>&1 | tee .ci-logs/validate-workflow-pins.log
             bun test --timeout=30000 scripts/__tests__/validate-packaged-artifacts.test.ts 2>&1 | tee .ci-logs/test-packaged-artifacts.log
       - store_artifacts:
