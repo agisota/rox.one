@@ -5140,7 +5140,7 @@ export class SessionManager implements ISessionManager {
         // Awaited so callers (tests + future subscribers) get synchronous ordering;
         // errors are caught and logged so the chat-display path is never disrupted.
         try {
-          await this.answerEmitter.emit(
+          assistantMessage.agentAnswerPackage = await this.answerEmitter.emit(
             { agentId: sessionId, sessionId, turnId: event.turnId ?? assistantMessage.id },
             { text: event.text },
           )

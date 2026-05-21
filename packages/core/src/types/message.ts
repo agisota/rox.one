@@ -289,6 +289,8 @@ export interface Message {
   isIntermediate?: boolean;
   // Turn ID: Correlation ID from the API's message.id, groups all messages in an assistant turn
   turnId?: string;
+  /** Persisted AgentAnswerPackage envelope for assistant turn replay. */
+  agentAnswerPackage?: MessageAgentAnswerPackage;
   // Status type for special status messages (e.g., compacting)
   statusType?: 'compacting' | 'compaction_complete';
   // Info level for info messages (determines icon/color)
@@ -368,6 +370,8 @@ export interface StoredMessage {
   // Turn grouping - critical for TurnCard rendering after reload
   isIntermediate?: boolean;
   turnId?: string;
+  /** Persisted AgentAnswerPackage envelope for assistant turn replay. */
+  agentAnswerPackage?: MessageAgentAnswerPackage;
   // Status type for compaction messages (persisted for reload)
   statusType?: 'compacting' | 'compaction_complete';
   // Info level for info messages (persisted for reload)
@@ -410,6 +414,22 @@ export interface StoredMessage {
   authWorkspace?: string;
   // Queued: user message that is waiting to be processed (persisted for recovery)
   isQueued?: boolean;
+}
+
+/**
+ * Durable subset of the AgentAnswerPackage IPC contract.
+ *
+ * Core intentionally does not depend on @rox-one/agent-contract; server-core
+ * validates the full package at the boundary and stores this JSON-compatible
+ * envelope on assistant messages for replay.
+ */
+export interface MessageAgentAnswerPackage {
+  agentId: string;
+  sessionId: string;
+  turnId: string;
+  kind: 'text' | 'code' | 'design' | 'mixed';
+  payload: unknown;
+  createdAt: string;
 }
 
 /**

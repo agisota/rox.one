@@ -39,6 +39,7 @@ export type {
   AnnotationTarget,
   AnnotationV1,
   Message,
+  MessageAgentAnswerPackage,
   StoredMessage,
   TokenUsage,
   AgentEventUsage,
@@ -63,4 +64,3 @@ export type {
   SessionProcessingStatus,
   ActiveSessionInfo,
 } from './server.ts';
-

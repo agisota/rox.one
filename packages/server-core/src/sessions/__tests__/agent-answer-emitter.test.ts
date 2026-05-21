@@ -211,7 +211,7 @@ describe('SessionManager integration — AgentAnswerEmitter wiring', () => {
       sessionId,
       turnId,
       kind: 'text',
-      payload: { kind: 'text', text: 'hello' },
+      payload: { kind: 'text', text: 'hello world' },
       createdAt: new Date().toISOString(),
     } as never)
 
@@ -238,6 +238,13 @@ describe('SessionManager integration — AgentAnswerEmitter wiring', () => {
       turnId,
     })
     expect(emitSpy.mock.calls[0]?.[1]).toMatchObject({ text: 'hello world' })
+    expect((managed as { messages: Array<{ agentAnswerPackage?: unknown }> }).messages.at(-1)?.agentAnswerPackage).toMatchObject({
+      agentId: sessionId,
+      sessionId,
+      turnId,
+      kind: 'text',
+      payload: { kind: 'text', text: 'hello world' },
+    })
 
     emitSpy.mockRestore()
   })
