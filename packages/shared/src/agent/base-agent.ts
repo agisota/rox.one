@@ -64,8 +64,8 @@ import { getMiniAgentSystemPrompt } from '../prompts/system.ts';
 import { buildTitlePrompt, buildRegenerateTitlePrompt, validateTitle } from '../utils/title-generator.ts';
 
 // Skill extraction for Codex/Copilot backends (Claude uses native SDK Skill tool)
-import { parseMentions, resolveSkillMentions, resolveSourceMentions, resolveFileMentions } from '../mentions/index.ts';
-import { loadAllSkills } from '../skills/storage.ts';
+import { extractSkillMentionSlugs, resolveSkillMentions, resolveSourceMentions, resolveFileMentions } from '../mentions/index.ts';
+import { loadSkillBySlug } from '../skills/storage.ts';
 
 // ============================================================
 // Mini Agent Configuration
@@ -949,9 +949,9 @@ ${formattedMessages}
   /**
    * Extract skill mentions from a message and resolve their SKILL.md paths.
    *
-   * Parses [skill:slug] or [skill:workspaceId:slug] mentions, resolves the
-   * corresponding SKILL.md file paths. Does NOT read the files — the model
-   * must read them itself (enforced by PrerequisiteManager).
+   * Parses [skill:slug] or [skill:workspaceId:slug] mentions, resolves only
+   * those specific skills, then returns SKILL.md file paths for the model to
+   * read itself (enforced by PrerequisiteManager).
    *
    * @param message - The user message containing potential skill mentions
    * @returns Object with:
@@ -966,22 +966,16 @@ ${formattedMessages}
   } {
     const workspaceRoot = this.config.workspace?.rootPath ?? this.workingDirectory;
     const projectRoot = this.config.session?.workingDirectory;
-    const skills = loadAllSkills(workspaceRoot, projectRoot);
-    const skillSlugs = skills.map(s => s.slug);
+    const mentionedSlugs = extractSkillMentionSlugs(message);
+    this.debug(`[extractSkillPaths] Mentioned skills: ${JSON.stringify(mentionedSlugs)}`);
 
-    this.debug(`[extractSkillPaths] Available skills: ${skillSlugs.join(', ')}`);
-
-    const parsed = parseMentions(message, skillSlugs, []);
-    this.debug(`[extractSkillPaths] Parsed skills: ${JSON.stringify(parsed.skills)}`);
-    if (parsed.invalidSkills && parsed.invalidSkills.length > 0) {
-      this.debug(`[extractSkillPaths] Invalid skills: ${JSON.stringify(parsed.invalidSkills)}`);
-    }
-
-    // Resolve SKILL.md paths for matched skills
     const skillPaths = new Map<string, string>();
-    for (const slug of parsed.skills) {
-      const skill = skills.find(s => s.slug === slug);
+    const skillNames = new Map<string, string>();
+    const missingSkills: string[] = [];
+    for (const slug of mentionedSlugs) {
+      const skill = loadSkillBySlug(workspaceRoot, slug, projectRoot);
       if (skill) {
+        skillNames.set(slug, skill.metadata.name);
         const skillMdPath = join(skill.path, 'SKILL.md');
         if (existsSync(skillMdPath)) {
           skillPaths.set(slug, skillMdPath);
@@ -989,13 +983,14 @@ ${formattedMessages}
         } else {
           this.debug(`[extractSkillPaths] SKILL.md not found: ${skillMdPath}`);
         }
+      } else {
+        missingSkills.push(slug);
       }
     }
 
     // Resolve mentions to semantic markers (like file mentions) instead of stripping them.
     // This preserves sentence structure: "find the bug in [skill:datadog-api]"
     // becomes "find the bug in [Mentioned skill: Datadog API (slug: datadog-api)]"
-    const skillNames = new Map(skills.map(s => [s.slug, s.metadata.name]));
     const withSkills = resolveSkillMentions(message, skillNames);
     const withSources = resolveSourceMentions(withSkills);
     const workDir = this.config.session?.workingDirectory ?? this.workingDirectory;
@@ -1011,7 +1006,7 @@ ${formattedMessages}
     return {
       skillPaths,
       cleanMessage,
-      missingSkills: parsed.invalidSkills || []
+      missingSkills
     };
   }
 

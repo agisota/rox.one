@@ -120,7 +120,9 @@ jobs:
 
       - name: Validate packaged artifact metadata
         env:
+          ROX_RC_MODE: unsigned
           ROX_ARTIFACT_PLATFORM: mac
+          ROX_ARTIFACT_ARCH: arm64
         run: bun run validate:packaged-artifacts
 
       - name: Validate private mac release trust boundary

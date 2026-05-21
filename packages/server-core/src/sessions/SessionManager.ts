@@ -518,8 +518,8 @@ export class SessionManager implements ISessionManager {
       onSkillChange: async (slug, skill) => {
         sessionLog.info(`Skill '${slug}' changed:`, skill ? 'updated' : 'deleted')
         // Broadcast updated list to UI
-        const { loadAllSkills } = await import('@rox-one/shared/skills')
-        const skills = loadAllSkills(workspaceRootPath)
+        const { loadActiveSkills } = await import('@rox-one/shared/skills')
+        const skills = loadActiveSkills(workspaceRootPath)
         this.ipc.broadcastSkillsChanged(workspaceId, skills)
       },
 
@@ -5789,8 +5789,8 @@ export class SessionManager implements ISessionManager {
    */
   private async resolveAutomationMentions(workspaceRootPath: string, mentions: string[]): Promise<{ sourceSlugs: string[]; skillSlugs: string[] } | undefined> {
     const sources = loadWorkspaceSources(workspaceRootPath)
-    const { loadAllSkills } = await import('@rox-one/shared/skills')
-    const skills = loadAllSkills(workspaceRootPath)
+    const { loadActiveSkills } = await import('@rox-one/shared/skills')
+    const skills = loadActiveSkills(workspaceRootPath)
     const sourceSlugs: string[] = []
     const skillSlugs: string[] = []
 

@@ -7,10 +7,13 @@ const rootDir = join(import.meta.dir, '..', '..');
 describe('electron smoke isolation', () => {
   it('launches smoke Electron with isolated runtime directories', () => {
     const script = readFileSync(join(rootDir, 'scripts/electron-smoke.ts'), 'utf8');
+    const packagedUiScript = readFileSync(join(rootDir, 'scripts/electron-ui-smoke-packaged-mac.ts'), 'utf8');
 
     expect(script).toContain('ROX_SMOKE_USER_DATA_DIR');
     expect(script).toContain('ROX_CONFIG_DIR');
     expect(script).toContain('mkdtempSync');
+    expect(packagedUiScript).toContain('ROX_SMOKE_USER_DATA_DIR');
+    expect(packagedUiScript).toContain('ROX_E2E_FAKE_PROVIDERS');
   });
 
   it('applies the smoke userData directory before the single-instance lock', () => {

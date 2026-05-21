@@ -121,6 +121,24 @@ export function parseMentions(
 }
 
 /**
+ * Extract skill slugs mentioned in text without validating them against a
+ * loaded catalog. This is the cheap path for large global skill directories:
+ * callers can resolve only the mentioned slugs with targeted filesystem reads.
+ */
+export function extractSkillMentionSlugs(text: string): string[] {
+  const slugs: string[] = []
+  const skillPattern = new RegExp(`\\[skill:(?:${WS_ID_CHARS}+:)?([\\w-]+)\\]`, 'g')
+  let match: RegExpExecArray | null
+
+  while ((match = skillPattern.exec(text)) !== null) {
+    const slug = match[1]!
+    if (!slugs.includes(slug)) slugs.push(slug)
+  }
+
+  return slugs
+}
+
+/**
  * Strip all mentions from text, replacing skill/source mentions with their slug.
  *
  * @param text - The message text with mentions

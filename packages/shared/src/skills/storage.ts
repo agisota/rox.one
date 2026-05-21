@@ -312,6 +312,30 @@ export function loadAllSkills(workspaceRoot: string, projectRoot?: string): Load
 }
 
 /**
+ * Load active skills for the current app/session catalog.
+ *
+ * Global skills under ~/.agents/skills are intentionally excluded from this
+ * default catalog because operator machines can have thousands of globally
+ * installed skills. Those skills remain available through targeted
+ * loadSkillBySlug() resolution when a user explicitly mentions one.
+ */
+export function loadActiveSkills(workspaceRoot: string, projectRoot?: string): LoadedSkill[] {
+  const skillsBySlug = new Map<string, LoadedSkill>();
+
+  for (const skill of loadWorkspaceSkillsCached(workspaceRoot)) {
+    skillsBySlug.set(skill.slug, skill);
+  }
+
+  if (projectRoot) {
+    for (const skill of loadProjectSkillsCached(projectRoot)) {
+      skillsBySlug.set(skill.slug, skill);
+    }
+  }
+
+  return Array.from(skillsBySlug.values());
+}
+
+/**
  * Load a single skill by slug from all sources (project > workspace > global).
  * Unlike loadAllSkills(), this only reads the specific slug directory — O(1) not O(N).
  *

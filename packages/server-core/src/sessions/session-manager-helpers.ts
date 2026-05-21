@@ -517,11 +517,11 @@ export async function resolveToolDisplayMeta(
       // Extract skill slug (remove workspace prefix if present)
       const skillSlug = skillParam.includes(':') ? skillParam.split(':').pop() : skillParam
       if (skillSlug) {
-        // Load skills and find the one being invoked (deferred import — PZD-62)
+        // Load only the invoked skill. The global catalog can contain thousands
+        // of skills and must not be scanned for a single tool badge.
         try {
-          const { loadAllSkills } = await import('@rox-one/shared/skills')
-          const skills = loadAllSkills(workspaceRootPath)
-          const skill = skills.find(s => s.slug === skillSlug)
+          const { loadSkillBySlug } = await import('@rox-one/shared/skills')
+          const skill = loadSkillBySlug(workspaceRootPath, skillSlug)
           if (skill) {
             // Try file-based icon first, fall back to emoji icon from metadata
             const iconDataUrl = skill.iconPath

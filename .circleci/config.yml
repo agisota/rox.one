@@ -92,7 +92,7 @@ jobs:
             set -o pipefail
             bun run validate:agent-contract 2>&1 | tee .ci-logs/agent-contract.log
             bun run validate:architecture-docs 2>&1 | tee .ci-logs/architecture-docs.log
-            bun run validate:ci 2>&1 | tee .ci-logs/validate-ci.log
+            ROX_AUDIT_SMOKE_SKIP_STATIC_BUNDLE=1 bun run validate:ci 2>&1 | tee .ci-logs/validate-ci.log
             bun run validate:workflow-pins 2>&1 | tee .ci-logs/validate-workflow-pins.log
             bun test --timeout=30000 scripts/__tests__/validate-packaged-artifacts.test.ts 2>&1 | tee .ci-logs/test-packaged-artifacts.log
       - store_artifacts:
@@ -179,6 +179,18 @@ jobs:
           name: Build Electron app
           command: bun run electron:build
       - run:
+          name: Prepare Rox Design payload
+          command: |
+            set -euo pipefail
+            CURRENT="$(jq -r '.current // empty' runtime-payload-versions.json)"
+            if [ -z "$CURRENT" ]; then
+              echo "runtime-payload-versions.json has no current entry"
+              exit 1
+            fi
+            ARCHIVE_URL="$(jq -r ".versions[\"$CURRENT\"].archiveUrl" runtime-payload-versions.json)"
+            ARCHIVE_SHA="$(jq -r ".versions[\"$CURRENT\"].archiveSha256" runtime-payload-versions.json)"
+            bun run rox-design:prepare -- --from-archive="$ARCHIVE_URL" --expected-sha256="$ARCHIVE_SHA" --force
+      - run:
           name: Package ROX ONE for macOS ARM64
           command: bun run electron:dist:dev:mac:arm64
       - run:
@@ -189,7 +201,11 @@ jobs:
           command: bun run electron:smoke
       - run:
           name: Validate packaged artifact metadata
-          command: bun run validate:packaged-artifacts
+          command: |
+            ROX_RC_MODE=unsigned \
+              ROX_ARTIFACT_PLATFORM=mac \
+              ROX_ARTIFACT_ARCH=arm64 \
+              bun run validate:packaged-artifacts
       - run:
           name: Validate private mac release trust boundary
           command: bun run validate:mac-private-release-boundary

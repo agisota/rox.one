@@ -79,6 +79,8 @@ function macInfoPlist(minVersion = '12.0'): string {
 interface FixtureOptions {
   /** Provide Mac artifacts (dmg, zip, blockmaps, latest-mac.yml) */
   mac?: boolean;
+  /** Provide the packaged external Rox Design payload in app.asar.unpacked (default true when mac=true) */
+  roxDesignPayload?: boolean;
   /** Provide Windows artifacts (exe, blockmap, latest.yml) */
   windows?: boolean;
   /** Provide Linux artifacts (deb, rpm, AppImage, .sig) */
@@ -108,6 +110,7 @@ function buildFixture(opts: FixtureOptions): string {
 
   const {
     mac = false,
+    roxDesignPayload = true,
     windows = false,
     linux = false,
     linuxSignature = true,
@@ -138,6 +141,38 @@ function buildFixture(opts: FixtureOptions): string {
     const plistDir = join(releaseDir, 'mac-arm64', 'ROX.ONE.app', 'Contents');
     mkdirSync(plistDir, { recursive: true });
     writeFileSync(join(plistDir, 'Info.plist'), macInfoPlist());
+    const asarUnpackedResourcesDir = join(
+      plistDir,
+      'Resources',
+      'app.asar.unpacked',
+      'resources',
+    );
+    mkdirSync(asarUnpackedResourcesDir, { recursive: true });
+
+    if (roxDesignPayload) {
+      const payloadRoot = join(asarUnpackedResourcesDir, 'rox-design');
+      mkdirSync(join(payloadRoot, 'app', 'prebundled', 'daemon'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'app', 'prebundled'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'app', 'node_modules', 'better-sqlite3'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'app', 'node_modules', 'blake3-wasm'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'open-design', 'bin'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'open-design', 'skills'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'open-design', 'design-systems'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'open-design', 'design-templates'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'open-design', 'prompt-templates'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'open-design-web-standalone', 'apps', 'web'), { recursive: true });
+      writeFileSync(join(payloadRoot, 'MANIFEST.json'), JSON.stringify({
+        schema: 'rox-design-runtime-manifest.v1',
+        mode: 'from-archive',
+        version: '0.7.0',
+      }));
+      writeFileSync(join(payloadRoot, 'open-design-config.json'), '{}\n');
+      writeFileSync(join(payloadRoot, 'open-design', 'bin', 'node'), 'node\n');
+      writeFileSync(join(payloadRoot, 'app', 'prebundled', 'daemon', 'daemon-sidecar.mjs'), 'daemon\n');
+      writeFileSync(join(payloadRoot, 'app', 'prebundled', 'daemon', 'daemon-cli.mjs'), 'daemon-cli\n');
+      writeFileSync(join(payloadRoot, 'app', 'prebundled', 'web-sidecar.mjs'), 'web\n');
+      writeFileSync(join(payloadRoot, 'open-design-web-standalone', 'apps', 'web', 'server.js'), 'server\n');
+    }
   }
 
   if (windows) {
@@ -211,6 +246,15 @@ describe('unsigned mode (ROX_RC_MODE=unsigned)', () => {
     expect(result.status).toBe(0);
     expect(combined).toContain('LSMinimumSystemVersion=12.0');
     expect(combined).toContain('CFBundleIdentifier=com.rox.one');
+  });
+
+  test('fails Mac validation when external Rox Design payload is not in app.asar.unpacked', () => {
+    const cwd = fixture({ mac: true, roxDesignPayload: false });
+    const result = runValidator(cwd, { ROX_RC_MODE: 'unsigned', ROX_ARTIFACT_PLATFORM: 'mac' });
+    const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    expect(result.status).not.toBe(0);
+    expect(combined).toContain('Rox Design payload');
+    expect(combined).toContain('app.asar.unpacked');
   });
 
   test('fails Mac validation when LSMinimumSystemVersion drifts below Monterey', () => {

@@ -122,7 +122,7 @@ import { initNotificationService, initBadgeIcon, initInstanceBadge, updateBadgeC
 import { checkForUpdatesOnLaunch, setAutoUpdateEventSink, isUpdating } from './auto-update'
 import type { EventSink } from '@rox-one/server-core/transport'
 import { validateGitBashPath, checkVCRedistInstalled } from '@rox-one/server-core/services'
-import { createAccountApiProxy } from './account-api'
+import { createAccountApiProxy, type AccountApiProxyOptions } from './account-api'
 import { createFileAccountSessionStore } from './account-session-store'
 import { RoxDesignRuntimeManager } from './rox-design-runtime-manager'
 import { RoxDesignViewManager } from './rox-design-view-manager'
@@ -227,16 +227,37 @@ let roxDesignDesktopBridge: RoxDesignDesktopBridge | null = null
 let oauthFlowStore: OAuthFlowStore | null = null
 let moduleSink: EventSink | null = null
 let moduleClientResolver: ((webContentsId: number) => string | undefined) | null = null
+
+function shouldUseFakeAccountApi(): boolean {
+  return process.env.ROX_E2E_FAKE_PROVIDERS === '1'
+}
+
+function shouldPersistAccountSession(): boolean {
+  return process.env.ROX_E2E !== '1' && process.env.ROX_HEADLESS !== '1'
+}
+
+function createFakeAccountApiFetch(): NonNullable<AccountApiProxyOptions['fetch']> {
+  return async () => new Response(JSON.stringify({ error: 'Authentication required' }), {
+    status: 401,
+    headers: { 'content-type': 'application/json' },
+  })
+}
+
 const accountApiProxy = createAccountApiProxy({
-  sessionStore: createFileAccountSessionStore({
-    filePath: join(app.getPath('userData'), 'account-session.enc'),
-    safeStorage,
-    logger: {
-      info: (message, meta) => mainLog.info(message, meta),
-      warn: (message, meta) => mainLog.warn(message, meta),
-      error: (message, meta) => mainLog.error(message, meta),
-    },
-  }),
+  ...(shouldUseFakeAccountApi() ? { fetch: createFakeAccountApiFetch() } : {}),
+  ...(shouldPersistAccountSession()
+    ? {
+        sessionStore: createFileAccountSessionStore({
+          filePath: join(app.getPath('userData'), 'account-session.enc'),
+          safeStorage,
+          logger: {
+            info: (message, meta) => mainLog.info(message, meta),
+            warn: (message, meta) => mainLog.warn(message, meta),
+            error: (message, meta) => mainLog.error(message, meta),
+          },
+        }),
+      }
+    : {}),
 })
 
 function getRoxDesignResourcesBase(): string {
@@ -249,6 +270,7 @@ function getRoxDesignRuntimeManager(): RoxDesignRuntimeManager {
   if (!roxDesignRuntimeManager) {
     roxDesignRuntimeManager = new RoxDesignRuntimeManager({
       resourcesRoot: getRoxDesignResourcesBase(),
+      dataRoot: join(app.getPath('userData'), 'rox-design'),
       logger: mainLog,
     })
   }

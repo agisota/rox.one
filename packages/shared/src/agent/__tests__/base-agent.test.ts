@@ -6,11 +6,16 @@
  * and lifecycle management.
  */
 import { describe, it, expect, beforeEach } from 'bun:test';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { AbortReason } from '../backend/types.ts';
 import {
   TestAgent,
   createMockBackendConfig,
+  createMockSession,
   createMockSource,
+  createMockWorkspace,
   collectEvents,
 } from './test-utils.ts';
 
@@ -184,6 +189,41 @@ describe('BaseAgent', () => {
       await collectEvents(agent.chat('test message'));
       expect(agent.chatCalls).toHaveLength(1);
       expect(agent.chatCalls[0]?.message).toBe('test message');
+    });
+
+    it('resolves explicitly mentioned skills without loading the full catalog', async () => {
+      const tempRoot = mkdtempSync(join(tmpdir(), 'base-agent-skills-'));
+      const workspaceRoot = join(tempRoot, 'workspace');
+      const projectRoot = join(tempRoot, 'project');
+      const skillDir = join(workspaceRoot, 'skills', 'local-skill');
+      mkdirSync(skillDir, { recursive: true });
+      mkdirSync(projectRoot, { recursive: true });
+      writeFileSync(join(skillDir, 'SKILL.md'), `---
+name: Local Skill
+description: Local test skill
+---
+
+Use local instructions.
+`);
+
+      const skillAgent = new TestAgent(createMockBackendConfig({
+        workspace: createMockWorkspace({ rootPath: workspaceRoot }),
+        session: createMockSession({
+          workspaceRootPath: workspaceRoot,
+          workingDirectory: projectRoot,
+        }),
+      }));
+
+      try {
+        await collectEvents(skillAgent.chat('Use [skill:local-skill] now'));
+
+        const message = skillAgent.chatCalls[0]?.message ?? '';
+        expect(message).toContain(`- ${join(skillDir, 'SKILL.md')} (skill: local-skill)`);
+        expect(message).toContain('Use [Mentioned skill: Local Skill (slug: local-skill)] now');
+      } finally {
+        skillAgent.destroy();
+        rmSync(tempRoot, { recursive: true, force: true });
+      }
     });
 
     it('should track abort calls', async () => {

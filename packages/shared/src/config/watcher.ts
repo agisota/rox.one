@@ -43,7 +43,7 @@ import {
 import { permissionsConfigCache, getAppPermissionsDir } from '../agent/permissions-config.ts';
 import { getWorkspacePath, getWorkspaceSourcesPath, getWorkspaceSkillsPath } from '../workspaces/storage.ts';
 import type { LoadedSkill } from '../skills/types.ts';
-import { loadSkill, loadAllSkills, invalidateSkillsCache, skillNeedsIconDownload, downloadSkillIcon } from '../skills/storage.ts';
+import { loadSkill, loadActiveSkills, invalidateSkillsCache, skillNeedsIconDownload, downloadSkillIcon } from '../skills/storage.ts';
 import {
   loadStatusConfig,
   statusNeedsIconDownload,
@@ -777,7 +777,7 @@ export class ConfigWatcher {
 
       // Invalidate cache before reloading so we get fresh results
       invalidateSkillsCache();
-      const allSkills = loadAllSkills(this.workspaceDir);
+      const allSkills = loadActiveSkills(this.workspaceDir);
       this.callbacks.onSkillsListChange?.(allSkills);
     } catch (error) {
       debug('[ConfigWatcher] Error handling skills dir change:', error);

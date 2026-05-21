@@ -6,7 +6,7 @@ import {
 } from '../workbench/default-workspace-bundle.ts';
 import type { WorkbenchBundleSkillSlug } from '../workbench/bundle-types.ts';
 import { getWorkspaceSkillsPath } from '../workspaces/storage.ts';
-import { invalidateSkillsCache, loadAllSkills, skillExists } from './storage.ts';
+import { invalidateSkillsCache, loadActiveSkills, skillExists } from './storage.ts';
 
 export const SKILL_MARKETPLACE_ACCOUNT_LIMITED_MESSAGE = 'Skill not found or unavailable to this account.';
 
@@ -196,7 +196,7 @@ function toPublicEntry(seed: SkillMarketplaceSeed, installedSlugs: Set<string>):
 
 export function getSkillMarketplaceCatalog(options: SkillMarketplaceCatalogOptions = {}): SkillMarketplaceEntry[] {
   const installedSlugs = options.workspaceRoot
-    ? new Set(loadAllSkills(options.workspaceRoot, options.projectRoot).map((skill) => skill.slug))
+    ? new Set(loadActiveSkills(options.workspaceRoot, options.projectRoot).map((skill) => skill.slug))
     : new Set<string>();
 
   return buildMarketplaceSeeds().map((seed) => toPublicEntry(seed, installedSlugs));
