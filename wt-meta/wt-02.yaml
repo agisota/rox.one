@@ -143,3 +143,13 @@ definition_of_done:
   url_fuzz_corpus_20_pass: true
   payload_mutation_corpus_10_pass: true
   crash_recovery_under_2s: true
+mission_control:
+  work_type: refactor
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: []
+  events_emitted: [design.runtime.started, design.runtime.crashed]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [security, release]

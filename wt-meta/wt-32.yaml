@@ -105,3 +105,13 @@ definition_of_done:
   - bundle_budget_within_200kb_worker: true
   - audit_emit_tests_pass: true
   - feature_flag_off_no_visible_change: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [Evidence, Artifact]
+  events_emitted: [evidence.stored]
+  ai_context_packets_touched: [evidence-refs]
+  search_index_implications: index
+  heptabase_parity: 'N/A'
+  risk_axes: [data, security]

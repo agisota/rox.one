@@ -236,3 +236,16 @@ apps/electron/src/renderer/pages/admin/audit-log/
 2. Audit event signing для tamper-evidence — нужно? — **defer to security-review WT**.
 3. Storage backend (Q7 master doc) — SQLite vs ClickHouse — заблокировано до
    decision; WT-18 ships с SQLite, abstraction layer permits swap later.
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** admin-search-audit
+- **UI surfaces affected:** AuditLogQuery
+- **Entities touched (WT-46 references):** N/A
+- **Events emitted (WT-49 ActivityEvent):** audit.queried
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** index
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** security, perf

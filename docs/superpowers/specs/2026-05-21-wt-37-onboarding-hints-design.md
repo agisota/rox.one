@@ -182,3 +182,16 @@ UX-guru роль — обязательная: tour шаги ratifiable диза
 - [x] Screenshots tour + hints на 3 OS приложены в evidence/wt-37/.
 - [x] Locales RU/EN — 100% coverage.
 - [x] Linear PZD sub-issue moved to "Ready for Merge".
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** first-user-onboarding, hit-entitlement-gate
+- **UI surfaces affected:** OnboardingTour, EntitlementGate
+- **Entities touched (WT-46 references):** N/A
+- **Events emitted (WT-49 ActivityEvent):** onboarding.step.completed, upgrade.cta.clicked
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** UI

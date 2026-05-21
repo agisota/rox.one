@@ -281,3 +281,16 @@ secrets (read-only stubs ignore secrets).
    **defer к WT-22 mailbox-domain decision**.
 3. Bounce/complaint webhook handling — v1.1 или v1.2? — **v1.1, после first
    beta send-volume**.
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** integration
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** EmailProvider
+- **Events emitted (WT-49 ActivityEvent):** email.sent, email.bounced
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** data, security

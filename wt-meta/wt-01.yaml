@@ -129,3 +129,13 @@ definition_of_done:
   sbom_cyclonedx_attached: true
   end_to_end_p95_under_30min: true
   cache_hit_rate_over_80pct: true
+mission_control:
+  work_type: integration
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: []
+  events_emitted: [release.published, artifact.uploaded]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [release, security]

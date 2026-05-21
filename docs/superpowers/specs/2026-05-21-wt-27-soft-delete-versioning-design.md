@@ -217,3 +217,16 @@ Tests-first commit `test(storage/soft-delete): failing tests for soft-delete + v
   целиком или обрезать на migration moment? Решение: переносим целиком (audit).
 - (O-3) Visible quota: считать ли trash + versions в tenant.quota.used? Текущее
   решение: считать с дисконтом 0.5x (поощряем хранение версий).
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** ObjectVersion
+- **Events emitted (WT-49 ActivityEvent):** object.soft_deleted, object.restored
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** data

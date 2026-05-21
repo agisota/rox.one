@@ -106,3 +106,13 @@ definition_of_done:
   - documentation_created: true
   - feature_flag_off_no_visible_change: true
   - zero_any_in_new_files: true
+mission_control:
+  work_type: refactor
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [SourceDefinition]
+  events_emitted: [source.registered]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [data]

@@ -203,3 +203,16 @@ leak) — конфиг `cross_tenant_dedup` доступен только enterp
   до WT-44; пока plain.
 - (O-3) Включать ли BLAKE3 для buffer'ов > 4MB сразу или только под env-флагом?
   Решение: по умолчанию OFF, env `ROX_DEDUP_FAST_HASH=1`.
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** ObjectHash
+- **Events emitted (WT-49 ActivityEvent):** object.deduped
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** data, perf

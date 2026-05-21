@@ -147,3 +147,13 @@ definition_of_done:
   bundle_delta_under_5kb: true
   hotkey_registers_3_platforms: true
   visual_regression_4_states_match: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [open-rox-design-from-topbar]
+  ui_surfaces: [TopBar, RoxDesignPage]
+  entities_touched: []
+  events_emitted: [design.button.clicked]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [UI]

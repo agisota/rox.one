@@ -211,3 +211,16 @@ export const InviteSchema = z.object({
 1. Resend invite после revoke — same token (new TTL) или new token? — **decision: new token, новый email send.**
 2. Pending invites count в quota — считать или нет? — **defer to WT-24 quota engine.**
 3. Email-mismatch override (admin принудительно мапит token на любого user) — нужно? — **нет в v1; defer.**
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** invite-teammate, accept-invite
+- **UI surfaces affected:** InviteFlow
+- **Entities touched (WT-46 references):** Membership, InviteToken
+- **Events emitted (WT-49 ActivityEvent):** membership.created, invite.sent, invite.accepted
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** security, data

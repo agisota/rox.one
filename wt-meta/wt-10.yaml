@@ -92,3 +92,13 @@ definition_of_done:
   - bundle_budget_within_80kb: true
   - audit_emit_tests_pass: true
   - feature_flag_off_no_visible_change: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [enterprise-sso-login]
+  ui_surfaces: []
+  entities_touched: [AccessJWT]
+  events_emitted: [auth.jwt.validated, auth.jwt.rejected]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [security, data]

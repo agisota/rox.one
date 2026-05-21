@@ -106,3 +106,13 @@ definition_of_done:
   audit_emit_tests_pass: false
   feature_flag_off_no_visible_change: true
   migration_up_down_verified: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [Workspace, Team, Membership]
+  events_emitted: [workspace.created, team.created]
+  ai_context_packets_touched: [workspace-context]
+  search_index_implications: index
+  heptabase_parity: 'Workspace isolation'
+  risk_axes: [data, security]

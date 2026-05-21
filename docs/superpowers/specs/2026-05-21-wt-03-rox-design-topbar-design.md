@@ -242,3 +242,16 @@ Smoke list:
 | 3 | Banner — приоритет над embed iframe (z-index) или inline в panel header? | banner inline над iframe (внутри panel) — preserves embed visibility для context; full-overlay только при `crashed` 3+ minutes. |
 | 4 | Click behaviour когда state="active" — focus уже открытой панели или open new tab? | focus existing panel; double-click → maximize panel (future, не в этом WT). |
 | 5 | `rox://design/component/<name>` глубокие пути — поддерживаем сейчас или defer к WT-33? | базовый `rox://design` сейчас; sub-paths defer к WT-33 (prompt workspace deep-link). |
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** open-rox-design-from-topbar
+- **UI surfaces affected:** TopBar, RoxDesignPage
+- **Entities touched (WT-46 references):** N/A
+- **Events emitted (WT-49 ActivityEvent):** design.button.clicked
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** UI

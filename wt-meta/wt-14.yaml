@@ -96,3 +96,13 @@ definition_of_done:
   - electron_builds_linux: true
   - audit_emit_tests_pass: true
   - feature_flag_off_fail_closed_verified: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [Role, PolicyRule]
+  events_emitted: [role.assigned]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [security]

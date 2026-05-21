@@ -296,3 +296,16 @@ Smoke list:
 | 4 | Soft-delete grace period (30 дней?) — где enforced? | NOT в этом WT; `deleted_at_utc` просто маркер. Cron-job очистки = WT-27 (soft-delete-versioning). |
 | 5 | UUID v7 vs ULID — final? | UUID v7 — RFC-track standard, native Postgres `gen_random_uuid()` будет поддерживать v7 в PG17+; миграция forward-friendly. ULID отвергнут (non-standard). |
 | 6 | `provider: 'rox-local'` — для local-only accounts без OAuth (testing? offline)? | YES, нужен для tests + future offline-first; флаг allows локальную registration. |
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** User, Identity
+- **Events emitted (WT-49 ActivityEvent):** user.created, user.updated
+- **AI context implications (WT-48):** user-context
+- **Search index implications (WT-50):** index
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** data, security

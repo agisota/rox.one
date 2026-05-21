@@ -205,3 +205,16 @@ attempt PATCH security/email=false → verify 422 + UI rollback.
 - [ ] Feature flag default OFF
 - [ ] 3-machine screenshots attached
 - [ ] Linear Done, FB Shipped
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** manage-notification-prefs
+- **UI surfaces affected:** NotificationPrefsPage
+- **Entities touched (WT-46 references):** NotificationPreference
+- **Events emitted (WT-49 ActivityEvent):** pref.changed
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** UI, data

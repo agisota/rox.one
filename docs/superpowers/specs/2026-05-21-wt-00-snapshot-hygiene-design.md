@@ -186,3 +186,16 @@ Smoke list:
 | 1 | CODEOWNERS map — actual maintainer GH-handles per epic? | Использовать `agisota` как fallback owner для всех 13 эпиков, пока не появятся sub-maintainers; обновить через scaffold-extension request в Wave 1. |
 | 2 | Какое vault для секретов — 1Password или Vaultwarden? | 1Password (уже используется product owner'ом); audit-log в Vault → audit pipeline (E07) после WT-08. |
 | 3 | Снимать `bun.lock` snapshot до или после `bun install --frozen-lockfile`? | После; зафиксировать, что determinism = re-run install не меняет lock. |
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** process
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** N/A
+- **Events emitted (WT-49 ActivityEvent):** N/A
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** release

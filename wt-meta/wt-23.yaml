@@ -108,3 +108,13 @@ definition_of_done:
   - no_any_types: true
   - feature_flag_off_no_visible_change: true
   - legacy_object_storage_callers_unbroken: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [ObjectStore]
+  events_emitted: [object.uploaded, object.deleted]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [data, security]

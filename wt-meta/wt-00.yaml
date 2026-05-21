@@ -114,3 +114,13 @@ definition_of_done:
   codeowners_covers_13_epics: true
   gitleaks_hook_active: true
   bun_lock_deterministic: true
+mission_control:
+  work_type: process
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: []
+  events_emitted: []
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [release]

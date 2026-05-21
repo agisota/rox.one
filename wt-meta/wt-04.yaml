@@ -157,3 +157,13 @@ definition_of_done:
   uuid_v7_under_0_1ms: true
   pii_safe_logging: true
   mock_consumer_compiles: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [User, Identity]
+  events_emitted: [user.created, user.updated]
+  ai_context_packets_touched: [user-context]
+  search_index_implications: index
+  heptabase_parity: 'N/A'
+  risk_axes: [data, security]

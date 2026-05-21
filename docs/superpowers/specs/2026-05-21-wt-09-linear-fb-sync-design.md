@@ -209,3 +209,16 @@ graceful exit on SIGTERM in middle of bulk.
   WT, не Wave 0.
 - (O-3) Bidirectional FB ↔ Linear link enforcement (custom field) — есть
   ли существующий? Существует (см. CLAUDE.md context). Использовать его.
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** integration
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** N/A
+- **Events emitted (WT-49 ActivityEvent):** N/A
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** data

@@ -117,3 +117,13 @@ definition_of_done:
   - audit_emit_tests_pass: true
   - feature_flag_off_regression_pass: true
   - recovery_token_security_test_pass: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [CoordinatorAgent]
+  events_emitted: [agent.spawned, agent.hibernated]
+  ai_context_packets_touched: [coordinator-state]
+  search_index_implications: N/A
+  heptabase_parity: 'AI Tutor/Chat'
+  risk_axes: [data, perf]

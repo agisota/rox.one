@@ -203,3 +203,16 @@ predictable. Perf-test: sanitizePayload среднее ≤ 1ms.
 - (O-3) `actor` для system events — единый `'system'` или с suffix
   (`system:WT-10`)? Решение: `'system:<wt-id>'` для traceability, validated
   via regex.
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** AuditEvent, TelemetryEvent
+- **Events emitted (WT-49 ActivityEvent):** foundational-emit-policy
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** index
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** Object history/changelog
+- **Risk axes:** data, security

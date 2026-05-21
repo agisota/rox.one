@@ -109,3 +109,13 @@ definition_of_done:
   - feature_flag_off_no_visible_change: true
   - ux_signoff_received: true
   - locales_ru_en_full: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [install-mcp-pack]
+  ui_surfaces: [MCPMarketplace]
+  entities_touched: [MCPPack]
+  events_emitted: [pack.installed, pack.uninstalled]
+  ai_context_packets_touched: []
+  search_index_implications: index
+  heptabase_parity: 'N/A'
+  risk_axes: [security, data]

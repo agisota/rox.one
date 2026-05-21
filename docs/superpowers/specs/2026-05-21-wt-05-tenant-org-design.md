@@ -209,3 +209,16 @@ runner (SQLite default).
   или достаточно audit event'а? Решение откладывается на WT-18 (Audit query API).
 - (O-3) Org settings.ssoOnly — где enforce'ится? Кандидат: WT-10 (Access JWT)
   + WT-11 (SCIM).
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** Tenant, Organization
+- **Events emitted (WT-49 ActivityEvent):** tenant.created
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** index
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** data, security

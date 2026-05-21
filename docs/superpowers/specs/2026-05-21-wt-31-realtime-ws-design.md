@@ -300,3 +300,16 @@ export const RunStreamEvent = z.discriminatedUnion('type', [
   1k runs/day по 200 events.
 - (O-3) Audit event `realtime.publish_drop` granularity — per drop или
   aggregated по 60s окнам?
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** WSStream
+- **Events emitted (WT-49 ActivityEvent):** ws.connected, ws.disconnected, ws.replay
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** perf, data

@@ -102,3 +102,13 @@ definition_of_done:
   - audit_emit_tests_pass: true
   - feature_flag_off_falls_back_to_polling: true
   - hibernation_test_green: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [WSStream]
+  events_emitted: [ws.connected, ws.disconnected, ws.replay]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [perf, data]

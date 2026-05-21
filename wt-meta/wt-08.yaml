@@ -104,3 +104,13 @@ definition_of_done:
   feature_flag_off_no_visible_change: true
   sanitizer_fuzz_pass: true
   hash_chain_verify_pass: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [AuditEvent, TelemetryEvent]
+  events_emitted: [foundational-emit-policy]
+  ai_context_packets_touched: []
+  search_index_implications: index
+  heptabase_parity: 'Object history/changelog'
+  risk_axes: [data, security]

@@ -290,3 +290,16 @@ Tests-first commit `test(agent/dag): failing tests for DAG runner + workflows br
   отложено до пользовательской обратной связи (WT-34 UI).
 - (O-3) Cancel semantics для node, который сейчас вызывает LLM stream — abort
   signal или soft-cancel-at-next-token? Решение: soft (token-boundary).
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** run-multi-step-task
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** AgentRun, AgentTask
+- **Events emitted (WT-49 ActivityEvent):** task.completed, task.failed, branch.retried
+- **AI context implications (WT-48):** dag-state
+- **Search index implications (WT-50):** index
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** data, perf

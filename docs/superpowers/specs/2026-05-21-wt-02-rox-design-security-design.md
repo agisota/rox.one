@@ -238,3 +238,16 @@ Smoke list:
 | 3 | Crash recovery max attempts — сколько раз пробовать relaunch перед "degraded forever"? | 3 attempts с exponential backoff (500ms, 2s, 5s); далее remains crashed, user видит "Refresh app". |
 | 4 | PrintPdf 5MB cap configurable per-tenant? | NO в Foundation Cut; рассмотреть в WT-07 entitlement engine (Pro/Team tier может получить 10MB). |
 | 5 | Audit shim в shared package или local в apps/electron? | Local в apps/electron как minimal shim; full pipeline в WT-08 через packages/shared/src/audit/. |
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** refactor
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** N/A
+- **Events emitted (WT-49 ActivityEvent):** design.runtime.started, design.runtime.crashed
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** security, release

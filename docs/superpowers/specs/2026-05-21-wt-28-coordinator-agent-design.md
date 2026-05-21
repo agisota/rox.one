@@ -283,3 +283,16 @@ Tests-first commit `test(agent/coordinator): failing tests for coordinator agent
   одному coordinator per goal), но UX-flag "active goal" в WT-34.
 - (O-3) Schedule cron grammar — full RFC-5545 или subset? Кандидат subset
   (cron + ISO duration), отложено до review.
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** CoordinatorAgent
+- **Events emitted (WT-49 ActivityEvent):** agent.spawned, agent.hibernated
+- **AI context implications (WT-48):** coordinator-state
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** AI Tutor/Chat
+- **Risk axes:** data, perf

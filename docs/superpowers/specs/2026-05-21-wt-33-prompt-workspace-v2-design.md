@@ -293,3 +293,16 @@ empty-state и palette (см. `design/03-ux-spec.md`).
   ModeSwitcher для будущей extensibility? Решение: нет (extensibility через
   ModeRegistry, не UI slot).
 - (O-4) Cmd+K dialog: full-screen overlay или modal 600x400? Решение от UX-guru.
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** refactor
+- **CJM scenarios required:** switch-composer-mode, compose-prompt
+- **UI surfaces affected:** ComposerPanel, ModeSegmentedControl
+- **Entities touched (WT-46 references):** N/A
+- **Events emitted (WT-49 ActivityEvent):** composer.mode.switched, composer.submitted
+- **AI context implications (WT-48):** composer-history
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** UI, perf

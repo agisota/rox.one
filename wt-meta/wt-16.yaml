@@ -92,3 +92,13 @@ definition_of_done:
   - smoke_passes_3_machines: true
   - no_production_file_modifications: true
   - mutation_testing_score_above_80: true
+mission_control:
+  work_type: spike
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: []
+  events_emitted: []
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [security, data]

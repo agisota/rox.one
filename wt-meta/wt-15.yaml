@@ -96,3 +96,13 @@ definition_of_done:
   - smoke_passes_3_machines: true
   - audit_emit_tests_pass: true
   - feature_flag_off_no_visible_change: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [invite-teammate, accept-invite]
+  ui_surfaces: [InviteFlow]
+  entities_touched: [Membership, InviteToken]
+  events_emitted: [membership.created, invite.sent, invite.accepted]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [security, data]

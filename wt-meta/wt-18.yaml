@@ -104,3 +104,13 @@ definition_of_done:
   - axe_violations_zero: true
   - tenant_isolation_tests_pass: true
   - feature_flag_off_no_visible_change: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [admin-search-audit]
+  ui_surfaces: [AuditLogQuery]
+  entities_touched: []
+  events_emitted: [audit.queried]
+  ai_context_packets_touched: []
+  search_index_implications: index
+  heptabase_parity: 'N/A'
+  risk_axes: [security, perf]

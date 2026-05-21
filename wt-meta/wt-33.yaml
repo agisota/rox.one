@@ -125,3 +125,13 @@ definition_of_done:
   - audit_emit_tests_pass: true
   - feature_flag_off_no_visible_change: true
   - legacy_history_migration_verified: true
+mission_control:
+  work_type: refactor
+  cjm_scenarios: [switch-composer-mode, compose-prompt]
+  ui_surfaces: [ComposerPanel, ModeSegmentedControl]
+  entities_touched: []
+  events_emitted: [composer.mode.switched, composer.submitted]
+  ai_context_packets_touched: [composer-history]
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [UI, perf]

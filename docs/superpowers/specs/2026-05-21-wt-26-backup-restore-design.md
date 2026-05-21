@@ -221,3 +221,16 @@ Tests-first commit `test(storage/backup): failing tests for backup + numbering`.
   cross-region replication? Кандидат на WT-43 spike.
 - (O-3) Manifest signing — symmetric HMAC (сейчас) или asymmetric (Ed25519,
   WT-44)? Решение: HMAC до WT-44, потом миграция.
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** BackupJob
+- **Events emitted (WT-49 ActivityEvent):** backup.created, restore.completed
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** data, release

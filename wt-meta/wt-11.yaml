@@ -103,3 +103,13 @@ definition_of_done:
   - audit_emit_tests_pass: true
   - rate_limit_429_verified: true
   - feature_flag_off_no_visible_change: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [SCIMUser, SCIMGroup]
+  events_emitted: [scim.user.upserted, scim.user.deactivated]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [security, data]

@@ -316,3 +316,16 @@ DAG layout, color palette per status, side-panel layout, artifact preview tokens
   или отдельный? Решение: side-bar list — в WT-34; full search — отложено.
 - (O-5) Mobile responsive: вертикальный DAG layout < 768px viewport?
   Решение от UX-guru.
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** watch-agent-run, retry-failed-branch, approve-step
+- **UI surfaces affected:** AgentRunDAG, Timeline
+- **Entities touched (WT-46 references):** N/A
+- **Events emitted (WT-49 ActivityEvent):** run.opened, branch.retried.user_initiated
+- **AI context implications (WT-48):** run-context
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** UI, perf

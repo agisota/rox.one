@@ -105,3 +105,13 @@ definition_of_done:
   - privacy_sweep_clean: true
   - feature_flag_off_no_visible_change: true
   - locales_ru_en_full: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [start-focus-session, daily-review]
+  ui_surfaces: [TodayView, FocusSession]
+  entities_touched: [FocusSession]
+  events_emitted: [focus.started, focus.completed]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'Journals adjacent'
+  risk_axes: [UI]

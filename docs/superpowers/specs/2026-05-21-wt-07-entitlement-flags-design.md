@@ -212,3 +212,16 @@ downstream WT (cross-reference с master `release-cuts.yaml`).
   Сейчас `min(0)`; решение откладывается до WT-24.
 - (O-3) Audit emit interface — sync или async? Решение: async через
   WT-08 `logger.audit()` (WT-08 owns interface).
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** Entitlement, FeatureFlag, QuotaAccount
+- **Events emitted (WT-49 ActivityEvent):** entitlement.granted, quota.exceeded
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** data, security

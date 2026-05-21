@@ -200,3 +200,16 @@ Wireframes (создаются UX-guru в Phase 2):
 1. Built-in role переименование admin → owner — нужно для enterprise? — **defer**.
 2. Bulk role change (select N memberships, change all) — v1 или v1.1? — **v1.1 (post-cut)**.
 3. Custom permission editor (granular permissions) — UI или JSON-only? — **JSON-only в v1; UI defer к WT-37**.
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** admin-manage-roles
+- **UI surfaces affected:** RolesPage, GrantsPage, AuditPage
+- **Entities touched (WT-46 references):** N/A
+- **Events emitted (WT-49 ActivityEvent):** role.changed
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** security, UI

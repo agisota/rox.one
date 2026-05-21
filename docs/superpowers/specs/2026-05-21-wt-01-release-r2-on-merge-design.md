@@ -225,3 +225,16 @@ Smoke list:
 | 3 | R2 bucket ETA: когда Cloudflare account activated? | Block on DevOps; временно использовать staging bucket в Cloudflare R2 dev tier; production switch в день Foundation Cut. |
 | 4 | GH Actions $25/мес budget approval? | Estimate в `design/01-impl-plan.md`; запрос approval product owner до старта Phase 3. |
 | 5 | `nightly` channel retention 60 дней — достаточно или 30? | 60 дней — позволяет revert на любую беспорядочную сборку из недавнего рекламного цикла; cost-wise ~15GB ×$0.015/GB-month = $0.22/мес, ничтожно. |
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** integration
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** N/A
+- **Events emitted (WT-49 ActivityEvent):** release.published, artifact.uploaded
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** release, security

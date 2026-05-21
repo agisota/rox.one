@@ -211,3 +211,16 @@ harness-implementer заполняет до прохождения.
 1. Mutation testing tool — StrykerJS или встроенный bun? — **StrykerJS (mature)**.
 2. Nightly extended chaos run — 2000 runs за категорию — нужен? — **да, на main**.
 3. False-positive policy — если chaos находит edge case в WT-05, fix в WT-05 или hotfix WT? — **fix в WT-05 если уже merged; иначе block WT-05 merge**.
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** spike
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** N/A
+- **Events emitted (WT-49 ActivityEvent):** N/A
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** security, data

@@ -241,3 +241,16 @@ Screenshots: none. Smoke: 1000-parallel consume не превышает hardCap.
 - [ ] Feature flag OFF bypass verified
 - [ ] 3-machine evidence attached
 - [ ] Linear Done, FB Shipped
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** QuotaAccount
+- **Events emitted (WT-49 ActivityEvent):** quota.warn, quota.exceeded
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** data

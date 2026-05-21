@@ -204,3 +204,16 @@ Screenshot не требуется. Pre-merge gate должен показать
 - (O-2) Default `slug='default'` — глобально или per-tenant? Согласовать с WT-22
   (mailbox-domain) — там `user@<tenant-slug>.rox.one` логика.
 - (O-3) Workspace archive vs delete — UX тонкости в WT-17.
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** N/A
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** Workspace, Team, Membership
+- **Events emitted (WT-49 ActivityEvent):** workspace.created, team.created
+- **AI context implications (WT-48):** workspace-context
+- **Search index implications (WT-50):** index
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** Workspace isolation
+- **Risk axes:** data, security

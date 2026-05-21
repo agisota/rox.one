@@ -104,3 +104,13 @@ definition_of_done:
   - ux_signoff_received: true
   - feature_flag_off_no_visible_change: true
   - locales_ru_en_full: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [first-user-onboarding, hit-entitlement-gate]
+  ui_surfaces: [OnboardingTour, EntitlementGate]
+  entities_touched: []
+  events_emitted: [onboarding.step.completed, upgrade.cta.clicked]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [UI]

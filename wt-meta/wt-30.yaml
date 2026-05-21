@@ -102,3 +102,13 @@ definition_of_done:
   - audit_emit_tests_pass: true
   - feature_flag_off_no_visible_change: true
   - load_test_p99_enqueue_under_50ms: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [TaskQueue]
+  events_emitted: [task.queued, task.consumed]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [perf]

@@ -119,3 +119,13 @@ definition_of_done:
   - audit_emit_tests_pass: true
   - feature_flag_off_regression_pass: true
   - cancel_propagation_test_pass: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [run-multi-step-task]
+  ui_surfaces: []
+  entities_touched: [AgentRun, AgentTask]
+  events_emitted: [task.completed, task.failed, branch.retried]
+  ai_context_packets_touched: [dag-state]
+  search_index_implications: index
+  heptabase_parity: 'N/A'
+  risk_axes: [data, perf]

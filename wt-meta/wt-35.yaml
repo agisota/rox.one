@@ -104,3 +104,13 @@ definition_of_done:
   - backlinks_integrity_verified: true
   - feature_flag_off_no_visible_change: true
   - locales_ru_en_full: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [create-note, link-notes]
+  ui_surfaces: [NotesPage, NoteDetail]
+  entities_touched: [Note]
+  events_emitted: [note.created]
+  ai_context_packets_touched: [notes-context]
+  search_index_implications: index
+  heptabase_parity: 'Notes/Cards approximation'
+  risk_axes: [UI, data]

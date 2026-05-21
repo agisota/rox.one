@@ -164,3 +164,16 @@ WT-10 валидирует Cloudflare Access JWT и возвращает `Identi
 - [x] Audit emit verified.
 - [x] Feature flag OFF: no JIT writes; OAuth unaffected.
 - [x] Linear PZD sub-issue → "Ready for Merge".
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** new_module
+- **CJM scenarios required:** account-link-flow
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** AccountLink
+- **Events emitted (WT-49 ActivityEvent):** account.linked, account.jit_provisioned
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** security, data

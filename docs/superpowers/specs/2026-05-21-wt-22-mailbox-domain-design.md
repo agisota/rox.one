@@ -231,3 +231,16 @@ dashboard.
 - [ ] Feature flag default OFF verified
 - [ ] Manual smoke evidence attached (post-merge, не CI)
 - [ ] Linear Done, FB Shipped
+
+## 23. Mission control axes (v2 update 2026-05-21)
+
+- **Work type:** integration
+- **CJM scenarios required:** provision-domain-mailbox
+- **UI surfaces affected:** N/A
+- **Entities touched (WT-46 references):** MailboxProvisioning
+- **Events emitted (WT-49 ActivityEvent):** mailbox.provisioned
+- **AI context implications (WT-48):** N/A
+- **Search index implications (WT-50):** N/A
+- **12-gate artifacts required:** cjm/*.md (если cjm_scenarios), erd/entities.mmd, sequence/*.mmd, ui-inventory/*.md (если ui_surfaces), evidence/{mac,win,linux}/, observability/metrics.md
+- **Heptabase parity:** N/A
+- **Risk axes:** security, data

@@ -99,3 +99,13 @@ definition_of_done:
   - no_network_calls_in_ci: true
   - feature_flag_off_no_visible_change: true
   - documentation_present: true
+mission_control:
+  work_type: integration
+  cjm_scenarios: []
+  ui_surfaces: []
+  entities_touched: [EmailProvider]
+  events_emitted: [email.sent, email.bounced]
+  ai_context_packets_touched: []
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [data, security]

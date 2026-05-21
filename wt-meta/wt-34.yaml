@@ -132,3 +132,13 @@ definition_of_done:
   - audit_emit_tests_pass: true
   - cross_tenant_isolation_tests_pass: true
   - feature_flag_off_no_visible_change: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [watch-agent-run, retry-failed-branch, approve-step]
+  ui_surfaces: [AgentRunDAG, Timeline]
+  entities_touched: []
+  events_emitted: [run.opened, branch.retried.user_initiated]
+  ai_context_packets_touched: [run-context]
+  search_index_implications: N/A
+  heptabase_parity: 'N/A'
+  risk_axes: [UI, perf]
