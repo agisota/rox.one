@@ -1,0 +1,95 @@
+id: WT-50
+title: "SearchIndex (full-text + tag + relationship)"
+branch: feat/search-index
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-50-search-index
+feature_flag:
+  name: rox.feature.search-index-v1
+  default: off
+  release_cut: foundation
+priority: P0
+wave: 1
+files_allowed:
+  - packages/shared/src/search/search-index.ts
+  - packages/shared/src/search/indexer.ts
+  - packages/shared/src/search/query-parser.ts
+  - packages/shared/src/search/__tests__/search-index.test.ts
+  - packages/server-core/src/search/sqlite-fts.ts
+  - packages/server-core/src/search/__tests__/sqlite-fts.test.ts
+files_forbidden:
+  - packages/shared/src/core/content-object.ts
+  - packages/shared/src/core/relation.ts
+  - package.json
+  - tsconfig.json
+depends_on: [WT-46, WT-47, WT-49]
+blocks: [WT-34, WT-37, WT-51, WT-53, WT-57]
+scaffold_requests: []
+roles:
+  discovery: [brainstormer, scope-analyzer, critic]
+  design: [erd-writer, sequence-chart-writer, prompt-writer]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, observability-engineer]
+model_overrides: {}
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - search-unit
+    - incremental-reindex-lag
+    - perf-query-100ms-p95
+    - reindex-10k-objects
+    - cross-tenant-zero-leak
+  electron_build: false
+  packaging_required: false
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "FTS5 schema + indexer"
+    - "Query parser + filters"
+    - "Incremental reindex subscriber"
+    - "Ranking BM25 + recency"
+    - "Reindex job + perf benchmark"
+  existing_issues_to_attach: []
+featurebase:
+  board_id: "6a0db1b591b619c8111329f2"
+  post_alias: wt-50-search-index
+  status_lifecycle: [planned, in-progress, shipped]
+inspiration_repos:
+  - url: https://github.com/fivetaku/insane-search
+    integration_type: reference_only
+    rationale: "Fast SQLite-based search patterns"
+  - url: https://github.com/databendlabs/databend
+    integration_type: reference_only
+    rationale: "Analytics search engine"
+  - url: https://github.com/safishamsi/graphify
+    integration_type: concept
+    rationale: "Graph-aware search ranking"
+  - url: https://github.com/sansan0/bilibili-comment-analyzer
+    integration_type: reference_only
+    rationale: "Full-text + filter search"
+  - url: https://github.com/assafelovic/gpt-researcher
+    integration_type: reference_only
+    rationale: "Search + AI retrieval coupling"
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  perf_p95_lt_100ms: true
+  incremental_reindex_lag_lt_1s: true
+  cross_tenant_zero_leak: true
+  reindex_10k_lt_60s: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [cmd-k-search, ai-retrieval, typeahead-suggest]
+  ui_surfaces: []
+  entities_touched: [SearchIndex]
+  events_emitted: [search.indexed, search.reindex.completed]
+  ai_context_packets_touched: [retrieval-source]
+  search_index_implications: foundational
+  heptabase_parity: "Quick Search + Search Everything"
+  risk_axes: [data, security, perf]

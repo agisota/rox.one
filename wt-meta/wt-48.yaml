@@ -1,0 +1,93 @@
+id: WT-48
+title: "AIContextPacket builder (permission-filtered)"
+branch: feat/ai-context-packet
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-48-ai-context-packet
+feature_flag:
+  name: rox.feature.ai-context-packet-v1
+  default: off
+  release_cut: agent
+priority: P0
+wave: 1
+files_allowed:
+  - packages/shared/src/ai/context-packet.ts
+  - packages/shared/src/ai/permission-filter.ts
+  - packages/shared/src/ai/citation-builder.ts
+  - packages/shared/src/ai/__tests__/context-packet.test.ts
+  - packages/shared/src/ai/__tests__/permission-filter.test.ts
+files_forbidden:
+  - packages/shared/src/core/content-object.ts
+  - packages/shared/src/core/relation.ts
+  - packages/shared/src/rbac/roles-engine.ts
+  - package.json
+  - tsconfig.json
+depends_on: [WT-46, WT-47, WT-14]
+blocks: [WT-34, WT-51, WT-52, WT-53, WT-54, WT-55, WT-56, WT-57, WT-58]
+scaffold_requests: []
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design: [erd-writer, prompt-writer, architect]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer]
+model_overrides: {}
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - context-packet-unit
+    - permission-filter-fuzz-100
+    - perf-50-objects
+    - audit-emit
+  electron_build: false
+  packaging_required: false
+linear:
+  parent_epic_identifier: PZD-115
+  child_story_titles:
+    - "Packet schema + Zod"
+    - "Permission filter + fail-closed"
+    - "Citation builder + range tracking"
+    - "TTL + invalidation"
+    - "Audit emit"
+  existing_issues_to_attach: []
+featurebase:
+  board_id: "6a0db1b591b619c8111329f2"
+  post_alias: wt-48-ai-context-packet
+  status_lifecycle: [planned, in-progress, shipped]
+inspiration_repos:
+  - url: https://github.com/Agenta-AI/agenta
+    integration_type: reference_only
+    rationale: "LLM context management patterns"
+  - url: https://github.com/hegelai/prompttools
+    integration_type: reference_only
+    rationale: "Prompt context tracking"
+  - url: https://github.com/elder-plinius/L1B3RT4S
+    integration_type: reference_only
+    rationale: "Jailbreak prevention (negative learning)"
+  - url: https://github.com/openai/symphony
+    integration_type: reference_only
+    rationale: "Multi-agent context coordination"
+  - url: https://github.com/safishamsi/graphify
+    integration_type: concept
+    rationale: "Knowledge graph as context source"
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  fuzz_test_zero_leaks: true
+  perf_50_objects_lt_200ms: true
+  audit_emit_verified: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [ask-ai-about-workspace, summarize-selected-cards]
+  ui_surfaces: []
+  entities_touched: [AIContextPacket]
+  events_emitted: [ai_context.built, ai_context.invalidated, ai_context.expanded]
+  ai_context_packets_touched: [foundational]
+  search_index_implications: index
+  heptabase_parity: "AI Tutor/Chat with citations"
+  risk_axes: [data, security]
