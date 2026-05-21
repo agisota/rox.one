@@ -1,0 +1,106 @@
+id: WT-51
+title: "Card Library MVP (UI on ContentObject type=card)"
+branch: feat/card-library-mvp
+base_sha: 7c12d14ed6fd
+worktree_path: ../wt-51-card-library
+feature_flag:
+  name: rox.feature.card-library-mvp
+  default: off
+  release_cut: ui
+priority: P1
+wave: 2
+files_allowed:
+  - apps/electron/src/renderer/pages/cards/CardLibrary.tsx
+  - apps/electron/src/renderer/pages/cards/CardDetail.tsx
+  - apps/electron/src/renderer/pages/cards/CardInspector.tsx
+  - apps/electron/src/renderer/pages/cards/BlockEditor.tsx
+  - apps/electron/src/renderer/pages/cards/hooks/useCards.ts
+  - apps/electron/src/renderer/pages/cards/hooks/useCardDetail.ts
+  - apps/electron/src/renderer/pages/cards/__tests__/CardLibrary.test.tsx
+  - apps/electron/src/renderer/pages/cards/__tests__/CardDetail.test.tsx
+  - apps/electron/src/renderer/pages/cards/__tests__/BlockEditor.test.tsx
+files_forbidden:
+  - packages/shared/src/core/content-object.ts
+  - packages/shared/src/core/relation.ts
+  - apps/electron/src/renderer/components/sidebar/ModuleSidebar.tsx
+  - package.json
+  - tsconfig.json
+depends_on: [WT-45, WT-46, WT-47, WT-50]
+blocks: [WT-52, WT-56, WT-58]
+scaffold_requests:
+  - target_file: apps/electron/src/renderer/modules/registered/cards.ts
+    target_owner: WT-45
+    reason: "Register cards module: id='cards', icon='card', routes=['/cards','/cards/:id']"
+    proposed_change_summary: "ModuleDefinition export + registerModule(cardsModule)"
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic, cjm-writer]
+  design: [erd-writer, ui-inventory-writer, ux-guru, prompt-writer, sequence-chart-writer]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+model_overrides: {}
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests:
+    - card-library-rtl
+    - card-detail-rtl
+    - block-editor-rtl
+    - axe-card-library
+    - bundle-budget-gate
+    - perf-1000-cards-200ms
+  electron_build: true
+  packaging_required: false
+linear:
+  parent_epic_identifier: PZD-117
+  child_story_titles:
+    - "CardLibrary list + virtual scroll"
+    - "CardDetail + BlockEditor + autosave"
+    - "CardInspector + backlinks panel"
+    - "Cmd+N + context menu actions"
+    - "Module registration via WT-45"
+  existing_issues_to_attach: []
+featurebase:
+  board_id: "6a0db0e7d1e3f457181dd1dd"
+  post_alias: wt-51-card-library
+  status_lifecycle: [planned, in-progress, shipped]
+inspiration_repos:
+  - url: https://wiki.heptabase.com/
+    integration_type: concept
+    rationale: "Heptabase Card Library core UX patterns"
+  - url: https://github.com/devxoul/vibe-notion
+    integration_type: concept
+    rationale: "Notion-style block editor"
+  - url: https://github.com/backnotprop/prompt-tower
+    integration_type: reference_only
+    rationale: "Multi-block prompt UI"
+  - url: https://github.com/RecapAI/Recap
+    integration_type: reference_only
+    rationale: "Note-taking card layout"
+  - url: https://github.com/agisota/portal
+    integration_type: reference_only
+    rationale: "Knowledge-management UX"
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  integration_tests_pass: true
+  axe_core_clean: true
+  bundle_delta_le_50kb: true
+  perf_1000_cards_lt_200ms: true
+  screenshots_present_light: true
+  screenshots_present_dark: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+mission_control:
+  work_type: new_module
+  cjm_scenarios: [create-card, edit-card-blocks, find-backlinks, search-cards]
+  ui_surfaces: [Cards-sidebar-entry, CardLibrary, CardDetail, CardInspector, BlockEditor]
+  entities_touched: [ContentObject, Block]
+  events_emitted: [card.created, block.updated, mention.created]
+  ai_context_packets_touched: [scope=card]
+  search_index_implications: index
+  heptabase_parity: "Card Library — central card repository"
+  risk_axes: [UI, perf]
