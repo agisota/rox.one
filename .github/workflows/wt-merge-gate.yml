@@ -1,0 +1,163 @@
+name: WT Merge Gate
+
+# Runs the orchestrator merge-gate.ts on every WT-branch PR.
+# Triggers: PRs on `feat/`, `fix/`, `chore/` branches that have a matching wt-meta yaml.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: wt-merge-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect-wt:
+    runs-on: ubuntu-latest
+    outputs:
+      wt-id: ${{ steps.detect.outputs.wt-id }}
+      has-wt: ${{ steps.detect.outputs.has-wt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect WT from branch
+        id: detect
+        env:
+          BRANCH: ${{ github.head_ref }}
+        shell: bash
+        run: |
+          set -e
+          echo "Branch: $BRANCH"
+          # Find wt-meta yaml whose branch field matches $BRANCH (env var — safely quoted in python)
+          WT_ID=$(python3 - "$BRANCH" <<'PY'
+          import sys, glob, yaml
+          target = sys.argv[1]
+          for f in sorted(glob.glob("wt-meta/wt-*.yaml")):
+              try:
+                  d = yaml.safe_load(open(f).read())
+                  if d and d.get("branch") == target:
+                      print(d.get("id", ""))
+                      sys.exit(0)
+              except Exception:
+                  continue
+          PY
+          )
+          if [ -n "$WT_ID" ]; then
+            echo "Matched WT: $WT_ID"
+            echo "wt-id=$WT_ID" >> "$GITHUB_OUTPUT"
+            echo "has-wt=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No matching wt-meta — skipping merge-gate"
+            echo "wt-id=" >> "$GITHUB_OUTPUT"
+            echo "has-wt=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  merge-gate:
+    needs: detect-wt
+    if: needs.detect-wt.outputs.has-wt == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install deps (minimal)
+        run: |
+          pnpm install --frozen-lockfile --filter=root --prefer-offline || \
+            pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Run merge-gate
+        id: gate
+        env:
+          WT_ID: ${{ needs.detect-wt.outputs.wt-id }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          OUTPUT=$(pnpm tsx scripts/orchestrator/merge-gate.ts --wt="$WT_ID" --base=origin/main 2>&1)
+          EXIT=$?
+          {
+            echo "exit_code=$EXIT"
+            echo "output<<MERGE_GATE_EOF"
+            echo "$OUTPUT"
+            echo "MERGE_GATE_EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "$OUTPUT"
+
+      - name: Comment результат на PR
+        uses: actions/github-script@v7
+        env:
+          WT_ID: ${{ needs.detect-wt.outputs.wt-id }}
+          EXIT_CODE: ${{ steps.gate.outputs.exit_code }}
+          GATE_OUTPUT: ${{ steps.gate.outputs.output }}
+        with:
+          script: |
+            const wtId = process.env.WT_ID;
+            const exit = parseInt(process.env.EXIT_CODE || '2', 10);
+            const out = process.env.GATE_OUTPUT || '';
+
+            const status = exit === 0 ? 'GO ✅' : exit === 1 ? 'GO-WITH-WARNINGS ⚠️' : 'NO-GO ⛔';
+            const body = [
+              `## Merge Gate: ${wtId} → **${status}**`,
+              '',
+              '<details><summary>Full output</summary>',
+              '',
+              '```json',
+              out.slice(0, 50000),
+              '```',
+              '',
+              '</details>',
+              '',
+              '_Auto-posted by `.github/workflows/wt-merge-gate.yml`._',
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.find((c) =>
+              (c.body || '').startsWith(`## Merge Gate: ${wtId}`),
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail if NO-GO
+        env:
+          EXIT_CODE: ${{ steps.gate.outputs.exit_code }}
+          WT_ID: ${{ needs.detect-wt.outputs.wt-id }}
+        if: steps.gate.outputs.exit_code == '2'
+        run: |
+          echo "::error::Merge gate NO-GO for $WT_ID. См. PR comment above."
+          exit 1
