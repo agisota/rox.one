@@ -250,16 +250,13 @@ describe('phase4 backend abstraction APIs', () => {
     })).not.toThrow();
   });
 
-  // Skip: resolveClaudeCliPath finds the CLI via node_modules traversal even from dist/, so this
-  // only fails in a truly isolated packaged environment, not in the dev monorepo.
-  it.skip('initializeBackendHostRuntime throws for dist-style host root in dev', () => {
-    expect(() => initializeBackendHostRuntime({
-      hostRuntime: {
-        appRootPath: join(process.cwd(), 'apps', 'electron', 'dist'),
-        isPackaged: false,
-      },
-    })).toThrow('Claude Code SDK not found');
-  });
+  // Removed: 'initializeBackendHostRuntime throws for dist-style host root in dev'.
+  // resolveClaudeCliPath walks node_modules upward, so dist/ in the dev monorepo
+  // still resolves the SDK and the expected throw never fires. The truly-isolated
+  // packaged scenario is covered by electron-smoke-packaged tests instead, where
+  // the SDK is either present (and the runtime boots) or absent (and the smoke
+  // exits non-zero). See PZD wave1 audit (no-skip-tests rule) for the removal
+  // rationale.
 
   it('resolveSetupTestConnectionHint maps provider/baseUrl/piAuthProvider correctly', () => {
     expect(resolveSetupTestConnectionHint({

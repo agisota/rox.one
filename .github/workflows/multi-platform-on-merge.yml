@@ -215,7 +215,31 @@ jobs:
       # 6. Package with electron-builder
       # -----------------------------------------------------------------------
 
-      # Mac ARM64: directory mode first for smoke launch, then re-pack DMG.
+      # Mac ARM64: prepare Rox Design payload from canonical archive (Mode 2),
+      # then directory mode first for smoke launch, then re-pack DMG.
+      - name: Prepare Rox Design payload from canonical archive (Mode 2)
+        if: matrix.platform == 'mac-arm64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f runtime-payload-versions.json ]; then
+            echo "::error::runtime-payload-versions.json missing — refusing to ship a nightly without a canonical Rox Design payload"
+            exit 1
+          fi
+          CURRENT=$(jq -r '.current // empty' runtime-payload-versions.json)
+          if [ -z "$CURRENT" ]; then
+            echo "::error::runtime-payload-versions.json has no current= entry — refusing to ship a nightly without a canonical Rox Design payload"
+            exit 1
+          fi
+          ARCHIVE_URL=$(jq -r ".versions[\"$CURRENT\"].archiveUrl" runtime-payload-versions.json)
+          ARCHIVE_SHA=$(jq -r ".versions[\"$CURRENT\"].archiveSha256" runtime-payload-versions.json)
+          if [ -z "$ARCHIVE_URL" ] || [ "$ARCHIVE_URL" = "null" ]; then
+            echo "::error::runtime-payload-versions.json[\"$CURRENT\"] is missing archiveUrl"
+            exit 1
+          fi
+          echo "Preparing Rox Design payload from $ARCHIVE_URL"
+          bun run rox-design:prepare -- --from-archive="$ARCHIVE_URL" --expected-sha256="$ARCHIVE_SHA" --force
+
       - name: Package macOS ARM64 (dir for smoke)
         if: matrix.platform == 'mac-arm64'
         shell: bash
@@ -228,6 +252,29 @@ jobs:
           bunx electron-builder --mac --arm64 --x64 --dir --publish=never
 
       # Linux x64
+      - name: Prepare Rox Design payload from canonical archive (Mode 2)
+        if: matrix.platform == 'linux-x64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f runtime-payload-versions.json ]; then
+            echo "::error::runtime-payload-versions.json missing — refusing to ship a nightly without a canonical Rox Design payload"
+            exit 1
+          fi
+          CURRENT=$(jq -r '.current // empty' runtime-payload-versions.json)
+          if [ -z "$CURRENT" ]; then
+            echo "::error::runtime-payload-versions.json has no current= entry — refusing to ship a nightly without a canonical Rox Design payload"
+            exit 1
+          fi
+          ARCHIVE_URL=$(jq -r ".versions[\"$CURRENT\"].archiveUrl" runtime-payload-versions.json)
+          ARCHIVE_SHA=$(jq -r ".versions[\"$CURRENT\"].archiveSha256" runtime-payload-versions.json)
+          if [ -z "$ARCHIVE_URL" ] || [ "$ARCHIVE_URL" = "null" ]; then
+            echo "::error::runtime-payload-versions.json[\"$CURRENT\"] is missing archiveUrl"
+            exit 1
+          fi
+          echo "Preparing Rox Design payload from $ARCHIVE_URL"
+          bun run rox-design:prepare -- --from-archive="$ARCHIVE_URL" --expected-sha256="$ARCHIVE_SHA" --force
+
       - name: Package Linux x64 AppImage + deb + rpm
         if: matrix.platform == 'linux-x64'
         shell: bash
@@ -238,6 +285,29 @@ jobs:
 
       # Windows x64 (both windows-2022 and windows-2025 runners use same
       # electron-builder invocation; only the underlying runner image differs).
+      - name: Prepare Rox Design payload from canonical archive (Mode 2)
+        if: startsWith(matrix.platform, 'windows-')
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Test-Path runtime-payload-versions.json)) {
+            Write-Host "::error::runtime-payload-versions.json missing — refusing to ship a nightly without a canonical Rox Design payload"
+            exit 1
+          }
+          $manifest = Get-Content runtime-payload-versions.json | ConvertFrom-Json
+          $current = $manifest.current
+          if (-not $current) {
+            Write-Host "::error::runtime-payload-versions.json has no current= entry — refusing to ship a nightly without a canonical Rox Design payload"
+            exit 1
+          }
+          $entry = $manifest.versions.$current
+          if (-not $entry.archiveUrl) {
+            Write-Host "::error::runtime-payload-versions.json[$current] is missing archiveUrl"
+            exit 1
+          }
+          Write-Host "Preparing Rox Design payload from $($entry.archiveUrl)"
+          bun run rox-design:prepare -- --from-archive=$($entry.archiveUrl) --expected-sha256=$($entry.archiveSha256) --force
+
       - name: Package Windows x64 NSIS installer
         if: startsWith(matrix.platform, 'windows-')
         shell: pwsh

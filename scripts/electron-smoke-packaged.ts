@@ -8,10 +8,16 @@ import { join } from 'node:path';
 const ROOT_DIR = join(import.meta.dir, '..');
 const STARTUP_TIMEOUT_MS = Number(process.env.ROX_PACKAGED_SMOKE_TIMEOUT_MS ?? 45_000);
 const FORCE_KILL_GRACE_MS = 5_000;
-// Production packaged builds can route readiness details to electron-log instead of
-// stdout/stderr. A clean smoke-mode exit is therefore the observable readiness proof;
-// stdout markers are best-effort diagnostics only.
-const REQUIRED_MARKERS: readonly string[] = [];
+// Production packaged builds route readiness details to electron-log AND
+// stdout. We assert specific markers so a regression that masks the real
+// boot path (white window, broken Rox Design runtime, missing server URL)
+// still produces clean exit code 0 but fails the smoke. Each marker
+// corresponds to a load-bearing log line in apps/electron/src/main/index.ts.
+const REQUIRED_MARKERS: readonly string[] = [
+  'ROX_SERVER_URL=',
+  'App initialized successfully',
+  'RoxDesignRuntimeManager initialized',
+];
 
 function defaultExecutablePath(): string {
   if (process.platform === 'darwin') {
