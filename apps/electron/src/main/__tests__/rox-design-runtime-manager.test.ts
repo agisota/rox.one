@@ -207,4 +207,41 @@ describe('RoxDesignRuntimeManager', () => {
       expect.objectContaining({ reason: expect.any(String) }),
     )
   })
+
+  // C-H2: stopping flag must suppress rox-design:sidecar-exited during intentional stop()
+  test('does NOT emit rox-design:sidecar-exited IPC when stop() kills the sidecars (C-H2)', async () => {
+    const resourcesRoot = tempRoot()
+    createMockOpenDesignRuntime(resourcesRoot)
+    const manager = new RoxDesignRuntimeManager({ resourcesRoot, dataRoot: join(resourcesRoot, 'data') })
+
+    const status = await manager.start()
+    expect(status.status).toBe('running')
+
+    mockSend.mockClear()
+    await manager.stop()
+
+    // Allow any deferred microtasks/timers to fire
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    const sidecarExitedCalls = mockSend.mock.calls.filter(([channel]) => channel === 'rox-design:sidecar-exited')
+    expect(sidecarExitedCalls).toHaveLength(0)
+  })
+
+  // C-H2: crash path must still emit rox-design:sidecar-exited (existing behaviour preserved)
+  test('emits rox-design:sidecar-exited IPC when sidecar crashes without stop() (C-H2 baseline)', async () => {
+    const resourcesRoot = tempRoot()
+    createMockOpenDesignRuntimeWithExit(resourcesRoot, 150)
+    const manager = new RoxDesignRuntimeManager({ resourcesRoot, dataRoot: join(resourcesRoot, 'data') })
+
+    const status = await manager.start()
+    expect(status.status).toBe('running')
+
+    // Wait for natural crash
+    await new Promise((resolve) => setTimeout(resolve, 700))
+
+    expect(mockSend).toHaveBeenCalledWith(
+      'rox-design:sidecar-exited',
+      expect.objectContaining({ reason: expect.any(String) }),
+    )
+  })
 })
