@@ -68,6 +68,9 @@ for (const requiredText of [
   "bun run validate:workflow-pins",
   "bun test --timeout=30000 scripts/__tests__/validate-packaged-artifacts.test.ts",
   "bun run rox-design:prepare -- --from-archive=\"$ARCHIVE_URL\" --expected-sha256=\"$ARCHIVE_SHA\" --force",
+  "ROX_RC_MODE=unsigned",
+  "ROX_ARTIFACT_PLATFORM=mac",
+  "ROX_ARTIFACT_ARCH=arm64",
   ".ci-logs",
 ]) {
   if (!circleCiConfig.includes(requiredText)) {

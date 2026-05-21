@@ -106,6 +106,11 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
   not prepare the Rox Design payload before `electron:dist:dev:mac:arm64`.
   `.circleci/config.yml` now prepares the SHA-pinned payload from
   `runtime-payload-versions.json`, and `validate-ci-contract` guards that step.
+- The following CircleCI `mac-arm-build` reached packaged-artifact validation
+  and failed because the unsigned/dev package was validated in signed mode.
+  CircleCI and the standalone Mac ARM workflow now set
+  `ROX_RC_MODE=unsigned`, `ROX_ARTIFACT_PLATFORM=mac`, and
+  `ROX_ARTIFACT_ARCH=arm64` for that validation step.
 
 ## 9. Build Output Summary
 

@@ -82,6 +82,8 @@ requireText(workflow, 'bun run electron:build', 'electron build gate');
 requireText(workflow, 'bun run electron:dist:dev:mac:arm64', 'arm64 dist gate');
 requireText(workflow, 'bun run electron:smoke:packaged:mac', 'packaged launch smoke gate');
 requireText(workflow, 'ROX_ARTIFACT_PLATFORM: mac', 'Mac-scoped packaged artifact validation');
+requireText(workflow, 'ROX_RC_MODE: unsigned', 'unsigned Mac packaged artifact validation mode');
+requireText(workflow, 'ROX_ARTIFACT_ARCH: arm64', 'Mac ARM64 packaged artifact validation arch');
 requireText(workflow, 'bun run validate:packaged-artifacts', 'packaged artifact validation gate');
 requireText(workflow, 'bun run validate:mac-private-release-boundary', 'private mac release trust-boundary gate');
 requireText(workflow, 'bun run electron:smoke', 'launch smoke gate');

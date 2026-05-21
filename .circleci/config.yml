@@ -201,7 +201,11 @@ jobs:
           command: bun run electron:smoke
       - run:
           name: Validate packaged artifact metadata
-          command: bun run validate:packaged-artifacts
+          command: |
+            ROX_RC_MODE=unsigned \
+              ROX_ARTIFACT_PLATFORM=mac \
+              ROX_ARTIFACT_ARCH=arm64 \
+              bun run validate:packaged-artifacts
       - run:
           name: Validate private mac release trust boundary
           command: bun run validate:mac-private-release-boundary
