@@ -141,23 +141,37 @@ function buildFixture(opts: FixtureOptions): string {
     const plistDir = join(releaseDir, 'mac-arm64', 'ROX.ONE.app', 'Contents');
     mkdirSync(plistDir, { recursive: true });
     writeFileSync(join(plistDir, 'Info.plist'), macInfoPlist());
+    const asarUnpackedResourcesDir = join(
+      plistDir,
+      'Resources',
+      'app.asar.unpacked',
+      'resources',
+    );
+    mkdirSync(asarUnpackedResourcesDir, { recursive: true });
 
     if (roxDesignPayload) {
-      const payloadRoot = join(
-        plistDir,
-        'Resources',
-        'app.asar.unpacked',
-        'resources',
-        'rox-design',
-      );
+      const payloadRoot = join(asarUnpackedResourcesDir, 'rox-design');
       mkdirSync(join(payloadRoot, 'app', 'prebundled', 'daemon'), { recursive: true });
       mkdirSync(join(payloadRoot, 'app', 'prebundled'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'app', 'node_modules', 'better-sqlite3'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'app', 'node_modules', 'blake3-wasm'), { recursive: true });
       mkdirSync(join(payloadRoot, 'open-design', 'bin'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'open-design', 'skills'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'open-design', 'design-systems'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'open-design', 'design-templates'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'open-design', 'prompt-templates'), { recursive: true });
+      mkdirSync(join(payloadRoot, 'open-design-web-standalone', 'apps', 'web'), { recursive: true });
+      writeFileSync(join(payloadRoot, 'MANIFEST.json'), JSON.stringify({
+        schema: 'rox-design-runtime-manifest.v1',
+        mode: 'from-archive',
+        version: '0.7.0',
+      }));
       writeFileSync(join(payloadRoot, 'open-design-config.json'), '{}\n');
       writeFileSync(join(payloadRoot, 'open-design', 'bin', 'node'), 'node\n');
       writeFileSync(join(payloadRoot, 'app', 'prebundled', 'daemon', 'daemon-sidecar.mjs'), 'daemon\n');
       writeFileSync(join(payloadRoot, 'app', 'prebundled', 'daemon', 'daemon-cli.mjs'), 'daemon-cli\n');
       writeFileSync(join(payloadRoot, 'app', 'prebundled', 'web-sidecar.mjs'), 'web\n');
+      writeFileSync(join(payloadRoot, 'open-design-web-standalone', 'apps', 'web', 'server.js'), 'server\n');
     }
   }
 
