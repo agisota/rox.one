@@ -37,7 +37,10 @@ function getState(): AuditEventWriterState {
 
 export class UnsupportedAuditBackendError extends Error {
   constructor(readonly backendName: string) {
-    super(`ROX_AUDIT_BACKEND=${backendName} is reserved but not implemented yet.`)
+    super(
+      `ROX_AUDIT_BACKEND=${backendName} is not a recognised backend. ` +
+      `Supported values: 'memory', 'file', or unset.`,
+    )
     this.name = 'UnsupportedAuditBackendError'
   }
 }
