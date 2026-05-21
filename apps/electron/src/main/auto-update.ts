@@ -39,6 +39,15 @@ const PLATFORM = platform()
 const IS_MAC = PLATFORM === 'darwin'
 const IS_WINDOWS = PLATFORM === 'win32'
 
+// Build-time embedded EdDSA public key for verifying latest-*.yml manifest signatures.
+// Injected via esbuild --define:process.env.ROX_UPDATE_PUBLIC_KEY="..." in build:main.
+// When absent, signature verification is disabled and autoInstallOnAppQuit is forced
+// off as a safety belt (see configureUpdateFeed + module-load logging below).
+const UPDATE_PUBLIC_KEY: string | undefined =
+  typeof process.env.ROX_UPDATE_PUBLIC_KEY === 'string' && process.env.ROX_UPDATE_PUBLIC_KEY.length > 0
+    ? process.env.ROX_UPDATE_PUBLIC_KEY
+    : undefined
+
 // Get the update cache directory path (for file watcher fallback on macOS)
 // electron-updater uses these paths:
 // - Windows: %LOCALAPPDATA%/{appName}-updater/pending
@@ -183,12 +192,23 @@ function configureUpdateFeed(settings: UpdateSettings = currentUpdateSettings())
   autoUpdater.autoDownload = settings.autoDownloadUpdates
   autoUpdater.allowPrerelease = channel === 'beta'
   autoUpdater.allowDowngrade = false
+  // Safety belt: only allow silent install-on-quit when we have a publicKey
+  // to verify update authenticity. Otherwise any compromise of the CDN can
+  // ship malicious updates that auto-install. With publicKey absent, the
+  // user must consciously accept the update via UI prompt.
+  autoUpdater.autoInstallOnAppQuit = Boolean(UPDATE_PUBLIC_KEY)
   try {
-    autoUpdater.setFeedURL({
+    const feedConfig: Parameters<typeof autoUpdater.setFeedURL>[0] = {
       provider: 'generic',
       url: `${UPDATE_FEED_ROOT}/${channel}/`,
       channel: feedChannel,
-    })
+    }
+    if (UPDATE_PUBLIC_KEY) {
+      // electron-updater 6.x supports publicKey on generic provider for
+      // EdDSA signature verification of latest-*.yml manifests.
+      ;(feedConfig as unknown as { publicKey: string }).publicKey = UPDATE_PUBLIC_KEY
+    }
+    autoUpdater.setFeedURL(feedConfig)
   } catch (error) {
     mainLog.warn('[auto-update] Failed to configure update feed:', error)
   }
@@ -258,8 +278,21 @@ function broadcastDownloadProgress(progress: number): void {
 
 // ─── Configure electron-updater ───────────────────────────────────────────────
 
-// Install on app quit (if update is downloaded but user hasn't clicked "Restart")
-autoUpdater.autoInstallOnAppQuit = true
+// Install on app quit (if update is downloaded but user hasn't clicked "Restart").
+// Gated by UPDATE_PUBLIC_KEY presence in configureUpdateFeed() — see safety-belt
+// comment there. The initial value here is overridden on every configureUpdateFeed()
+// call (including the one at module load below).
+autoUpdater.autoInstallOnAppQuit = Boolean(UPDATE_PUBLIC_KEY)
+
+// Startup warning when signature verification is disabled. This is the primary
+// ops signal that the build was packaged without ROX_UPDATE_PUBLIC_KEY embedded.
+if (!UPDATE_PUBLIC_KEY) {
+  mainLog.warn(
+    '[auto-update] WARNING: auto-update signature verification disabled ' +
+      '(ROX_UPDATE_PUBLIC_KEY not configured). Set autoInstallOnAppQuit to false; ' +
+      'updates will require user confirmation.',
+  )
+}
 
 // Use the logger for electron-updater internal logging
 autoUpdater.logger = {
