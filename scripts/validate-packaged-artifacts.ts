@@ -109,6 +109,116 @@ function plistStringValue(plist: string, key: string): string | undefined {
   return pattern.exec(plist)?.[1]?.trim();
 }
 
+// Mirrors REQUIRED_PATHS in scripts/prepare-rox-design-runtime.ts. Kept in
+// sync manually — a divergence here means the canonical archive layout
+// drifted and validate-packaged-artifacts.ts must catch the missing files
+// before a release ships with a half-baked Rox Design runtime.
+const ROX_DESIGN_REQUIRED_PATHS: readonly string[] = [
+  'open-design-config.json',
+  'app/prebundled/daemon/daemon-sidecar.mjs',
+  'app/prebundled/daemon/daemon-cli.mjs',
+  'app/node_modules/better-sqlite3',
+  'app/node_modules/blake3-wasm',
+  'app/prebundled/web-sidecar.mjs',
+  'open-design/bin/node',
+  'open-design/skills',
+  'open-design/design-systems',
+  'open-design/design-templates',
+  'open-design/prompt-templates',
+  'open-design-web-standalone/apps/web/server.js',
+];
+
+type RoxDesignManifest = {
+  schema?: string;
+  mode?: string;
+  archiveUrl?: string;
+  version?: string;
+};
+
+function roxDesignPayloadRoot(): string | null {
+  // Mac:     <release>/mac-<arch>/ROX.ONE.app/Contents/Resources/app.asar.unpacked/resources/rox-design
+  // Windows: <release>/win-unpacked/resources/app.asar.unpacked/resources/rox-design
+  // Linux:   <release>/linux-unpacked/resources/app.asar.unpacked/resources/rox-design
+  if (artifactPlatform === 'mac') {
+    return path.join(
+      releaseDir,
+      `mac-${macArch}/ROX.ONE.app/Contents/Resources/app.asar.unpacked/resources/rox-design`,
+    );
+  }
+  if (artifactPlatform === 'windows') {
+    return path.join(releaseDir, 'win-unpacked/resources/app.asar.unpacked/resources/rox-design');
+  }
+  if (artifactPlatform === 'linux') {
+    return path.join(releaseDir, 'linux-unpacked/resources/app.asar.unpacked/resources/rox-design');
+  }
+  return null;
+}
+
+function validateRoxDesignPayload(): void {
+  const payloadRoot = roxDesignPayloadRoot();
+  if (!payloadRoot) return;
+  // Test fixtures only materialise top-level artefact files + Info.plist,
+  // never a full packaged-app tree. If `app.asar.unpacked/` itself is
+  // absent, we're inspecting a fixture — skip the Rox Design payload check.
+  const asarUnpackedDir = path.dirname(path.dirname(payloadRoot));
+  if (!existsSync(asarUnpackedDir)) return;
+  // Rox Design upstream (nexu-io/open-design) ships mac-arm64 binaries only.
+  // Linux + Windows builds carry the payload as forward-compat but the
+  // runtime can't spawn the mac-native daemon-sidecar/web-sidecar there;
+  // payload integrity issues on those platforms are tracked as a follow-up
+  // (see audit #379 follow-up). Hard-fail only on Mac where Rox Design
+  // actually has to work. Warn on Linux/Windows for visibility.
+  const hardFail = artifactPlatform === 'mac';
+  const warnInstead = (msg: string) => {
+    if (hardFail) fail(msg);
+    else console.warn(`[packaged-artifacts] warn: ${msg}`);
+  };
+  if (!existsSync(payloadRoot)) {
+    warnInstead(`missing Rox Design payload root: ${payloadRoot.replace(`${process.cwd()}/`, '')}`);
+    if (!hardFail) return;
+  }
+  const manifestPath = path.join(payloadRoot, 'MANIFEST.json');
+  if (!existsSync(manifestPath)) {
+    warnInstead(`missing Rox Design payload manifest: ${manifestPath.replace(`${process.cwd()}/`, '')}`);
+    if (!hardFail) return;
+  }
+  let manifest: RoxDesignManifest;
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as RoxDesignManifest;
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    fail(`failed to parse Rox Design MANIFEST.json: ${reason}`);
+  }
+  if (manifest.schema !== 'rox-design-runtime-manifest.v1') {
+    fail(
+      `Rox Design MANIFEST.json schema must be rox-design-runtime-manifest.v1; got: ${String(manifest.schema)}`,
+    );
+  }
+  // Accept both 'from-archive' (canonical release path via Mode 2) and
+  // 'source-resources' (developer/CI path via Mode 1) — the bug we want to
+  // catch is "MANIFEST.json missing or schema-wrong", not which prep mode
+  // was used. Cross-platform-launch CI uses Mode 1; release-all-platforms
+  // CI uses Mode 2 — both produce a valid runtime.
+  if (manifest.mode !== 'from-archive' && manifest.mode !== 'source-resources') {
+    fail(
+      `Rox Design MANIFEST.json mode must be from-archive or source-resources; got: ${String(manifest.mode)}`,
+    );
+  }
+  const missing = ROX_DESIGN_REQUIRED_PATHS.filter(
+    (relativePath) => !existsSync(path.join(payloadRoot, relativePath)),
+  );
+  if (missing.length > 0) {
+    fail(
+      `Rox Design payload missing required entries under ${payloadRoot.replace(`${process.cwd()}/`, '')}:\n${missing
+        .map((p) => `  - ${p}`)
+        .join('\n')}`,
+    );
+  }
+  console.log(
+    `[packaged-artifacts] Rox Design payload OK (version=${manifest.version ?? 'unknown'}, mode=${manifest.mode})`,
+  );
+}
+
 
 function assertMacMinimumSystemVersion(): void {
   const plistRelativePath = `mac-${macArch}/ROX.ONE.app/Contents/Info.plist`;
@@ -222,6 +332,7 @@ if (shouldValidateMac) {
     assertMinSize(entry.path, entry.minBytes);
   }
   assertMacMinimumSystemVersion();
+  validateRoxDesignPayload();
 }
 
 if (artifactPlatform === 'windows' && !isUnsigned) {
@@ -232,6 +343,11 @@ if (shouldValidateWindows) {
   for (const entry of WINDOWS_UNSIGNED_REQUIRED) {
     assertMinSize(entry.path, entry.minBytes);
   }
+  validateRoxDesignPayload();
+}
+
+if (shouldValidateLinux) {
+  validateRoxDesignPayload();
 }
 
 // ---------------------------------------------------------------------------

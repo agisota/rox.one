@@ -8,10 +8,28 @@ import { join } from 'node:path';
 const ROOT_DIR = join(import.meta.dir, '..');
 const STARTUP_TIMEOUT_MS = Number(process.env.ROX_PACKAGED_SMOKE_TIMEOUT_MS ?? 45_000);
 const FORCE_KILL_GRACE_MS = 5_000;
-// Production packaged builds can route readiness details to electron-log instead of
-// stdout/stderr. A clean smoke-mode exit is therefore the observable readiness proof;
-// stdout markers are best-effort diagnostics only.
-const REQUIRED_MARKERS: readonly string[] = [];
+// Production packaged builds route readiness details to electron-log AND
+// stdout. We assert specific markers so a regression that masks the real
+// boot path (white window, broken Rox Design runtime, missing server URL)
+// still produces clean exit code 0 but fails the smoke. Each marker
+// corresponds to a load-bearing log line in apps/electron/src/main/index.ts.
+// REQUIRED_MARKERS must fire BEFORE scheduleSmokeShutdown(0, ...) at the
+// tail of init (apps/electron/src/main/index.ts:1312).
+//
+// We only require 'ROX_SERVER_URL=' as a universal marker that confirms the
+// server-init half of bootstrap completed. Rox Design tab rendering is NOT
+// asserted here — it's covered by:
+//   1. scripts/validate-packaged-artifacts.ts — checks MANIFEST.json exists
+//      inside Contents/Resources/app.asar.unpacked/resources/rox-design/
+//      (catches the v1.0.2 'payload sealed in asar' regression)
+//   2. scripts/electron-ui-smoke-packaged-mac.ts — CDP-driven Mac UI smoke
+//      that opens the Rox Design tab and waits for actual DOM render
+//
+// We tried adding 'RoxDesignRuntimeManager initialized' as a hard marker but
+// it's unreliable across CI configs (subprocess spawn issues with hardened
+// runtime + ad-hoc identity on Mac, mac-arm64-only payload on Linux/Win).
+// The UI smoke is the right place to enforce Rox Design rendering.
+const REQUIRED_MARKERS: readonly string[] = ["ROX_SERVER_URL="];
 
 function defaultExecutablePath(): string {
   if (process.platform === 'darwin') {

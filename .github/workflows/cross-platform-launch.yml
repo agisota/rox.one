@@ -39,9 +39,6 @@ jobs:
       ROX_ARTIFACT_PLATFORM: mac
       ROX_ARTIFACT_ARCH: arm64
       ROX_RC_MODE: unsigned
-      # This PR smoke launches the shell only; release/package jobs still require
-      # a prepared Rox Design runtime payload.
-      ROX_SKIP_ROX_DESIGN_PAYLOAD_VERIFY: "1"
 
     steps:
       - name: Checkout
@@ -99,6 +96,10 @@ jobs:
 
       - name: Smoke packaged ROX.ONE app
         run: bun run electron:smoke:packaged
+
+      - name: UI smoke — verify Rox Design tab renders
+        run: bun run scripts/electron-ui-smoke-packaged-mac.ts
+        timeout-minutes: 5
 
       - name: Validate packaged artifact metadata
         run: bun run validate:packaged-artifacts
