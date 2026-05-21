@@ -65,7 +65,7 @@ If you prefer to download the installer directly from the [Releases](https://git
 
 ## System Requirements
 
-- **macOS:** Monterey 12.0 or newer (Monterey, Ventura, Sonoma, Sequoia, Tahoe). Apple silicon (arm64) and Intel (x64) are both supported.
+- **macOS:** Monterey 12.0 or newer is the build target (Monterey, Ventura, Sonoma, Sequoia, Tahoe). Apple silicon (arm64) and Intel (x64) are both supported. **CI coverage is currently macOS 14 (Sonoma) + 15 (Sequoia) only** — Monterey/Ventura are nominally supported (binary will install) but not automatically smoke-tested. Issues on 12/13 are best-effort fix.
 - **Windows:** Windows 10 (1809) or newer; Windows 11 recommended. First launch shows a SmartScreen warning because builds are self-signed — click **More info → Run anyway** once.
 - **Linux:** any glibc-based distribution with GTK 3 and `libnss3`. Native packages for Ubuntu 22.04+/24.04, Debian 12, Fedora 40 (DEB/RPM) plus an AppImage that runs on most distros. NixOS users can install via the bundled flake.
 
@@ -76,7 +76,7 @@ If you prefer to download the installer directly from the [Releases](https://git
 - Sources — connect any MCP server, REST API, or local filesystem in one prompt
 - Skills — specialized agent instructions per workspace
 - Permission modes — Explore, Ask to Edit, Auto, with custom rules
-- Background tasks, event-driven automations, cascading theme system
+- Background tasks, event-driven automations, app-level theme (light/dark)
 - Multi-file diff viewer
 - Drag-drop attachments — images, PDFs, Office documents
 

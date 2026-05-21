@@ -17,11 +17,28 @@ const WEBUI_DIR = process.env.ROX_AUTH_WEBUI_DIR || dirname(LOGIN_HTML)
 const RESEND_API_KEY = process.env.RESEND_API_KEY || ''
 const EMAIL_FROM = process.env.ROX_AUTH_EMAIL_FROM || 'ROX ONE <noreply@rox.one>'
 const ALLOW_EMAIL_LOG_FALLBACK = process.env.ROX_AUTH_ALLOW_EMAIL_LOG_FALLBACK === '1'
-// Phase R.6: prefer canonical ROX_* names; ROX_* fallbacks kept for one
-// minor version. ROX_SERVER_TOKEN ranks ahead of the legacy ROX_SERVER_TOKEN.
-const CONFIGURED_JWT_SECRET = process.env.ROX_AUTH_JWT_SECRET || process.env.ROX_AUTH_JWT_SECRET || process.env.ROX_SERVER_TOKEN || process.env.ROX_SERVER_TOKEN || process.env.ROX_AUTH_SECRET || ''
+// JWT signing secret. Audit finding #380:
+// - removed duplicate `X || X` legacy R.6 rebrand artifact
+// - removed `ROX_SERVER_TOKEN` from fallback chain (it's a server-to-server
+//   bearer token; reusing it as a JWT signing key would let any bearer-holder
+//   forge session tokens)
+// - refuse to boot in production with the placeholder secret from .env.example
+// - refuse ephemeral mode in production (multi-instance HA would get
+//   inconsistent signing keys silently)
+const CONFIGURED_JWT_SECRET = process.env.ROX_AUTH_JWT_SECRET || process.env.ROX_AUTH_SECRET || ''
+const PLACEHOLDER_JWT_SECRET = 'change-me-with-a-strong-random-secret'
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
+
+if (CONFIGURED_JWT_SECRET === PLACEHOLDER_JWT_SECRET) {
+  console.error('[rox-auth] ROX_AUTH_JWT_SECRET is set to the placeholder value from .env.example. Generate a real secret (e.g. `openssl rand -hex 32`).')
+  process.exit(1)
+}
 if (!CONFIGURED_JWT_SECRET && process.env.ROX_AUTH_ALLOW_EPHEMERAL_JWT_SECRET !== '1') {
   console.error('[rox-auth] ROX_AUTH_JWT_SECRET is required. Set ROX_AUTH_ALLOW_EPHEMERAL_JWT_SECRET=1 only for local throwaway development.')
+  process.exit(1)
+}
+if (!CONFIGURED_JWT_SECRET && IS_PRODUCTION) {
+  console.error('[rox-auth] ROX_AUTH_ALLOW_EPHEMERAL_JWT_SECRET is not allowed in production (NODE_ENV=production). Set a stable ROX_AUTH_JWT_SECRET instead.')
   process.exit(1)
 }
 const JWT_SECRET = CONFIGURED_JWT_SECRET || randomBytes(32).toString('hex')

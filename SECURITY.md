@@ -78,6 +78,43 @@ The Cloudflare Worker at `infra/cloudflare/rox-one-release-feed.worker.ts` proxi
 
 Regression tests in [infra/__tests__/rox-one-release-feed-worker.test.ts](infra/__tests__/rox-one-release-feed-worker.test.ts) assert both invariants by name.
 
+### Install script verification (recommended for security-conscious users)
+
+The `curl | bash` and `irm | iex` patterns from the README pipe a script through a single Cloudflare worker that also serves the binary it downloads. This is a **circular trust model** — anyone who compromises the worker can ship both a malicious script and a matching SHA-512 manifest simultaneously.
+
+If you prefer to verify before executing, download the script, check the SHA-256 against the canonical value published here, then execute:
+
+```bash
+# macOS / Linux
+curl -fsSL https://app.rox.one/install-app.sh -o install-app.sh
+EXPECTED="47712ee72ca826f564b1e680fa6f6c5bcf6e084170e2ece1c6400310d241d0a8"
+ACTUAL=$(sha256sum install-app.sh | cut -d' ' -f1)
+[ "$EXPECTED" = "$ACTUAL" ] && bash install-app.sh || echo "SHA mismatch — abort"
+```
+
+```powershell
+# Windows
+Invoke-WebRequest -Uri https://app.rox.one/install-app.ps1 -OutFile install-app.ps1 -UseBasicParsing
+$Expected = "b020c28ac16ff283fece02efc15a0cdaa29844aca70f0d0f8b385c0ebc799b69"
+$Actual = (Get-FileHash install-app.ps1 -Algorithm SHA256).Hash.ToLower()
+if ($Expected -eq $Actual) { . .\install-app.ps1 } else { Write-Error "SHA mismatch — abort" }
+```
+
+**Canonical SHA-256 (v1.0.3 install scripts):**
+
+| File | SHA-256 |
+|---|---|
+| `install-app.sh` | `47712ee72ca826f564b1e680fa6f6c5bcf6e084170e2ece1c6400310d241d0a8` |
+| `install-app.ps1` | `b020c28ac16ff283fece02efc15a0cdaa29844aca70f0d0f8b385c0ebc799b69` |
+
+These values are updated on every release; check the [latest tag](https://github.com/agisota/rox.one/releases/latest) for current SHAs. The release workflow also prints them to the GitHub Actions step summary so you can cross-reference.
+
+For higher assurance, fetch from `raw.githubusercontent.com` directly (different trust anchor than `app.rox.one`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/agisota/rox.one/main/scripts/install-app.sh -o install-app.sh
+```
+
 ## Acknowledgments
 
 We appreciate responsible disclosure and will acknowledge security researchers who report valid vulnerabilities (with their permission).

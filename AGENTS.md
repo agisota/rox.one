@@ -65,16 +65,21 @@ Canonical references:
 
 - Detailed agent playbook: `docs/architecture/graphify-deepwiki-agent-workflow.md`
 - DeepWiki steering config: `.devin/wiki.json`
-- Artifact workspace: `/home/dev/craft/rox-one-graphify-deepwiki-2026-05-20/source`
-- Artifact index: `/home/dev/craft/rox-one-graphify-deepwiki-2026-05-20/source/artifacts/README.md`
-- Graphify graph: `/home/dev/craft/rox-one-graphify-deepwiki-2026-05-20/source/graphify-out/graph.json`
-- Graphify report: `/home/dev/craft/rox-one-graphify-deepwiki-2026-05-20/source/graphify-out/GRAPH_REPORT.md`
-- Graphify static UI: `/home/dev/craft/rox-one-graphify-deepwiki-2026-05-20/source/artifacts/graphify-tree.html`
-- DeepWiki indexed results: `/home/dev/craft/rox-one-graphify-deepwiki-2026-05-20/source/artifacts/deepwiki-mcp/indexed-2026-05-20/`
-- DeepWiki split pages: `/home/dev/craft/rox-one-graphify-deepwiki-2026-05-20/source/artifacts/deepwiki-mcp/indexed-2026-05-20/pages/`
-- DeepWiki saved Q&A: `/home/dev/craft/rox-one-graphify-deepwiki-2026-05-20/source/artifacts/deepwiki-mcp/indexed-2026-05-20/questions/`
 - Public DeepWiki: `https://deepwiki.com/agisota/rox.one`
 - Public DeepWiki MCP endpoint: `https://mcp.deepwiki.com/mcp`
+
+**Local graphify artifacts** (per-contributor — set `$ROX_GRAPHIFY_ROOT` to your local checkout root, default unset):
+
+- Artifact workspace: `$ROX_GRAPHIFY_ROOT/source`
+- Artifact index: `$ROX_GRAPHIFY_ROOT/source/artifacts/README.md`
+- Graphify graph: `$ROX_GRAPHIFY_ROOT/source/graphify-out/graph.json`
+- Graphify report: `$ROX_GRAPHIFY_ROOT/source/graphify-out/GRAPH_REPORT.md`
+- Graphify static UI: `$ROX_GRAPHIFY_ROOT/source/artifacts/graphify-tree.html`
+- DeepWiki indexed results: `$ROX_GRAPHIFY_ROOT/source/artifacts/deepwiki-mcp/indexed-<DATE>/`
+- DeepWiki split pages: `$ROX_GRAPHIFY_ROOT/source/artifacts/deepwiki-mcp/indexed-<DATE>/pages/`
+- DeepWiki saved Q&A: `$ROX_GRAPHIFY_ROOT/source/artifacts/deepwiki-mcp/indexed-<DATE>/questions/`
+
+Set `ROX_GRAPHIFY_ROOT=/path/to/your/local/graphify-checkout` in your shell environment if you maintain a local graphify mirror. If unset, fall back to the public DeepWiki link above. New contributors do not need to set this — it's an optional local cache.
 
 Before non-trivial codebase Q&A, debugging, refactor planning, or feature implementation, read `docs/architecture/graphify-deepwiki-agent-workflow.md` and follow its search, verification, debugging, refactor, and validation ladders.
 
