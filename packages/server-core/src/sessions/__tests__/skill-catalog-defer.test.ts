@@ -2,7 +2,7 @@
  * PZD-62 — Skill catalog deferred load tests.
  *
  * Verifies that importing session-manager-helpers does NOT eagerly execute
- * loadAllSkills() or pull the @rox-one/shared/skills module into the sync
+ * the skill storage module or pull @rox-one/shared/skills into the sync
  * require graph at import time.  The catalog must only be loaded on first use
  * (inside resolveToolDisplayMeta or resolveAutomationMentions), never during
  * app boot.
@@ -15,13 +15,13 @@ import { describe, it, expect } from 'bun:test'
 // synchronously touch the skills filesystem at module load time.
 // ---------------------------------------------------------------------------
 describe('skill catalog deferred load (PZD-62)', () => {
-  it('importing session-manager-helpers does not synchronously execute loadAllSkills', async () => {
+  it('importing session-manager-helpers does not synchronously touch skill storage', async () => {
     // We track whether the skills storage module has been evaluated by
     // patching a flag BEFORE importing the module under test.
     // Because Bun caches modules, we can't unload them mid-test — but we can
     // assert on module presence in the require cache after import.
     //
-    // The key invariant: session-manager-helpers must not call loadAllSkills()
+    // The key invariant: session-manager-helpers must not touch skill storage
     // at module evaluation time (i.e. outside of any function body).
     // If it did, it would have to read the filesystem synchronously during
     // server bootstrap.
@@ -54,7 +54,7 @@ describe('skill catalog deferred load (PZD-62)', () => {
 
     // Call with a Skill tool invocation against a non-existent workspace.
     // The dynamic import should succeed (gray-matter etc. already in module
-    // graph); loadAllSkills returns [] for non-existent path; result is undefined.
+    // graph); a missing skill path returns undefined.
     const result = await resolveToolDisplayMeta(
       'Skill',
       { skill: 'my-skill' },
@@ -70,9 +70,9 @@ describe('skill catalog deferred load (PZD-62)', () => {
   // Cycle 3 (RED→GREEN): catalog load does NOT happen during module import
   // (structural test — verifies the static import is gone).
   // ---------------------------------------------------------------------------
-  it('session-manager-helpers module does not statically import loadAllSkills at top level', async () => {
+  it('session-manager-helpers module does not statically import skills at top level', async () => {
     // We read the source file and assert there is no top-level static import
-    // of loadAllSkills from @rox-one/shared/skills.
+    // from @rox-one/shared/skills.
     const { readFileSync } = await import('fs')
     const { join } = await import('path')
 
@@ -83,10 +83,10 @@ describe('skill catalog deferred load (PZD-62)', () => {
     )
     const source = readFileSync(helpersPath, 'utf-8')
 
-    // There must be no top-level static import that pulls in loadAllSkills.
+    // There must be no top-level static import that pulls in skill storage.
     // Dynamic imports (inside functions) are allowed and expected.
     const staticImportPattern =
-      /^import\s+\{[^}]*\bloadAllSkills\b[^}]*\}\s+from\s+['"]@rox-one\/shared\/skills['"]/m
+      /^import\s+\{[^}]*\}\s+from\s+['"]@rox-one\/shared\/skills['"]/m
 
     expect(staticImportPattern.test(source)).toBe(false)
   })

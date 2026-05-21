@@ -61,6 +61,7 @@ const appProc = spawn({
     ...process.env,
     ROX_E2E: '1',
     ROX_E2E_FAKE_PROVIDERS: '1',
+    ROX_SMOKE_USER_DATA_DIR: userDataDir,
     // Keep the packaged app identity intact while preventing live update installs
     // from racing the UI smoke. The updater already treats this flag as a
     // dev-runtime guard in packaged verification runs.

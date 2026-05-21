@@ -28,8 +28,8 @@ export function registerSkillsHandlers(server: RpcServer, deps: HandlerDeps): vo
     // Validate workingDirectory exists on this server — a thin client may pass
     // its local path which doesn't exist on the remote server's filesystem.
     const effectiveWorkingDir = wd && existsSync(wd) ? wd : undefined
-    const { loadAllSkills } = await import('@rox-one/shared/skills')
-    const skills = loadAllSkills(workspace.rootPath, effectiveWorkingDir)
+    const { loadActiveSkills } = await import('@rox-one/shared/skills')
+    const skills = loadActiveSkills(workspace.rootPath, effectiveWorkingDir)
     deps.platform.logger?.info(`SKILLS_GET: Loaded ${skills.length} skills from ${workspace.rootPath}`)
     return skills
   })

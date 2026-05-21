@@ -61,6 +61,21 @@ describe('file account session store', () => {
     await expect(readFile(filePath, 'utf8')).rejects.toThrow()
   })
 
+  test('does not touch safeStorage when there is no persisted session file', async () => {
+    const store = createFileAccountSessionStore({
+      filePath,
+      safeStorage: {
+        isEncryptionAvailable: () => {
+          throw new Error('safeStorage should not be queried without a session file')
+        },
+        encryptString: () => Buffer.from(''),
+        decryptString: () => '',
+      },
+    })
+
+    await expect(store.load()).resolves.toBeNull()
+  })
+
   test('does not persist when encryption is unavailable', async () => {
     const store = createFileAccountSessionStore({
       filePath,

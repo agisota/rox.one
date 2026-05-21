@@ -7,7 +7,7 @@
  * "find the root cause in [Mentioned skill: Datadog API (slug: datadog-api)]").
  */
 import { describe, it, expect } from 'bun:test'
-import { resolveSkillMentions, resolveSourceMentions, stripAllMentions } from '../index.ts'
+import { extractSkillMentionSlugs, resolveSkillMentions, resolveSourceMentions, stripAllMentions } from '../index.ts'
 
 // ============================================================================
 // resolveSkillMentions
@@ -94,6 +94,32 @@ describe('resolveSkillMentions', () => {
       expect(resolveSkillMentions('[source:github] [file:index.ts]', skillNames))
         .toBe('[source:github] [file:index.ts]')
     })
+  })
+})
+
+// ============================================================================
+// extractSkillMentionSlugs
+// ============================================================================
+
+describe('extractSkillMentionSlugs', () => {
+  it('extracts skill slugs without requiring a loaded catalog', () => {
+    expect(extractSkillMentionSlugs('[skill:commit] and [skill:review-pr]'))
+      .toEqual(['commit', 'review-pr'])
+  })
+
+  it('deduplicates repeated skill mentions while preserving order', () => {
+    expect(extractSkillMentionSlugs('[skill:commit] [skill:commit] [skill:review-pr]'))
+      .toEqual(['commit', 'review-pr'])
+  })
+
+  it('handles workspace-qualified skill mentions', () => {
+    expect(extractSkillMentionSlugs('[skill:My Workspace:commit] [skill:other.ws:datadog-api]'))
+      .toEqual(['commit', 'datadog-api'])
+  })
+
+  it('ignores source and file mentions', () => {
+    expect(extractSkillMentionSlugs('[source:github] [file:index.ts] plain text'))
+      .toEqual([])
   })
 })
 

@@ -73,11 +73,6 @@ export function createFileAccountSessionStore(options: FileAccountSessionStoreOp
 
   return {
     async load() {
-      if (!options.safeStorage.isEncryptionAvailable()) {
-        warnEncryptionUnavailableOnce('load')
-        return null
-      }
-
       let encrypted: Buffer
       try {
         const encoded = await readFile(options.filePath, 'utf8')
@@ -86,6 +81,11 @@ export function createFileAccountSessionStore(options: FileAccountSessionStoreOp
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null
         logger?.warn('[account-session] failed to read persisted session; removing file', error)
         await removeUnsafeSessionFile()
+        return null
+      }
+
+      if (!options.safeStorage.isEncryptionAvailable()) {
+        warnEncryptionUnavailableOnce('load')
         return null
       }
 

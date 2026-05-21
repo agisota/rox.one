@@ -19,6 +19,7 @@ import { homedir, tmpdir } from 'os';
 import { join } from 'path';
 import {
   loadAllSkills,
+  loadActiveSkills,
   invalidateSkillsCache,
   loadWorkspaceSkills,
   loadSkill,
@@ -590,6 +591,66 @@ describe('loadAllSkills', () => {
     const dup = skills.find(s => s.slug === `${TEST_PREFIX}dup`);
     expect(dup!.source).toBe('project');
     expect(dup!.metadata.name).toBe('Proj Dup');
+  });
+});
+
+// ============================================================
+// Tests: loadActiveSkills (session catalog loading)
+//
+// Active catalogs intentionally exclude global skills. Global skills can still
+// be resolved by explicit slug via loadSkillBySlug(), but they should not be
+// auto-listed for every session.
+// ============================================================
+
+describe('loadActiveSkills', () => {
+  const getWorkspaceSkillsDir = () => join(workspaceRoot, 'skills');
+  const getProjectSkillsDir = () => join(projectRoot, '.agents', 'skills');
+  const TEST_PREFIX = '_test_active_';
+
+  it('does not include global skills for an empty workspace', () => {
+    const baselineGlobal = getExistingGlobalSlugs();
+
+    const skills = loadActiveSkills(workspaceRoot);
+
+    expect(skills).toHaveLength(0);
+    for (const globalSlug of baselineGlobal) {
+      expect(skills.find(s => s.slug === globalSlug)).toBeUndefined();
+    }
+  });
+
+  it('loads workspace and project skills without scanning global skills', () => {
+    const wsDir = getWorkspaceSkillsDir();
+    const projDir = getProjectSkillsDir();
+    mkdirSync(projDir, { recursive: true });
+
+    createSkill(wsDir, `${TEST_PREFIX}workspace`, { name: 'Workspace Active' });
+    createSkill(projDir, `${TEST_PREFIX}project`, { name: 'Project Active' });
+
+    const skills = loadActiveSkills(workspaceRoot, projectRoot);
+
+    expect(skills.map(s => s.slug).sort()).toEqual([
+      `${TEST_PREFIX}project`,
+      `${TEST_PREFIX}workspace`,
+    ]);
+    expect(skills.find(s => s.slug === `${TEST_PREFIX}workspace`)!.source).toBe('workspace');
+    expect(skills.find(s => s.slug === `${TEST_PREFIX}project`)!.source).toBe('project');
+  });
+
+  it('lets project skills override workspace skills by slug', () => {
+    const wsDir = getWorkspaceSkillsDir();
+    const projDir = getProjectSkillsDir();
+    mkdirSync(projDir, { recursive: true });
+
+    createSkill(wsDir, `${TEST_PREFIX}shared`, { name: 'Workspace Shared' });
+    createSkill(projDir, `${TEST_PREFIX}shared`, { name: 'Project Shared' });
+
+    const skills = loadActiveSkills(workspaceRoot, projectRoot);
+    const shared = skills.find(s => s.slug === `${TEST_PREFIX}shared`);
+
+    expect(skills).toHaveLength(1);
+    expect(shared).toBeDefined();
+    expect(shared!.source).toBe('project');
+    expect(shared!.metadata.name).toBe('Project Shared');
   });
 });
 
