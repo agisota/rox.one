@@ -61,7 +61,7 @@ If you prefer to download the installer directly from the [Releases](https://git
   - **Right-click → Open** the first time, then click **Open** in the dialog, _or_
   - Run `xattr -dr com.apple.quarantine /Applications/ROX.ONE.app` after dragging it to Applications.
 - **Windows:** SmartScreen will flag the unsigned `.exe`. Click **More info → Run anyway**.
-- **Linux:** AppImage / `.deb` / `.rpm` work without bypasses; ensure FUSE is installed for AppImage.
+- **Linux:** AppImage / `.deb` / `.rpm` work without bypasses; ensure FUSE is installed for AppImage. On first launch the launcher will prompt for `sudo` to set the SUID bit on `chrome-sandbox` — this is a **security feature** (not malware) that enables Chromium's renderer sandbox; without it any renderer exploit becomes a full host compromise.
 
 ## System Requirements
 

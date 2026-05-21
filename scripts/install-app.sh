@@ -345,49 +345,69 @@ else
 # ROX launcher - handles Linux-specific AppImage issues
 
 APPIMAGE_PATH="$HOME/.rox/app/ROX-ONE-x64.AppImage"
+EXTRACT_DIR="$HOME/.rox/app/squashfs-root"
 ELECTRON_CACHE="$HOME/.config/@rox-agent"
 ELECTRON_CACHE_ALT="$HOME/.cache/@rox-agent"
 
-# Verify AppImage exists
 if [ ! -f "$APPIMAGE_PATH" ]; then
     echo "Error: ROX not found at $APPIMAGE_PATH"
     echo "Reinstall: curl -fsSL https://app.rox.one/install-app.sh | bash"
     exit 1
 fi
 
-# Ensure DISPLAY is set (required for X11)
 if [ -z "$DISPLAY" ]; then
     export DISPLAY=:0.0
 fi
 
-# Clear stale cache referencing AppImage mount paths
-# AppImage creates a new /tmp/.mount_ROX-XXXX each launch, so any cached path is stale
+# Clear stale Electron cache referencing AppImage mount paths
 for cache_dir in "$ELECTRON_CACHE" "$ELECTRON_CACHE_ALT"; do
     if [ -d "$cache_dir" ] && grep -rq '/tmp/\.mount_ROX' "$cache_dir" 2>/dev/null; then
         rm -rf "$cache_dir"
     fi
 done
 
-# Set APPIMAGE for auto-update
 export APPIMAGE="$APPIMAGE_PATH"
 
 is_nixos() {
     [ -f /etc/os-release ] && grep -Eqi '^ID="?nixos"?$' /etc/os-release
 }
 
-# NixOS does not expose the usual FHS dynamic-loader/library paths that raw
-# AppImage binaries expect. appimage-run supplies the compatibility wrapper.
+# NixOS: appimage-run handles FHS layer
 if is_nixos; then
     if command -v appimage-run >/dev/null 2>&1; then
-        exec appimage-run "$APPIMAGE_PATH" --no-sandbox "$@"
+        exec appimage-run "$APPIMAGE_PATH" "$@"  # NixOS: sandbox handled by appimage-run
     fi
-    echo "NixOS detected: install appimage-run first, then launch rox-agents again." >&2
+    echo "NixOS detected: install appimage-run first." >&2
     echo "Try: nix profile install nixpkgs#appimage-run" >&2
     exit 1
 fi
 
-# Launch with --no-sandbox (AppImage extracts to /tmp, losing SUID on chrome-sandbox)
-exec "$APPIMAGE_PATH" --no-sandbox "$@"
+# Restore SUID on chrome-sandbox so we can run WITH sandbox enabled.
+# AppImage --appimage-extract creates a persistent ./squashfs-root with the
+# binaries available for SUID. We use this once-extracted dir instead of
+# repeatedly re-mounting /tmp/.mount_ROX-XXXX (which loses SUID each launch).
+if [ ! -d "$EXTRACT_DIR" ]; then
+    echo "First-time launch: extracting AppImage to enable sandbox..."
+    APPIMAGE_PARENT_DIR=$(dirname "$APPIMAGE_PATH")
+    (cd "$APPIMAGE_PARENT_DIR" && "$APPIMAGE_PATH" --appimage-extract >/dev/null) || {
+        echo "AppImage extract failed; falling back to --no-sandbox (less secure)" >&2
+        exec "$APPIMAGE_PATH" --no-sandbox "$@"
+    }
+fi
+
+SANDBOX_PATH="$EXTRACT_DIR/chrome-sandbox"
+if [ -f "$SANDBOX_PATH" ]; then
+    # Check if SUID already set (mode 4755) -- if not, request once
+    PERMS=$(stat -c %a "$SANDBOX_PATH" 2>/dev/null || stat -f %A "$SANDBOX_PATH" 2>/dev/null || echo "")
+    if [ "$PERMS" != "4755" ]; then
+        echo "Requesting one-time sudo to set SUID on chrome-sandbox (needed for security sandbox)..."
+        sudo chown root:root "$SANDBOX_PATH" 2>/dev/null || true
+        sudo chmod 4755 "$SANDBOX_PATH" 2>/dev/null || true
+    fi
+fi
+
+# Launch via extracted binary, sandbox enabled
+exec "$EXTRACT_DIR/AppRun" "$@"
 WRAPPER_EOF
 
     chmod +x "$WRAPPER_PATH"

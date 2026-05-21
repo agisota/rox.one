@@ -32,9 +32,13 @@ for (const [needle, description] of [
   ['APPIMAGE_PATH="$HOME/.rox/app/ROX-ONE-x64.AppImage"', 'stable AppImage install path'],
   ['grep -rq \'/tmp/\\.mount_ROX\'', 'stale AppImage mount cache cleanup'],
   ['export APPIMAGE="$APPIMAGE_PATH"', 'electron-updater APPIMAGE env'],
-  ['exec "$APPIMAGE_PATH" --no-sandbox "$@"', 'generic AppImage launch with no-sandbox'],
+  // Audit #377: launcher uses persistent --appimage-extract + SUID chrome-sandbox
+  // instead of --no-sandbox. Fallback to --no-sandbox only on extract failure.
+  ['--appimage-extract', 'persistent-extract for chrome-sandbox SUID restore'],
+  ['exec "$EXTRACT_DIR/AppRun" "$@"', 'AppRun launch with sandbox enabled'],
+  ['exec "$APPIMAGE_PATH" --no-sandbox "$@"', 'fallback --no-sandbox path when extract fails'],
   ['is_nixos()', 'NixOS detection helper'],
-  ['appimage-run "$APPIMAGE_PATH" --no-sandbox "$@"', 'NixOS appimage-run launch path'],
+  ['appimage-run "$APPIMAGE_PATH" "$@"', 'NixOS appimage-run launch (sandbox handled by appimage-run)'],
   ['nix profile install nixpkgs#appimage-run', 'NixOS remediation hint'],
 ] as const) {
   requireText(wrapper, needle, description);
