@@ -11,6 +11,13 @@ else
   exit 1
 fi
 
+if command -v node >/dev/null 2>&1; then
+  NODE_BIN=node
+else
+  echo "error: node not found on PATH" >&2
+  exit 1
+fi
+
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$REPO_ROOT/audits/_smoke"
 rm -rf "$OUT"
@@ -32,7 +39,7 @@ SURFACES=("webui" "viewer")
 for surface in "${SURFACES[@]}"; do
   if [ "$SKIP_BUILD" -eq 0 ]; then
     echo "=== building $surface ==="
-    (cd "$REPO_ROOT" && "$BUN" run "$surface:build") 2>&1 | tail -3
+    (cd "$REPO_ROOT" && "$NODE_BIN" node_modules/vite/bin/vite.js build --config "apps/$surface/vite.config.ts") 2>&1 | tail -3
   fi
   echo "=== static-bundle on $surface ==="
   "$BUN" run "$REPO_ROOT/packages/audit/src/cli.ts" run "$surface" --probes=static-bundle --no-tickets --out="$OUT/static-bundle-$surface"

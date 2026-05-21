@@ -71,6 +71,8 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
 - `bun run validate:mac-arm-build-workflow`
 - `bun run validate:ci-contract`
 - `bun run typecheck:all`
+- `bash -n scripts/audit-smoke.sh`
+- `bun run validate:audit`
 
 ## 8. Passing Test Output Summary
 
@@ -83,6 +85,7 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
 - CI contract validator passed after adding the CircleCI Rox Design payload
   preparation guard.
 - Full workspace typecheck passed.
+- Audit smoke passed after switching the Vite build subprocesses to Node.
 - Installed v1.0.3 headless packaged smoke passed.
 - Installed v1.0.3 full UI smoke passed with evidence in
   `/tmp/rox-one-v1.0.3-release/ui-smoke`.
@@ -111,6 +114,10 @@ Investigate and fix the v1.0.3 packaged Rox Design runtime path mismatch.
   CircleCI and the standalone Mac ARM workflow now set
   `ROX_RC_MODE=unsigned`, `ROX_ARTIFACT_PLATFORM=mac`, and
   `ROX_ARTIFACT_ARCH=arm64` for that validation step.
+- CircleCI `validate` separately failed in `validate:audit` while running
+  `bun run webui:build` with a Bun `SIGABRT`. Local and GitHub validation passed;
+  `scripts/audit-smoke.sh` now invokes Vite builds through Node's Vite CLI while
+  keeping Bun for the audit CLI itself.
 
 ## 9. Build Output Summary
 
