@@ -1,0 +1,16 @@
+---
+title: "WT-01 — event: release.published"
+---
+sequenceDiagram
+%% Scaffold — to be filled during design phase by sequence-chart-writer role.
+participant U as User
+participant R as Renderer
+participant M as Main / Server
+participant A as ActivityEvent (WT-49)
+
+U->>R: TBD trigger
+R->>M: TBD IPC call
+M->>M: TBD work
+M->>A: emit("release.published", payload)
+M-->>R: TBD response
+R-->>U: TBD UI update
