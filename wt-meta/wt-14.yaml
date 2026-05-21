@@ -1,0 +1,98 @@
+id: WT-14
+title: "Roles engine (owner/admin/editor/commenter/viewer)"
+branch: feat/roles-engine
+base_sha: fac6f228069c
+worktree_path: ../wt-14-roles-engine
+
+feature_flag:
+  name: rox.feature.rbac.roles-engine
+  default: off
+  release_cut: auth
+
+priority: P0
+wave: 1
+
+files_allowed:
+  - packages/shared/src/rbac/**
+  - apps/electron/src/main/rbac/object-grant-store.ts
+  - apps/electron/src/main/rbac/index.ts
+  - tests/unit/rbac/**
+  - tests/integration/rbac/**
+files_forbidden:
+  - apps/electron/src/main/rbac/membership.ts
+  - apps/electron/src/main/rbac/membership-store.ts
+  - packages/shared/src/core/workspace.ts
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-06]
+blocks: [WT-15, WT-16, WT-17]
+
+scaffold_requests: []
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - rbac-owner-allow-all
+    - rbac-viewer-deny-write
+    - rbac-inheritance-team-to-workspace
+    - rbac-per-object-override
+    - rbac-feature-flag-off-fail-closed
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-113
+  child_story_titles:
+    - "🔧 Задача — Role enum + Permission enum + RolePermissionMatrix"
+    - "🔧 Задача — PolicyEvaluator.canUser (pure-function injectable stores)"
+    - "🔧 Задача — Role inheritance в team hierarchy (5 уровней max)"
+    - "🔧 Задача — Per-object role override через object_role_grants"
+    - "🔧 Задача — Audit emit rbac.evaluate.{allowed,denied} с sampling"
+
+featurebase:
+  board_id: 6a0db1dabaed70b5d8d3f898
+  post_alias: wt-14-roles-engine-owner-admin-editor-commenter-viewer
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/casbin/node-casbin
+    integration_type: reference_only
+    rationale: "Generic RBAC/ABAC patterns (Apache-2.0)"
+  - url: https://github.com/oso-cloud/oso
+    integration_type: reference_only
+    rationale: "Policy language + inheritance inspiration"
+  - url: https://github.com/tailscale/hallpass
+    integration_type: reference_only
+    rationale: "Accessbot grant/revoke patterns"
+  - url: https://github.com/Agent-Field/agentfield
+    integration_type: reference_only
+    rationale: "Agent identity + RBAC + audit emit"
+  - url: https://github.com/permitio/permit-node
+    integration_type: reference_only
+    rationale: "Policy abstraction + per-object grants"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - property_based_tests_pass: true
+  - permission_matrix_exhaustive: true
+  - lru_cache_eval_under_50us: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_fail_closed_verified: true

@@ -1,0 +1,99 @@
+id: WT-13
+title: "Username reservation + claim flow"
+branch: feat/username-claim
+base_sha: fac6f228069c
+worktree_path: ../wt-13-username-claim
+
+feature_flag:
+  name: rox.feature.auth.username-claim
+  default: off
+  release_cut: auth
+
+priority: P1
+wave: 1
+
+files_allowed:
+  - apps/electron/src/main/auth/username/**
+  - apps/electron/src/main/storage/migrations/20260521-username-reservations.sql
+  - packages/shared/src/username/**
+  - tests/unit/auth/username/**
+  - tests/integration/auth/username/**
+files_forbidden:
+  - packages/shared/src/core/user.ts
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-04]
+blocks: [WT-22]
+
+scaffold_requests:
+  - target_file: packages/shared/src/core/user.ts
+    target_owner: WT-04
+    reason: "Add username: string | null column to User contract"
+    proposed_change_summary: "{ User: { ..., username: string | null } } + SQL ALTER ADD username TEXT UNIQUE COLLATE NOCASE"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - username-reserve-happy
+    - username-claim-confirm
+    - username-conflict-rejected
+    - username-reservation-expires
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-113
+  child_story_titles:
+    - "🔧 Задача — UsernameValidator (length, regex, reserved-words)"
+    - "🔧 Задача — UsernameReservation TTL=24h + concurrency"
+    - "🔧 Задача — UsernameClaimFlow confirm → permanent"
+    - "🔧 Задача — Reserved-words list ≥50 entries (admin/root/system/...)"
+    - "🔧 Задача — Migration username_reservations + users.username UNIQUE NOCASE"
+
+featurebase:
+  board_id: 6a0db1dabaed70b5d8d3f898
+  post_alias: wt-13-username-reservation-and-claim-flow
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/shouldbee/reserved-usernames
+    integration_type: reference_only
+    rationale: "npm reference list of reserved usernames"
+  - url: https://github.com/github/banned-usernames
+    integration_type: reference_only
+    rationale: "GitHub-curated banned/reserved words"
+  - url: https://github.com/lucia-auth/lucia
+    integration_type: reference_only
+    rationale: "TS auth account + username patterns"
+  - url: https://github.com/anomalyco/openauth
+    integration_type: reference_only
+    rationale: "TS standards-based auth provider"
+  - url: https://github.com/steipete/better-auth
+    integration_type: reference_only
+    rationale: "Comprehensive TS auth framework fork"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - migration_up_down_passes: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - reserved_words_count_gte_50: true
+  - concurrency_race_test_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_no_visible_change: true

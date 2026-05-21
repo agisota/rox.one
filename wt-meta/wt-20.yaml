@@ -1,0 +1,91 @@
+id: WT-20
+title: "Email templates + i18n render"
+branch: feat/email-templates
+base_sha: fac6f228069c
+worktree_path: ../wt-20-email-templates
+
+feature_flag:
+  name: rox.feature.email.templates
+  default: off
+  release_cut: notifications
+
+priority: P1
+wave: 1
+
+files_allowed:
+  - packages/shared/src/notification/templates/**
+  - packages/shared/src/notification/__tests__/**
+  - packages/shared/src/notification/index.ts
+  - tests/unit/notification/templates/**.test.ts
+files_forbidden:
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - packages/shared/src/i18n/**
+  - infra/cloudflare/**
+
+depends_on: [WT-19]
+blocks: [WT-21, WT-22]
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "add zod (если отсутствует в shared) для context-schema валидации"
+    proposed_change_summary: "deps: { zod: ^3.23.0 }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design: [prompt-writer, architect]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests: [render-all-templates, golden-snapshot-diff, xss-payload-escape]
+  electron_build: false
+  packaging_required: false
+  performance_budget_ms_per_render: 5
+
+linear:
+  parent_epic_identifier: PZD-115
+  child_story_titles:
+    - "🔧 Задача — Template registry + render engine"
+    - "🔧 Задача — 5 шаблонов × 2 локали (golden snapshots)"
+    - "🔧 Задача — Zod context schemas + XSS safe-escape"
+    - "🔧 Задача — Feature flag rox.feature.email.templates"
+  existing_issues_to_attach: []
+
+featurebase:
+  board_id: compounding
+  post_alias: wt-20-email-templates-i18n
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/resend/react-email
+    integration_type: reference_only
+    rationale: "Type-safe template patterns; without JSX dep"
+  - url: https://github.com/forwardemail/email-templates
+    integration_type: reference_only
+    rationale: "i18n + nodemailer integration patterns"
+  - url: https://github.com/janl/mustache.js
+    integration_type: concept
+    rationale: "Minimal safe-escape renderer (~200 LOC inline)"
+  - url: https://github.com/mjmlio/mjml
+    integration_type: reference_only
+    rationale: "Responsive HTML (defer to WT-37)"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - golden_snapshots_complete: true
+  - xss_safe_escape_verified: true
+  - feature_flag_off_no_visible_change: true
+  - subject_length_budget_met: true
+  - text_fallback_html_free: true
+  - mandatory_flag_security_billing_locked: true

@@ -1,0 +1,127 @@
+id: WT-33
+title: "Prompt workspace modernization v2"
+branch: feat/prompt-workspace-v2
+base_sha: fac6f228069c
+worktree_path: ../wt-33-prompt-workspace-v2
+
+feature_flag:
+  name: rox.feature.composer.workspace-v2
+  default: off
+  release_cut: ui
+
+priority: P0
+wave: 2
+
+files_allowed:
+  - apps/electron/src/renderer/components/composer/ComposerV2.tsx
+  - apps/electron/src/renderer/components/composer/ModeSwitcher.tsx
+  - apps/electron/src/renderer/components/composer/ModeEmptyState.tsx
+  - apps/electron/src/renderer/components/composer/QuickCommandPalette.tsx
+  - apps/electron/src/renderer/components/composer/useComposerMode.ts
+  - apps/electron/src/renderer/components/composer/useComposerHistoryV2.ts
+  - apps/electron/src/renderer/components/composer/__tests__/**
+  - packages/shared/src/composer/mode.ts
+  - packages/shared/src/composer/quick-commands.ts
+  - packages/shared/src/composer/history-v2.ts
+  - packages/shared/src/composer/migration.ts
+  - packages/shared/src/composer/index.ts
+  - apps/electron/src/renderer/locales/en/composer-v2.json
+  - apps/electron/src/renderer/locales/ru/composer-v2.json
+  - tests/unit/composer/**
+  - tests/integration/renderer/composer/**
+  - tests/e2e/composer-v2.spec.ts
+files_forbidden:
+  - apps/electron/src/renderer/components/composer/Composer.tsx
+  - apps/electron/src/renderer/components/composer/ComposerHost.tsx
+  - packages/shared/src/prompts/**
+  - apps/electron/src/main/locales/**
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-03]
+blocks: [WT-37]
+
+scaffold_requests:
+  - target_file: apps/electron/src/renderer/components/composer/ComposerHost.tsx
+    target_owner: WT-03
+    reason: "Add feature flag branch to render <ComposerV2 /> when rox.feature.composer.workspace-v2 is on"
+    proposed_change_summary: "Import ComposerV2 + 4-line conditional render block"
+  - target_file: apps/electron/src/main/locales/en.json
+    target_owner: WT-20
+    reason: "Add composer.modes.* + composer.examples.* + composer.palette.* keys"
+    proposed_change_summary: "+24 keys under composer.modes/examples/palette"
+  - target_file: apps/electron/src/main/locales/ru.json
+    target_owner: WT-20
+    reason: "Add ru parity for composer.modes.* + composer.examples.* + composer.palette.*"
+    proposed_change_summary: "+24 keys (RU translations)"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect, ux-guru]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests:
+    - composer-v2-mount-with-flag-on
+    - composer-v2-mode-switch-arrow-keys
+    - composer-v2-quick-command-palette
+    - composer-v2-history-per-mode
+    - composer-v2-mode-persistence-roundtrip
+    - composer-v2-a11y-axe-zero-violations
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-112
+  child_story_titles:
+    - "🔧 Задача — ModeSwitcher segmented control (6 modes, keyboard nav)"
+    - "🔧 Задача — QuickCommandPalette (Cmd+K, 6 commands)"
+    - "🔧 Задача — useComposerHistoryV2 per-mode stacks + T234 migration"
+    - "🔧 Задача — ModeEmptyState с per-mode examples + i18n parity"
+    - "🔧 Задача — Mode persistence per workspace via storage debounce"
+
+featurebase:
+  board_id: frictionless-ux
+  post_alias: wt-33-prompt-workspace-v2
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/pacocoursey/cmdk
+    integration_type: dependency
+    rationale: "Accessible Cmd+K command palette primitive"
+  - url: https://github.com/vercel/ai-chatbot
+    integration_type: reference_only
+    rationale: "Modern chat composer UX + mode switching patterns"
+  - url: https://github.com/langchain-ai/open-canvas
+    integration_type: reference_only
+    rationale: "Multi-mode prompt composer + per-mode history"
+  - url: https://github.com/radix-ui/primitives
+    integration_type: dependency
+    rationale: "RadioGroup + Dialog primitives для accessible segmented + palette"
+  - url: https://github.com/shadcn-ui/ui
+    integration_type: reference_only
+    rationale: "Visual tokens reference для Command, Dialog, RadioGroup"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - rtl_tests_pass: true
+  - e2e_playwright_pass: true
+  - i18n_parity_en_ru_complete: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - screenshots_present: true
+  - axe_core_zero_violations: true
+  - bundle_budget_within_60kb_gzip: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_no_visible_change: true
+  - legacy_history_migration_verified: true

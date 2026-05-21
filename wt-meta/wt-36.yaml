@@ -1,0 +1,107 @@
+id: WT-36
+title: "Day tracking MVP"
+branch: feat/day-tracking-mvp
+base_sha: fac6f228069c
+worktree_path: ../wt-36-day-tracking-mvp
+
+feature_flag:
+  name: rox.feature.day-tracking
+  default: off
+  release_cut: ui
+
+priority: P1
+wave: 2
+
+files_allowed:
+  - apps/electron/src/renderer/pages/today/**
+  - apps/electron/src/main/day-tracking/**
+  - apps/electron/src/main/ipc/day-tracking-handlers.ts
+  - packages/shared/src/day-tracking/**
+  - tests/unit/day-tracking/**
+  - tests/integration/day-tracking/**
+  - apps/electron/src/main/locales/en.day-tracking.json
+  - apps/electron/src/main/locales/ru.day-tracking.json
+files_forbidden:
+  - packages/shared/src/sessions/**
+  - packages/shared/src/agent/**
+  - apps/electron/src/renderer/pages/notes/**
+  - packages/shared/src/feature-flags.ts
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-06]
+blocks: []
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add date-fns for timezone-aware date math"
+    proposed_change_summary: "{ deps: { date-fns: ^3.6.0 } }"
+  - target_file: packages/shared/src/feature-flags.ts
+    target_owner: WT-07
+    reason: "Register rox.feature.day-tracking"
+    proposed_change_summary: "isDayTrackingEnabled() helper, default OFF"
+  - target_file: apps/electron/src/renderer/pages/notes/index.ts
+    target_owner: WT-35
+    reason: "Export BlockEditor as public read-only API for reuse"
+    proposed_change_summary: "export { BlockEditor } from './NoteEditor'"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect, ux-guru]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests: [day-tracking-start-stop, day-tracking-timeline-aggregate, day-tracking-ai-summary]
+  electron_build: true
+  packaging_required: false
+  privacy_sweep_required: true
+
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "🔧 Задача — Focus session lifecycle + persistence"
+    - "🔧 Задача — Timeline aggregator (agent/focus/tasks)"
+    - "🔧 Задача — Daily review editor (reuse BlockEditor)"
+    - "🔧 Задача — AI Daily Summary prompt + integration"
+    - "🔧 Задача — Calendar placeholder + i18n RU/EN"
+
+featurebase:
+  board_id: 6a0db1cbb0bb70b5d8d3f893
+  post_alias: wt-36-day-tracking-mvp
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/date-fns/date-fns
+    integration_type: dependency
+    rationale: "Timezone-aware date math primitives (MIT)"
+  - url: https://github.com/ActivityWatch/activitywatch
+    integration_type: reference_only
+    rationale: "Local-first time tracker append-only events model"
+  - url: https://github.com/toggl/track-cli
+    integration_type: reference_only
+    rationale: "Pomodoro/focus session UX patterns"
+  - url: https://github.com/obsidianmd/obsidian-releases
+    integration_type: reference_only
+    rationale: "Daily notes / daily review UX patterns"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - screenshots_present: true
+  - bundle_budget_within_60kb: true
+  - privacy_sweep_clean: true
+  - feature_flag_off_no_visible_change: true
+  - locales_ru_en_full: true

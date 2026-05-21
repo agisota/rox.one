@@ -1,0 +1,131 @@
+# WT-01 — Release pipeline + R2 mirror + CI caching
+# Wave 0, P0. Owner shared scaffold electron-builder.yml (с partial protection rox-design-* keys).
+
+id: WT-01
+title: "Release pipeline + R2 mirror + CI caching"
+branch: feat/release-r2-on-merge
+base_sha: fac6f228069c
+worktree_path: ../wt-01-release-r2
+
+feature_flag:
+  name: rox.feature.release.r2-mirror
+  default: off
+  release_cut: foundation
+
+priority: P0
+wave: 0
+
+files_allowed:
+  - .github/workflows/multi-platform-on-merge.yml
+  - .github/workflows/nightly-cleanup.yml
+  - .github/workflows/release-feed-update.yml
+  - .github/workflows/cache-warmer.yml
+  - scripts/release/upload-r2.ts
+  - scripts/release/sign-windows.ts
+  - scripts/release/generate-update-manifest.ts
+  - scripts/release/update-manifest-schema.ts
+  - scripts/release/__tests__/**.test.ts
+  - infra/cloudflare/rox-one-release-feed.worker.ts
+  - infra/cloudflare/wrangler.toml
+  - infra/cloudflare/__tests__/**.test.ts
+  - electron-builder.yml
+  - docs/release/release-pipeline-2026-05-21.md
+  - docs/release/r2-mirror-runbook.md
+  - docs/worklog/WT-01.md
+  - wt-meta/wt-01.yaml
+
+files_forbidden:
+  - electron-builder.yml::rox-design-*    # partial-owned by WT-02 (semantic guard via lint)
+  - apps/electron/src/**
+  - packages/**/src/**
+  - package.json                          # WT-00 scaffold
+  - tsconfig.json
+  - tsconfig.base.json
+  - AGENTS.md
+
+depends_on: [WT-00]
+blocks: []                                # не блочит merge, но необходим для Foundation Cut flag turn-on
+
+scaffold_requests:
+  - target_file: packages/shared/src/feature-flags/registry.ts
+    target_owner: WT-07
+    reason: "Регистрация rox.feature.release.r2-mirror flag"
+    proposed_change_summary: "Add { key: 'rox.feature.release.r2-mirror', default: false, cut: 'foundation' }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]   # ux-guru пропущен — нет UI
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests:
+    - electron-smoke-packaged-mac
+    - electron-smoke-packaged-win
+    - electron-smoke-packaged-linux
+    - r2-upload-roundtrip
+    - cloudflare-worker-update-json-200
+    - cloudflare-worker-flag-off-503
+    - sbom-cyclonedx-present
+  electron_build: true
+  packaging_required: true
+
+linear:
+  parent_epic_identifier: PZD-119         # E08 — Packaging, Release, Multi-platform
+  child_story_titles:
+    - "🚀 Workflow multi-platform-on-merge.yml"
+    - "🌐 Cloudflare Worker release-feed"
+    - "📦 R2 upload tool + update manifest"
+    - "🔐 Windows signing pipeline (Azure Trusted Signing + fallback)"
+    - "⚡ CI cache strategy (bun-store / electron-prebuilds / playwright-browsers)"
+    - "🧹 Nightly cleanup workflow"
+  existing_issues_to_attach: []           # будут заполнены после старта (re-parent существующих под PZD-119)
+
+featurebase:
+  board_id: 6a0db1dabaed70b5d8d3f898       # Enterprise, B2B
+  board_name: "Enterprise, B2B"
+  post_alias: wt-01-release-r2-on-merge
+  status_lifecycle: [planned, in-progress, shipped]
+  changelog_draft_title: "ROX.ONE release pipeline — R2 mirror и автоподпись"
+
+inspiration_repos:
+  - url: https://github.com/linear/linear-release
+    integration_type: direct_reuse
+    rationale: "Auto-link GH release → Linear; FR-01.9 auto-create sub-issue под PZD-119"
+  - url: https://github.com/fatedier/frp
+    integration_type: sidecar
+    rationale: "Reverse proxy NAT-traversal; future-leap для headless-server distribution через R2 mirror"
+  - url: https://github.com/mimecuvalo/all-the-things
+    integration_type: reference_only
+    rationale: "Modern monorepo scaffolding — референс структуры CI workflows"
+  - url: https://github.com/steipete/ReleaseBar
+    integration_type: reference_only
+    rationale: "Release freshness dashboard — будущий admin-UI"
+  - url: https://github.com/boinkor-net/tsnsrv
+    integration_type: sidecar
+    rationale: "Tailscale reverse-proxy — корпоративный zero-trust distribution"
+
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  integration_tests_pass: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+  screenshots_present: true
+  smoke_passes_3_machines: true
+  rbac_isolation_tests_pass: false        # N/A для release pipeline
+  audit_emit_tests_pass: true             # release.published audit event
+  feature_flag_off_no_visible_change: true  # worker returns 503 при flag OFF
+  r2_roundtrip_validated: true
+  windows_binary_signed: true
+  sbom_cyclonedx_attached: true
+  end_to_end_p95_under_30min: true
+  cache_hit_rate_over_80pct: true

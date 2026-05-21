@@ -1,0 +1,106 @@
+id: WT-18
+title: "Audit log query API + UI"
+branch: feat/audit-log-query
+base_sha: fac6f228069c
+worktree_path: ../wt-18-audit-log-query
+
+feature_flag:
+  name: rox.feature.audit.query
+  default: off
+  release_cut: auth
+
+priority: P1
+wave: 1
+
+files_allowed:
+  - packages/shared/src/audit/audit-query.ts
+  - packages/shared/src/audit/audit-cursor.ts
+  - packages/shared/src/audit/__tests__/audit-query.test.ts
+  - packages/shared/src/audit/__tests__/audit-cursor.test.ts
+  - apps/electron/src/main/api/audit-route.ts
+  - apps/electron/src/main/api/__tests__/audit-route.test.ts
+  - apps/electron/src/main/api/graphql/audit-resolver.ts
+  - apps/electron/src/renderer/pages/admin/audit-log/**
+  - evidence/wt-18/**
+  - docs/superpowers/specs/2026-05-21-wt-18-audit-log-query-design.md
+files_forbidden:
+  - package.json
+  - tsconfig.json
+  - bun.lock
+  - packages/shared/src/audit/audit-event-store.ts
+  - packages/shared/src/audit/audit-event-writer.ts
+  - packages/shared/src/audit/index.ts
+
+depends_on: [WT-08]
+blocks: []
+
+scaffold_requests:
+  - target_file: apps/electron/src/main/api/router.ts
+    target_owner: WT-00
+    reason: "register /api/v1/audit/* routes behind feature flag"
+    proposed_change_summary: "lazy-mount audit route under flag check"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "add @envelop/depth-limit + react-window для GraphQL hardening + virtual list"
+    proposed_change_summary: "{ deps: { '@envelop/depth-limit': '^4', 'react-window': '^1.8' } }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design: [prompt-writer, architect, ux-guru]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests: [audit-query-rest, audit-query-graphql, audit-page-render, audit-export-json]
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-118
+  child_story_titles:
+    - "🔧 Задача — Audit query builder + cursor pagination"
+    - "🔧 Задача — REST /api/v1/audit/events route"
+    - "🔧 Задача — GraphQL auditEvents resolver"
+    - "🔧 Задача — AuditLogPage UI + virtual scroll + JSON export"
+
+featurebase:
+  board_id: 6a0db1dabaed70b5d8d3f898
+  post_alias: wt-18-audit-log-query
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/Agent-Field/agentfield
+    integration_type: reference_only
+    rationale: "Identity-aware auditable agent execution + query API"
+  - url: https://github.com/trailbaseio/trailbase
+    integration_type: reference_only
+    rationale: "Admin UI с audit timeline + SQLite query layer"
+  - url: https://github.com/InsForge/InsForge
+    integration_type: reference_only
+    rationale: "Backend audit log + admin panel"
+  - url: https://github.com/requestly/requestly
+    integration_type: reference_only
+    rationale: "HTTP interception — mirror для cURL replay UX"
+  - url: https://github.com/wasp-lang/open-saas
+    integration_type: reference_only
+    rationale: "Filter bar + paginated table React patterns"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - screenshots_present: true
+  - smoke_passes_3_machines: true
+  - axe_violations_zero: true
+  - tenant_isolation_tests_pass: true
+  - feature_flag_off_no_visible_change: true

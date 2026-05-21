@@ -1,0 +1,107 @@
+id: WT-32
+title: "Evidence / artifact store"
+branch: feat/evidence-store
+base_sha: fac6f228069c
+worktree_path: ../wt-32-evidence-store
+
+feature_flag:
+  name: rox.feature.evidence-store.v1
+  default: off
+  release_cut: agent
+
+priority: P0
+wave: 2
+
+files_allowed:
+  - packages/shared/src/evidence/**
+  - infra/cloudflare/evidence-api.worker.ts
+  - infra/cloudflare/wrangler.evidence.toml
+  - tests/unit/evidence/**
+  - tests/integration/evidence/**
+files_forbidden:
+  - packages/shared/src/storage/**
+  - packages/shared/src/audit/**
+  - apps/electron/src/renderer/components/**
+  - infra/cloudflare/queue-fanout.worker.ts
+  - infra/cloudflare/queue-fanin.worker.ts
+  - infra/cloudflare/realtime-ws.worker.ts
+  - infra/cloudflare/durable-objects/run-stream.ts
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-23, WT-28]
+blocks: [WT-34]
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Ensure @cloudflare/workers-types is present (R2 typing — shared with WT-30/31)"
+    proposed_change_summary: "{ devDeps: { @cloudflare/workers-types: ^4.20260501.0 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add mime-types for MIME mapping helper"
+    proposed_change_summary: "{ deps: { mime-types: ^2.1.35 } }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - evidence-put-get-roundtrip
+    - evidence-cross-tenant-not-found
+    - evidence-idempotent-put
+    - evidence-soft-delete-hidden-from-list
+    - evidence-audit-emit-on-every-op
+  electron_build: false
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-117
+  child_story_titles:
+    - "🔧 Задача — ArtifactId branded type + hash content addressing"
+    - "🔧 Задача — EvidenceStore interface + R2 adapter"
+    - "🔧 Задача — SQLite DO index + listByRun query"
+    - "🔧 Задача — evidence-api worker (PUT/GET/HEAD/DELETE) + auth"
+    - "🔧 Задача — Audit emit per op + soft-delete contract for WT-26 reaper"
+
+featurebase:
+  board_id: frictionless-ux
+  post_alias: wt-32-evidence-artifact-store
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/git/git
+    integration_type: reference_only
+    rationale: "Content-addressable object database — canonical hash-as-id pattern"
+  - url: https://github.com/ipfs/kubo
+    integration_type: reference_only
+    rationale: "CID + content addressing + dedup principles for R2 backend"
+  - url: https://github.com/cloudflare/templates
+    integration_type: reference_only
+    rationale: "R2 worker binding patterns + multipart upload"
+  - url: https://github.com/webdav-handler/webdav-handler
+    integration_type: reference_only
+    rationale: "Authorization scoping + metadata-vs-blob split design"
+  - url: https://github.com/tus/tus-node-server
+    integration_type: reference_only
+    rationale: "Resumable upload protocol — deferred to Phase 5 optimization"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - miniflare_r2_emulator_green: true
+  - cross_tenant_isolation_tests_pass: true
+  - bundle_budget_within_200kb_worker: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_no_visible_change: true

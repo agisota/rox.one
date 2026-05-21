@@ -1,0 +1,112 @@
+id: WT-27
+title: "Soft-delete + versioning policy"
+branch: feat/soft-delete-versioning
+base_sha: fac6f228069c
+worktree_path: ../wt-27-soft-delete-versioning
+
+feature_flag:
+  name: rox.feature.drive.soft-delete
+  default: off
+  release_cut: storage
+
+priority: P1
+wave: 2
+
+files_allowed:
+  - packages/shared/src/storage/soft-delete.ts
+  - packages/shared/src/storage/soft-delete-types.ts
+  - packages/shared/src/storage/versioning.ts
+  - packages/shared/src/storage/versioning-types.ts
+  - packages/server-core/src/storage/soft-delete-service.ts
+  - packages/server-core/src/storage/version-service.ts
+  - packages/server-core/src/storage/migrations/0012_object_versions.up.sql
+  - packages/server-core/src/storage/migrations/0012_object_versions.down.sql
+  - packages/server-core/src/storage/migrations/0013_trash_index.up.sql
+  - packages/server-core/src/storage/migrations/0013_trash_index.down.sql
+  - apps/electron/src/main/storage/trash-bridge.ts
+  - tests/unit/storage/soft-delete/**
+  - tests/unit/storage/versioning/**
+  - tests/integration/storage/soft-delete/**
+  - docs/architecture/storage-tiers.md
+
+files_forbidden:
+  - packages/shared/src/storage/backend.ts
+  - packages/shared/src/storage/dedup.ts
+  - packages/shared/src/storage/numbering.ts
+  - packages/shared/src/storage/quota.ts
+  - infra/backup/**
+  - apps/electron/src/renderer/**
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-23, WT-26]
+blocks: [WT-34, WT-37]
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add @sinonjs/fake-timers for grace-window + cron sweep tests"
+    proposed_change_summary: "{ devDeps: { @sinonjs/fake-timers: ^13.0.0 } }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - storage-soft-delete-restore-in-grace
+    - storage-versioning-push-revert
+    - storage-trash-ttl-sweep
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "🔧 Задача — SoftDeleteService (markDeleted/restore/sweep)"
+    - "🔧 Задача — VersionService (pushVersion/revert/GC)"
+    - "🔧 Задача — Per-tier policy (grace + versions_kept) с tenant override"
+    - "🔧 Задача — Trash IPC bridge (renderer-facing API)"
+    - "🔧 Задача — Migrations 0012 + 0013 (versions + trash_index)"
+    - "🔧 Задача — Audit chain integration (numbering ops для всех мутаций)"
+
+featurebase:
+  board_id: 6a0db1b5ff6b76b8a0f7c111
+  post_alias: wt-27-soft-delete-versioning-policy
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/tursodatabase/agentfs
+    integration_type: reference_only
+    rationale: "Snapshot-based versioning + content-addressable integration"
+  - url: https://github.com/git/git
+    integration_type: reference_only
+    rationale: "Object history as pointer graph — version chain pattern"
+  - url: https://github.com/valkey-io/valkey
+    integration_type: reference_only
+    rationale: "TTL sweep batching для большого keyspace"
+  - url: https://github.com/InsForge/InsForge
+    integration_type: reference_only
+    rationale: "Soft-delete-by-default policy в agentic backend"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - migration_up_down_pass: true
+  - tier_policy_documented: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_regression_pass: true
+  - numbering_chain_integration_pass: true

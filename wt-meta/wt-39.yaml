@@ -1,0 +1,111 @@
+id: WT-39
+title: "MCP connector packs (install/uninstall flow)"
+branch: feat/mcp-connector-packs
+base_sha: fac6f228069c
+worktree_path: ../wt-39-mcp-connector-packs
+
+feature_flag:
+  name: rox.feature.mcp-packs
+  default: off
+  release_cut: sources
+
+priority: P0
+wave: 2
+
+files_allowed:
+  - apps/electron/src/renderer/pages/sources/marketplace/**
+  - apps/electron/src/main/mcp-packs/**
+  - apps/electron/src/main/ipc/mcp-packs-handlers.ts
+  - packages/shared/src/mcp/packs/**
+  - tests/unit/mcp-packs/**
+  - tests/integration/mcp-packs/**
+  - apps/electron/src/main/locales/en.mcp-packs.json
+  - apps/electron/src/main/locales/ru.mcp-packs.json
+files_forbidden:
+  - packages/shared/src/sources/contract/**
+  - packages/shared/src/sources/registry.ts
+  - packages/shared/src/mcp/client.ts
+  - packages/shared/src/mcp/mcp-pool.ts
+  - packages/shared/src/mcp/pool-server.ts
+  - packages/shared/src/feature-flags.ts
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-38]
+blocks: []
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add @noble/ed25519 for signature verification"
+    proposed_change_summary: "{ deps: { @noble/ed25519: ^2.1.0 } }"
+  - target_file: packages/shared/src/feature-flags.ts
+    target_owner: WT-07
+    reason: "Register rox.feature.mcp-packs + pro.mcp-packs entitlement"
+    proposed_change_summary: "isMcpPacksEnabled() + canInstallMcpPacks(tenantId)"
+  - target_file: packages/shared/src/sources/contract/source-definition.ts
+    target_owner: WT-38
+    reason: "Add McpPackExtension type extending SourceDefinition"
+    proposed_change_summary: "export interface McpPackExtension extends SourceDefinition { pack_id; bundle_url; signature; ... }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect, ux-guru]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests: [mcp-packs-install-filesystem, mcp-packs-uninstall-rollback, mcp-packs-signature-tamper]
+  electron_build: true
+  packaging_required: false
+  security_review_required: true
+
+linear:
+  parent_epic_identifier: PZD-114
+  child_story_titles:
+    - "🔧 Задача — Pack manifest schema (extends SourceDefinition)"
+    - "🔧 Задача — Curated 5 packs (filesystem/git/sqlite/github/fetch)"
+    - "🔧 Задача — Install/uninstall flow + signature verification"
+    - "🔧 Задача — Marketplace UI + entitlement gating (WT-37 hint)"
+    - "🔧 Задача — Audit events + i18n RU/EN + UX signoff"
+
+featurebase:
+  board_id: 6a0db1deea7170b5d8d3f89c
+  post_alias: wt-39-mcp-connector-packs
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/paulmillr/noble-ed25519
+    integration_type: dependency
+    rationale: "Signature verification primitives (MIT)"
+  - url: https://github.com/modelcontextprotocol/servers
+    integration_type: reference_only
+    rationale: "Canonical MCP server pack examples"
+  - url: https://github.com/astral-sh/uv
+    integration_type: reference_only
+    rationale: "Atomic install/uninstall lifecycle patterns"
+  - url: https://github.com/pkgxdev/pkgx
+    integration_type: reference_only
+    rationale: "Manifest-driven package installation patterns"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - screenshots_present: true
+  - signature_verification_tests_pass: true
+  - rollback_chaos_test_pass: true
+  - bundle_budget_within_80kb: true
+  - feature_flag_off_no_visible_change: true
+  - ux_signoff_received: true
+  - locales_ru_en_full: true

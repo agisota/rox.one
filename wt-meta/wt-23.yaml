@@ -1,0 +1,110 @@
+id: WT-23
+title: "Object storage backend (R2/S3/local-fs abstraction)"
+branch: feat/storage-backend
+base_sha: fac6f228069c
+worktree_path: ../wt-23-storage-backend
+
+feature_flag:
+  name: rox.feature.drive.v1
+  default: off
+  release_cut: storage
+
+priority: P0
+wave: 1
+
+files_allowed:
+  - packages/shared/src/storage/**
+  - packages/server-core/src/storage/object-storage.ts
+  - packages/server-core/src/storage/__tests__/**
+  - tests/unit/storage/**
+  - tests/integration/storage/**
+files_forbidden:
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - packages/shared/src/audit/**
+  - packages/shared/src/feature-flags/**
+  - packages/design-storage/**
+
+depends_on: [WT-04, WT-06]
+blocks: [WT-24, WT-25, WT-26, WT-27, WT-32, WT-35]
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "add @aws-sdk/client-s3 as peerOptional dep для S3 adapter"
+    proposed_change_summary: "peerDependencies: { @aws-sdk/client-s3: ^3.600.0 }, peerDependenciesMeta: { optional: true }"
+  - target_file: packages/server-core/package.json
+    target_owner: WT-00
+    reason: "re-export @rox-agent/shared/storage"
+    proposed_change_summary: "export 'storage' subpath"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design: [prompt-writer, architect]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - contract-suite-r2
+    - contract-suite-s3
+    - contract-suite-local-fs
+    - tenant-isolation-cross-leak
+    - path-traversal-rejection
+    - audit-emit-on-mutations
+  electron_build: false
+  packaging_required: false
+  parametrized_contract_tests: true
+
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "🔧 Задача — ObjectStore contract + tenant-prefix guard"
+    - "🔧 Задача — R2 adapter (Workers binding + REST)"
+    - "🔧 Задача — S3 adapter (@aws-sdk/client-s3 wrapper)"
+    - "🔧 Задача — local-fs adapter (dev/test) + prod-profile guard"
+    - "🔧 Задача — ACL primitives + signed-URL"
+    - "🔧 Задача — Audit emit on every mutation"
+  existing_issues_to_attach: []
+
+featurebase:
+  board_id: compounding
+  post_alias: wt-23-storage-backend
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/cloudflare/workers-sdk
+    integration_type: reference_only
+    rationale: "R2 binding + REST API patterns"
+  - url: https://github.com/aws/aws-sdk-js-v3
+    integration_type: reference_only
+    rationale: "Canonical S3 API surface"
+  - url: https://github.com/minio/minio-js
+    integration_type: reference_only
+    rationale: "S3-compatible adapter testing patterns"
+  - url: https://github.com/feathersjs-ecosystem/feathers-blob
+    integration_type: concept
+    rationale: "Multi-backend abstraction taste"
+  - url: https://github.com/garage-team/garage
+    integration_type: reference_only
+    rationale: "Self-hosted S3 fallback (on-prem option)"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - parametrized_contract_passes_all_adapters: true
+  - tenant_isolation_verified: true
+  - path_traversal_blocked: true
+  - audit_emit_tests_pass: true
+  - no_any_types: true
+  - feature_flag_off_no_visible_change: true
+  - legacy_object_storage_callers_unbroken: true

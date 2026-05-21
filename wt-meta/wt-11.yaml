@@ -1,0 +1,105 @@
+id: WT-11
+title: "SCIM v2 receiver endpoint"
+branch: feat/scim-receiver
+base_sha: fac6f228069c
+worktree_path: ../wt-11-scim-receiver
+
+feature_flag:
+  name: rox.feature.auth.scim-receiver
+  default: off
+  release_cut: auth
+
+priority: P0
+wave: 1
+
+files_allowed:
+  - apps/electron/src/main/auth/scim/**
+  - packages/shared/src/auth/scim/**
+  - tests/unit/auth/scim/**
+  - tests/integration/auth/scim/**
+  - tests/fuzz/scim-fuzz.test.ts
+  - tests/fixtures/scim/**
+files_forbidden:
+  - apps/electron/src/main/auth/oauth/**
+  - apps/electron/src/main/auth/access-jwt/**
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-04, WT-05, WT-08]
+blocks: [WT-12]
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add/verify hono for SCIM HTTP receiver"
+    proposed_change_summary: "{ deps: { hono: ^4.6.0 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Verify zod available for SCIM schema validation"
+    proposed_change_summary: "{ deps: { zod: ^3.23.0 } }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - scim-user-create-happy
+    - scim-user-deactivate
+    - scim-group-sync
+    - scim-rate-limit-429
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-113
+  child_story_titles:
+    - "🔧 Задача — SCIM v2 receiver POST/PUT/PATCH/DELETE Users"
+    - "🔧 Задача — SCIM v2 receiver Groups + members ops"
+    - "🔧 Задача — Per-tenant bearer + optional HMAC validation"
+    - "🔧 Задача — Idempotency через externalId LRU 24h"
+    - "🔧 Задача — Rate-limit 100 RPS per-tenant + 429"
+
+featurebase:
+  board_id: 6a0db1dabaed70b5d8d3f898
+  post_alias: wt-11-scim-v2-receiver-endpoint
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/microsoft/SCIMReferenceCode
+    integration_type: reference_only
+    rationale: "Microsoft SCIM 2.0 reference implementation"
+  - url: https://github.com/okta/okta-sdk-nodejs
+    integration_type: reference_only
+    rationale: "SCIM endpoint patterns + payload variants"
+  - url: https://github.com/InsForge/InsForge
+    integration_type: reference_only
+    rationale: "All-in-one backend with auth/multi-tenant patterns"
+  - url: https://github.com/Agent-Field/agentfield
+    integration_type: reference_only
+    rationale: "Agent identity + RBAC + audit emit patterns"
+  - url: https://github.com/panva/oauth4webapi
+    integration_type: reference_only
+    rationale: "Token validation primitives"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - fuzz_tests_pass: true
+  - scim_conformance_subset_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - audit_emit_tests_pass: true
+  - rate_limit_429_verified: true
+  - feature_flag_off_no_visible_change: true

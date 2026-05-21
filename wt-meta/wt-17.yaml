@@ -1,0 +1,98 @@
+id: WT-17
+title: "RBAC admin UI"
+branch: feat/rbac-admin-ui
+base_sha: fac6f228069c
+worktree_path: ../wt-17-rbac-admin-ui
+
+feature_flag:
+  name: rox.feature.rbac.admin-ui
+  default: off
+  release_cut: auth
+
+priority: P1
+wave: 1
+
+files_allowed:
+  - apps/electron/src/renderer/pages/admin/rbac/**
+  - apps/electron/src/renderer/routes/admin-rbac-route.ts
+  - apps/electron/src/renderer/state/admin-rbac-store.ts
+  - tests/e2e/admin-rbac.spec.ts
+  - evidence/wt-17/**
+  - docs/superpowers/specs/2026-05-21-wt-17-rbac-admin-ui-design.md
+files_forbidden:
+  - package.json
+  - tsconfig.json
+  - bun.lock
+  - packages/shared/src/**
+  - apps/electron/src/main/**
+  - apps/electron/src/renderer/design/**
+
+depends_on: [WT-14, WT-15]
+blocks: []
+
+scaffold_requests:
+  - target_file: apps/electron/src/renderer/router.tsx
+    target_owner: WT-00
+    reason: "register /admin/rbac route segment behind feature flag"
+    proposed_change_summary: "lazy import + flag-guarded route entry"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design: [prompt-writer, architect, ux-guru]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests: [admin-rbac-roles-load, admin-rbac-grants-load, admin-rbac-audit-load, a11y-axe-zero]
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-113
+  child_story_titles:
+    - "🔧 Задача — RolesPage UI + RoleEditor"
+    - "🔧 Задача — GrantsPage UI + MembershipRow + InviteModal"
+    - "🔧 Задача — AuditPage preview UI (RBAC events filter)"
+    - "🔧 Задача — WCAG 2.2 AA + axe-core 0 violations"
+
+featurebase:
+  board_id: 6a0db1dabaed70b5d8d3f898
+  post_alias: wt-17-rbac-admin-ui
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/trailbaseio/trailbase
+    integration_type: reference_only
+    rationale: "Admin UI built-in (Rust+TS); role management panels"
+  - url: https://github.com/wasp-lang/open-saas
+    integration_type: reference_only
+    rationale: "Admin dashboard React components + tables + modals"
+  - url: https://github.com/InsForge/InsForge
+    integration_type: reference_only
+    rationale: "Agentic backend admin panel — audit/role UI references"
+  - url: https://github.com/tailscale/hallpass
+    integration_type: reference_only
+    rationale: "Access grant/revoke UI patterns"
+  - url: https://github.com/Agent-Field/agentfield
+    integration_type: reference_only
+    rationale: "Identity-aware admin UI + audit timeline"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - screenshots_present: true
+  - smoke_passes_3_machines: true
+  - axe_violations_zero: true
+  - bundle_budget_within_limits: true
+  - feature_flag_off_no_visible_change: true

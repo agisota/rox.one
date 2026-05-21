@@ -1,0 +1,145 @@
+# WT-02 — ROX Design security/lifecycle hardening
+# Wave 0, P0. Partial ownership на rox-design-* keys в electron-builder.yml.
+
+id: WT-02
+title: "ROX Design security/lifecycle hardening"
+branch: fix/rox-design-security
+base_sha: fac6f228069c
+worktree_path: ../wt-02-rox-design-security
+
+feature_flag:
+  name: rox.feature.rox-design.hardening-v2
+  default: off
+  release_cut: foundation
+
+priority: P0
+wave: 0
+
+files_allowed:
+  - apps/electron/src/main/rox-design-runtime-manager.ts
+  - apps/electron/src/main/rox-design-ipc.ts
+  - apps/electron/src/main/rox-design-fs.ts
+  - apps/electron/src/main/rox-design-view-policy.ts
+  - apps/electron/src/main/rox-design-view-manager.ts
+  - apps/electron/src/main/rox-design-desktop-bridge.ts
+  - apps/electron/src/main/rox-design-embed-skin.ts
+  - apps/electron/src/main/__tests__/rox-design-runtime-manager.test.ts
+  - apps/electron/src/main/__tests__/rox-design-ipc.test.ts
+  - apps/electron/src/main/__tests__/rox-design-view-policy.test.ts
+  - apps/electron/src/main/__tests__/rox-design-printpdf-cap.test.ts
+  - scripts/prepare-rox-design-runtime.ts
+  - scripts/check-rox-design-runtime-payload.ts
+  - scripts/__tests__/check-rox-design-runtime-payload.test.ts
+  - apps/electron/resources/rox-design-payload-pubkey.pem
+  - docs/security/rox-design-hardening-2026-05-21.md
+  - docs/worklog/WT-02.md
+  - wt-meta/wt-02.yaml
+
+files_forbidden:
+  - electron-builder.yml                          # owner=WT-01; partial-write через scaffold request
+  - apps/electron/src/renderer/components/TopBar.tsx      # WT-03
+  - apps/electron/src/renderer/components/AppShell.tsx    # WT-03
+  - apps/electron/src/renderer/pages/RoxDesignPage.tsx    # WT-03
+  - apps/electron/src/renderer/contexts/NavigationContext.tsx  # WT-03
+  - apps/electron/src/main/rox-design-hotkey.ts           # WT-03
+  - packages/design-classifier/**
+  - packages/design-contract/**
+  - packages/design-theme-bridge/**
+  - package.json
+  - tsconfig.json
+
+depends_on: [WT-00]
+blocks: [WT-03, WT-33]
+
+scaffold_requests:
+  - target_file: electron-builder.yml
+    target_owner: WT-01
+    reason: "Update extraResources rox-design-* keys для signed payload manifest"
+    proposed_change_summary: "Add resources/rox-design-payload-manifest.json (signed) + rox-design-payload-pubkey.pem under extraResources"
+  - target_file: apps/electron/src/main/locales/ru.json
+    target_owner: WT-20
+    reason: "Crash banner i18n keys (RU)"
+    proposed_change_summary: "Add rox-design.crash.title, rox-design.crash.body, rox-design.crash.recover-cta"
+  - target_file: apps/electron/src/main/locales/en.json
+    target_owner: WT-20
+    reason: "Crash banner i18n keys (EN)"
+    proposed_change_summary: "Mirror EN keys"
+  - target_file: packages/shared/src/feature-flags/registry.ts
+    target_owner: WT-07
+    reason: "Register rox.feature.rox-design.hardening-v2"
+    proposed_change_summary: "Add { key, default: false, cut: 'foundation' }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect, ux-guru]   # ux-guru handoff crash banner copy
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true                 # crash banner screenshot mandatory
+  smoke_tests:
+    - rox-design-embed-launches
+    - rox-design-env-var-ignored-packaged
+    - rox-design-url-origin-blocked-fuzz
+    - rox-design-payload-verifier-mutation-corpus
+    - rox-design-sidecar-crash-recovers
+    - rox-design-printpdf-5mb-cap-throws
+    - rox-design-audit-shim-emits-5-event-types
+  electron_build: true
+  packaging_required: true
+
+linear:
+  parent_epic_identifier: PZD-116            # E05 — Design System, Embed, AAP
+  child_story_titles:
+    - "🔒 URL origin pin + onBeforeRequest"
+    - "🔒 Env-var ignore в packaged build"
+    - "🔒 Payload verifier: Merkle + Ed25519"
+    - "🔁 Sidecar lifecycle + crash event"
+    - "🛡 PrintPdf 5MB cap"
+    - "📡 Audit emit shim (5 event types)"
+  existing_issues_to_attach:
+    - "Open Design embed: sidecar lifecycle и crash-recovery"   # re-parent под WT-02
+
+featurebase:
+  board_id: 6a0db0b911b1b8507c8e8165          # Bugs, Fixes, Improvements
+  board_name: "Bugs, Fixes, Improvements"
+  post_alias: wt-02-rox-design-security-hardening
+  status_lifecycle: [planned, in-progress, shipped]
+  changelog_draft_title: "ROX Design — security hardening v2 (URL pin, signed payload, crash recovery)"
+
+inspiration_repos:
+  - url: https://github.com/agisota/open-design
+    integration_type: ui_embedding
+    rationale: "Local-first альтернатива Claude Design; sandboxed preview + payload pipeline референс для FR-02.3, FR-02.5"
+  - url: https://github.com/agisota/senpi
+    integration_type: partial_port
+    rationale: "Pi-mono fork с IPC primitives + scope propagation; референс RuntimeLifecycleEvents"
+  - url: https://github.com/google-labs-code/design.md
+    integration_type: adapter
+    rationale: "DESIGN.md spec format; вдохновение для PayloadManifest schema"
+  - url: https://github.com/intentui/intentui
+    integration_type: partial_port
+    rationale: "React Aria UI kit a11y — crash banner accessibility patterns"
+
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  integration_tests_pass: true
+  electron_builds_mac: true
+  electron_builds_win: true
+  electron_builds_linux: true
+  screenshots_present: true                  # crash banner UI
+  smoke_passes_3_machines: true
+  rbac_isolation_tests_pass: false           # security, не RBAC
+  audit_emit_tests_pass: true                # 5 event types
+  feature_flag_off_no_visible_change: true   # legacy behaviour restored
+  ed25519_keypair_installed: true
+  url_fuzz_corpus_20_pass: true
+  payload_mutation_corpus_10_pass: true
+  crash_recovery_under_2s: true

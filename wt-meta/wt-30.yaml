@@ -1,0 +1,104 @@
+id: WT-30
+title: "Queue fan-out/fan-in"
+branch: feat/queue-fanout
+base_sha: fac6f228069c
+worktree_path: ../wt-30-queue-fanout
+
+feature_flag:
+  name: rox.feature.agent-fabric.queue-fanout
+  default: off
+  release_cut: agent
+
+priority: P0
+wave: 2
+
+files_allowed:
+  - infra/cloudflare/queue-fanout.worker.ts
+  - infra/cloudflare/queue-fanin.worker.ts
+  - infra/cloudflare/wrangler.queues.toml
+  - packages/shared/src/agent-fabric/queue/**
+  - tests/unit/agent-fabric/queue/**
+  - tests/integration/agent-fabric/queue/**
+files_forbidden:
+  - packages/shared/src/agent-fabric/dag/**
+  - infra/cloudflare/durable-objects/agent-coordinator.ts
+  - infra/cloudflare/realtime-ws.worker.ts
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-29]
+blocks: [WT-34]
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add @cloudflare/workers-types for Queues bindings typing"
+    proposed_change_summary: "{ devDeps: { @cloudflare/workers-types: ^4.20260501.0 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add miniflare for local Queues + KV + DO emulator"
+    proposed_change_summary: "{ devDeps: { miniflare: ^3.20260501.0 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add wrangler for Queues binding declaration + dry-run"
+    proposed_change_summary: "{ devDeps: { wrangler: ^3.95.0 } }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - queue-fanout-happy-batch
+    - queue-fanout-retry-then-dlq
+    - queue-backpressure-deferred
+    - queue-circuit-breaker-open
+  electron_build: false
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-116
+  child_story_titles:
+    - "🔧 Задача — Cloudflare Queues binding + wrangler.queues.toml"
+    - "🔧 Задача — Producer enqueueTask/enqueueBatch + idempotency"
+    - "🔧 Задача — Consumer batch + retry/DLQ policy"
+    - "🔧 Задача — Backpressure token bucket per (tenant, role)"
+    - "🔧 Задача — Circuit breaker + audit emit"
+
+featurebase:
+  board_id: frictionless-ux
+  post_alias: wt-30-queue-fanout-fanin
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/cloudflare/workers-sdk
+    integration_type: reference_only
+    rationale: "Канонические queue() consumer patterns, batch ack, retry"
+  - url: https://github.com/temporalio/sdk-typescript
+    integration_type: reference_only
+    rationale: "Worker lifecycle, exp backoff, DLQ contract"
+  - url: https://github.com/aws-powertools/powertools-lambda-typescript
+    integration_type: reference_only
+    rationale: "Batch failure semantics adapted to Cloudflare Queues"
+  - url: https://github.com/taskforcesh/bullmq
+    integration_type: reference_only
+    rationale: "Token bucket per-queue concurrency + circuit breaker"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - miniflare_emulator_green: true
+  - bundle_budget_within_250kb_worker: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_no_visible_change: true
+  - load_test_p99_enqueue_under_50ms: true

@@ -1,0 +1,103 @@
+id: WT-21
+title: "Notification preferences UI"
+branch: feat/notif-prefs-ui
+base_sha: fac6f228069c
+worktree_path: ../wt-21-notif-prefs-ui
+
+feature_flag:
+  name: rox.feature.notif-prefs.ui
+  default: off
+  release_cut: notifications
+
+priority: P1
+wave: 1
+
+files_allowed:
+  - apps/electron/src/renderer/pages/settings/notifications/**
+  - apps/electron/src/main/notifications-prefs-handler.ts
+  - apps/electron/src/main/notifications-prefs-handler.test.ts
+  - packages/shared/src/notification/preferences.ts
+  - packages/shared/src/notification/__tests__/preferences.test.ts
+files_forbidden:
+  - apps/electron/src/renderer/pages/settings/settings-pages.ts
+  - apps/electron/src/renderer/pages/settings/SettingsNavigator.tsx
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - packages/shared/src/notification/templates/**
+
+depends_on: [WT-19]
+blocks: []
+
+scaffold_requests:
+  - target_file: apps/electron/src/renderer/pages/settings/settings-pages.ts
+    target_owner: WT-00
+    reason: "register Notifications nav entry"
+    proposed_change_summary: "add { id: 'notifications', label: 'settings.notifications.title' }"
+  - target_file: apps/electron/src/renderer/pages/settings/SettingsNavigator.tsx
+    target_owner: WT-00
+    reason: "register Notifications route"
+    proposed_change_summary: "add <Route path=notifications element={NotificationsSettingsPage} />"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design: [prompt-writer, architect, ux-guru]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests: [open-settings, toggle-agent-run-email, mandatory-lock-422]
+  electron_build: true
+  packaging_required: false
+  a11y_required: true
+
+linear:
+  parent_epic_identifier: PZD-115
+  child_story_titles:
+    - "🔧 Задача — NotificationsSettingsPage + 6 категорий"
+    - "🔧 Задача — Mandatory lock UI + backend 422"
+    - "🔧 Задача — IPC handler + optimistic-update rollback"
+    - "🔧 Задача — a11y (keyboard + axe-core)"
+    - "🔧 Задача — Locale parity en+ru"
+  existing_issues_to_attach: []
+
+featurebase:
+  board_id: 6a0db0e7d1e3f457181dd1dd  # Frictionless UX
+  post_alias: wt-21-notif-prefs-ui
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/posthog/posthog
+    integration_type: reference_only
+    rationale: "Settings page composition + i18n patterns"
+  - url: https://github.com/usebruno/bruno
+    integration_type: reference_only
+    rationale: "Preferences toggle-grid layout"
+  - url: https://github.com/sendgrid/sendgrid-nodejs
+    integration_type: reference_only
+    rationale: "Mandatory channel UX (legal-required emails)"
+  - url: https://github.com/raycast/extensions
+    integration_type: reference_only
+    rationale: "Liquid Glass-aligned settings UI taste"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - screenshots_present: true
+  - axe_core_zero_violations: true
+  - keyboard_nav_works: true
+  - locale_parity_en_ru: true
+  - mandatory_lock_ui_verified: true
+  - mandatory_lock_backend_422_verified: true
+  - feature_flag_off_no_visible_change: true

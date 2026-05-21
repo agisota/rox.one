@@ -1,0 +1,106 @@
+id: WT-37
+title: "Onboarding / contextual hints + entitlement UI"
+branch: feat/onboarding-hints
+base_sha: fac6f228069c
+worktree_path: ../wt-37-onboarding-hints
+
+feature_flag:
+  name: rox.feature.onboarding-hints
+  default: off
+  release_cut: ui
+
+priority: P0
+wave: 2
+
+files_allowed:
+  - apps/electron/src/renderer/components/onboarding-tour/**
+  - apps/electron/src/renderer/components/contextual-hint/**
+  - apps/electron/src/renderer/hooks/use-entitlement.ts
+  - packages/shared/src/onboarding/**
+  - tests/unit/onboarding/**
+  - tests/integration/onboarding/**
+  - apps/electron/src/main/locales/en.onboarding.json
+  - apps/electron/src/main/locales/ru.onboarding.json
+files_forbidden:
+  - apps/electron/src/renderer/components/onboarding/**
+  - packages/shared/src/feature-flags.ts
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-07, WT-33]
+blocks: []
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add @floating-ui/react for accessible anchored popovers"
+    proposed_change_summary: "{ deps: { @floating-ui/react: ^0.27.0 } }"
+  - target_file: packages/shared/src/feature-flags.ts
+    target_owner: WT-07
+    reason: "Register rox.feature.onboarding-hints + getTierFlags helper"
+    proposed_change_summary: "isOnboardingHintsEnabled() + getTierFlags(tenantId) helpers"
+  - target_file: apps/electron/src/renderer/components/composer/**
+    target_owner: WT-33
+    reason: "Add data-tour-anchor attributes for tour anchors"
+    proposed_change_summary: 'add data-tour-anchor="composer-send" + "composer-modes"'
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect, ux-guru]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: true
+  smoke_tests: [onboarding-tour-complete, onboarding-hint-upgrade-cta]
+  electron_build: true
+  packaging_required: false
+  a11y_required: true
+
+linear:
+  parent_epic_identifier: PZD-115
+  child_story_titles:
+    - "🔧 Задача — OnboardingTour overlay + step persistence"
+    - "🔧 Задача — Tour anchors + replay from settings"
+    - "🔧 Задача — ContextualHint + useEntitlement hook"
+    - "🔧 Задача — Upgrade CTA deep link + audit events"
+    - "🔧 Задача — Accessibility (focus trap, ARIA, axe) + i18n RU/EN"
+
+featurebase:
+  board_id: 6a0db1cbb0bb70b5d8d3f893
+  post_alias: wt-37-onboarding-contextual-hints
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/floating-ui/floating-ui
+    integration_type: dependency
+    rationale: "Accessible anchored popovers (MIT)"
+  - url: https://github.com/gilbarbara/react-joyride
+    integration_type: reference_only
+    rationale: "Guided product tour UX patterns"
+  - url: https://github.com/radix-ui/primitives
+    integration_type: reference_only
+    rationale: "Accessible focus-trap + dialog primitives"
+  - url: https://github.com/dyte-io/feature-flag-react-sdk
+    integration_type: reference_only
+    rationale: "Entitlement hook patterns"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - screenshots_present: true
+  - a11y_axe_clean: true
+  - bundle_budget_within_50kb: true
+  - ux_signoff_received: true
+  - feature_flag_off_no_visible_change: true
+  - locales_ru_en_full: true

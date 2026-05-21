@@ -1,0 +1,101 @@
+id: WT-19
+title: "Transactional email provider abstraction"
+branch: feat/email-provider
+base_sha: fac6f228069c
+worktree_path: ../wt-19-email-provider
+
+feature_flag:
+  name: rox.feature.email-provider
+  default: off
+  release_cut: notifications
+
+priority: P0
+wave: 1
+
+files_allowed:
+  - packages/shared/src/notification/**
+  - packages/shared/src/notification/__tests__/**
+  - apps/electron/src/main/notification/email-bootstrap.ts
+  - apps/electron/src/main/notification/__tests__/email-bootstrap.test.ts
+  - docs/notification/email-provider.md
+  - evidence/wt-19/**
+  - docs/superpowers/specs/2026-05-21-wt-19-email-provider-design.md
+files_forbidden:
+  - package.json
+  - tsconfig.json
+  - bun.lock
+  - packages/shared/src/core/**
+  - apps/electron/src/renderer/**
+
+depends_on: [WT-04]
+blocks: [WT-15, WT-20, WT-21, WT-22]
+
+scaffold_requests:
+  - target_file: packages/shared/src/index.ts
+    target_owner: WT-00
+    reason: "re-export notification module surface"
+    proposed_change_summary: "export * from './notification';"
+  - target_file: apps/electron/src/main/bootstrap.ts
+    target_owner: WT-00
+    reason: "register email-bootstrap behind feature flag"
+    proposed_change_summary: "conditional import + init of createEmailProvider"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design: [prompt-writer, architect]
+  impl: [test-writer, implementer, super-coder, reviewer]
+  verify: [verifier, critic, integrator]
+  optimize: [optimizer, 10x-improver]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests: [stub-send-10-mock, idempotency-double-send, factory-resolve-all-providers]
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-115
+  child_story_titles:
+    - "🔧 Задача — EmailProvider interface + EmailMessage/NotificationEvent contracts"
+    - "🔧 Задача — StubEmailAdapter + outbox writer + idempotency"
+    - "🔧 Задача — Postmark/SES/SendGrid stub adapters + provider factory"
+    - "🔧 Задача — Payload schema registry per NotificationType"
+
+featurebase:
+  board_id: 6a0db1b591b619c8111329f2
+  post_alias: wt-19-email-provider
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/wasp-lang/open-saas
+    integration_type: reference_only
+    rationale: "Email sending integration (Postmark/SendGrid) в SaaS"
+  - url: https://github.com/anomalyco/openauth
+    integration_type: reference_only
+    rationale: "Provider abstraction patterns (interfaces + factories)"
+  - url: https://github.com/Mail-0/Zero
+    integration_type: reference_only
+    rationale: "Privacy-first email client — webhook event taxonomy"
+  - url: https://github.com/agisota/mautic
+    integration_type: reference_only
+    rationale: "Multi-channel automation с email triggers"
+  - url: https://github.com/agisota/senpi
+    integration_type: reference_only
+    rationale: "Extension-first adapter pattern для plug-and-play providers"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - smoke_passes_3_machines: true
+  - no_network_calls_in_ci: true
+  - feature_flag_off_no_visible_change: true
+  - documentation_present: true

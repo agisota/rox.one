@@ -1,0 +1,117 @@
+id: WT-26
+title: "Backup + restore + per-tenant numbering rules"
+branch: feat/backup-restore
+base_sha: fac6f228069c
+worktree_path: ../wt-26-backup-restore
+
+feature_flag:
+  name: rox.feature.drive.backup
+  default: off
+  release_cut: storage
+
+priority: P0
+wave: 2
+
+files_allowed:
+  - infra/backup/scheduler.ts
+  - infra/backup/snapshot-worker.ts
+  - infra/backup/restore.ts
+  - infra/backup/cli.ts
+  - infra/backup/manifest.ts
+  - infra/backup/types.ts
+  - infra/backup/index.ts
+  - packages/shared/src/storage/numbering.ts
+  - packages/shared/src/storage/numbering-types.ts
+  - packages/server-core/src/storage/storage-ops-log.ts
+  - packages/server-core/src/storage/migrations/0011_storage_ops_log.up.sql
+  - packages/server-core/src/storage/migrations/0011_storage_ops_log.down.sql
+  - tests/unit/storage/backup/**
+  - tests/integration/storage/backup/**
+  - docs/cli.md
+
+files_forbidden:
+  - packages/shared/src/storage/backend.ts
+  - packages/shared/src/storage/dedup.ts
+  - packages/shared/src/storage/quota.ts
+  - apps/electron/src/renderer/**
+  - package.json
+  - tsconfig.json
+  - tsconfig.*.json
+  - bun.lock
+
+depends_on: [WT-23, WT-25]
+blocks: [WT-27]
+
+scaffold_requests:
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add minio client for integration test backup-store harness"
+    proposed_change_summary: "{ devDeps: { minio: ^8.0.0 } }"
+  - target_file: package.json
+    target_owner: WT-00
+    reason: "Add @aws-sdk/client-s3 for S3-compatible backup store"
+    proposed_change_summary: "{ deps: { @aws-sdk/client-s3: ^3.700.0 } }"
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer, 10x-improver]
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests:
+    - storage-backup-daily-snapshot
+    - storage-backup-restore-dry-run
+    - storage-backup-verify-chain
+  electron_build: true
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-122
+  child_story_titles:
+    - "🔧 Задача — Per-tenant monotonic numbering (storage_ops chain)"
+    - "🔧 Задача — Snapshot scheduler (daily + weekly cron)"
+    - "🔧 Задача — Snapshot worker + manifest generation"
+    - "🔧 Задача — Restore двухфазный (plan + apply + rollback)"
+    - "🔧 Задача — rox-one backup CLI (list/create/verify/restore)"
+    - "🔧 Задача — Retention policy enforcement per tier"
+
+featurebase:
+  board_id: 6a0db0b911b1b8507c8e8165
+  post_alias: wt-26-backup-restore-numbering
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/tursodatabase/agentfs
+    integration_type: reference_only
+    rationale: "Snapshot-based agent filesystem — primary inspiration for manifest + restore"
+  - url: https://github.com/linear/linear-release
+    integration_type: reference_only
+    rationale: "Monotonic numbering + idempotent release feed processing"
+  - url: https://github.com/restic/restic
+    integration_type: reference_only
+    rationale: "Manifest root-hash + content-defined chunking patterns"
+  - url: https://github.com/borgbackup/borg
+    integration_type: reference_only
+    rationale: "Retention policy DSL + dedup-backup integration"
+  - url: https://github.com/wal-g/wal-g
+    integration_type: reference_only
+    rationale: "Backup job lifecycle + scheduler resilience"
+
+definition_of_done:
+  - tests_first_commit_exists: true
+  - typecheck_passes: true
+  - lint_passes: true
+  - unit_tests_pass: true
+  - integration_tests_pass: true
+  - migration_up_down_pass: true
+  - chain_invariants_verified: true
+  - cli_documented: true
+  - electron_builds_mac: true
+  - electron_builds_win: true
+  - electron_builds_linux: true
+  - audit_emit_tests_pass: true
+  - feature_flag_off_no_visible_change: true

@@ -1,0 +1,106 @@
+id: WT-07
+title: "Entitlement + FeatureFlag engine"
+branch: feat/contract-entitlement-flags
+base_sha: fac6f228069c
+worktree_path: ../wt-07-entitlement-flags
+
+feature_flag:
+  name: rox.feature.entitlements.v1
+  default: off
+  release_cut: foundation
+
+priority: P0
+wave: 0
+
+files_allowed:
+  - packages/shared/src/feature-flags/registry.ts
+  - packages/shared/src/feature-flags/entitlement.ts
+  - packages/shared/src/feature-flags/quota-account.ts
+  - packages/shared/src/feature-flags/index.ts
+  - packages/server-core/src/schema/feature-flags.ts
+  - packages/server-core/migrations/0003_feature_flags.up.sql
+  - packages/server-core/migrations/0003_feature_flags.down.sql
+  - tests/unit/feature-flags/registry.test.ts
+  - tests/unit/feature-flags/entitlement.test.ts
+  - tests/unit/feature-flags/quota-account.test.ts
+  - wt-meta/wt-07.yaml
+  - docs/superpowers/specs/2026-05-21-wt-07-entitlement-flags-design.md
+
+files_forbidden:
+  - packages/shared/src/core/tenant.ts
+  - packages/shared/src/core/organization.ts
+  - packages/shared/src/core/workspace.ts
+  - packages/shared/src/core/team.ts
+  - packages/shared/src/core/user.ts
+  - packages/shared/src/audit/**
+  - package.json
+  - tsconfig*.json
+  - bun.lock
+
+depends_on: [WT-00, WT-05, WT-06]
+blocks: [WT-10, WT-11, WT-14, WT-23, WT-24, WT-28, WT-29, WT-30, WT-37]
+
+scaffold_requests: []
+
+roles:
+  discovery: [brainstormer, requirements-keeper, scope-analyzer, critic]
+  design:    [prompt-writer, architect]
+  impl:      [test-writer, implementer, super-coder, reviewer]
+  verify:    [verifier, critic, integrator]
+  optimize:  [optimizer]
+
+model_overrides: {}
+
+verification:
+  machines: [mac-14-arm, windows-2022, ubuntu-22]
+  screenshots_required: false
+  smoke_tests: [feature-flag-resolve, quota-consume, migration-up-down]
+  electron_build: false
+  packaging_required: false
+
+linear:
+  parent_epic_identifier: PZD-115
+  child_story_titles:
+    - "🔧 Задача — FeatureFlag registry + default values"
+    - "🔧 Задача — Entitlement schema + source priority resolve"
+    - "🔧 Задача — QuotaAccount + tryConsume + period auto-reset"
+    - "🔧 Задача — SQL migration up/down + reversibility test"
+  existing_issues_to_attach: []
+
+featurebase:
+  board_id: 6a0db1dabaed70b5d8d3f898
+  post_alias: wt-07-entitlement-flags-engine
+  status_lifecycle: [planned, in-progress, shipped]
+
+inspiration_repos:
+  - url: https://github.com/github/spec-kit
+    integration_type: reference_only
+    rationale: "Spec-driven declarative feature gates"
+  - url: https://github.com/safishamsi/graphify
+    integration_type: plugin
+    rationale: "Skills registry pattern для flags registry"
+  - url: https://github.com/multica-ai/multica
+    integration_type: reference_only
+    rationale: "Skills/automations контракт reference"
+  - url: https://github.com/wasp-lang/open-saas
+    integration_type: reference_only
+    rationale: "Tier/plan → entitlement mapping"
+  - url: https://github.com/666ghj/BettaFish
+    integration_type: reference_only
+    rationale: "Per-tenant feature gating pattern"
+
+definition_of_done:
+  tests_first_commit_exists: true
+  typecheck_passes: true
+  lint_passes: true
+  unit_tests_pass: true
+  integration_tests_pass: true
+  electron_builds_mac: false
+  electron_builds_win: false
+  electron_builds_linux: false
+  screenshots_present: false
+  smoke_passes_3_machines: true
+  rbac_isolation_tests_pass: false
+  audit_emit_tests_pass: true
+  feature_flag_off_no_visible_change: true
+  migration_up_down_verified: true
