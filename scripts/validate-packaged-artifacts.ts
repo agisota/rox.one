@@ -184,9 +184,14 @@ function validateRoxDesignPayload(): void {
       `Rox Design MANIFEST.json schema must be rox-design-runtime-manifest.v1; got: ${String(manifest.schema)}`,
     );
   }
-  if (manifest.mode !== 'from-archive') {
+  // Accept both 'from-archive' (canonical release path via Mode 2) and
+  // 'source-resources' (developer/CI path via Mode 1) — the bug we want to
+  // catch is "MANIFEST.json missing or schema-wrong", not which prep mode
+  // was used. Cross-platform-launch CI uses Mode 1; release-all-platforms
+  // CI uses Mode 2 — both produce a valid runtime.
+  if (manifest.mode !== 'from-archive' && manifest.mode !== 'source-resources') {
     fail(
-      `Rox Design MANIFEST.json mode must be from-archive for releases; got: ${String(manifest.mode)}`,
+      `Rox Design MANIFEST.json mode must be from-archive or source-resources; got: ${String(manifest.mode)}`,
     );
   }
   const missing = ROX_DESIGN_REQUIRED_PATHS.filter(
