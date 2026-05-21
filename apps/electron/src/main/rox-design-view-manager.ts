@@ -33,6 +33,13 @@ interface ManagedRoxDesignView {
   skinCssKey: string | null
   /** Dispose function returned by startDesignThemeBridge — set after first load. */
   disposeThemeBridge: (() => void) | null
+  /**
+   * In-flight loadURL promise for this entry.
+   * Serializes concurrent show() calls so a second invocation always waits
+   * for the first loadURL to settle before issuing its own load.
+   * Fixes audit finding C-H3: rox-design:view-show load serialization.
+   */
+  loadPromise: Promise<void> | null
 }
 
 export interface RoxDesignViewManagerOptions {
@@ -70,11 +77,25 @@ export class RoxDesignViewManager {
     const hostWebContentsId = hostWindow.webContents.id
     const entry = this.entries.get(hostWebContentsId) ?? this.createEntry(hostWindow, hostWebContentsId)
     this.attachEntry(entry)
+
+    // Bounds can be applied immediately — independent of the load (C-H3).
     this.setEntryBounds(entry, sanitized)
 
     if (entry.currentUrl !== input.url) {
       entry.currentUrl = input.url
-      await entry.webContents.loadURL(input.url)
+
+      // C-H3: Serialize show() loads per-entry. If a loadURL is already in
+      // flight, await it before starting a new one so that a rapid second
+      // show() call cannot cancel the first load mid-flight and leave the
+      // view in an inconsistent state (stale URL or setBounds before attach).
+      if (entry.loadPromise) {
+        await entry.loadPromise
+      }
+
+      entry.loadPromise = entry.webContents.loadURL(input.url).finally(() => {
+        entry.loadPromise = null
+      })
+      await entry.loadPromise
     }
 
     this.showEntry(entry)
@@ -143,6 +164,7 @@ export class RoxDesignViewManager {
       contentZoomFactor: 1,
       skinCssKey: null,
       disposeThemeBridge: null,
+      loadPromise: null,
     }
 
     this.configureWebContents(entry)
