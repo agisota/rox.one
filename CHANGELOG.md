@@ -9,6 +9,44 @@ traceability.
 
 ---
 
+## [1.0.7] — 2026-05-25
+
+Wave 0 contract chain + Wave 1 module chain release. Comprehensive
+data-contract scaffolds and module-layer foundations for downstream work.
+
+### Added
+
+- **WT-00** snapshot hygiene + scaffold-ownership validators + secrets rotation (#405)
+- **WT-01** release pipeline + R2 mirror + CI caching (#406)
+- **WT-02** ROX Design security/lifecycle hardening (#407)
+- **WT-03** ROX Design TopBar UX + hotkey (#408)
+- **WT-04** User + Identity data contract (#409)
+- **WT-05** Tenant + Org data contract (#420)
+- **WT-06** Workspace + Team data contract (#410)
+- **WT-07** Entitlement + Feature flag registry (#411)
+- **WT-08** Audit + Telemetry data contract (#412)
+- **WT-09** Linear / Featurebase sync automation (#413)
+- **WT-45** ModuleRegistry — typed ModuleDefinition + sidebar/routes/panels (#414)
+- **WT-46** ContentObject + Block universal schema (#415)
+- **WT-47** RelationService — typed bidirectional relations (#416)
+- **WT-48** AIContextPacket builder (permission-filtered) (#417)
+- **WT-49** ActivityEvent emission policy (extends WT-08 audit) (#418)
+- **WT-50** SearchIndex — full-text + tag + relationship (#419)
+
+### Fixed
+
+- Pin `actions/github-script` to SHA in `wt-merge-gate.yml` (workflow-pins
+  security policy) (#424)
+
+### Changed
+
+- Migrate per-WT scaffold READMEs from root `.wt-scaffold/README.md` to
+  `.wt-scaffold/wt-NN/README.md` subfolders; resolves add/add merge conflicts
+  across the Wave 0/1 PR chain. Updates `scripts/orchestrator/dispatch-wave-0.sh`
+  accordingly (#425)
+
+---
+
 ## [1.0.0] — TBD (after 72h soak)
 
 The first stable ROX.ONE release. Built as a white-label fork of the
