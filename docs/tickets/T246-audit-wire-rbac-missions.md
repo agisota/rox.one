@@ -4,7 +4,7 @@ Status: DONE
 
 ## Context
 
-We are building a white-label fork of ROX.ONE OSS into the
+We are building a white-label fork of Craft Agents OSS into the
 ROX.ONE Agent Workbench Suite.
 
 T245 (already on `main`) shipped the `AuditProducer` producer surface

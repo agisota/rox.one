@@ -37,8 +37,8 @@ function isWholeFileAllowlisted(path) {
   if (['LICENSE', 'NOTICE', 'TRADEMARK.md', 'plan.md', 'snapshot.md'].includes(path)) {
     return true
   }
-  // Allowlist reason: CHANGELOG.md must reference legacy ROX_* / @rox-one
-  // / rox-one-server / rox-cli / ~/.rox / ~/.rox / ROX.ONE
+  // Allowlist reason: CHANGELOG.md must reference legacy CRAFT_* / @craft-agent
+  // / craft-agent-server / craft-cli / ~/.craft-agent / ~/.craft / Craft Agents
   // names verbatim to document the rebrand sweep R.0-R.10 and the v1.0.0
   // deprecation timeline. Recursive self-reference makes them forbidden tokens
   // by construction — they are historical record, not branding drift.
@@ -55,32 +55,32 @@ function isWholeFileAllowlisted(path) {
 
   // R.9.5 (T298a) — shim-preservation surfaces below.
 
-  // Allowlist reason: .env.example documents the legacy ROX_* env-var names
+  // Allowlist reason: .env.example documents the legacy CRAFT_* env-var names
   // honored by the R.6 readEnv() shim for one minor version.
   if (path === '.env.example') return true
 
-  // Allowlist reason: CI workflows feed legacy ROX_* env vars into the runtime
-  // via the R.6 readEnv() shim (ROX_E2E, ROX_HEADLESS, ROX_DEV_RUNTIME,
-  // ROX_ANTHROPIC_API_KEY, ROX_MCP_URL, ROX_MCP_TOKEN, etc.).
+  // Allowlist reason: CI workflows feed legacy CRAFT_* env vars into the runtime
+  // via the R.6 readEnv() shim (CRAFT_E2E, CRAFT_HEADLESS, CRAFT_DEV_RUNTIME,
+  // CRAFT_ANTHROPIC_API_KEY, CRAFT_MCP_URL, CRAFT_MCP_TOKEN, etc.).
   if (/^\.github\/workflows\/.+\.ya?ml$/.test(path)) return true
 
-  // Allowlist reason: shell stubs reference $ROX_UV / $ROX_SCRIPTS /
-  // $ROX_BUN / $ROX_CLI_ENTRY (shim-fed runtime env vars).
+  // Allowlist reason: shell stubs reference $CRAFT_UV / $CRAFT_SCRIPTS /
+  // $CRAFT_BUN / $CRAFT_CLI_ENTRY (shim-fed runtime env vars).
   if (path.startsWith('apps/electron/resources/bin/')) return true
 
   // Allowlist reason: legacy install-layout permission patterns explicitly
   // preserved per R.10 spec.
   if (path === 'apps/electron/resources/permissions/default.json') return true
 
-  // Allowlist reason: bridge MCP server script consumes $ROX_* env vars
+  // Allowlist reason: bridge MCP server script consumes $CRAFT_* env vars
   // via the readEnv() shim.
   if (path === 'apps/electron/resources/bridge-mcp-server/index.js') return true
 
-  // Allowlist reason: bundled docs reference legacy ROX_WH_DISCORD_URL and
+  // Allowlist reason: bundled docs reference legacy CRAFT_WH_DISCORD_URL and
   // similar shim-honored env vars in user-facing examples.
   if (path.startsWith('apps/electron/resources/docs/')) return true
 
-  // Allowlist reason: bundled Python harness consumes $ROX_* env vars via
+  // Allowlist reason: bundled Python harness consumes $CRAFT_* env vars via
   // the readEnv() shim.
   if (path.startsWith('apps/electron/resources/scripts/')) return true
 
@@ -91,7 +91,7 @@ function isWholeFileAllowlisted(path) {
   if (path.startsWith('docs/release/')) return true
   if (path.startsWith('docs/superpowers/')) return true
 
-  // Allowlist reason: docs/cli.md documents the kept rox-cli bin name
+  // Allowlist reason: docs/cli.md documents the kept craft-cli bin name
   // (deliberate one-minor-version carve-out — see T298a worklog).
   if (path === 'docs/cli.md') return true
 
@@ -111,12 +111,12 @@ function isWholeFileAllowlisted(path) {
 
   // Allowlist reason: AGENTS.md is the operating contract for agents
   // working on this repository; its opening must cite the upstream
-  // project ("ROX.ONE OSS") to satisfy Apache 2.0 §4 attribution
+  // project ("Craft Agents OSS") to satisfy Apache 2.0 §4 attribution
   // and to honor TRADEMARK.md. The remaining 1-2 token hits in AGENTS.md
   // are exactly this legal attribution, not branding drift.
   if (path === 'AGENTS.md') return true
 
-  // Allowlist reason: root package.json `name: rox-one` is held
+  // Allowlist reason: root package.json `name: craft-agent` is held
   // deliberately until M.21 release prep, when the major version bump
   // and lockfile regeneration land together as one atomic change.
   // Renaming the root name without `bun install` regeneration corrupts
@@ -129,12 +129,12 @@ function isWholeFileAllowlisted(path) {
   if (path.startsWith('.omc/') || path.startsWith('.omx/')) return true
   if (path === 'apps/electron/.omc/project-memory.json') return true
 
-  // Allowlist reason: CLI app keeps the `rox-cli` bin and help-text
+  // Allowlist reason: CLI app keeps the `craft-cli` bin and help-text
   // references for one minor version (deliberate carve-out — see T298a
   // worklog for the deprecation timeline).
   if (path.startsWith('apps/cli/')) return true
 
-  // Allowlist reason: internal ESLint plugin name `'rox-one'` — internal
+  // Allowlist reason: internal ESLint plugin name `'craft-agent'` — internal
   // only, never reaches user-facing surfaces.
   if (path === 'apps/electron/eslint.config.mjs') return true
 
@@ -153,16 +153,16 @@ function isWholeFileAllowlisted(path) {
   // Allowlist reason: scripts/install-app.* / install-server.sh /
   // docker-smoke-test.sh / generate-dev-cert.sh / build-server.ts and the
   // electron-smoke + e2e + electron-dev + electron-build scripts consume
-  // legacy $ROX_* env vars via the R.6 readEnv() shim and continue to
+  // legacy $CRAFT_* env vars via the R.6 readEnv() shim and continue to
   // accept them for one minor version.
   if (/^scripts\/(install-app\.(ps1|sh)|install-server\.sh|docker-smoke-test\.sh|generate-dev-cert\.sh|build-server\.ts|e2e-core-scenarios\.ts|electron-build-main\.ts|electron-dev\.ts|electron-dist-dev-mac-arm64\.ts|electron-smoke\.ts|electron-smoke-packaged-mac\.ts|electron-ui-smoke-packaged-mac\.ts|validate-e2e-core-scenarios\.ts)$/.test(path)) return true
 
-  // Allowlist reason: infra/rox-one-auth-server.mjs consumes legacy ROX_*
+  // Allowlist reason: infra/rox-one-auth-server.mjs consumes legacy CRAFT_*
   // env vars via the shim.
   if (path === 'infra/rox-one-auth-server.mjs') return true
 
   // Allowlist reason: runtime call sites of the R.6 readEnv() shim
-  // intentionally reference both ROX_* and ROX_* env-var names.
+  // intentionally reference both ROX_* and CRAFT_* env-var names.
   // packages/shared/src/utils/env-compat.ts is the shim itself; the rest
   // are documented call sites + their tests.
   if (path === 'packages/shared/src/utils/env-compat.ts') return true
@@ -200,7 +200,7 @@ function isWholeFileAllowlisted(path) {
   if (path === 'packages/shared/src/workspaces/types.ts') return true
   if (path === 'packages/shared/src/audit/__tests__/audit-event-writer.test.ts') return true
 
-  // Allowlist reason: agent core + automations consume legacy ROX_* env
+  // Allowlist reason: agent core + automations consume legacy CRAFT_* env
   // vars via the R.6 readEnv() shim and reference legacy bash patterns
   // sync-agent-bash-patterns documents.
   if (/^packages\/shared\/src\/agent\//.test(path)) return true
@@ -212,13 +212,13 @@ function isWholeFileAllowlisted(path) {
   if (path === 'packages/shared/tests/shellguard-corpus.test.ts') return true
 
   // Allowlist reason: messaging-gateway and pi-agent-server reference the
-  // ROX_WH_* webhook env-var namespace via the shim.
+  // CRAFT_WH_* webhook env-var namespace via the shim.
   if (/^packages\/messaging-gateway\//.test(path)) return true
   if (/^packages\/pi-agent-server\//.test(path)) return true
 
   // Allowlist reason: server-core / server / session-mcp-server / session-
-  // tools-core wire the WS RPC runtime to the legacy ROX_RPC_* / ROX_
-  // RPC_HOST / ROX_RPC_PORT / ROX_RPC_TLS_* / ROX_TLS_CA env vars via
+  // tools-core wire the WS RPC runtime to the legacy CRAFT_RPC_* / CRAFT_
+  // RPC_HOST / CRAFT_RPC_PORT / CRAFT_RPC_TLS_* / CRAFT_TLS_CA env vars via
   // the shim.
   if (/^packages\/server-core\//.test(path)) return true
   if (/^packages\/server\//.test(path)) return true
@@ -230,7 +230,7 @@ function isWholeFileAllowlisted(path) {
   if (path === 'packages/ui/src/components/markdown/__tests__/linkify.test.ts') return true
 
   // Allowlist reason: Electron main / preload / renderer call sites consume
-  // $ROX_* env vars via the shim, and the playground demos seed mock UI
+  // $CRAFT_* env vars via the shim, and the playground demos seed mock UI
   // with legacy install layouts.
   if (/^apps\/electron\/src\//.test(path)) return true
   if (/^apps\/webui\/src\//.test(path)) return true
@@ -239,7 +239,7 @@ function isWholeFileAllowlisted(path) {
   // until the next `bun install` rewrites it.
   if (path === 'bun.lock') return true
 
-  // Allowlist reason: Dockerfile.server documents the legacy ROX_* env-var
+  // Allowlist reason: Dockerfile.server documents the legacy CRAFT_* env-var
   // names honored by the readEnv() shim.
   if (path === 'Dockerfile.server') return true
 
@@ -264,7 +264,7 @@ function isLineAllowlisted(path, lineNumber, line, token, readmeSections) {
   if (path === 'Dockerfile.server') {
     return (
       line.includes('org.opencontainers.image.source')
-      && line.includes('github.com/lukilabs/rox-agents-oss')
+      && line.includes('github.com/lukilabs/craft-agents-oss')
     )
   }
 
@@ -272,7 +272,7 @@ function isLineAllowlisted(path, lineNumber, line, token, readmeSections) {
     const section = readmeSections.get(lineNumber)
     if (section === 'License' || section === 'Acknowledgements') return true
     // Allowlist reason: R.6 readEnv() shim documentation in README's env-var
-    // section continues to reference the legacy ROX_* names by design.
+    // section continues to reference the legacy CRAFT_* names by design.
     if (token === legacyPrefix) return true
   }
 
@@ -283,14 +283,14 @@ function isLineAllowlisted(path, lineNumber, line, token, readmeSections) {
   // Allowlist reason: i18n locale files retain stable translation keys
   // containing `CraftAgents` / `loginWithCraft` because changing key IDs
   // would break every external translation tool consuming these locales.
-  // Value strings that mention ROX_SERVER_TOKEN are shim-preserved and
+  // Value strings that mention CRAFT_SERVER_TOKEN are shim-preserved and
   // remain functionally correct for one minor version.
   if (/^packages\/shared\/src\/i18n\/locales\/.+\.json$/.test(path)) {
     return true
   }
 
   // Allowlist reason: builtin-sources.ts retains the legacy id
-  // `builtin-rox-ones-docs` and slug `rox-ones-docs` as historical
+  // `builtin-craft-agents-docs` and slug `craft-agents-docs` as historical
   // aliases for one minor version (see T300a worklog for the deprecation
   // timeline). All other CraftAgents-derived literals in this file are
   // documentation-only.
