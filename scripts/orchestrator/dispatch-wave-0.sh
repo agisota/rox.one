@@ -139,9 +139,10 @@ print(d.get('linear', {}).get('parent_epic_identifier', '?'))
 
   (
     cd "$abs_worktree"
-    # Create TDD scaffold placeholder
-    mkdir -p ".wt-scaffold"
-    cat > ".wt-scaffold/README.md" <<MARKDOWN
+    # Create TDD scaffold placeholder — per-WT subfolder avoids merge conflicts on .wt-scaffold/README.md
+    local wt_id_lower="${wt_id,,}"
+    mkdir -p ".wt-scaffold/${wt_id_lower}"
+    cat > ".wt-scaffold/${wt_id_lower}/README.md" <<MARKDOWN
 # $wt_id Worktree
 
 - **Branch:** \`$branch\`
@@ -174,7 +175,7 @@ print(d.get('linear', {}).get('parent_epic_identifier', '?'))
 - definition_of_done в yaml all true
 MARKDOWN
 
-    git add ".wt-scaffold/README.md"
+    git add ".wt-scaffold/${wt_id_lower}/README.md"
     git commit -m "chore($wt_id): scaffold worktree $abs_worktree
 
 Bootstrap commit для Wave 0 dispatch — $title.
@@ -183,7 +184,7 @@ Spec: docs/superpowers/specs/2026-05-21-${wt_id,,}-*-design.md
 Yaml: wt-meta/${wt_id,,}.yaml
 Mission control: docs/mission-control/${wt_id,,}/
 
-Next: 22-role swarm picks up from .wt-scaffold/README.md.
+Next: 22-role swarm picks up from .wt-scaffold/${wt_id_lower}/README.md.
 Discovery phase agents должны TDD-first написать failing tests under files_allowed.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>" >/dev/null 2>&1
