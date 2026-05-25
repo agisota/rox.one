@@ -15,4 +15,5 @@ maintains its own `.wt-scaffold/wt-NN/README.md`.
 - [WT-46 ContentObject + Block universal schema](./wt-46/README.md)
 - [WT-47 RelationService](./wt-47/README.md)
 - [WT-48 AIContextPacket (permission-filtered)](./wt-48/README.md)
+- [WT-49 ActivityEvent emission policy](./wt-49/README.md)
 - [WT-50 SearchIndex](./wt-50/README.md)
