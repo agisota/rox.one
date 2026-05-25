@@ -1,0 +1,68 @@
+# CODEOWNERS for ROX.ONE parallel-worktree harness (Wave 0+).
+#
+# Maps the 13 epics described in docs/superpowers/specs/2026-05-21-rox-one-parallel-worktree-harness-master.md
+# to maintainer GitHub handles. Per WT-00 open question #1, `@agisota` is the
+# fallback owner for every epic until sub-maintainers are appointed; epic-specific
+# co-owners may be added via scaffold_request to WT-00.
+#
+# Format: <path-glob> <owner>...
+# Order matters — last match wins per GitHub semantics.
+
+# Default fallback ----------------------------------------------------
+*                                                       @agisota
+
+# epic: foundation (WT-00, WT-09 — repo bootstrap, server core) ------
+/wt-meta/                                               @agisota
+/scripts/orchestrator/                                  @agisota
+/.github/CODEOWNERS                                     @agisota
+/AGENTS.md                                              @agisota
+/package.json                                           @agisota
+/tsconfig.json                                          @agisota
+/tsconfig.base.json                                     @agisota
+/bun.lock                                               @agisota
+
+# epic: auth-identity (WT-04, WT-05, WT-06) --------------------------
+/packages/shared/src/auth/                              @agisota
+/packages/shared/src/account/                           @agisota
+
+# epic: notifications (WT-10) ----------------------------------------
+/packages/shared/src/observability/                     @agisota
+
+# epic: storage (WT-08, WT-09) ---------------------------------------
+/packages/server-core/src/persistence/                  @agisota
+/packages/server-core/src/migrations/                   @agisota
+
+# epic: agent-runtime (WT-15..WT-19) ---------------------------------
+/packages/shared/src/agent/                             @agisota
+/packages/shared/src/automations/                       @agisota
+/packages/shared/src/skills/                            @agisota
+
+# epic: ui-shell (WT-37, WT-38) --------------------------------------
+/apps/electron/src/renderer/                            @agisota
+
+# epic: sources (WT-30..WT-32) ---------------------------------------
+/packages/shared/src/sources/                           @agisota
+/packages/shared/src/mentions/                          @agisota
+
+# epic: object-platform (WT-45, WT-46, WT-47) ------------------------
+/packages/shared/src/core/                              @agisota
+
+# epic: ai-context (WT-48) -------------------------------------------
+/packages/shared/src/prompts/                           @agisota
+/packages/shared/src/experience-layer/                  @agisota
+
+# epic: search (WT-50) -----------------------------------------------
+/packages/shared/src/search/                            @agisota
+
+# epic: sharing (WT-33, WT-34) ---------------------------------------
+/packages/shared/src/release-notes/                     @agisota
+
+# epic: audit (WT-49) ------------------------------------------------
+/packages/shared/src/audit/                             @agisota
+/packages/audit/                                        @agisota
+
+# epic: release-engineering (WT-01, WT-02, WT-03) --------------------
+/.github/workflows/                                     @agisota
+/scripts/release/                                       @agisota
+/apps/electron/electron-builder.yml                     @agisota
+/apps/electron/package.json                             @agisota

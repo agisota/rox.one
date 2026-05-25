@@ -1,0 +1,39 @@
+# .gitattributes — Wave-0 baseline by WT-00. Owners requesting changes must
+# file a scaffold_request to WT-00 (see wt-meta/scaffold-ownership.yaml).
+
+# Text files normalize line endings.
+* text=auto eol=lf
+
+# Lockfiles must remain text (no binary merge) so merge-train tooling can diff
+# them deterministically. NB: bun.lock is text-based even though older
+# tooling sometimes flags it.
+bun.lock text eol=lf merge=union
+package-lock.json text eol=lf
+yarn.lock text eol=lf
+pnpm-lock.yaml text eol=lf
+
+# Treat all .mmd (Mermaid) + .yaml as text with normalized endings.
+*.mmd text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Binary / large-asset hints (no LFS in this repo, hint git not to diff).
+*.dmg binary
+*.exe binary
+*.msi binary
+*.AppImage binary
+*.icns binary
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.mp4 binary
+*.zip binary
+*.tar.gz binary
+*.tgz binary
+
+# Generated coverage / log artifacts: hide from diffs (still tracked if added).
+coverage/** linguist-generated=true
+**/__snapshots__/** linguist-generated=true

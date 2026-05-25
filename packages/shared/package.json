@@ -88,7 +88,8 @@
     "./highlight": "./src/highlight/index.ts",
     "./security": "./src/security/index.ts",
     "./security/rate-limiter": "./src/security/rate-limiter.ts",
-    "./security/budget-guard": "./src/security/budget-guard.ts"
+    "./security/budget-guard": "./src/security/budget-guard.ts",
+    "./core": "./src/core/index.ts"
   },
   "dependencies": {
     "@rox-one/core": "workspace:*",

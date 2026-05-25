@@ -53,6 +53,7 @@
     "validate:dev": "bun run typecheck:all && bun run test:shared:all && bun run test:doc-tools",
     "validate:ci": "bun run validate:agent-contract && bun run validate:architecture-docs && bun run validate:ci-contract && bun run validate:private-release-pipeline && bun run validate:release-all-platforms-workflow && bun run validate:cross-platform-launch-workflow && bun run validate:mac-diag-smoke-workflow && bun run validate:linux-installer-launcher && bun run validate:dev && bun run validate:audit && bun run lint:i18n:parity && bun run lint:i18n:sorted && bun run lint:i18n:coverage && bun run lint:no-skip-tests",
     "lint:no-skip-tests": "bun run scripts/lint-no-skip-tests.ts",
+    "snapshot-verify": "bun run scripts/orchestrator/snapshot-verify.ts",
     "validate:private-release-pipeline": "bun run scripts/validate-private-release-pipeline.ts",
     "validate:release": "bun run validate:docs && bun run lint && bun run typecheck:all && bun test && bun run electron:build && bun run validate:bundle-policy && bun run validate:mac-arm-build-workflow && bun run validate:private-release-pipeline",
     "lint:ipc-sends": "bash scripts/check-raw-sends.sh",
