@@ -12,3 +12,4 @@ maintains its own `.wt-scaffold/wt-NN/README.md`.
 - [WT-07 Entitlement + Feature flag registry](./wt-07/README.md)
 - [WT-45 ModuleRegistry](./wt-45/README.md)
 - [WT-46 ContentObject + Block universal schema](./wt-46/README.md)
+- [WT-47 RelationService](./wt-47/README.md)
