@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { AlertCircle, ExternalLink, Palette, RefreshCw } from 'lucide-react'
+import { AlertCircle, Palette, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { RoxDesignBounds, RoxDesignStatus } from '../../../shared/types'
 
@@ -108,38 +108,14 @@ export function RoxDesignPage() {
     }
   }, [startRuntime])
 
-  const handleOpenExternal = React.useCallback(() => {
-    if (status.webUrl) void window.electronAPI?.roxDesign?.openExternal(status.webUrl)
-  }, [status.webUrl])
-
   if (status.status === 'running' && status.webUrl) {
-    const canOpenExternal = status.version === 'dev'
-
     return (
-      <section className="flex h-full min-h-0 flex-col bg-background" aria-label="Rox Design">
-        <div className="flex h-10 shrink-0 items-center justify-between border-b border-border/60 bg-background/95 px-4">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-foreground/5 text-foreground">
-              <Palette className="h-3.5 w-3.5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <h1 className="truncate text-sm font-medium text-foreground">Rox Design</h1>
-              <p className="truncate text-[11px] text-muted-foreground">
-                Встроенный Open Design{status.version ? ` · ${status.version}` : ''}
-              </p>
-            </div>
-          </div>
-          {canOpenExternal ? (
-            <Button type="button" variant="ghost" size="sm" onClick={handleOpenExternal} aria-label="Открыть Rox Design во внешнем браузере">
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-              Открыть отдельно
-            </Button>
-          ) : null}
-        </div>
+      <section className="relative h-full min-h-0 overflow-hidden bg-background" aria-label="Rox Design">
         <div
           ref={hostRef}
           data-testid="rox-design-native-host"
-          className="min-h-0 flex-1 bg-background"
+          data-rox-design-surface="native"
+          className="absolute inset-0 min-h-0 bg-transparent"
           aria-label="Область Rox Design"
         />
       </section>
@@ -183,7 +159,7 @@ export function RoxDesignPage() {
         </span>
         <div>
           <h1 id="rox-design-title" className="text-base font-semibold text-foreground">Rox Design</h1>
-          <p className="text-sm text-muted-foreground">Запускаем встроенный Open Design…</p>
+          <p className="text-sm text-muted-foreground">Запускаем Rox Design…</p>
         </div>
       </div>
     </section>

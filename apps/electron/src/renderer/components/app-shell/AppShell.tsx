@@ -92,6 +92,7 @@ import { sessionMetaMapAtom, sendToWorkspaceAtom, type SessionMeta } from "@/ato
 import { sourcesAtom } from "@/atoms/sources"
 import { skillsAtom } from "@/atoms/skills"
 import { panelStackAtom, panelCountAtom, focusedPanelIdAtom, focusedSessionIdAtom, focusNextPanelAtom, focusPrevPanelAtom, parseSessionIdFromRoute } from "@/atoms/panel-stack"
+import { shouldSuppressNavigatorForNavigation } from "./navigation-layout-policy"
 import { type SessionStatusId, type SessionStatus, statusConfigsToSessionStatuses } from "@/config/session-status-config"
 import { useStatuses } from "@/hooks/useStatuses"
 import { useLabels } from "@/hooks/useLabels"
@@ -660,6 +661,10 @@ function AppShellContent({
   // UNIFIED NAVIGATION STATE - single source of truth from NavigationContext
   // Derived from focused panel's route — all panels are peers
   const navState = useNavigationState()
+  const isNavigatorSuppressedForRoute = shouldSuppressNavigatorForNavigation(navState)
+  const effectiveNavigatorWidth = isNavigatorSuppressedForRoute || effectiveSidebarAndNavigatorHidden
+    ? 0
+    : sessionListWidth
 
   const store = useStore()
   const panelStack = useAtomValue(panelStackAtom)
@@ -3374,7 +3379,7 @@ function AppShellContent({
                     <span className="font-medium">Rox Design</span>
                   </div>
                   <p className="leading-6">
-                    Встроенная поверхность Open Design запускается в правой области ROX и обновляется вместе с приложением.
+                    Rox Design запускается в рабочей области ROX и обновляется вместе с приложением.
                   </p>
                 </div>
               </div>
@@ -3440,7 +3445,7 @@ function AppShellContent({
             )}
             </div>
           }
-          navigatorWidth={isAutoCompact ? sessionListWidth : (effectiveSidebarAndNavigatorHidden ? 0 : sessionListWidth)}
+          navigatorWidth={isAutoCompact && !isNavigatorSuppressedForRoute ? sessionListWidth : effectiveNavigatorWidth}
           isSidebarAndNavigatorHidden={effectiveSidebarAndNavigatorHidden}
           isRightSidebarVisible={isArtifactPanelVisible && !isAutoCompact}
           isCompact={isAutoCompact}
@@ -3495,7 +3500,7 @@ function AppShellContent({
         )}
 
         {/* Session List Resize Handle (absolute, hidden in focused mode) */}
-        {!effectiveSidebarAndNavigatorHidden && (
+        {!effectiveSidebarAndNavigatorHidden && !isNavigatorSuppressedForRoute && (
         <div
           ref={sessionListHandleRef}
           onMouseDown={(e) => { e.preventDefault(); setIsResizing('session-list') }}

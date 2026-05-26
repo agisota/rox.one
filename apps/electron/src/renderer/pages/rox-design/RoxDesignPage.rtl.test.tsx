@@ -79,6 +79,8 @@ describe('RoxDesignPage', () => {
 
     expect(await screen.findByTestId('rox-design-native-host')).toBeTruthy()
     expect(screen.queryByTitle('Rox Design')).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Rox Design' })).toBeNull()
+    expect(screen.queryByText(/Встроенн/)).toBeNull()
     await waitFor(() => expect(show).toHaveBeenCalledTimes(1))
     const firstShowCall = show.mock.calls[0] as unknown[] | undefined
     expect(firstShowCall?.[0]).toMatchObject({

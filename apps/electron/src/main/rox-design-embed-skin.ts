@@ -1,8 +1,8 @@
 import type { RoxDesignRectangle } from "./rox-design-view-policy";
 
-const ROX_DESIGN_SMALL_SURFACE_ZOOM = 0.6;
-const ROX_DESIGN_MEDIUM_SURFACE_ZOOM = 0.64;
-const ROX_DESIGN_WIDE_SURFACE_ZOOM = 0.68;
+const ROX_DESIGN_SMALL_SURFACE_ZOOM = 0.84;
+const ROX_DESIGN_MEDIUM_SURFACE_ZOOM = 0.9;
+const ROX_DESIGN_WIDE_SURFACE_ZOOM = 0.96;
 
 export function resolveRoxDesignContentZoomFactor(
   bounds: Pick<RoxDesignRectangle, "width">,
@@ -69,10 +69,7 @@ html[data-theme='dark'] {
 html[data-rox-embedded='true'],
 html[data-rox-embedded='true'] body {
   min-width: 0 !important;
-  background:
-    radial-gradient(circle at 12% -12%, rgba(34, 211, 238, 0.13), transparent 28rem),
-    radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.11), transparent 26rem),
-    linear-gradient(180deg, #060912 0%, #03050b 100%) !important;
+  background: transparent !important;
 }
 
 html[data-rox-embedded='true'] body {
@@ -510,7 +507,7 @@ html[data-rox-embedded='true'] .privacy-consent-banner {
 
 
 
-/* ROX native embed mode: Open Design runs inside the ROX shell, so its own
+/* ROX native embed mode: Rox Design runs inside the ROX shell, so its own
    desktop chrome and non-essential side rails are removed. This keeps the
    managed Electron view feeling like a native ROX panel instead of a nested app. */
 html[data-rox-embedded='true'] .app {
@@ -532,6 +529,13 @@ html[data-rox-embedded='true'] .app-chrome-header {
   display: none !important;
 }
 
+html[data-rox-embedded='true'] .newproj-tabs-shell,
+html[data-rox-embedded='true'] .entry-header-tabs-row,
+html[data-rox-embedded='true'] .ws-tabs-shell,
+html[data-rox-embedded='true'] .ws-tabs-bar {
+  display: none !important;
+}
+
 html[data-rox-embedded='true'] .entry-shell,
 html[data-rox-embedded='true'] .entry,
 html[data-rox-embedded='true'] .split,
@@ -545,6 +549,49 @@ html[data-rox-embedded='true'] .workspace {
 html[data-rox-embedded='true'] .entry {
   grid-template-columns: minmax(292px, 324px) minmax(0, 1fr) !important;
   border-radius: 0 !important;
+}
+
+html[data-rox-embedded='true'] .rox-design-mode-menu {
+  position: fixed !important;
+  left: 14px !important;
+  bottom: 14px !important;
+  z-index: 2147483646 !important;
+  display: flex !important;
+  max-width: calc(100vw - 28px) !important;
+  gap: 6px !important;
+  padding: 6px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  background: rgba(5, 9, 16, 0.84) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 18px 44px rgba(0, 0, 0, 0.36) !important;
+  backdrop-filter: blur(18px) saturate(130%) !important;
+}
+
+html[data-rox-embedded='true'] .rox-design-mode-menu__button {
+  min-height: 28px !important;
+  padding: 6px 10px !important;
+  border: 1px solid transparent !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  font-family: var(--sans) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  box-shadow: none !important;
+}
+
+html[data-rox-embedded='true'] .rox-design-mode-menu__button:hover {
+  color: var(--text) !important;
+  background: rgba(15, 23, 42, 0.9) !important;
+  border-color: var(--border) !important;
+}
+
+html[data-rox-embedded='true'] .rox-design-mode-menu__button[aria-current='page'] {
+  color: var(--text-strong) !important;
+  background: rgba(34, 211, 238, 0.12) !important;
+  border-color: rgba(34, 211, 238, 0.36) !important;
 }
 
 html[data-rox-embedded='true'] .entry-side {
@@ -640,9 +687,7 @@ html[data-rox-embedded='true'] .pet-bubble {
 }
 
 html[data-rox-embedded='true'] .entry-main {
-  background:
-    radial-gradient(circle at 18% -18%, rgba(34, 211, 238, 0.08), transparent 26rem),
-    linear-gradient(180deg, rgba(5, 8, 14, 0.94), rgba(3, 5, 11, 0.98)) !important;
+  background: linear-gradient(180deg, rgba(5, 8, 14, 0.9), rgba(3, 5, 11, 0.96)) !important;
 }
 
 html[data-rox-embedded='true'] .entry-header {
@@ -810,8 +855,60 @@ export function buildRoxDesignEmbedBootstrapScript(zoomFactor: number): string {
   const brandPattern = /Open\\s+Design/g;
   const brandAttributes = ['aria-label', 'aria-description', 'title', 'alt', 'placeholder', 'value'];
   const ignoredTextParents = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA']);
+  const labelMapEntries = ${JSON.stringify([
+    ["Open Design", "Rox Design"],
+    ["Prototype", "Прототип"],
+    ["Live artifact", "Артефакт"],
+    ["Slide deck", "Презентация"],
+    ["From templates", "Из шаблона"],
+    ["Your designs", "Мои дизайны"],
+    ["Templates", "Шаблоны"],
+    ["Design systems", "Дизайн-системы"],
+    ["Image templates", "Шаблоны изображений"],
+    ["Video templates", "Шаблоны видео"],
+    ["New prototype", "Новый прототип"],
+    ["Project name", "Название проекта"],
+    ["Design system", "Дизайн-система"],
+    ["Target platforms", "Платформа"],
+    ["Responsive web", "Адаптивный веб"],
+    ["Companion surfaces", "Дополнительные поверхности"],
+    ["Include landing page", "Добавить лендинг"],
+    ["Include OS widgets", "Добавить виджеты ROX"],
+    ["Fidelity", "Детализация"],
+    ["Wireframe", "Каркас"],
+    ["High fidelity", "Высокая детализация"],
+    ["Create", "Создать"],
+    ["Import Claude Design ZIP", "Импортировать ZIP Rox Design"],
+    ["Open folder", "Открыть папку"],
+    ["Search...", "Поиск..."],
+    ["Select", "Выбрать"],
+    ["Only you can see your project by default.", "По умолчанию проект видите только вы."],
+    ["Failed", "Ошибка"],
+    ["Default", "По умолчанию"],
+    ["Media", "Медиа"],
+    ["Slide", "Слайд"],
+    ["freeform", "свободный формат"],
+    ["Project", "Проект"],
+  ])};
+  const modeMenuItems = ${JSON.stringify([
+    { key: "prototype", label: "Прототип", needles: ["Prototype", "Прототип"] },
+    { key: "artifact", label: "Артефакт", needles: ["Live artifact", "Артефакт"] },
+    { key: "slides", label: "Презентация", needles: ["Slide deck", "Презентация"] },
+    { key: "templates", label: "Шаблоны", needles: ["From templates", "Templates", "Из шаблона", "Шаблоны"] },
+    { key: "designs", label: "Мои дизайны", needles: ["Your designs", "Мои дизайны"] },
+    { key: "systems", label: "Дизайн-системы", needles: ["Design systems", "Дизайн-системы"] },
+    { key: "images", label: "Изображения", needles: ["Image templates", "Шаблоны изображений"] },
+    { key: "video", label: "Видео", needles: ["Video templates", "Шаблоны видео"] },
+  ])};
 
   const replaceBrandText = (value) => typeof value === 'string' ? value.replace(brandPattern, 'Rox Design') : value;
+  const replaceAllLiteral = (value, from, to) => String(value).split(from).join(to);
+  const replaceEmbeddedText = (value) => {
+    if (typeof value !== 'string') return value;
+    let next = replaceBrandText(value);
+    for (const [from, to] of labelMapEntries) next = replaceAllLiteral(next, from, to);
+    return next;
+  };
 
   const embeddedPrivacyConfig = () => ({
     installationId: null,
@@ -894,7 +991,7 @@ export function buildRoxDesignEmbedBootstrapScript(zoomFactor: number): string {
     for (const attr of brandAttributes) {
       if (!element.hasAttribute(attr)) continue;
       const current = element.getAttribute(attr);
-      const next = replaceBrandText(current);
+      const next = replaceEmbeddedText(current);
       if (next !== current) element.setAttribute(attr, next);
     }
   };
@@ -911,7 +1008,7 @@ export function buildRoxDesignEmbedBootstrapScript(zoomFactor: number): string {
     while (walker.nextNode()) nodes.push(walker.currentNode);
     for (const node of nodes) {
       const current = node.nodeValue || '';
-      const next = replaceBrandText(current);
+      const next = replaceEmbeddedText(current);
       if (next !== current) node.nodeValue = next;
     }
   };
@@ -924,8 +1021,73 @@ export function buildRoxDesignEmbedBootstrapScript(zoomFactor: number): string {
     if (document.body) relabelAttributes(document.body);
     document.querySelectorAll?.('*').forEach(relabelAttributes);
     document.querySelectorAll?.('.app-chrome-name,.topbar .title,[data-brand],[data-testid*=brand i]').forEach((element) => {
-      if ((element.textContent || '').match(brandPattern)) element.textContent = replaceBrandText(element.textContent || '');
+      const current = element.textContent || '';
+      const next = replaceEmbeddedText(current);
+      if (next !== current) element.textContent = next;
     });
+  };
+
+  const readElementLabel = (element) => {
+    if (!element) return '';
+    return [
+      element.textContent,
+      element.getAttribute?.('aria-label'),
+      element.getAttribute?.('title'),
+      element.getAttribute?.('data-value'),
+    ].filter(Boolean).join(' ').trim();
+  };
+
+  const findModeTarget = (needles) => {
+    const candidates = Array.from(document.querySelectorAll?.(
+      '.newproj-tab,.entry-tab,.ws-tab,[role="tab"],button'
+    ) || []);
+    return candidates.find((candidate) => {
+      if (candidate.closest?.('.rox-design-mode-menu')) return false;
+      const label = readElementLabel(candidate);
+      return needles.some((needle) => label.includes(needle));
+    }) || null;
+  };
+
+  const isModeTargetActive = (target) => {
+    if (!target) return false;
+    return target.classList?.contains('active')
+      || target.getAttribute?.('aria-selected') === 'true'
+      || target.getAttribute?.('data-state') === 'active';
+  };
+
+  const applyModeMenu = () => {
+    const body = document.body;
+    if (!body) return;
+
+    let menu = document.querySelector('.rox-design-mode-menu');
+    if (!menu) {
+      menu = document.createElement('nav');
+      menu.className = 'rox-design-mode-menu';
+      menu.setAttribute('aria-label', 'Режимы Rox Design');
+      body.appendChild(menu);
+    }
+
+    for (const item of modeMenuItems) {
+      let button = menu.querySelector('[data-mode-key="' + item.key + '"]');
+      if (!button) {
+        button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'rox-design-mode-menu__button';
+        button.dataset.modeKey = item.key;
+        button.addEventListener('click', () => {
+          const target = findModeTarget(item.needles);
+          if (target && typeof target.click === 'function') target.click();
+        });
+        menu.appendChild(button);
+      }
+      if (button.textContent !== item.label) button.textContent = item.label;
+      const target = findModeTarget(item.needles);
+      if (isModeTargetActive(target)) {
+        button.setAttribute('aria-current', 'page');
+      } else {
+        button.removeAttribute('aria-current');
+      }
+    }
   };
 
   const applyAll = () => {
@@ -933,6 +1095,7 @@ export function buildRoxDesignEmbedBootstrapScript(zoomFactor: number): string {
     syncEmbeddedAppConfig();
     applyTokens();
     relabel();
+    applyModeMenu();
     dismissPrivacyConsent();
   };
 
